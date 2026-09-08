@@ -151,14 +151,13 @@
     const badgeLat = document.getElementById('badgeLat');
     const badgeLng = document.getElementById('badgeLng');
 
-    // 1. INISIALISASI PETA DENGAN TILE BERSUASANA BAHASA INGGRIS (CartoDB Voyager)
+    // 1. INISIALISASI PETA DENGAN TILE BAHASA INGGRIS & GRATIS (Esri World Topographic Map)
     let map = L.map('map').setView([0, 0], 2);
 
-    // Menggunakan CartoDB Voyager agar tulisan Arab pada Pulau Socotra / Timur Tengah berubah menjadi "Socotra / Yemen" dalam abjad Latin
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // Esri World Topo Map (Bebas API Key & Teks Internasional Bahasa Inggris)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '© OpenStreetMap, © CARTO'
+      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo, MapmyIndia, &copy; OpenStreetMap contributors, and the GIS User Community'
     }).addTo(map);
 
     let currentMarker = L.marker([0, 0]).addTo(map);
@@ -242,7 +241,7 @@
       const lng = parseFloat(lngValStr);
 
       if (!isNaN(lat) && !isNaN(lng)) {
-        map.flyTo([lat, lng], 13, { duration: 1.2 }); // Zoom pas untuk melihat daratan & pulau
+        map.flyTo([lat, lng], 13, { duration: 1.2 });
         currentMarker.setLatLng([lat, lng]);
         document.getElementById('activeMapCoords').textContent = `Lat: ${lat}, Long: ${lng}`;
       }

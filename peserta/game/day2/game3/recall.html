@@ -85,7 +85,7 @@
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    const IMAGE_BASE_PATH = '/assets/images/Recall/';
+    const IMAGE_BASE_PATH = 'https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/forsaken_city/';
 
     let userSession = null;
     let masterSequence = [];
@@ -104,7 +104,7 @@
 
     async function fetchMasterData() {
       const { data, error } = await supabaseClient
-        .from('recall_master_sequence')
+        .from('system_forsaken_city_recall')
         .select('*')
         .eq('id', 1)
         .single();

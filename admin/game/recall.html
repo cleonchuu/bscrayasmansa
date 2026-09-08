@@ -123,7 +123,7 @@
       masterFilenames.sort(() => Math.random() - 0.5);
 
       const { error } = await supabaseClient
-        .from('recall_master_sequence')
+        .from('system_forsaken_city_recall')
         .upsert({ 
           id: 1, 
           sequence_filenames: masterFilenames, 
@@ -141,7 +141,7 @@
     // 3. TAMPILKAN 30 GAMBAR & MULAI TIMER 30 MENIT
     async function startMemorySlideshow() {
       if (masterFilenames.length === 0) {
-        const { data } = await supabaseClient.from('recall_master_sequence').select('sequence_filenames').eq('id', 1).single();
+        const { data } = await supabaseClient.from('system_forsaken_city_recall').select('sequence_filenames').eq('id', 1).single();
         if (data && data.sequence_filenames) {
           masterFilenames = data.sequence_filenames;
         } else {
@@ -161,7 +161,7 @@
         const wrapper = document.createElement('div');
         wrapper.className = "relative group rounded-xl overflow-hidden border border-amber-500/30 bg-slate-800 shadow-md";
         wrapper.innerHTML = `
-          <img src="/assets/images/Recall/${filename}" class="w-full h-24 sm:h-28 object-cover"/>
+          <img src="${supabaseUrl}/storage/v1/object/public/forsaken_city/${filename}" class="w-full h-24 sm:h-28 object-cover"/>
           <span class="absolute top-1 left-1 bg-slate-950/80 text-amber-400 font-black text-xs px-2 py-0.5 rounded-md border border-amber-500/20">
             #${idx + 1}
           </span>

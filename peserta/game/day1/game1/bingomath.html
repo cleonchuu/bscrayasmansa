@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bingo Math - Peserta</title>
+  <title>Arithmatic Bingo - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -27,11 +27,14 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4">
 
+  <!-- AUDIO BEL PLAYER (SUPABASE BUCKET) -->
+  <audio id="bellSound" src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3" preload="auto"></audio>
+
   <!-- Header Info -->
   <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
     <div>
       <p id="playerName" class="text-xs text-gray-400">Loading...</p>
-      <h1 class="text-lg font-black text-amber-400">BINGO MATH</h1>
+      <h1 class="text-lg font-black text-amber-400">ARITHMATIC BINGO</h1>
     </div>
     <div class="text-right">
       <p class="text-[10px] text-gray-400 uppercase tracking-widest">Total Skor</p>
@@ -43,7 +46,7 @@
   <div class="my-4 bg-gradient-to-r from-amber-500/20 via-slate-800 to-indigo-500/20 p-4 rounded-xl border border-amber-500/30 text-center relative overflow-hidden">
     <div class="flex justify-between items-center mb-2">
       <span id="questionNum" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Soal #-</span>
-      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400"><i class="fas fa-clock mr-1"></i>01:00</span>
+      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400"><i class="fas fa-clock mr-1"></i>00:20</span>
     </div>
     <h2 id="questionText" class="text-2xl font-extrabold text-white my-2">Menunggu Admin...</h2>
     <p id="statusMsg" class="text-xs text-gray-400">Jawab sebelum waktu habis!</p>
@@ -68,8 +71,8 @@
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     let currentBoardIndex = 0;
-    let boards = []; // 5 Board x 25 Angka = 125 Angka Unik (1 - 150)
-    let boardStates = []; // Track status per sel: { value, status: 'default'|'correct'|'wrong'|'expired', row, col }
+    let boards = []; // 5 Board x 25 Angka = 125 Angka
+    let boardStates = []; // Status per sel: { val, status: 'default'|'correct'|'wrong', row, col }
     let lineBonusClaimed = [ [], [], [], [], [] ]; // Track baris/kolom yang sudah dapat bonus 5 poin
     
     let activeAnswer = null;
@@ -79,36 +82,47 @@
     let userSession = null;
     let isQuestionActive = false;
 
-// Generasi 125 angka (Rentang 1-99 dengan 26 angka berulang acak)
-function generateBingoBoards() {
-  boards = [];
-  boardStates = [];
-  lineBonusClaimed = [ [], [], [], [], [] ];
-
-  // 1. Buat pool angka utama 1 sampai 99
-  let primaryPool = Array.from({length: 99}, (_, i) => i + 1);
-  
-  // 2. Ambil 26 angka acak dari pool untuk diulang (total = 99 + 26 = 125 angka)
-  let duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
-  
-  // 3. Gabungkan dan acak total 125 angka
-  let finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
-
-  // 4. Distribusikan ke 5 Papan Bingo (masing-masing 25 angka)
-  for (let b = 0; b < 5; b++) {
-    let board = [];
-    let stateBoard = [];
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
-        let val = finalPool.pop();
-        board.push(val);
-        stateBoard.push({ val: val, status: 'default', row: r, col: c });
+    // FUNGSI BUNYI BEL
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) {
+        bell.currentTime = 0;
+        bell.play().catch(() => {
+          console.log("Autoplay audio diblokir browser sebelum ada interaksi pengguna.");
+        });
       }
     }
-    boards.push(board);
-    boardStates.push(stateBoard);
-  }
-}
+
+    // Generasi 125 angka (Rentang 1-99 dengan 26 angka berulang acak)
+    function generateBingoBoards() {
+      boards = [];
+      boardStates = [];
+      lineBonusClaimed = [ [], [], [], [], [] ];
+
+      // 1. Buat pool angka utama 1 sampai 99
+      let primaryPool = Array.from({length: 99}, (_, i) => i + 1);
+      
+      // 2. Ambil 26 angka acak dari pool untuk diulang (total = 99 + 26 = 125 angka)
+      let duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
+      
+      // 3. Gabungkan dan acak total 125 angka
+      let finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
+
+      // 4. Distribusikan ke 5 Papan Bingo (masing-masing 25 angka)
+      for (let b = 0; b < 5; b++) {
+        let board = [];
+        let stateBoard = [];
+        for (let r = 0; r < 5; r++) {
+          for (let c = 0; c < 5; c++) {
+            let val = finalPool.pop();
+            board.push(val);
+            stateBoard.push({ val: val, status: 'default', row: r, col: c });
+          }
+        }
+        boards.push(board);
+        boardStates.push(stateBoard);
+      }
+    }
 
     function initUser() {
       const sess = localStorage.getItem('userSession');
@@ -117,32 +131,31 @@ function generateBingoBoards() {
       document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
     }
 
- // Render angka di tombol bingo dengan format 2 digit (01 - 99)
-function renderBoard(boardIdx) {
-  const container = document.getElementById('gridContainer');
-  container.innerHTML = '';
-  const state = boardStates[boardIdx];
+    // Render angka di tombol bingo dengan format 2 digit (01 - 99)
+    function renderBoard(boardIdx) {
+      const container = document.getElementById('gridContainer');
+      container.innerHTML = '';
+      const state = boardStates[boardIdx];
 
-  state.forEach((cell, idx) => {
-    const btn = document.createElement('button');
-    btn.className = `bingo-cell text-sm transition-all duration-200 `;
-    
-    if (cell.status === 'default') {
-      btn.className += 'bg-slate-700 text-white hover:bg-slate-600 active:scale-95';
-    } else if (cell.status === 'correct') {
-      btn.className += 'bg-emerald-500 text-slate-900 font-extrabold shadow-lg shadow-emerald-500/50';
-    } else if (cell.status === 'wrong') {
-      btn.className += 'bg-rose-600 text-white line-through opacity-60';
+      state.forEach((cell, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `bingo-cell text-sm transition-all duration-200 `;
+        
+        if (cell.status === 'default') {
+          btn.className += 'bg-slate-700 text-white hover:bg-slate-600 active:scale-95';
+        } else if (cell.status === 'correct') {
+          btn.className += 'bg-emerald-500 text-slate-900 font-extrabold shadow-lg shadow-emerald-500/50';
+        } else if (cell.status === 'wrong') {
+          btn.className += 'bg-rose-600 text-white line-through opacity-60';
+        }
+
+        const formattedVal = String(cell.val).padStart(2, '0');
+        btn.textContent = formattedVal;
+        
+        btn.onclick = () => handleCellClick(boardIdx, idx);
+        container.appendChild(btn);
+      });
     }
-
-    // Ubah angka single digit jadi 2 digit (contoh: 5 jadi '05')
-    const formattedVal = String(cell.val).padStart(2, '0');
-    btn.textContent = formattedVal;
-    
-    btn.onclick = () => handleCellClick(boardIdx, idx);
-    container.appendChild(btn);
-  });
-}
 
     function switchBoard(idx) {
       currentBoardIndex = idx;
@@ -219,7 +232,7 @@ function renderBoard(boardIdx) {
     function listenToAdmin() {
       supabaseClient
         .channel('realtime_bingo')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bingo_active_question' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_arithmatic_bingo' }, payload => {
           const data = payload.new;
           if (data && data.is_active) {
             setupNewQuestion(data);
@@ -237,7 +250,10 @@ function renderBoard(boardIdx) {
       document.getElementById('questionText').textContent = data.question_text;
       document.getElementById('statusMsg').textContent = 'Cari jawaban di 5 papanmu!';
 
-      // Jalankan hitung mundur 60 detik versi waktu lokal browser/HP
+      // Putar Bunyi Bel saat Soal Baru Muncul
+      playBell();
+
+      // Jalankan hitung mundur 20 detik versi waktu lokal browser/HP
       startTimer(20);
     }
 
