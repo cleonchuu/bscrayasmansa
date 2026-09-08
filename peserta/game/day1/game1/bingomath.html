@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingo Math - Peserta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .bingo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .bingo-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border-radius: 8px;
+      user-select: none;
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4">
+
+  <!-- Header Info -->
+  <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
+    <div>
+      <p id="playerName" class="text-xs text-gray-400">Loading...</p>
+      <h1 class="text-lg font-black text-amber-400">BINGO MATH</h1>
+    </div>
+    <div class="text-right">
+      <p class="text-[10px] text-gray-400 uppercase tracking-widest">Total Skor</p>
+      <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
+    </div>
+  </div>
+
+  <!-- Soal & Timer Section -->
+  <div class="my-4 bg-gradient-to-r from-amber-500/20 via-slate-800 to-indigo-500/20 p-4 rounded-xl border border-amber-500/30 text-center relative overflow-hidden">
+    <div class="flex justify-between items-center mb-2">
+      <span id="questionNum" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Soal #-</span>
+      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400"><i class="fas fa-clock mr-1"></i>01:00</span>
+    </div>
+    <h2 id="questionText" class="text-2xl font-extrabold text-white my-2">Menunggu Admin...</h2>
+    <p id="statusMsg" class="text-xs text-gray-400">Jawab sebelum waktu habis!</p>
+  </div>
+
+  <!-- Tab Selector 5 Board Bingo -->
+  <div class="flex justify-between gap-1 mb-2">
+    <button onclick="switchBoard(0)" id="tab-0" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900">Papan 1</button>
+    <button onclick="switchBoard(1)" id="tab-1" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 2</button>
+    <button onclick="switchBoard(2)" id="tab-2" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 3</button>
+    <button onclick="switchBoard(3)" id="tab-3" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 4</button>
+    <button onclick="switchBoard(4)" id="tab-4" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 5</button>
+  </div>
+
+  <!-- Grid Bingo (5x5) -->
+  <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl flex-1">
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let currentBoardIndex = 0;
+    let boards = []; // 5 Board x 25 Angka = 125 Angka Unik (1 - 150)
+    let boardStates = []; // Track status per sel: { value, status: 'default'|'correct'|'wrong'|'expired', row, col }
+    let lineBonusClaimed = [ [], [], [], [], [] ]; // Track baris/kolom yang sudah dapat bonus 5 poin
+    
+    let activeAnswer = null;
+    let activeQuestionNum = 0;
+    let timerInterval = null;
+    let scoreAccumulated = 0;
+    let userSession = null;
+    let isQuestionActive = false;
+
+// Generasi 125 angka (Rentang 1-99 dengan 26 angka berulang acak)
+function generateBingoBoards() {
+  boards = [];
+  boardStates = [];
+  lineBonusClaimed = [ [], [], [], [], [] ];
+
+  // 1. Buat pool angka utama 1 sampai 99
+  let primaryPool = Array.from({length: 99}, (_, i) => i + 1);
+  
+  // 2. Ambil 26 angka acak dari pool untuk diulang (total = 99 + 26 = 125 angka)
+  let duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
+  
+  // 3. Gabungkan dan acak total 125 angka
+  let finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
+
+  // 4. Distribusikan ke 5 Papan Bingo (masing-masing 25 angka)
+  for (let b = 0; b < 5; b++) {
+    let board = [];
+    let stateBoard = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        let val = finalPool.pop();
+        board.push(val);
+        stateBoard.push({ val: val, status: 'default', row: r, col: c });
+      }
+    }
+    boards.push(board);
+    boardStates.push(stateBoard);
+  }
+}
+
+    function initUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) { window.location.href = '/login.html'; return; }
+      userSession = JSON.parse(sess);
+      document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
+    }
+
+ // Render angka di tombol bingo dengan format 2 digit (01 - 99)
+function renderBoard(boardIdx) {
+  const container = document.getElementById('gridContainer');
+  container.innerHTML = '';
+  const state = boardStates[boardIdx];
+
+  state.forEach((cell, idx) => {
+    const btn = document.createElement('button');
+    btn.className = `bingo-cell text-sm transition-all duration-200 `;
+    
+    if (cell.status === 'default') {
+      btn.className += 'bg-slate-700 text-white hover:bg-slate-600 active:scale-95';
+    } else if (cell.status === 'correct') {
+      btn.className += 'bg-emerald-500 text-slate-900 font-extrabold shadow-lg shadow-emerald-500/50';
+    } else if (cell.status === 'wrong') {
+      btn.className += 'bg-rose-600 text-white line-through opacity-60';
+    }
+
+    // Ubah angka single digit jadi 2 digit (contoh: 5 jadi '05')
+    const formattedVal = String(cell.val).padStart(2, '0');
+    btn.textContent = formattedVal;
+    
+    btn.onclick = () => handleCellClick(boardIdx, idx);
+    container.appendChild(btn);
+  });
+}
+
+    function switchBoard(idx) {
+      currentBoardIndex = idx;
+      document.querySelectorAll('.board-tab').forEach((tab, i) => {
+        if (i === idx) {
+          tab.className = 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900';
+        } else {
+          tab.className = 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400';
+        }
+      });
+      renderBoard(idx);
+    }
+
+    async function handleCellClick(boardIdx, cellIdx) {
+      if (!isQuestionActive || activeAnswer === null) return;
+      const cell = boardStates[boardIdx][cellIdx];
+      if (cell.status !== 'default') return;
+
+      if (cell.val === activeAnswer) {
+        cell.status = 'correct';
+        await addPoints(1, 'Jawaban Benar (+1)');
+        isQuestionActive = false; // Mencegah klik ganda di nomor yang sama
+        checkBingoBonus(boardIdx);
+      } else {
+        cell.status = 'wrong';
+        await addPoints(-1, 'Salah Tekan (-1)');
+      }
+      renderBoard(currentBoardIndex);
+    }
+
+    // Deteksi Baris atau Kolom Penuh untuk Bonus 5 Poin
+    function checkBingoBonus(boardIdx) {
+      const state = boardStates[boardIdx];
+
+      // Check 5 Baris
+      for (let r = 0; r < 5; r++) {
+        const rowTag = `R-${r}`;
+        if (!lineBonusClaimed[boardIdx].includes(rowTag)) {
+          const rowCells = state.filter(c => c.row === r);
+          if (rowCells.every(c => c.status === 'correct')) {
+            lineBonusClaimed[boardIdx].push(rowTag);
+            addPoints(5, `BINGO Baris ${r+1} (+5)`);
+          }
+        }
+      }
+
+      // Check 5 Kolom
+      for (let c = 0; c < 5; c++) {
+        const colTag = `C-${c}`;
+        if (!lineBonusClaimed[boardIdx].includes(colTag)) {
+          const colCells = state.filter(cell => cell.col === c);
+          if (colCells.every(cell => cell.status === 'correct')) {
+            lineBonusClaimed[boardIdx].push(colTag);
+            addPoints(5, `BINGO Kolom ${c+1} (+5)`);
+          }
+        }
+      }
+    }
+
+    async function addPoints(pts, reason) {
+      scoreAccumulated += pts;
+      document.getElementById('totalScoreText').textContent = scoreAccumulated;
+      document.getElementById('statusMsg').textContent = reason;
+
+      // Simpan Poin Langsung ke Database game_scores (log)
+      await supabaseClient.from('game_scores').insert({
+        user_unique_id: userSession.unique_id,
+        game_name: 'Bingo Math',
+        score_obtained: pts
+      });
+    }
+
+    // Sinkronisasi Realtime dengan Admin
+    function listenToAdmin() {
+      supabaseClient
+        .channel('realtime_bingo')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bingo_active_question' }, payload => {
+          const data = payload.new;
+          if (data && data.is_active) {
+            setupNewQuestion(data);
+          }
+        })
+        .subscribe();
+    }
+
+    function setupNewQuestion(data) {
+      activeAnswer = data.correct_answer;
+      activeQuestionNum = data.question_number;
+      isQuestionActive = true;
+
+      document.getElementById('questionNum').textContent = `Soal #${data.question_number}`;
+      document.getElementById('questionText').textContent = data.question_text;
+      document.getElementById('statusMsg').textContent = 'Cari jawaban di 5 papanmu!';
+
+      // Jalankan hitung mundur 60 detik versi waktu lokal browser/HP
+      startTimer(20);
+    }
+
+    function startTimer(secondsLeft) {
+      clearInterval(timerInterval);
+
+      let timeLeft = secondsLeft;
+      updateTimerDisplay(timeLeft);
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay(timeLeft);
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          isQuestionActive = false;
+          document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
+          document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay(seconds) {
+      const secFormatted = seconds < 10 ? `0${seconds}` : seconds;
+      document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:${secFormatted}`;
+    }
+
+    // Init
+    initUser();
+    generateBingoBoards();
+    renderBoard(0);
+    listenToAdmin();
+  </script>
+</body>
+</html>

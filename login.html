@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Game Platform</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      background: #0f172a;
+    }
+
+    /* LANDING SCREEN */
+    #landingScreen {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      z-index: 10;
+    }
+
+    .play-container {
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .play-button {
+      font-size: clamp(4rem, 15vw, 10rem);
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+      letter-spacing: 8px;
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+
+    .play-subtitle {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: clamp(0.8rem, 1.2vw, 1.2rem);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 1rem;
+    }
+
+    /* MODAL LOGIN */
+    #loginModal {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 1rem;
+    }
+
+    #loginModal.active {
+      display: flex !important;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 420px;
+      width: 100%;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      font-size: 1.5rem;
+      color: rgba(255, 255, 255, 0.5);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .close-modal:hover { color: #ffffff; }
+    .modal-title { color: #ffffff; font-size: 1.5rem; font-weight: 700; text-align: center; }
+    .modal-subtitle { color: rgba(255, 255, 255, 0.5); font-size: 0.9rem; text-align: center; margin-bottom: 1.5rem; }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label { display: block; color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; margin-bottom: 0.4rem; }
+    .form-group input {
+      width: 100%; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; color: #ffffff; outline: none;
+    }
+    .form-group input:focus { border-color: #3b82f6; }
+
+    .login-btn {
+      width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white; border: none; border-radius: 0.75rem; font-weight: 600; cursor: pointer;
+    }
+
+    .error-message, .success-message {
+      font-size: 0.85rem; margin-top: 0.75rem; padding: 0.5rem; border-radius: 0.5rem; display: none;
+    }
+    .error-message { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .success-message { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+    .show { display: block !important; }
+  </style>
+</head>
+<body>
+
+  <!-- LANDING SCREEN -->
+  <div id="landingScreen">
+    <div class="play-container">
+      <div class="play-button">PLAY</div>
+      <div class="play-subtitle">Klik di mana saja untuk mulai</div>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL -->
+  <div id="loginModal">
+    <div class="modal-content">
+      <button class="close-modal" id="closeModal">✕</button>
+      <h2 class="modal-title">🔐 Masuk ke Akun</h2>
+      <p class="modal-subtitle">Masukkan ID dan PIN yang telah diberikan</p>
+
+      <form id="loginForm" autocomplete="off">
+        <div class="form-group">
+          <label for="loginId">ID Peserta / Admin</label>
+          <input type="text" id="loginId" placeholder="Contoh: SMP1-001 atau ADMIN-01" required />
+        </div>
+
+        <div class="form-group">
+          <label for="loginPin">PIN (4 digit)</label>
+          <input type="password" id="loginPin" placeholder="••••" maxlength="4" required />
+        </div>
+
+        <div class="error-message" id="errorMessage">
+          ⚠️ <span id="errorText">ID atau PIN salah.</span>
+        </div>
+
+        <div class="success-message" id="successMessage">
+          ✅ <span id="successText">Login berhasil!</span>
+        </div>
+
+        <button type="submit" class="login-btn" id="loginBtn">🚀 Masuk</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 1. KONEKSI SUPABASE
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // 2. ELEMEN DOM
+    const landingScreen = document.getElementById('landingScreen');
+    const loginModal = document.getElementById('loginModal');
+    const closeModal = document.getElementById('closeModal');
+    const loginForm = document.getElementById('loginForm');
+    const loginId = document.getElementById('loginId');
+    const loginPin = document.getElementById('loginPin');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const successMessage = document.getElementById('successMessage');
+    const successText = document.getElementById('successText');
+
+    // 3. FUNGSI KLIK MODAL
+    landingScreen.addEventListener('click', function() {
+      loginModal.classList.add('active');
+      setTimeout(() => loginId.focus(), 100);
+    });
+
+    closeModal.addEventListener('click', function(e) {
+      e.stopPropagation();
+      loginModal.classList.remove('active');
+    });
+
+    loginModal.addEventListener('click', function(e) {
+      if (e.target === loginModal) {
+        loginModal.classList.remove('active');
+      }
+    });
+
+    // 4. PROCESS LOGIN
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMessage.classList.remove('show');
+      successMessage.classList.remove('show');
+
+      if (!supabaseClient) {
+        errorText.textContent = '❌ Library Supabase tidak termuat.';
+        errorMessage.classList.add('show');
+        return;
+      }
+
+      const idInput = loginId.value.trim();
+      const pinInput = loginPin.value.trim();
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('unique_id', idInput)
+          .eq('pin', pinInput)
+          .maybeSingle();
+
+        if (error || !data) {
+          errorText.textContent = '❌ ID atau PIN salah. Silakan coba lagi.';
+          errorMessage.classList.add('show');
+          return;
+        }
+
+        // Simpan Session
+        localStorage.setItem('userSession', JSON.stringify({
+          unique_id: data.unique_id,
+          full_name: data.full_name,
+          role: data.role,
+          loggedIn: true
+        }));
+
+        successText.textContent = `✅ Selamat datang, ${data.full_name}!`;
+        successMessage.classList.add('show');
+
+  setTimeout(() => {
+    if (data.role === 'admin') {
+      window.location.href = './admin/dashboard.html';
+    } else {
+      // Pastikan jalurnya sesuai dengan struktur folder kamu
+      window.location.href = './peserta/gamelobby.html'; 
+    }
+  }, 1200);
+
+      } catch (err) {
+        errorText.textContent = '❌ Terjadi kesalahan server.';
+        errorMessage.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

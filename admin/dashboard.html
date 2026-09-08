@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Crypta Treasure Hunt</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Supabase CDN (UNPKG) -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOPBAR / HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-amber-500/20 text-amber-400 p-2 rounded-xl border border-amber-500/30 font-black text-xl">
+        👑
+      </div>
+      <div>
+        <h1 class="text-xl font-black text-amber-400 tracking-wide">ADMIN DASHBOARD</h1>
+        <p class="text-xs text-slate-400">Crypta Treasure Hunt • Supabase Realtime Engine</p>
+      </div>
+    </div>
+
+    <!-- HOST / GAME QUICK JOIN -->
+    <div class="flex items-center gap-3 bg-slate-800/80 p-2 rounded-2xl border border-slate-700">
+      <span class="text-xs font-semibold text-slate-300 ml-2">Host Access:</span>
+      <select id="gameSelect" class="bg-slate-900 text-amber-400 border border-slate-700 text-xs rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400">
+        <option value="./game/bingomath.html">Game 1: Bingo Math</option>
+        <option value="./game/mimicsudoku.html">Game 2: Mimic Sudoku</option>
+        <option value="game3.html">Game 3: Stage 3</option>
+        <option value="game4.html">Game 4: Stage 4</option>
+        <option value="game5.html">Game 5: Stage 5</option>
+        <option value="./game/recall.html">Game 6: Recall</option>
+        <option value="./game/treasurehunt.html">Game 7: Treasure Hunt</option>
+        <option value="game8.html">Game 8: Stage 8</option>
+        <option value="game9.html">Game 9: Stage 9</option>
+        <option value="./game/deathmatch.html">Deathmatch</option>
+      </select>
+      <button onclick="launchHostGame()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/10">
+        🚀 Join as Host
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 p-6 space-y-6">
+
+    <!-- STATS CARDS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-400 font-medium">Total Peserta</div>
+          <div class="text-2xl font-black text-amber-400 mt-1" id="statTotalPeserta">0</div>
+        </div>
+        <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">👥</div>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-400 font-medium">Total Sekolah</div>
+          <div class="text-2xl font-black text-emerald-400 mt-1" id="statTotalSekolah">0</div>
+        </div>
+        <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">🏫</div>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-400 font-medium">Rata-Rata Poin</div>
+          <div class="text-2xl font-black text-cyan-400 mt-1" id="statAvgPoin">0</div>
+        </div>
+        <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">📊</div>
+      </div>
+
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-slate-400 font-medium">Status Supabase</div>
+          <div class="text-xs font-bold text-emerald-400 mt-2 flex items-center gap-1.5" id="supabaseStatus">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
+          </div>
+        </div>
+        <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">⚡</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE SECTION: TOP 10 RANKING & RANKING SEKOLAH -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- TOP 10 PESERTA -->
+      <div class="lg:col-span-5 bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              🏆 Top 10 Peserta Tertinggi
+            </h2>
+            <span class="text-[10px] bg-amber-500/10 text-amber-400 px-2.5 py-1 rounded-full font-bold border border-amber-500/20">SUPABASE LIVE</span>
+          </div>
+
+          <div class="space-y-2 overflow-y-auto max-h-[360px] pr-1" id="top10Container">
+            <div class="text-xs text-slate-500 text-center py-6">Memuat data peserta...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RANKING SEKOLAH (RATA-RATA POIN) -->
+      <div class="lg:col-span-7 bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+              🏫 Ranking Sekolah (Rata-Rata Poin)
+            </h2>
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/20">AVERAGE SCORE</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-900 text-slate-400 uppercase font-mono text-[10px]">
+                <tr>
+                  <th class="p-3 rounded-l-xl">Rank</th>
+                  <th class="p-3">Nama Sekolah</th>
+                  <th class="p-3 text-center">Jumlah Peserta</th>
+                  <th class="p-3 text-center">Total Poin</th>
+                  <th class="p-3 text-right rounded-r-xl">Rata-Rata Poin</th>
+                </tr>
+              </thead>
+              <tbody id="schoolRankBody" class="divide-y divide-slate-700/50 font-medium">
+                <tr><td colspan="5" class="p-4 text-center text-slate-500">Memuat data sekolah...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM SECTION: TABEL RINGKAS PESERTA -->
+    <div class="bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+            📋 Daftar Akumulasi Poin Peserta
+          </h2>
+          <p class="text-xs text-slate-400">Data realtime dari akumulasi seluruh game pada tabel users</p>
+        </div>
+
+        <div class="w-full sm:w-64">
+          <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari ID / Nama / Sekolah..." class="w-full bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 placeholder-slate-500">
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300 border-collapse">
+          <thead class="bg-slate-900 text-slate-400 uppercase font-mono text-[10px]">
+            <tr>
+              <th class="p-3 border-b border-slate-700">Rank</th>
+              <th class="p-3 border-b border-slate-700">ID Peserta</th>
+              <th class="p-3 border-b border-slate-700">Nama Peserta</th>
+              <th class="p-3 border-b border-slate-700">Sekolah</th>
+              <th class="p-3 border-b border-slate-700 text-right text-amber-400 font-bold bg-slate-950/60">Total Poin</th>
+            </tr>
+          </thead>
+          <tbody id="participantMatrixBody" class="divide-y divide-slate-700/50 font-medium">
+            <tr><td colspan="5" class="p-4 text-center text-slate-500">Memuat data peserta...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. INISIALISASI SUPABASE CLIENT
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let globalParticipants = [];
+
+    // 2. AMBIL DATA USERS (DI-FILTER HANYA ROLE PESERTA)
+    async function fetchDashboardData() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('unique_id, full_name, school_name, total_points, role')
+          .eq('role', 'peserta') // Hanya tampilkan peserta, abaikan admin
+          .order('total_points', { ascending: false });
+
+        if (error) throw error;
+
+        globalParticipants = data.map(u => ({
+          id: u.unique_id || 'N/A',
+          name: u.full_name || u.unique_id || 'Anonim',
+          school: u.school_name || 'Tanpa Sekolah',
+          total: u.total_points || 0
+        }));
+
+        // Render UI
+        updateStats();
+        renderTop10();
+        renderSchoolRank();
+        renderSimpleUserTable();
+
+        // Status Ok
+        document.getElementById('supabaseStatus').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
+        `;
+        document.getElementById('supabaseStatus').className = "text-xs font-bold text-emerald-400 mt-2 flex items-center gap-1.5";
+
+      } catch (err) {
+        console.error("Error fetching users data:", err);
+        document.getElementById('supabaseStatus').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-red-500"></span> Error Load Data
+        `;
+        document.getElementById('supabaseStatus').className = "text-xs font-bold text-red-400 mt-2 flex items-center gap-1.5";
+      }
+    }
+
+    // 3. STATISTIK RINGKAS
+    function updateStats() {
+      const totalPeserta = globalParticipants.length;
+      const schoolsSet = new Set(globalParticipants.map(p => p.school));
+      const totalPoinAll = globalParticipants.reduce((sum, p) => sum + p.total, 0);
+      const avgPoin = totalPeserta > 0 ? Math.round(totalPoinAll / totalPeserta) : 0;
+
+      document.getElementById('statTotalPeserta').textContent = totalPeserta;
+      document.getElementById('statTotalSekolah').textContent = schoolsSet.size;
+      document.getElementById('statAvgPoin').textContent = avgPoin.toLocaleString();
+    }
+
+    // 4. RENDER TOP 10 PESERTA
+    function renderTop10() {
+      const container = document.getElementById('top10Container');
+      const top10 = globalParticipants.slice(0, 10);
+
+      if (top10.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Belum ada data peserta.</div>`;
+        return;
+      }
+      
+      container.innerHTML = top10.map((p, idx) => {
+        let badgeColor = "bg-slate-700 text-slate-300";
+        if (idx === 0) badgeColor = "bg-amber-400 text-slate-950 font-black";
+        else if (idx === 1) badgeColor = "bg-slate-300 text-slate-950 font-black";
+        else if (idx === 2) badgeColor = "bg-amber-700 text-amber-100 font-black";
+
+        return `
+          <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 p-2.5 rounded-2xl hover:border-slate-500 transition">
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs ${badgeColor}">
+                ${idx + 1}
+              </span>
+              <div>
+                <div class="font-bold text-xs text-slate-100">${p.name}</div>
+                <div class="text-[10px] text-slate-400">${p.school}</div>
+              </div>
+            </div>
+            <div class="font-mono font-bold text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl">
+              ${p.total} pts
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 5. RENDER RANKING SEKOLAH
+    function renderSchoolRank() {
+      const schoolMap = {};
+
+      globalParticipants.forEach(p => {
+        if (!schoolMap[p.school]) {
+          schoolMap[p.school] = { name: p.school, count: 0, totalPoin: 0 };
+        }
+        schoolMap[p.school].count += 1;
+        schoolMap[p.school].totalPoin += p.total;
+      });
+
+      const schools = Object.values(schoolMap).map(s => ({
+        ...s,
+        avg: Math.round(s.totalPoin / s.count)
+      })).sort((a, b) => b.avg - a.avg);
+
+      const tbody = document.getElementById('schoolRankBody');
+      if (schools.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Belum ada sekolah terdaftar.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = schools.map((s, idx) => `
+        <tr class="hover:bg-slate-700/30 transition">
+          <td class="p-3 font-mono font-bold text-slate-400">#${idx + 1}</td>
+          <td class="p-3 font-semibold text-slate-200">${s.name}</td>
+          <td class="p-3 text-center">${s.count} Siswa</td>
+          <td class="p-3 text-center font-mono text-slate-400">${s.totalPoin}</td>
+          <td class="p-3 text-right font-mono font-bold text-emerald-400">${s.avg} pts</td>
+        </tr>
+      `).join('');
+    }
+
+    // 6. RENDER TABEL UTAMA PESERTA
+    function renderSimpleUserTable() {
+      const tbody = document.getElementById('participantMatrixBody');
+      if (!tbody) return;
+
+      if (globalParticipants.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Belum ada data peserta.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = globalParticipants.map((p, idx) => `
+        <tr class="hover:bg-slate-700/30 transition participant-row">
+          <td class="p-3 font-mono text-slate-500">#${idx + 1}</td>
+          <td class="p-3 font-mono font-bold text-amber-400 search-id">${p.id}</td>
+          <td class="p-3 font-bold text-slate-100 search-name">${p.name}</td>
+          <td class="p-3 text-slate-400 text-[11px] search-school">${p.school}</td>
+          <td class="p-3 text-right font-mono font-black text-amber-400 text-sm bg-slate-950/50">${p.total} pts</td>
+        </tr>
+      `).join('');
+    }
+
+    // 7. REALTIME SUBSCRIPTION
+    function setupRealtimeSubscription() {
+      supabaseClient
+        .channel('public-users-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'users' },
+          () => {
+            fetchDashboardData();
+          }
+        )
+        .subscribe();
+    }
+
+    // 8. FITUR SEARCH & HOST
+    function filterTable() {
+      const input = document.getElementById('searchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('.participant-row');
+
+      rows.forEach(row => {
+        const id = row.querySelector('.search-id') ? row.querySelector('.search-id').textContent.toLowerCase() : '';
+        const name = row.querySelector('.search-name') ? row.querySelector('.search-name').textContent.toLowerCase() : '';
+        const school = row.querySelector('.search-school') ? row.querySelector('.search-school').textContent.toLowerCase() : '';
+        
+        if (id.includes(input) || name.includes(input) || school.includes(input)) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function launchHostGame() {
+      const selectedGame = document.getElementById('gameSelect').value;
+      window.open(selectedGame, '_blank');
+    }
+
+    // ON LOAD
+    window.onload = () => {
+      fetchDashboardData();
+      setupRealtimeSubscription();
+    };
+  </script>
+</body>
+</html>

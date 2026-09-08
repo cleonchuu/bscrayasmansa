@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Deathmatch Control Center</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body class="bg-[#0f172a] text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER ADMIN -->
+  <header class="bg-[#1e293b] border-b border-slate-700 px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <a href="../dashboard.html" class="text-slate-400 hover:text-white transition-colors p-2 rounded-lg bg-slate-800">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="text-xl font-black text-rose-500 tracking-wider flex items-center gap-2">
+          <i class="fas fa-crown"></i> ADMIN CONTROL CENTER
+        </h1>
+        <p class="text-xs text-slate-400">Mode Deathmatch &bull; Penentuan Seri (Math Rush)</p>
+      </div>
+    </div>
+
+    <!-- PILIHAN FILTER GAME & STATS -->
+    <div class="flex items-center gap-4">
+      <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+        <span class="text-xs text-slate-400 font-semibold">Game Selected:</span>
+        <select id="selectedGame" onchange="fetchParticipants()" class="bg-transparent text-rose-400 font-bold text-sm outline-none cursor-pointer">
+          <option value="Math Rush" class="bg-slate-800 text-white">Math Rush</option>
+        </select>
+      </div>
+
+      <div class="bg-rose-950/40 border border-rose-500/30 px-4 py-1.5 rounded-xl text-center">
+        <span class="text-[10px] text-rose-300 block font-bold uppercase leading-none">Total Terhubung</span>
+        <span id="totalConnected" class="text-lg font-black text-rose-400">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+
+    <!-- TOP ACTION BAR / GLOBAL CONTROLS -->
+    <div class="bg-[#1e293b] border border-slate-700/80 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+      <div>
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fas fa-[#f43f5e] fa-gamepad text-rose-400"></i> Sesi Pertandingan
+        </h2>
+        <p class="text-xs text-slate-400 mt-0.5">Kendalikan akses jalannya pertandingan untuk peserta yang sudah bersiap di lobby.</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Tombol Buka Kunci Semua -->
+        <button onclick="unlockAllParticipants()" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-emerald-950/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+          <i class="fas fa-lock-open"></i> BUKA KUNCI SEMUA PESERTA
+        </button>
+
+        <!-- Tombol Reset Sesi/Match -->
+        <button onclick="resetMatchSession()" class="bg-slate-800 hover:bg-rose-900/40 text-rose-400 border border-rose-500/30 px-4 py-2.5 rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+          <i class="fas fa-rotate-right"></i> Reset Sesi
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN GRID: DAFTAR PESERTA & LEADERBOARD -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LIST PESERTA REALTIME (2 KONTEN KIRI) -->
+      <div class="lg:col-span-2 bg-[#1e293b] border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-700">
+          <h3 class="font-black text-white text-base tracking-wide flex items-center gap-2">
+            <i class="fas fa-users text-rose-400"></i> Status & Kontrol Peserta
+          </h3>
+          <span id="realtimeIndicator" class="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Realtime Active
+          </span>
+        </div>
+
+        <!-- CONTAINER DAFTAR PESERTA -->
+        <div id="participantList" class="space-y-3 min-h-[250px] max-h-[500px] overflow-y-auto pr-1">
+          <!-- Loading State -->
+          <div class="text-center py-12 text-slate-500">
+            <i class="fas fa-spinner fa-spin text-3xl mb-3 text-rose-500"></i>
+            <p class="text-sm font-semibold">Memuat daftar peserta dari database...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOARD LEADERBOARD / SKOR AKHIR (1 KONTEN KANAN) -->
+      <div class="bg-[#1e293b] border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col">
+        <div class="pb-4 mb-4 border-b border-slate-700">
+          <h3 class="font-black text-white text-base tracking-wide flex items-center gap-2">
+            <i class="fas fa-trophy text-amber-400"></i> Klasemen Skor Live
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">Peringkat akan berubah otomatis saat peserta menjawab soal.</p>
+        </div>
+
+        <!-- CONTAINER LEADERBOARD -->
+        <div id="leaderboardList" class="space-y-2 flex-1 overflow-y-auto pr-1">
+          <p class="text-center text-slate-500 text-sm py-8">Belum ada data skor.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- SUPABASE & ADMIN DASHBOARD SCRIPT -->
+  <script>
+    // 1. CONFIG SUPABASE
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let participantsData = [];
+
+    // 2. INIT ENGINE
+    async function initAdminDashboard() {
+      await fetchParticipants();
+      subscribeRealtime();
+    }
+
+    // 3. FETCH DATA PESERTA DARI SUPABASE
+    async function fetchParticipants() {
+      const selectedGame = document.getElementById('selectedGame').value;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('deathmatch_participants')
+          .select('*')
+          .eq('game_name', selectedGame)
+          .order('score', { ascending: false });
+
+        if (error) throw error;
+
+        participantsData = data || [];
+        renderParticipantList();
+        renderLeaderboard();
+      } catch (err) {
+        console.error('Error fetching participants:', err);
+      }
+    }
+
+    // 4. RENDER LIST KONTROL PESERTA
+    function renderParticipantList() {
+      const container = document.getElementById('participantList');
+      document.getElementById('totalConnected').textContent = participantsData.length;
+
+      if (participantsData.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
+            <i class="fas fa-ghost text-4xl text-slate-600 mb-3"></i>
+            <p class="text-slate-400 text-sm font-semibold">Belum ada peserta yang masuk / menekan tombol SIAP.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = participantsData.map(p => {
+        let badgeStyle = "bg-slate-700 text-slate-300 border-slate-600";
+        let statusIcon = '<i class="fas fa-clock"></i>';
+
+        if (p.status === 'READY') {
+          badgeStyle = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse";
+          statusIcon = '<i class="fas fa-check-circle"></i>';
+        } else if (p.status === 'STARTED') {
+          badgeStyle = "bg-rose-500/20 text-rose-400 border-rose-500/30";
+          statusIcon = '<i class="fas fa-gamepad"></i>';
+        } else if (p.status === 'FINISHED') {
+          badgeStyle = "bg-blue-500/20 text-blue-400 border-blue-500/30";
+          statusIcon = '<i class="fas fa-flag-checkered"></i>';
+        }
+
+        const isUnlockDisabled = p.status === 'STARTED' || p.status === 'FINISHED';
+
+        return `
+          <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 p-4 rounded-xl transition-all">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center font-black text-rose-400 text-base">
+                ${p.full_name ? p.full_name.charAt(0).toUpperCase() : '?'}
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-sm">${p.full_name || 'Tanpa Nama'}</h4>
+                <p class="text-xs text-slate-400">${p.school_name || 'Instansi/Sekolah -'}</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border ${badgeStyle}">
+                ${statusIcon} ${p.status}
+              </span>
+
+              <button 
+                onclick="unlockGameForUser('${p.user_id}')" 
+                ${isUnlockDisabled ? 'disabled' : ''}
+                class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white flex items-center gap-1.5 transition-all ${
+                  isUnlockDisabled 
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
+                  : 'bg-rose-600 hover:bg-rose-500 active:scale-95 shadow-md shadow-rose-950/50'
+                }">
+                <i class="fas fa-key"></i> Buka Kunci
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 5. RENDER LEADERBOARD SKOR LIVE
+    function renderLeaderboard() {
+      const container = document.getElementById('leaderboardList');
+      const sorted = [...participantsData].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+      if (sorted.length === 0) {
+        container.innerHTML = `<p class="text-center text-slate-500 text-sm py-8">Belum ada skor tercatat.</p>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map((p, index) => {
+        let rankColor = "text-slate-400";
+        if (index === 0) rankColor = "text-amber-400";
+        if (index === 1) rankColor = "text-slate-300";
+        if (index === 2) rankColor = "text-amber-600";
+
+        return `
+          <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+            <div class="flex items-center gap-3">
+              <span class="font-black text-sm w-5 text-center ${rankColor}">#${index + 1}</span>
+              <span class="font-semibold text-xs text-slate-200 truncate max-w-[120px]">${p.full_name || 'Peserta'}</span>
+            </div>
+            <span class="font-mono font-black text-rose-400 text-sm">${p.score || 0} pts</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 6. ACTION: BUKA KUNCI SATU PESERTA
+    async function unlockGameForUser(userId) {
+      const selectedGame = document.getElementById('selectedGame').value;
+
+      try {
+        const { error } = await supabaseClient
+          .from('deathmatch_participants')
+          .update({ 
+            status: 'STARTED',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('game_name', selectedGame);
+
+        if (error) throw error;
+      } catch (err) {
+        alert('Gagal membuka kunci peserta: ' + err.message);
+      }
+    }
+
+    // 7. ACTION: BUKA KUNCI SEMUA PESERTA (SERENTAK)
+    async function unlockAllParticipants() {
+      const selectedGame = document.getElementById('selectedGame').value;
+
+      try {
+        const { error } = await supabaseClient
+          .from('deathmatch_participants')
+          .update({ 
+            status: 'STARTED',
+            updated_at: new Date().toISOString()
+          })
+          .eq('game_name', selectedGame)
+          .eq('status', 'READY');
+
+        if (error) throw error;
+        alert('Sukses! Semua peserta yang SIAP telah diizinkan memulai permainan.');
+      } catch (err) {
+        alert('Gagal membuka kunci masal: ' + err.message);
+      }
+    }
+
+    // 8. ACTION: RESET MATCH / SESI
+    async function resetMatchSession() {
+      if (!confirm('Apakah Anda yakin ingin mereset seluruh sesi untuk game ini? Status peserta akan dikembalikan ke awal.')) return;
+
+      const selectedGame = document.getElementById('selectedGame').value;
+
+      try {
+        const { error } = await supabaseClient
+          .from('deathmatch_participants')
+          .delete()
+          .eq('game_name', selectedGame);
+
+        if (error) throw error;
+        alert('Sesi pertandingan berhasil di-reset!');
+      } catch (err) {
+        alert('Gagal mereset sesi: ' + err.message);
+      }
+    }
+
+    // 9. LISTEN DENGAN REALTIME SUPABASE
+    function subscribeRealtime() {
+      supabaseClient
+        .channel('admin_deathmatch_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'deathmatch_participants' },
+          (payload) => {
+            console.log('Perubahan Realtime terdeteksi:', payload);
+            fetchParticipants(); // Refresh data otomatis begitu ada update dari peserta
+          }
+        )
+        .subscribe();
+    }
+
+    // RUN INIT
+    initAdminDashboard();
+  </script>
+</body>
+</html>

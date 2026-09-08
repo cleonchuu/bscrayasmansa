@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Forsaken City Recall</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-6 font-sans">
+
+  <!-- BANNER NOTIFIKASI REAL-TIME -->
+  <div id="finishBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-8 py-4 rounded-2xl shadow-2xl font-black text-xl animate-bounce flex items-center gap-3 border border-emerald-400">
+    <i class="fas fa-bell text-2xl"></i>
+    <span id="finishBannerText">Notifikasi Masuk!</span>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- HEADER & KONTROL FOLDER/SHUFFLE -->
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <span class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full font-bold">GAME 3 - DAY 2</span>
+        <h1 class="text-3xl font-black mt-2">Forsaken City Recall</h1>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <!-- Input Folder Hidden -->
+        <input type="file" id="folderInput" webkitdirectory directory multiple class="hidden" onchange="processFolderFiles(event)">
+        
+        <button onclick="document.getElementById('folderInput').click()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md">
+          <i class="fas fa-folder-open"></i> 1. Load Folder Gambar
+        </button>
+
+        <button onclick="confirmShuffle()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm shadow-md">
+          <i class="fas fa-random"></i> 2. Acak & Simpan Ke Supabase
+        </button>
+      </div>
+    </div>
+
+    <!-- KONTAINER MEMORY (TAMPILKAN 30 GAMBAR & TIMER 30 MENIT) -->
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-6">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+        <span id="sessionLabel" class="text-amber-400 font-bold bg-amber-500/10 px-4 py-1.5 rounded-full border border-amber-500/20 text-sm">
+          Mode Menghafal: Full 30 Gambar
+        </span>
+        <span id="timerDisplay" class="text-3xl font-mono font-black text-rose-400">
+          <i class="fas fa-clock mr-1"></i>30:00
+        </span>
+      </div>
+
+      <!-- GRID 30 GAMBAR -->
+      <div id="memoryGrid" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3 min-h-[350px]">
+        <p class="col-span-full text-slate-500 my-auto py-16">Pilih folder gambar terlebih dahulu, lalu klik "Mulai Waktu Menghafal".</p>
+      </div>
+
+      <button id="btnStartSlideshow" onclick="startMemorySlideshow()" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-8 py-3 rounded-xl transition-all text-lg shadow-lg shadow-emerald-600/20">
+        <i class="fas fa-play mr-2"></i> Mulai Waktu Menghafal (30 Menit)
+      </button>
+    </div>
+
+    <!-- GAP PENANDA KERJAKAN -->
+    <div class="py-12 text-center border-y border-dashed border-slate-800">
+      <h2 class="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 tracking-wider">
+        SELAMAT MENGERJAKAN
+      </h2>
+      <p class="text-slate-500 text-sm mt-2">Buka tab peserta dan masukkan urutan gambar yang benar (6 Sesi x 5 Gambar)!</p>
+    </div>
+
+    <!-- TAHAP PUBLIKASI JUARA -->
+    <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-2xl font-black text-amber-400 flex items-center gap-2">
+            <i class="fas fa-award"></i> Publikasi Juara Eliminasi
+          </h3>
+          <p id="stageLabel" class="text-xs text-slate-400 mt-1">Tahap Saat Ini: Belum Dimulai</p>
+        </div>
+        <button onclick="nextRevealStage()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-xl transition-all shadow-md">
+          Langkah Berikutnya <i class="fas fa-arrow-right ml-2"></i>
+        </button>
+      </div>
+
+      <div id="qualifierContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="col-span-full text-center text-slate-500 py-8">Tekan tombol "Langkah Berikutnya" untuk menyaring peserta.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let masterFilenames = []; 
+    let revealStage = 0; // 1-6: Eliminasi Bertingkat, 7: Klasemen Akhir
+    let timerInterval = null;
+
+    // 1. CARA 1: BACA FILE DARI FOLDER
+    function processFolderFiles(event) {
+      const files = Array.from(event.target.files);
+      const imageFiles = files.filter(f => f.type.startsWith('image/'));
+
+      if (imageFiles.length === 0) {
+        return alert("Tidak ada file gambar ditemukan dalam folder yang dipilih!");
+      }
+
+      masterFilenames = imageFiles.map(f => f.name);
+      alert(`✅ Berhasil membaca ${masterFilenames.length} file gambar dari folder.\nKlik 'Acak & Simpan' untuk menyinkronkan ke Supabase.`);
+    }
+
+    // 2. ACAK DAN SIMPAN KE SUPABASE
+    async function confirmShuffle() {
+      if (masterFilenames.length === 0) {
+        return alert("Silakan muat folder gambar terlebih dahulu (Langkah 1)!");
+      }
+
+      const confirmAction = confirm("⚠️ PERINGATAN!\n\nApakah Anda yakin ingin mengacak urutan nama file gambar ini dan menyimpannya ke Supabase?");
+      if (!confirmAction) return;
+
+      masterFilenames.sort(() => Math.random() - 0.5);
+
+      const { error } = await supabaseClient
+        .from('recall_master_sequence')
+        .upsert({ 
+          id: 1, 
+          sequence_filenames: masterFilenames, 
+          sequence: masterFilenames,
+          updated_at: new Date() 
+        });
+
+      if (!error) {
+        alert("✅ Urutan Nama File Berhasil Diacak & Disimpan ke Supabase!");
+      } else {
+        alert("❌ Gagal menyimpan ke Supabase: " + error.message);
+      }
+    }
+
+    // 3. TAMPILKAN 30 GAMBAR & MULAI TIMER 30 MENIT
+    async function startMemorySlideshow() {
+      if (masterFilenames.length === 0) {
+        const { data } = await supabaseClient.from('recall_master_sequence').select('sequence_filenames').eq('id', 1).single();
+        if (data && data.sequence_filenames) {
+          masterFilenames = data.sequence_filenames;
+        } else {
+          return alert("Silakan Load Folder & Acak Urutan terlebih dahulu!");
+        }
+      }
+
+      renderAll30Images();
+      start30MinuteTimer();
+    }
+
+    function renderAll30Images() {
+      const grid = document.getElementById('memoryGrid');
+      grid.innerHTML = '';
+
+      masterFilenames.forEach((filename, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = "relative group rounded-xl overflow-hidden border border-amber-500/30 bg-slate-800 shadow-md";
+        wrapper.innerHTML = `
+          <img src="/assets/images/Recall/${filename}" class="w-full h-24 sm:h-28 object-cover"/>
+          <span class="absolute top-1 left-1 bg-slate-950/80 text-amber-400 font-black text-xs px-2 py-0.5 rounded-md border border-amber-500/20">
+            #${idx + 1}
+          </span>
+        `;
+        grid.appendChild(wrapper);
+      });
+    }
+
+    function start30MinuteTimer() {
+      let totalSeconds = 30 * 60;
+      updateTimerDisplay(totalSeconds);
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        totalSeconds--;
+        updateTimerDisplay(totalSeconds);
+
+        if (totalSeconds <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById('sessionLabel').textContent = "Waktu Menghafal Selesai!";
+          document.getElementById('memoryGrid').innerHTML = `<p class="col-span-full text-emerald-400 font-bold py-16 text-2xl">⏰ WAKTU MENGHAFAL SELESAI!<br><span class="text-sm text-slate-400 font-normal">Silakan Peserta Mulai Mengisi Jawaban.</span></p>`;
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      document.getElementById('timerDisplay').innerHTML = 
+        `<i class="fas fa-clock mr-1"></i>${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
+    }
+
+    // 4. REALTIME LISTENER NOTIFIKASI DARI TABEL recall_notifications
+    supabaseClient
+      .channel('realtime_recall_notif')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'recall_notifications' }, payload => {
+        const notif = payload.new;
+        const banner = document.getElementById('finishBanner');
+        document.getElementById('finishBannerText').textContent = notif.message;
+        
+        banner.classList.remove('hidden');
+        setTimeout(() => banner.classList.add('hidden'), 7000);
+      })
+      .subscribe();
+
+    // 5. KONTROL TAHAP PUBLIKASI JUARA (LOOPING AUTOMATIC)
+    async function nextRevealStage() {
+      revealStage++;
+
+      // Jika sudah melewati Tahap 7 (Klasemen Akhir), reset balik ke Tahap 1
+      if (revealStage > 7) {
+        revealStage = 1;
+      }
+
+      const stageLabel = document.getElementById('stageLabel');
+
+      if (revealStage <= 6) {
+        stageLabel.textContent = `Tahap ${revealStage}: Peserta Sempurna (25 Pts) Dari Sesi 1 s.d. Sesi ${revealStage}`;
+        await filterPerfectParticipantsByScores(revealStage);
+      } else if (revealStage === 7) {
+        stageLabel.textContent = `Tahap Akhir: Klasemen Perolehan Poin Keseluruhan`;
+        await renderFinalScores();
+      }
+    }
+
+    // LOGIKA ELIMINASI KUMULATIF DARI TABEL game_scores (Recall Type 1..6)
+    async function filterPerfectParticipantsByScores(currentSessionLimit) {
+      const container = document.getElementById('qualifierContainer');
+      container.innerHTML = `<p class="col-span-full text-center text-slate-400 py-6">Memuat data penyaringan...</p>`;
+
+      const { data: scores, error } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, game_name, score_obtained')
+        .like('game_name', 'Recall Type%');
+
+      if (error || !scores || scores.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-rose-400 text-center font-bold py-6">Belum ada nilai peserta yang dicatat.</p>`;
+        return;
+      }
+
+      // Kelompokkan skor per user_unique_id
+      const userScoresMap = {};
+      scores.forEach(row => {
+        if (!userScoresMap[row.user_unique_id]) {
+          userScoresMap[row.user_unique_id] = {};
+        }
+        userScoresMap[row.user_unique_id][row.game_name] = row.score_obtained;
+      });
+
+      // Filter yang nilainya 25 (sempurna) kumulatif dari Sesi 1 sampai currentSessionLimit
+      const qualifiedUsers = [];
+
+      Object.keys(userScoresMap).forEach(uid => {
+        let isPerfect = true;
+
+        for (let s = 1; s <= currentSessionLimit; s++) {
+          const sessionKey = `Recall Type ${s}`;
+          if (userScoresMap[uid][sessionKey] !== 25) {
+            isPerfect = false;
+            break;
+          }
+        }
+
+        if (isPerfect) {
+          qualifiedUsers.push(uid);
+        }
+      });
+
+      container.innerHTML = '';
+
+      if (qualifiedUsers.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-rose-400 text-center font-bold py-6">Tidak ada peserta yang berhasil sempurna (25 Pts) berturut-turut dari Sesi 1 s.d. Sesi ${currentSessionLimit}.</p>`;
+        return;
+      }
+
+      qualifiedUsers.forEach(uid => {
+        container.innerHTML += `
+          <div class="bg-slate-800 p-4 rounded-xl border border-amber-500/40 flex items-center justify-between shadow-lg">
+            <span class="font-bold text-amber-300"><i class="fas fa-user-check mr-2"></i>${uid}</span>
+            <span class="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30">
+              Sempurna Sesi 1 - ${currentSessionLimit}
+            </span>
+          </div>`;
+      });
+    }
+
+    // REKAP KLASEMEN TOTAL DARI TABEL game_scores (TANPA INSERT ULANG POIN)
+    async function renderFinalScores() {
+      const container = document.getElementById('qualifierContainer');
+      container.innerHTML = `<p class="col-span-full text-center text-slate-400 py-6">Kalkulasi total nilai...</p>`;
+
+      const { data: scores, error } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, score_obtained')
+        .like('game_name', 'Recall Type%');
+
+      container.innerHTML = '';
+
+      if (error || !scores || scores.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center text-slate-500 py-6">Belum ada data nilai sesi yang masuk dari peserta.</p>`;
+        return;
+      }
+
+      // Total per user
+      const totals = {};
+      scores.forEach(row => {
+        totals[row.user_unique_id] = (totals[row.user_unique_id] || 0) + row.score_obtained;
+      });
+
+      // Sort descending
+      const leaderboard = Object.keys(totals)
+        .map(uid => ({ uid, score: totals[uid] }))
+        .sort((a, b) => b.score - a.score);
+
+      leaderboard.forEach((item, idx) => {
+        container.innerHTML += `
+          <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+              <span class="font-black text-amber-400">#${idx + 1}</span>
+              <span class="font-bold">${item.uid}</span>
+            </div>
+            <span class="font-mono font-black text-emerald-400 text-lg">+${item.score} Pts</span>
+          </div>`;
+      });
+    }
+  </script>
+</body>
+</html>

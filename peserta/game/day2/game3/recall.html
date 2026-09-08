@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Silk Road Recall - Peserta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .img-aspect-16-9 { aspect-ratio: 16 / 9; object-fit: cover; }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-4 max-w-5xl mx-auto flex flex-col justify-between">
+
+  <!-- Header Info -->
+  <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg mb-4">
+    <div>
+      <p id="playerName" class="text-xs text-gray-400">Loading...</p>
+      <h1 class="text-lg font-black text-amber-400">SILK ROAD RECALL</h1>
+    </div>
+    <div class="text-right">
+      <p class="text-[10px] text-gray-400 uppercase tracking-widest">Akumulasi Poin</p>
+      <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
+    </div>
+  </div>
+
+  <!-- Main Game Panel -->
+  <div id="mainGamePanel" class="bg-slate-800/80 p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5 flex-1">
+    
+    <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+      <div>
+        <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+          Sesi 1 dari 6
+        </span>
+        <p class="text-xs text-gray-400 mt-2" id="sessionSubText">Pilih 5 gambar sesuai urutan tayangan Admin (#1 - #5)</p>
+      </div>
+      <div class="text-right">
+        <span class="text-xs font-bold text-slate-300">Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5</span>
+      </div>
+    </div>
+
+    <!-- 5 Slot Terpilih -->
+    <div>
+      <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
+      <div id="selectedSlotsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+    </div>
+
+    <!-- Matriks Opsi Gambar -->
+    <div>
+      <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
+      <div id="imageOptionsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50">
+        <p class="col-span-full text-center text-gray-500 py-8 text-xs">Memuat opsi gambar dari server...</p>
+      </div>
+    </div>
+
+    <!-- Tombol Navigasi -->
+    <div class="flex justify-between items-center pt-3 border-t border-slate-700/60">
+      <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all">
+        <i class="fas fa-arrow-left mr-1"></i> Sesi Sebelumnya
+      </button>
+      <div></div>
+      <button id="btnNextSession" onclick="nextSession()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all">
+        Simpan Sesi 1 & Lanjut <i class="fas fa-arrow-right ml-1"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Panel Sukses Pengiriman -->
+  <div id="successPanel" class="hidden bg-slate-800 p-8 rounded-2xl border border-green-500/30 text-center space-y-4 shadow-2xl my-auto">
+    <div class="w-16 h-16 bg-green-500/10 text-green-400 rounded-full flex items-center justify-center text-3xl mx-auto border border-green-500/20">
+      <i class="fas fa-check"></i>
+    </div>
+    <h2 class="text-xl font-black text-white">Seluruh Sesi Berhasil Diselesaikan!</h2>
+    <p class="text-xs text-gray-400 max-w-sm mx-auto">
+      Terima kasih <span id="successUserText" class="text-amber-400 font-bold"></span>. Seluruh poin per sesi telah dicatat dan notifikasi telah dikirim ke Admin.
+    </p>
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const IMAGE_BASE_PATH = '/assets/images/Recall/';
+
+    let userSession = null;
+    let masterSequence = [];
+    let availableFilenames = [];
+    let userAnswers = new Array(30).fill(null);
+    let sessionSubmitted = [false, false, false, false, false, false]; // Track status simpan per sesi
+    let currentSession = 1;
+    let totalScoreAccumulated = 0;
+
+    function initUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) { window.location.href = '/login.html'; return; }
+      userSession = JSON.parse(sess);
+      document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
+    }
+
+    async function fetchMasterData() {
+      const { data, error } = await supabaseClient
+        .from('recall_master_sequence')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      if (error || !data) {
+        alert("Gagal mengambil urutan master dari server admin!");
+        return;
+      }
+
+      masterSequence = data.sequence_filenames || data.sequence || [];
+      availableFilenames = [...masterSequence].sort();
+    }
+
+    function renderSession() {
+      const startIndex = (currentSession - 1) * 5;
+      const sessionAnswers = userAnswers.slice(startIndex, startIndex + 5);
+      const filledCount = sessionAnswers.filter(Boolean).length;
+
+      document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari 6`;
+      document.getElementById('sessionSubText').textContent = `Pilih 5 gambar sesuai urutan tayangan Admin (#${startIndex + 1} - #${startIndex + 5})`;
+      document.getElementById('selectedCount').textContent = filledCount;
+
+      renderSlots(sessionAnswers, startIndex);
+      renderOptions();
+      updateButtons();
+    }
+
+    function renderSlots(sessionAnswers, startIndex) {
+      const container = document.getElementById('selectedSlotsGrid');
+      container.innerHTML = '';
+
+      for (let i = 0; i < 5; i++) {
+        const globalIdx = startIndex + i;
+        const filename = sessionAnswers[i];
+        const slot = document.createElement('div');
+        const isLocked = sessionSubmitted[currentSession - 1];
+        
+        if (filename) {
+          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 flex items-center justify-center overflow-hidden p-0.5 shadow-md";
+          slot.innerHTML = `
+            <img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" />
+            ${!isLocked ? `<button onclick="removeAnswer(${globalIdx})" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow">×</button>` : ''}
+            <span class="absolute bottom-1 left-1 bg-slate-900/80 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded">#${globalIdx + 1}</span>
+          `;
+        } else {
+          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden p-0.5";
+          slot.innerHTML = `<span class="text-slate-600 text-xs font-bold">#${globalIdx + 1}</span>`;
+        }
+        container.appendChild(slot);
+      }
+    }
+
+    function renderOptions() {
+      const container = document.getElementById('imageOptionsGrid');
+      container.innerHTML = '';
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      availableFilenames.forEach(filename => {
+        const isSelected = userAnswers.includes(filename);
+        const card = document.createElement('div');
+        card.className = `relative img-aspect-16-9 bg-slate-800 rounded-lg overflow-hidden border p-0.5 transition-all ${
+          isSelected || isLocked ? 'opacity-20 border-slate-700 cursor-not-allowed' : 'border-slate-700 hover:border-amber-400 cursor-pointer active:scale-95 shadow-sm'
+        }`;
+
+        card.innerHTML = `<img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" />`;
+
+        if (!isSelected && !isLocked) {
+          card.onclick = () => selectImage(filename);
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function selectImage(filename) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      const startIndex = (currentSession - 1) * 5;
+      for (let i = 0; i < 5; i++) {
+        if (!userAnswers[startIndex + i]) {
+          userAnswers[startIndex + i] = filename;
+          renderSession();
+          return;
+        }
+      }
+      alert(`Slot Sesi ${currentSession} sudah penuh 5 gambar!`);
+    }
+
+    function removeAnswer(globalIdx) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      userAnswers[globalIdx] = null;
+      renderSession();
+    }
+
+    function updateButtons() {
+      const btnPrev = document.getElementById('btnPrevSession');
+      const btnNext = document.getElementById('btnNextSession');
+
+      btnPrev.classList.toggle('hidden', currentSession === 1);
+
+      if (currentSession === 6) {
+        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir & Kirim Sesi 6`;
+        btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      } else {
+        const text = sessionSubmitted[currentSession - 1] ? `Lanjut ke Sesi ${currentSession + 1}` : `Simpan Sesi ${currentSession} & Lanjut`;
+        btnNext.innerHTML = `${text} <i class="fas fa-arrow-right ml-1"></i>`;
+        btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      }
+    }
+
+    function prevSession() {
+      if (currentSession > 1) {
+        currentSession--;
+        renderSession();
+      }
+    }
+
+    // PROSES SESI & SUBMIT AKHIR
+    async function nextSession() {
+      const startIndex = (currentSession - 1) * 5;
+      const currentAnswers = userAnswers.slice(startIndex, startIndex + 5);
+
+      if (currentAnswers.some(ans => ans === null)) {
+        return alert(`Harap isi 5 gambar untuk Sesi ${currentSession} terlebih dahulu!`);
+      }
+
+      // 1. Hitung & Masukkan poin sesi ini (jika belum pernah disimpan)
+      if (!sessionSubmitted[currentSession - 1]) {
+        let sessionScore = 0;
+        for (let i = 0; i < 5; i++) {
+          const globalIdx = startIndex + i;
+          if (currentAnswers[i] === masterSequence[globalIdx]) {
+            sessionScore += 5;
+          }
+        }
+
+        // Simpan poin ke game_scores -> "Recall Type X"
+        const gameNameTag = `Recall Type ${currentSession}`;
+        const { error: scoreErr } = await supabaseClient
+          .from('game_scores')
+          .insert({
+            user_unique_id: userSession.unique_id,
+            game_name: gameNameTag,
+            score_obtained: sessionScore,
+            created_at: new Date()
+          });
+
+        if (scoreErr) {
+          alert(`Gagal menyimpan poin Sesi ${currentSession}: ` + scoreErr.message);
+          return;
+        }
+
+        sessionSubmitted[currentSession - 1] = true;
+        totalScoreAccumulated += sessionScore;
+        document.getElementById('totalScoreText').textContent = totalScoreAccumulated;
+      }
+
+      // 2. Navigasi Sesi / Final Submit
+      if (currentSession < 6) {
+        currentSession++;
+        renderSession();
+      } else {
+        await finalizeAllSubmissions();
+      }
+    }
+
+    // AKSI FINAL SUBMIT (TANPA POIN LAGI, HANYA SIMPAN LEMBAR JAWABAN & KIRIM NOTIFIKASI)
+    async function finalizeAllSubmissions() {
+      if (!confirm("Kirim pengajuan akhir dan berikan notifikasi ke Admin?")) return;
+
+      // A. Simpan Lembar Jawaban Lengkap
+      const { error: subErr } = await supabaseClient
+        .from('recall_submissions')
+        .insert({
+          user_unique_id: userSession.unique_id,
+          answers: userAnswers,
+          created_at: new Date()
+        });
+
+      if (subErr) {
+        alert("Gagal menyimpan berkas akhir: " + subErr.message);
+        return;
+      }
+
+      // B. Kirim Notifikasi ke Tabel `recall_notifications`
+      const { error: notifErr } = await supabaseClient
+        .from('recall_notifications')
+        .insert({
+          user_unique_id: userSession.unique_id,
+          message: `Peserta ${userSession.full_name || userSession.unique_id} telah menyelesaikan seluruh Sesi 1 - 6 Silk Road Recall.`,
+          status: 'unread',
+          created_at: new Date()
+        });
+
+      if (notifErr) {
+        console.warn("Gagal mengirim notifikasi:", notifErr.message);
+      }
+
+      // Tampilkan Tampilan Sukses
+      document.getElementById('successUserText').textContent = userSession.full_name || userSession.unique_id;
+      document.getElementById('mainGamePanel').classList.add('hidden');
+      document.getElementById('successPanel').classList.remove('hidden');
+    }
+
+    initUser();
+    fetchMasterData().then(() => renderSession());
+  </script>
+</body>
+</html>

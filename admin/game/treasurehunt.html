@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Animasi 3 Kontainer · Gambar + Deskripsi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    
+    <!-- Supabase JS Client Library -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .app {
+            max-width: 1400px;
+            width: 100%;
+            background: rgb(4, 19, 51);
+            backdrop-filter: blur(4px);
+            border-radius: 48px;
+            padding: 2rem 2rem 2.5rem;
+            box-shadow: 0 20px 40px rgba(0,20,40,0.2);
+            border: 1px solid rgb(255, 187, 0);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .header-left h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #dfc801;
+        }
+        .header-left span {
+            background: #1e4a6b;
+            color: white;
+            padding: 0.1rem 1rem;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .header-right {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #1f3a4f;
+            background: rgba(255,255,255,0.7);
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            border: 1px solid #c3d9ec;
+            backdrop-filter: blur(2px);
+            text-align: right;
+            line-height: 1.4;
+        }
+        .header-right small {
+            display: block;
+            font-weight: 400;
+            font-size: 0.8rem;
+            color: #4d6f88;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.8rem;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 1.5rem 1.5rem 1.8rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease;
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .image-box {
+            position: relative;
+            width: 100%;
+            padding-bottom: 75%;
+            background: #d4e0ed;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);
+            margin-bottom: 1.2rem;
+        }
+        .image-box img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 24px;
+            transition: opacity 0.6s ease;
+            opacity: 0;
+            background: #d4e0ed;
+        }
+        .image-box img.active {
+            opacity: 1;
+        }
+        .description {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #1f3a4f;
+            background: #f0f6fe;
+            padding: 0.8rem 1rem;
+            border-radius: 20px;
+            margin: 0.2rem 0 0.8rem 0;
+            line-height: 1.4;
+            border-left: 4px solid #3b7ca5;
+            min-height: 4rem;
+            display: flex;
+            align-items: center;
+        }
+        .soal-box {
+            background: #e2edf9;
+            border-radius: 20px;
+            padding: 0.8rem 1.2rem;
+            border: 1px solid #c3d9ec;
+            margin-top: 0.2rem;
+        }
+        .soal-box .soal {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #093450;
+            letter-spacing: -0.01em;
+            background: white;
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            text-align: center;
+        }
+        .footer-note {
+            margin-top: 2.8rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #3d5d77;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding-top: 1.8rem;
+            letter-spacing: 0.2px;
+            font-weight: 400;
+        }
+
+        /* ================================================================ */
+        /* STYLES FOR REALTIME NOTIFICATION TOAST                           */
+        /* ================================================================ */
+        #notificationContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 320px;
+            pointer-events: none;
+        }
+
+        .toast-card {
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.92);
+            border: 2px solid #10b981;
+            color: #ffffff;
+            padding: 14px 16px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: all 0.3s ease;
+        }
+
+        .toast-icon {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            animation: pulseIcon 1.5s infinite;
+        }
+
+        .toast-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .toast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .toast-badge {
+            font-size: 10px;
+            font-weight: 700;
+            color: #34d399;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .toast-time {
+            font-size: 10px;
+            color: #94a3b8;
+        }
+
+        .toast-user {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .toast-desc {
+            font-size: 11px;
+            color: #cbd5e1;
+            margin-top: 1px;
+        }
+
+        .toast-desc span {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(110%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        @media (max-width: 800px) {
+            .grid-3 {
+                grid-template-columns: 1fr;
+                gap: 2.2rem;
+            }
+            .app {
+                padding: 1.5rem;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-right {
+                width: 100%;
+                text-align: left;
+                font-size: 2rem;
+            }
+            #notificationContainer {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- CONTAINER NOTIFIKASI REALTIME (Pojok Kanan Atas) -->
+<div id="notificationContainer"></div>
+
+<div class="app">
+    <div class="header">
+        <div class="header-left">
+            <h1>Crypta Treasure Hunt</h1>
+            <span>30 Pulau</span>
+        </div>
+        <div class="header-right" id="headerRight">
+            <strong style="font-size:30px;">αβ.えγαγおβ,えγ.いσεあθβ</strong>
+            <small>koordinat pulau harta karun</small>
+        </div>
+    </div>
+
+    <div class="grid-3" id="cardContainer">
+        <!-- card akan diisi oleh JavaScript -->
+    </div>
+    <div class="footer-note">
+        ⏳ gambar berganti otomatis tiap 3 detik · tiap kontainer punya 10 gambar unik
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ================================================================
+        // 1. CONFIG & DATA GAMBAR
+        // ================================================================
+        const IMAGE_FOLDER = '/assets/images/TreasureHunt/';
+
+        const containerData = [
+            {
+                images: [
+                    { file: '1.jpeg', title: 'P. Galapagos', desc: 'Kura-kura terbesar di dunia hidup disini.', soal: '12 + 8 = ?' },
+                    { file: '2.jpeg', title: 'P. Natuna', desc: 'Pulau yang terbentuk dari mengapungnya batu granit dari mantel bumi.', soal: '25 - 7 = ?' },
+                    { file: '3.jpeg', title: 'P. Maui', desc: 'Pulau yang terbentuk dari titik hotspot di Samudera Pasifik.', soal: '6 × 7 = ?' },
+                    { file: '4.jpeg', title: 'P. Socotra', desc: 'Kata orang orang, ini tempat pohon alien', soal: '15 + 9 = ?' },
+                    { file: '5.jpeg', title: 'P. Jeju', desc: 'Pulau terkenalnya di korea, sering disinggung di Drakor.', soal: '32 - 14 = ?' },
+                    { file: '6.jpeg', title: 'P. Falkland', desc: 'Pulau didekat Argentina tapi milik Inggris, Argentina menginginkannya.', soal: '8 × 6 = ?' },
+                    { file: '7.jpeg', title: 'P. Venice', desc: 'Pulau Buatan yang terdiri dari batang pohon, jadi bau apek kayu bakalan tercium.', soal: '21 + 13 = ?' },
+                    { file: '8.jpeg', title: 'P. Cyprus', desc: 'Pencinta kucing bakalan kegirangan disini walau konfliknya bikin merinding.', soal: '45 - 18 = ?' },
+                    { file: '9.jpeg', title: 'P. Greenland', desc: 'Namanya hijau tapi sebenarnya es.', soal: '9 × 4 = ?' },
+                    { file: '10.jpeg', title: 'P. Iceland', desc: 'Namanya es tapi sebenarnya hijau.', soal: '36 + 27 = ?' }
+                ]
+            },
+            {
+                images: [
+                    { file: '11.jpeg', title: 'P. Madagaskar', desc: 'Banyak fauna dan flora unik disini.', soal: '14 + 6 = ?' },
+                    { file: '12.jpeg', title: 'P. Komodo', desc: 'Naga tidak bersayap hidup disini.', soal: '30 - 12 = ?' },
+                    { file: '13.jpeg', title: 'P. Bali', desc: 'Kata orang luar ini sebuah negara.', soal: '7 × 5 = ?' },
+                    { file: '14.jpeg', title: 'P. Hainan', desc: 'Pulau kesayangannya China.', soal: '19 + 8 = ?' },
+                    { file: '15.jpeg', title: 'P. Hokkaido', desc: 'Musim panas disini mah ga panas, begitulah Utara Jepang.', soal: '42 - 19 = ?' },
+                    { file: '16.jpeg', title: 'P. Malta', desc: 'Budaya Mediteranian yang unik, masih banyak bekas kerajaan SPQR disini.', soal: '9 × 3 = ?' },
+                    { file: '17.jpeg', title: 'P. Phuket', desc: 'Wisata pulau tebing unik dari Thailand.', soal: '27 + 15 = ?' },
+                    { file: '18.jpeg', title: 'P. Palawan', desc: 'sebutannya Surga Tropis Dunia karena memiliki tebing Karst megah.', soal: '56 - 29 = ?' },
+                    { file: '19.jpeg', title: 'P. Langkawi', desc: 'Pulau kebanggaan Malaysia.', soal: '8 × 8 = ?' },
+                    { file: '20.jpeg', title: 'P. Bahamas', desc: 'Pantai pasir putih dan laut biru cerah, idaman ini mah.', soal: '44 + 38 = ?' }
+                ]
+            },
+            {
+                images: [
+                    { file: '21.jpeg', title: 'P. Palm Jumeirah', desc: 'Pulau buatan primadona yang pasti harganya ga main main.', soal: '16 + 7 = ?' },
+                    { file: '22.jpeg', title: 'P. Sable', desc: 'Kapan lagi sebuah pulau bisa bergerak.', soal: '28 - 15 = ?' },
+                    { file: '23.jpeg', title: 'P. Diomedes', desc: 'Jarak antar kedua pulau itu 1 hari?!.', soal: '5 × 9 = ?' },
+                    { file: '24.jpeg', title: 'P. Phillip', desc: 'Kawasan impian penguin untuk beristiahat.', soal: '23 + 14 = ?' },
+                    { file: '25.jpeg', title: 'P. Motu Maha', desc: 'Penguin dan batuan merah sangat kontras dan indah.', soal: '47 - 26 = ?' },
+                    { file: '26.jpeg', title: 'P. Samama', desc: 'Wisata Indonesia untuk menyentuh ubur ubur yang tidak berbisa.', soal: '12 × 4 = ?' },
+                    { file: '27.jpeg', title: 'P. Bermuda', desc: 'Segitiga Bermuda katanya hanya mitos, tapi memang berbahaya kawasannya.', soal: '31 + 19 = ?' },
+                    { file: '28.jpeg', title: 'P. Sicily', desc: 'Pulau ini bikin eropa trauma akibat gunung apinya.', soal: '62 - 37 = ?' },
+                    { file: '29.jpeg', title: 'P. Milos', desc: 'Sangat putih, Keputihan, keterangan.', soal: '7 × 6 = ?' },
+                    { file: '30.jpeg', title: 'P. Ashmore', desc: 'Hanya pasir tapi bikin Australia dan Indonesia berebut menginginkannya.', soal: '53 + 28 = ?' }
+                ]
+            }
+        ];
+
+        // ================================================================
+        // 2. STATE & RENDER CARDS
+        // ================================================================
+        let currentIndices = [0, 0, 0];
+        const cardContainer = document.getElementById('cardContainer');
+
+        function renderCards() {
+            cardContainer.innerHTML = '';
+
+            containerData.forEach((container, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const imageBox = document.createElement('div');
+                imageBox.className = 'image-box';
+                imageBox.id = `imageBox-${idx}`;
+
+                container.images.forEach((imgData, imgIdx) => {
+                    const img = document.createElement('img');
+                    img.src = `${IMAGE_FOLDER}${imgData.file}`;
+                    img.alt = imgData.title;
+                    img.dataset.index = imgIdx;
+                    img.onerror = function() {
+                        this.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23d4e0ed" width="400" height="300"/%3E%3Ctext x="50" y="150" font-family="Inter" font-size="20" fill="%235a7d9a"%3E⚠️ gambar tidak ditemukan%3C/text%3E%3C/svg%3E';
+                    };
+                    if (imgIdx === 0) img.classList.add('active');
+                    imageBox.appendChild(img);
+                });
+
+                const descDiv = document.createElement('div');
+                descDiv.className = 'description';
+                descDiv.id = `desc-${idx}`;
+                const first = container.images[0];
+                descDiv.textContent = `${first.title} — ${first.desc}`;
+
+                const soalBox = document.createElement('div');
+                soalBox.className = 'soal-box';
+
+                const soalSpan = document.createElement('div');
+                soalSpan.className = 'soal';
+                soalSpan.id = `soal-${idx}`;
+                soalSpan.textContent = first.soal || 'Soal belum diisi';
+
+                soalBox.appendChild(soalSpan);
+
+                card.appendChild(imageBox);
+                card.appendChild(descDiv);
+                card.appendChild(soalBox);
+
+                cardContainer.appendChild(card);
+            });
+        }
+
+        function updateContainer(containerIdx) {
+            const container = containerData[containerIdx];
+            const activeIndex = currentIndices[containerIdx];
+
+            const imageBox = document.getElementById(`imageBox-${containerIdx}`);
+            if (imageBox) {
+                const imgElements = imageBox.querySelectorAll('img');
+                imgElements.forEach((img, i) => {
+                    img.classList.toggle('active', i === activeIndex);
+                });
+            }
+
+            const descDiv = document.getElementById(`desc-${containerIdx}`);
+            if (descDiv) {
+                const data = container.images[activeIndex];
+                descDiv.textContent = `${data.title} — ${data.desc}`;
+            }
+
+            const soalSpan = document.getElementById(`soal-${containerIdx}`);
+            if (soalSpan) {
+                const data = container.images[activeIndex];
+                soalSpan.textContent = data.soal || 'Soal belum diisi';
+            }
+        }
+
+        function nextSlide() {
+            for (let i = 0; i < containerData.length; i++) {
+                const totalImages = containerData[i].images.length;
+                currentIndices[i] = (currentIndices[i] + 1) % totalImages;
+                updateContainer(i);
+            }
+        }
+
+        renderCards();
+
+        setTimeout(() => {
+            for (let i = 0; i < containerData.length; i++) {
+                updateContainer(i);
+            }
+        }, 50);
+
+        const intervalId = setInterval(nextSlide, 3000);
+
+        window.addEventListener('beforeunload', function() {
+            clearInterval(intervalId);
+        });
+
+        // ================================================================
+        // 3. SUPABASE REALTIME NOTIFICATION SYSTEM
+        // ================================================================
+        const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function showNotification(userId, score, gameName) {
+            const container = document.getElementById('notificationContainer');
+
+            const toast = document.createElement('div');
+            toast.className = 'toast-card';
+
+            toast.innerHTML = `
+                <div class="toast-icon">🎯</div>
+                <div class="toast-content">
+                    <div class="toast-header">
+                        <span class="toast-badge">Jawaban Benar!</span>
+                        <span class="toast-time">Baru saja</span>
+                    </div>
+                    <div class="toast-user">${userId}</div>
+                    <div class="toast-desc">Menyelesaikan <span>${gameName || 'Soal'}</span> (+${score} Pts)</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Transisi hilangnya notifikasi setelah 4.5 detik
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(110%)';
+                setTimeout(() => toast.remove(), 400);
+            }, 4500);
+        }
+
+        function initSupabaseRealtime() {
+            supabaseClient
+                .channel('realtime-game-notifications')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'game_scores'
+                    },
+                    (payload) => {
+                        const data = payload.new;
+                        // Tampilkan notifikasi jika poin yang didapat > 0
+                        if (data && data.score_obtained > 0) {
+                            showNotification(
+                                data.user_unique_id || 'Peserta',
+                                data.score_obtained,
+                                data.game_name
+                            );
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('⚡ Supabase Realtime Listener Aktif!');
+                    }
+                });
+        }
+
+        // Jalankan listener Supabase
+        initSupabaseRealtime();
+
+    })();
+</script>
+
+</body>
+</html>

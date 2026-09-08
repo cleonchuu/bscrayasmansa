@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mimic Sudoku - Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .glow-indigo { box-shadow: 0 0 25px rgba(99, 102, 241, 0.25); }
+    .glow-emerald { box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); }
+    .glow-amber { box-shadow: 0 0 25px rgba(245, 158, 11, 0.2); }
+    
+    .grid-sudoku {
+      display: grid;
+      grid-template-columns: 32px repeat(9, 1fr) 56px;
+      grid-template-rows: 32px repeat(9, 1fr) 56px;
+    }
+
+    .border-subgrid-r { border-right: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    .border-subgrid-b { border-bottom: 2px solid rgba(129, 140, 248, 0.6) !important; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
+
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+          MIMIC SUDOKU ADMIN
+        </span>
+        <h1 class="text-2xl font-black text-white mt-2">Mimic Sudoku Dashboard</h1>
+      </div>
+
+      <div class="flex items-center gap-4 bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl">
+        <i class="fas fa-stopwatch text-amber-400 text-xl"></i>
+        <div>
+          <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Sisa Waktu Sesi</div>
+          <div id="sessionTimerDisplay" class="text-2xl font-black font-mono text-amber-400">05:00</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="btnStartLoop" onclick="toggleAutoLoop()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl font-black text-sm transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+          <i class="fas fa-play"></i> Mulai Auto Loop (5 Mnt)
+        </button>
+        <button id="btnSimulate" onclick="simulateParticipantBoard()" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-black text-sm transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2">
+          <i class="fas fa-step-forward"></i> Putaran Berikutnya
+        </button>
+        <button id="btnGenerate" onclick="generateAndPublishGrid()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+          <i class="fas fa-key"></i> Kunci Sudoku Baru
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      
+      <div class="lg:col-span-2 bg-slate-900 border border-indigo-500/30 p-4 md:p-6 rounded-2xl glow-indigo">
+        <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+          <div>
+            <h2 class="text-xl font-black text-amber-400 flex items-center gap-2">
+              <i class="fas fa-edit"></i> Papan Soal / Tebakan
+            </h2>
+            <p class="text-xs text-gray-400 mt-1">Sistem tanpa repetisi angka per sel | Indikator: Hijau vs Merah</p>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <span id="loopTimerDisplay" class="hidden text-xs font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full">
+              <i class="fas fa-sync-alt fa-spin mr-1"></i>5s
+            </span>
+            <span id="statusBadge" class="text-xs px-3 py-1 rounded-full font-mono bg-slate-800 text-gray-400 border border-white/5">
+              Ready
+            </span>
+          </div>
+        </div>
+
+        <div class="w-full overflow-x-auto">
+          <div class="min-w-[600px] max-w-[720px] mx-auto grid-sudoku gap-1.5 items-center justify-center">
+            
+            <div class="w-8 h-8"></div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">A</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">B</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs border-subgrid-r h-full">C</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">D</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">E</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs border-subgrid-r h-full">F</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">G</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">H</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">I</div>
+            <div class="w-14 h-8"></div>
+
+            <div id="gridQuestionArea" class="contents"></div>
+
+            <div class="w-8 h-14"></div>
+            <div id="colClueQ-0" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-1" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-2" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+            <div id="colClueQ-3" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-4" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-5" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+            <div id="colClueQ-6" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-7" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-8" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div class="w-14 h-14"></div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
+          <div class="flex items-center gap-2 border-b border-white/10 pb-3">
+            <i class="fas fa-bolt text-amber-400"></i>
+            <h3 class="text-lg font-bold text-white">Panduan Mode Cepat</h3>
+          </div>
+          <ol class="space-y-3 text-sm text-slate-300 leading-relaxed list-decimal list-inside">
+            <li class="pl-1"><span class="text-amber-400 font-bold">Waktu 5 Menit:</span> Peserta memiliki 5 menit untuk menjawab sebelum sistem membeku.</li>
+            <li class="pl-1"><span class="text-amber-400 font-bold">Tanpa Repetisi:</span> Tiap kotak memutar angka 1–9 secara unik.</li>
+            <li class="pl-1"><span class="text-emerald-400 font-bold">Hijau:</span> Posisi & Nilai Tepat.</li>
+            <li class="pl-1"><span class="text-rose-400 font-bold">Merah:</span> Posisi / Nilai Salah.</li>
+          </ol>
+        </div>
+
+        <div class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl glow-amber text-center space-y-3">
+          <div class="flex items-center justify-between border-b border-white/10 pb-2">
+            <p class="text-xs md:text-sm font-semibold text-slate-300 tracking-wide uppercase">
+              tentukan angka dibalik cell
+            </p>
+            <select id="targetCellPicker" onchange="changeTargetCell()" class="bg-slate-950 text-amber-400 border border-amber-500/40 rounded-lg px-2 py-1 text-xs font-black focus:outline-none focus:border-amber-400 cursor-pointer">
+            </select>
+          </div>
+          <h2 id="targetCellDisplay" class="text-5xl md:text-6xl font-black text-amber-400 tracking-wider animate-pulse pt-2">
+            G7
+          </h2>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="bg-slate-900 border border-emerald-500/30 p-4 md:p-6 rounded-2xl glow-emerald">
+      <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+        <div>
+          <h2 class="text-xl font-black text-emerald-400 flex items-center gap-2">
+            <i class="fas fa-check-circle"></i> Papan Jawaban / Kunci Master
+          </h2>
+          <p class="text-xs text-gray-400 mt-1">Status: Solusi Sudoku Valid</p>
+        </div>
+      </div>
+
+      <div class="w-full overflow-x-auto">
+        <div class="min-w-[600px] max-w-[720px] mx-auto grid-sudoku gap-1.5 items-center justify-center">
+          <div class="w-8 h-8"></div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">A</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">B</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs border-subgrid-r h-full">C</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">D</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">E</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs border-subgrid-r h-full">F</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">G</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">H</div>
+          <div class="flex items-center justify-center font-bold text-emerald-400 text-xs">I</div>
+          <div class="w-14 h-8"></div>
+
+          <div id="gridAnswerArea" class="contents"></div>
+
+          <div class="w-8 h-14"></div>
+          <div id="colClueA-0" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-1" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-2" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+          <div id="colClueA-3" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-4" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-5" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+          <div id="colClueA-6" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-7" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div id="colClueA-8" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+          <div class="w-14 h-14"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let masterGrid = []; 
+    let questionGrid = []; 
+    let selectedTargetRow = 6;
+    let selectedTargetCol = 6;
+    const colLetters = ['A','B','C','D','E','F','G','H','I'];
+
+    let cellMemory = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
+
+    // TIMER STATE (5 MENIT = 300 DETIK)
+    const TOTAL_SESSION_TIME = 300; 
+    let sessionTimeLeft = TOTAL_SESSION_TIME;
+    let sessionTimerInterval = null;
+
+    let isLooping = false;
+    let autoInterval = null;
+    let loopTimerInterval = null;
+    let loopTimeLeft = 5;
+
+    function initCellPickerOptions() {
+      const select = document.getElementById('targetCellPicker');
+      select.innerHTML = '';
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          const cellName = `${colLetters[c]}${r + 1}`;
+          const option = document.createElement('option');
+          option.value = `${r},${c}`;
+          option.textContent = cellName;
+          if (r === selectedTargetRow && c === selectedTargetCol) option.selected = true;
+          select.appendChild(option);
+        }
+      }
+    }
+
+    async function updateTargetCellToSupabase(row, col) {
+      const targetIndexNumber = (row * 9) + col + 1;
+      await supabaseClient.from('chesskey_master_sequence').upsert(
+        { id: 2, grid_data: targetIndexNumber, updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
+    }
+
+    // SYNC STATUS KE SUPABASE (ID = 3)
+    async function updateGameStatusToSupabase(status, timeLeft, message) {
+      const payload = {
+        status: status, // "active" | "timeout" | "stopped"
+        time_left: timeLeft,
+        message: message,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient
+        .from('chesskey_master_sequence')
+        .upsert(
+          { id: 3, grid_data: payload, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        );
+
+      if (error) console.error("Gagal sync status game ke ID 3:", error);
+    }
+
+    async function changeTargetCell() {
+      const select = document.getElementById('targetCellPicker');
+      const [r, c] = select.value.split(',').map(Number);
+      selectedTargetRow = r;
+      selectedTargetCol = c;
+      document.getElementById('targetCellDisplay').textContent = `${colLetters[c]}${r + 1}`;
+      await updateTargetCellToSupabase(r, c);
+      renderQuestionBoardUI(questionGrid);
+    }
+
+    function getNextUniqueNumberForCell(r, c) {
+      if (cellMemory[r][c].length === 0) {
+        cellMemory[r][c] = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+      }
+      return cellMemory[r][c].pop();
+    }
+
+    function resetAllCellMemories() {
+      cellMemory = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
+    }
+
+    function generateSudokuMaster() {
+      let board = Array.from({ length: 9 }, () => Array(9).fill(0));
+      function isValid(b, r, c, val) {
+        for (let i = 0; i < 9; i++) {
+          if (b[r][i] === val || b[i][c] === val) return false;
+        }
+        let startR = Math.floor(r / 3) * 3;
+        let startC = Math.floor(c / 3) * 3;
+        for (let rSub = 0; rSub < 3; rSub++) {
+          for (let cSub = 0; cSub < 3; cSub++) {
+            if (b[startR + rSub][startC + cSub] === val) return false;
+          }
+        }
+        return true;
+      }
+      function solve(b) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (b[r][c] === 0) {
+              let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
+              for (let num of nums) {
+                if (isValid(b, r, c, num)) {
+                  b[r][c] = num;
+                  if (solve(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      solve(board);
+      return board;
+    }
+
+    async function initGame() {
+      initCellPickerOptions();
+      masterGrid = generateSudokuMaster();
+      resetAllCellMemories();
+      
+      await supabaseClient.from('chesskey_master_sequence').upsert(
+        { id: 1, grid_data: masterGrid.flat(), updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
+
+      await updateTargetCellToSupabase(selectedTargetRow, selectedTargetCol);
+      await updateGameStatusToSupabase("stopped", 300, "SIAP DIMULAI");
+      
+      simulateParticipantBoard();
+      renderAnswerBoardUI();
+    }
+
+    async function generateAndPublishGrid() {
+      masterGrid = generateSudokuMaster();
+      resetAllCellMemories();
+      simulateParticipantBoard();
+      renderAnswerBoardUI();
+
+      await supabaseClient.from('chesskey_master_sequence').upsert(
+        { id: 1, grid_data: masterGrid.flat(), updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
+    }
+
+    function simulateParticipantBoard() {
+      if (masterGrid.length === 0) masterGrid = generateSudokuMaster();
+      let nextGrid = Array.from({ length: 9 }, () => Array(9).fill(0));
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          nextGrid[r][c] = getNextUniqueNumberForCell(r, c);
+        }
+      }
+      questionGrid = nextGrid;
+      renderQuestionBoardUI(questionGrid);
+    }
+
+    // RENDER PAPAN KOSONG (TIMEOUT)
+    function renderBlankQuestionBoardUI() {
+      questionGrid = Array.from({ length: 9 }, () => Array(9).fill(''));
+      renderQuestionBoardUI(questionGrid);
+    }
+
+    function renderQuestionBoardUI(grid) {
+      const container = document.getElementById('gridQuestionArea');
+      container.innerHTML = '';
+
+      for (let r = 0; r < 9; r++) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${ (r === 2 || r === 5) ? 'border-subgrid-b' : '' }`;
+        rowHeader.textContent = r + 1;
+        container.appendChild(rowHeader);
+
+        for (let c = 0; c < 9; c++) {
+          const val = grid[r][c];
+          const cell = document.createElement('div');
+          
+          let subgridClasses = "";
+          if (c === 2 || c === 5) subgridClasses += " border-subgrid-r";
+          if (r === 2 || r === 5) subgridClasses += " border-subgrid-b";
+
+          const isTargetCell = (r === selectedTargetRow && c === selectedTargetCol);
+          const cellStyle = isTargetCell 
+            ? 'bg-amber-500/20 border-2 border-amber-400 animate-pulse scale-105 z-10' 
+            : 'bg-slate-800/80 border border-slate-700/60';
+
+          cell.className = `aspect-square ${cellStyle} rounded-lg flex items-center justify-center font-black text-lg md:text-xl text-amber-400 transition-all ${subgridClasses}`;
+          cell.textContent = val || '';
+          container.appendChild(cell);
+        }
+
+        const rowClue = document.createElement('div');
+        rowClue.id = `rowClueQ-${r}`;
+        rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-w-[52px] min-h-[44px] ${ (r === 2 || r === 5) ? 'border-subgrid-b' : '' }`;
+        container.appendChild(rowClue);
+      }
+
+      calculateQuestionClues(grid);
+    }
+
+    function renderAnswerBoardUI() {
+      const container = document.getElementById('gridAnswerArea');
+      container.innerHTML = '';
+
+      for (let r = 0; r < 9; r++) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = `flex items-center justify-center font-bold text-emerald-400 text-xs ${ (r === 2 || r === 5) ? 'border-subgrid-b' : '' }`;
+        rowHeader.textContent = r + 1;
+        container.appendChild(rowHeader);
+
+        for (let c = 0; c < 9; c++) {
+          const val = masterGrid[r][c];
+          const cell = document.createElement('div');
+          
+          let subgridClasses = "";
+          if (c === 2 || c === 5) subgridClasses += " border-subgrid-r";
+          if (r === 2 || r === 5) subgridClasses += " border-subgrid-b";
+
+          cell.className = `aspect-square bg-emerald-950/30 border border-emerald-800/50 rounded-lg flex items-center justify-center font-black text-lg md:text-xl text-emerald-400 hover:border-emerald-400 transition-all ${subgridClasses}`;
+          cell.textContent = val;
+          container.appendChild(cell);
+        }
+
+        const rowClue = document.createElement('div');
+        rowClue.id = `rowClueA-${r}`;
+        rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-w-[52px] min-h-[44px] ${ (r === 2 || r === 5) ? 'border-subgrid-b' : '' }`;
+        container.appendChild(rowClue);
+      }
+
+      for (let i = 0; i < 9; i++) {
+        document.getElementById(`colClueA-${i}`).innerHTML = renderEmoteDots(9, 0);
+        document.getElementById(`rowClueA-${i}`).innerHTML = renderEmoteDots(9, 0);
+      }
+    }
+
+    function calculateQuestionClues(pGrid) {
+      for (let r = 0; r < 9; r++) {
+        let masterRow = masterGrid[r];
+        let pRow = pGrid[r];
+
+        let green = 0;
+        for (let c = 0; c < 9; c++) {
+          if (pRow[c] === masterRow[c]) green++;
+        }
+        let red = 9 - green;
+        document.getElementById(`rowClueQ-${r}`).innerHTML = renderEmoteDots(green, red);
+      }
+
+      for (let c = 0; c < 9; c++) {
+        let masterCol = masterGrid.map(row => row[c]);
+        let pCol = pGrid.map(row => row[c]);
+
+        let green = 0;
+        for (let r = 0; r < 9; r++) {
+          if (pCol[r] === masterCol[r]) green++;
+        }
+        let red = 9 - green;
+        document.getElementById(`colClueQ-${c}`).innerHTML = renderEmoteDots(green, red);
+      }
+    }
+
+    function renderEmoteDots(greenCount, redCount) {
+      let html = '';
+      for (let i = 0; i < greenCount; i++) {
+        html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
+      }
+      for (let i = 0; i < redCount; i++) {
+        html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
+      }
+      return html;
+    }
+
+    // LOGIKA TIMER 5 MENIT & LOOP
+    function toggleAutoLoop() {
+      if (!isLooping) startAutoLoop();
+      else stopAutoLoop(false);
+    }
+
+    function startAutoLoop() {
+      isLooping = true;
+      sessionTimeLeft = TOTAL_SESSION_TIME; // Reset ke 5 Menit (300 Detik)
+
+      const btn = document.getElementById('btnStartLoop');
+      const timerDisplay = document.getElementById('loopTimerDisplay');
+      const statusBadge = document.getElementById('statusBadge');
+
+      btn.className = "px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-sm transition-all shadow-lg shadow-rose-600/20 animate-pulse flex items-center gap-2";
+      btn.innerHTML = `<i class="fas fa-stop"></i> Stop Loop`;
+      timerDisplay.classList.remove('hidden');
+
+      statusBadge.textContent = "SESI AKTIF (5 MNT)";
+      statusBadge.className = "text-xs px-3 py-1 rounded-full font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+
+      simulateParticipantBoard();
+      resetLoopTimer();
+
+      // Send Status ke DB ID = 3
+      updateGameStatusToSupabase("active", sessionTimeLeft, "SESI BERJALAN");
+
+      // 1. Loop Papan (Per 5 Detik)
+      autoInterval = setInterval(() => {
+        simulateParticipantBoard();
+        resetLoopTimer();
+      }, 5000);
+
+      // 2. Countdown Sesi Utama (1 Detik)
+      sessionTimerInterval = setInterval(() => {
+        sessionTimeLeft--;
+        updateSessionTimerDisplay();
+
+        // Update DB setiap 5 detik agar tidak membebani network
+        if (sessionTimeLeft % 5 === 0) {
+          updateGameStatusToSupabase("active", sessionTimeLeft, "SESI BERJALAN");
+        }
+
+        if (sessionTimeLeft <= 0) {
+          stopAutoLoop(true); // Stop karena Waktu Habis
+        }
+      }, 1000);
+    }
+
+    function stopAutoLoop(isTimeout = false) {
+      isLooping = false;
+      clearInterval(autoInterval);
+      clearInterval(loopTimerInterval);
+      clearInterval(sessionTimerInterval);
+
+      const btn = document.getElementById('btnStartLoop');
+      const timerDisplay = document.getElementById('loopTimerDisplay');
+      const statusBadge = document.getElementById('statusBadge');
+
+      btn.className = "px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl font-black text-sm transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2";
+      btn.innerHTML = `<i class="fas fa-play"></i> Mulai Auto Loop (5 Mnt)`;
+      timerDisplay.classList.add('hidden');
+
+      if (isTimeout) {
+        statusBadge.textContent = "WAKTU HABIS!";
+        statusBadge.className = "text-xs px-3 py-1 rounded-full font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20";
+        
+        renderBlankQuestionBoardUI(); // Papan Kosong
+        updateGameStatusToSupabase("timeout", 0, "WAKTU HABIS! KIOSK DIBEKUKAN");
+      } else {
+        statusBadge.textContent = "LOOP DIHENTIKAN";
+        statusBadge.className = "text-xs px-3 py-1 rounded-full font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20";
+        updateGameStatusToSupabase("stopped", sessionTimeLeft, "SESI DIHENTIKAN ADMIN");
+      }
+    }
+
+    function updateSessionTimerDisplay() {
+      const mins = Math.floor(sessionTimeLeft / 60);
+      const secs = sessionTimeLeft % 60;
+      document.getElementById('sessionTimerDisplay').textContent = 
+        `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function resetLoopTimer() {
+      clearInterval(loopTimerInterval);
+      loopTimeLeft = 5;
+      document.getElementById('loopTimerDisplay').innerHTML = `<i class="fas fa-sync-alt fa-spin mr-1"></i>${loopTimeLeft}s`;
+
+      loopTimerInterval = setInterval(() => {
+        loopTimeLeft--;
+        document.getElementById('loopTimerDisplay').innerHTML = `<i class="fas fa-sync-alt fa-spin mr-1"></i>${loopTimeLeft}s`;
+        if (loopTimeLeft <= 0) clearInterval(loopTimerInterval);
+      }, 1000);
+    }
+
+    initGame();
+  </script>
+</body>
+</html>

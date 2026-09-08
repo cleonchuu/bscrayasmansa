@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peta Navigasi English - Lat & Long</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    /* Input Field Aktif/Non-aktif */
+    .input-box {
+      background: #020617;
+      border: 2px solid #334155;
+      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .input-box.active {
+      border-color: #f59e0b;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+    }
+
+    /* Tombol Kalkulator */
+    .calc-btn {
+      background: #334155;
+      color: #ffffff;
+      font-size: 1.3rem;
+      font-weight: bold;
+      border-radius: 0.75rem;
+      padding: 0.75rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calc-btn:active {
+      transform: scale(0.95);
+      background: #475569;
+    }
+
+    .leaflet-container {
+      background: #1e293b;
+      border-radius: 1.5rem;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen p-4 flex items-center justify-center">
+
+  <div class="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+    
+    <!-- KOLOM KIRI: KALKULATOR & INPUT TERPISAH (4 COLS) -->
+    <div class="lg:col-span-4 bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-2xl flex flex-col justify-between">
+      <div>
+        <div class="text-center mb-3">
+          <h1 class="text-xl font-black text-amber-400 tracking-wide">🗺️ INPUT KOORDINAT HINT</h1>
+          <p class="text-xs text-slate-400">Peta Mode Bahasa Inggris (English Map)</p>
+        </div>
+
+        <!-- INPUT BOXES (LAT & LONG) -->
+        <div class="space-y-3 mb-4">
+          <!-- Box Latitude -->
+          <div id="boxLat" class="input-box active" onclick="setActiveTarget('lat')">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-0.5">
+              <span>LATITUDE (Lintang)</span>
+              <span id="badgeLat" class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-bold">AKTIF</span>
+            </div>
+            <div id="displayLat" class="text-2xl font-mono font-bold text-amber-400 tracking-wider">0</div>
+          </div>
+
+          <!-- Box Longitude -->
+          <div id="boxLng" class="input-box" onclick="setActiveTarget('lng')">
+            <div class="flex items-center justify-between text-xs text-slate-400 mb-0.5">
+              <span>LONGITUDE (Bujur)</span>
+              <span id="badgeLng" class="text-[10px] bg-slate-700 text-slate-400 px-2 py-0.5 rounded font-bold hidden">PILIH</span>
+            </div>
+            <div id="displayLng" class="text-2xl font-mono font-bold text-slate-300 tracking-wider">0</div>
+          </div>
+        </div>
+
+        <!-- PAD KALKULATOR -->
+        <div class="grid grid-cols-4 gap-2 mb-3">
+          <button class="calc-btn" onclick="appendCalc('7')">7</button>
+          <button class="calc-btn" onclick="appendCalc('8')">8</button>
+          <button class="calc-btn" onclick="appendCalc('9')">9</button>
+          <button class="calc-btn text-red-400" onclick="clearActiveInput()">C</button>
+
+          <button class="calc-btn" onclick="appendCalc('4')">4</button>
+          <button class="calc-btn" onclick="appendCalc('5')">5</button>
+          <button class="calc-btn" onclick="appendCalc('6')">6</button>
+          <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+
+          <button class="calc-btn" onclick="appendCalc('1')">1</button>
+          <button class="calc-btn" onclick="appendCalc('2')">2</button>
+          <button class="calc-btn" onclick="appendCalc('3')">3</button>
+          <button class="calc-btn text-amber-400" onclick="appendCalc('.')">.</button>
+
+          <button class="calc-btn col-span-2" onclick="appendCalc('0')">0</button>
+          <button class="calc-btn text-amber-400" onclick="toggleNegative()">+/-</button>
+          <button class="calc-btn text-emerald-400" onclick="appendCalc('00')">00</button>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-700/50 p-2.5 rounded-xl text-center text-xs text-slate-400">
+        Gunakan <span class="text-amber-400 font-bold">.</span> untuk desimal dan <span class="text-amber-400 font-bold">+/-</span> untuk minus. Nama peta 100% Alfabet Latin / English.
+      </div>
+    </div>
+
+    <!-- KOLOM KANAN: PETA BESAR (8 COLS) -->
+    <div class="lg:col-span-8 bg-slate-800 border border-slate-700 rounded-3xl p-4 shadow-2xl flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-3 px-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-bold text-slate-200">📍 Live Preview Peta (English)</span>
+          <span id="activeMapCoords" class="text-xs font-mono text-amber-400 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">Lat: 0, Long: 0</span>
+        </div>
+        
+        <button onclick="resetAll()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 text-xs px-3 py-1.5 rounded-xl font-semibold transition">
+          🔄 Reset Total (0,0)
+        </button>
+      </div>
+
+      <div id="map" class="w-full h-[calc(100vh-120px)] rounded-2xl border border-slate-700 shadow-inner"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let activeTarget = 'lat';
+    let latValStr = '';
+    let lngValStr = '';
+
+    const displayLat = document.getElementById('displayLat');
+    const displayLng = document.getElementById('displayLng');
+    const boxLat = document.getElementById('boxLat');
+    const boxLng = document.getElementById('boxLng');
+    const badgeLat = document.getElementById('badgeLat');
+    const badgeLng = document.getElementById('badgeLng');
+
+    // 1. INISIALISASI PETA DENGAN TILE BERSUASANA BAHASA INGGRIS (CartoDB Voyager)
+    let map = L.map('map').setView([0, 0], 2);
+
+    // Menggunakan CartoDB Voyager agar tulisan Arab pada Pulau Socotra / Timur Tengah berubah menjadi "Socotra / Yemen" dalam abjad Latin
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '© OpenStreetMap, © CARTO'
+    }).addTo(map);
+
+    let currentMarker = L.marker([0, 0]).addTo(map);
+
+    function setActiveTarget(target) {
+      activeTarget = target;
+      if (target === 'lat') {
+        boxLat.classList.add('active');
+        boxLng.classList.remove('active');
+        badgeLat.classList.remove('hidden');
+        badgeLng.classList.add('hidden');
+      } else {
+        boxLng.classList.add('active');
+        boxLat.classList.remove('active');
+        badgeLng.classList.remove('hidden');
+        badgeLat.classList.add('hidden');
+      }
+    }
+
+    function appendCalc(val) {
+      if (activeTarget === 'lat') {
+        if (val === '.' && latValStr.includes('.')) return;
+        latValStr += val;
+      } else {
+        if (val === '.' && lngValStr.includes('.')) return;
+        lngValStr += val;
+      }
+      updateDisplayAndMap();
+    }
+
+    function toggleNegative() {
+      if (activeTarget === 'lat') {
+        if (latValStr.startsWith('-')) {
+          latValStr = latValStr.replace('-', '');
+        } else if (latValStr !== '') {
+          latValStr = '-' + latValStr;
+        }
+      } else {
+        if (lngValStr.startsWith('-')) {
+          lngValStr = lngValStr.replace('-', '');
+        } else if (lngValStr !== '') {
+          lngValStr = '-' + lngValStr;
+        }
+      }
+      updateDisplayAndMap();
+    }
+
+    function deleteCalc() {
+      if (activeTarget === 'lat') {
+        latValStr = latValStr.slice(0, -1);
+      } else {
+        lngValStr = lngValStr.slice(0, -1);
+      }
+      updateDisplayAndMap();
+    }
+
+    function clearActiveInput() {
+      if (activeTarget === 'lat') {
+        latValStr = '';
+      } else {
+        lngValStr = '';
+      }
+      updateDisplayAndMap();
+    }
+
+    function resetAll() {
+      latValStr = '';
+      lngValStr = '';
+      activeTarget = 'lat';
+      setActiveTarget('lat');
+      updateDisplayAndMap();
+      map.flyTo([0, 0], 2, { duration: 1 });
+      currentMarker.setLatLng([0, 0]);
+    }
+
+    function updateDisplayAndMap() {
+      displayLat.textContent = latValStr || '0';
+      displayLng.textContent = lngValStr || '0';
+
+      const lat = parseFloat(latValStr);
+      const lng = parseFloat(lngValStr);
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        map.flyTo([lat, lng], 13, { duration: 1.2 }); // Zoom pas untuk melihat daratan & pulau
+        currentMarker.setLatLng([lat, lng]);
+        document.getElementById('activeMapCoords').textContent = `Lat: ${lat}, Long: ${lng}`;
+      }
+    }
+  </script>
+</body>
+</html>

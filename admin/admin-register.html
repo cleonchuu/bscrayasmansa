@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registrasi Admin</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .file-upload-wrapper {
+      position: relative;
+    }
+    .file-upload-wrapper input[type="file"] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    .file-upload-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: #f3f4f6;
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .file-upload-label:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+    .file-upload-label.dragover {
+      background: #dbeafe;
+      border-color: #3b82f6;
+    }
+    .file-info {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .file-info .file-name {
+      color: #1f2937;
+      font-weight: 500;
+    }
+    .file-info .file-size {
+      color: #6b7280;
+    }
+    .file-error {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+    .required-star {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+  <!-- ========== KONTAINER UTAMA ========== -->
+  <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-2">📋 Registrasi Akun</h1>
+    <p class="text-sm text-gray-600 mb-6 border-b pb-2">Halaman khusus Admin untuk mendaftarkan akun baru</p>
+
+    <!-- ========================================= -->
+    <!-- FORM REGISTRASI                           -->
+    <!-- ========================================= -->
+    <form id="registerForm" class="space-y-4">
+      <!-- Nama Lengkap -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">
+          Nama Lengkap <span class="required-star">*</span>
+        </label>
+        <input type="text" id="fullName" required placeholder="Masukkan nama lengkap" 
+               class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none" />
+      </div>
+
+      <!-- Asal Sekolah -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">
+          Asal Sekolah <span class="required-star">*</span>
+        </label>
+        <select id="schoolSelect" required class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white">
+          <option value="">-- Pilih Sekolah --</option>
+          <option value="SMAN 1 Bunguran Timur">SMAN 1 Bunguran Timur</option>
+          <option value="SMPN 1 Bunguran Timur">SMPN 1 Bunguran Timur</option>
+          <option value="SMPN 2 Bunguran Timur">SMPN 2 Bunguran Timur</option>
+          <option value="SMPN 3 Bunguran Timur">SMPN 3 Bunguran Timur</option>
+          <option value="SMPN 4 Bunguran Timur">SMPN 4 Bunguran Timur</option>
+          <option value="SMPN 1 Bunguran Timur Laut">SMPN 4 Bunguran Timur</option>
+          <option value="SMPN 2 Bunguran Timur Laut">SMPN 4 Bunguran Timur</option>
+          <option value="SMPN 1 Bunguran Tengah">SMPN 4 Bunguran Timur</option>
+          <option value="SMPN 1 Bunguran Selatan">SMPN 4 Bunguran Timur</option>
+          <option value="SMPN 2 Bunguran Selatan">SMPN 4 Bunguran Timur</option>
+          <option value="MTSN 1 Natuna">SMPN 4 Bunguran Timur</option>
+          <option value="MTSN 2 Natuna">SMPN 4 Bunguran Timur</option>
+        </select>
+      </div>
+
+      <!-- Tipe Akun -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">
+          Tipe Akun <span class="required-star">*</span>
+        </label>
+        <select id="roleSelect" required class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none bg-white">
+          <option value="">-- Pilih Tipe Akun --</option>
+          <option value="peserta">Peserta</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <!-- ID Peserta (untuk Admin) -->
+      <div id="adminIdContainer" class="hidden">
+        <label class="block text-sm font-medium text-gray-700">
+          ID Manual (Contoh: ADMIN-01) <span class="required-star">*</span>
+        </label>
+        <input type="text" id="manualId" placeholder="Masukkan ID manual (contoh: ADMIN-01)" 
+               class="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400 outline-none" />
+        <p class="text-xs text-gray-500 mt-1">Masukkan ID unik untuk akun Admin</p>
+      </div>
+
+      <!-- Upload Foto/Avatar (wajib untuk Peserta) -->
+      <div id="photoContainer">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Foto / Avatar <span id="photoRequired" class="required-star">*</span>
+          <span id="photoOptional" class="text-gray-500 text-xs hidden">(opsional)</span>
+        </label>
+        <div class="file-upload-wrapper">
+          <input type="file" id="avatarFile" accept="image/*" />
+          <div class="file-upload-label" id="fileDropZone">
+            <div class="text-center">
+              <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="text-sm text-gray-600">Klik atau drag & drop untuk upload</span>
+              <div class="file-info mt-1">
+                <span class="file-name" id="fileName">Belum ada file</span>
+                <span class="file-size" id="fileSize"></span>
+              </div>
+              <div id="fileError" class="file-error hidden"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition shadow">✨ Daftarkan Akun</button>
+    </form>
+
+    <!-- Kartu Konfirmasi -->
+    <div id="confirmationCard" class="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl hidden">
+      <h3 class="text-lg font-bold text-green-800">✅ Registrasi Berhasil!</h3>
+      <div class="mt-2 space-y-1 text-gray-700">
+        <p><span class="font-semibold">ID:</span> <span id="resultId" class="bg-white px-2 py-0.5 rounded border"></span></p>
+        <p><span class="font-semibold">PIN:</span> <span id="resultPin" class="bg-white px-2 py-0.5 rounded border"></span></p>
+        <p><span class="font-semibold">Nama:</span> <span id="resultName"></span></p>
+        <p><span class="font-semibold">Sekolah:</span> <span id="resultSchool"></span></p>
+        <p><span class="font-semibold">Role:</span> <span id="resultRole" class="capitalize"></span></p>
+        <p><span class="font-semibold">Avatar:</span> <span id="resultAvatar" class="text-blue-600 text-sm break-all"></span></p>
+      </div>
+      <div class="mt-3 flex gap-2 flex-wrap">
+        <button onclick="copyResult('id')" class="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded">📋 Salin ID</button>
+        <button onclick="copyResult('pin')" class="text-sm bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded">📋 Salin PIN</button>
+        <button onclick="resetForm()" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">➕ Daftar Lagi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== JAVASCRIPT ========== -->
+  <script>
+    // ------------------------------------------------------------
+    // 1. KONFIGURASI SUPABASE
+    // ------------------------------------------------------------
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // ------------------------------------------------------------
+    // 2. ELEMEN DOM
+    // ------------------------------------------------------------
+    const registerForm = document.getElementById('registerForm');
+    const fullName = document.getElementById('fullName');
+    const schoolSelect = document.getElementById('schoolSelect');
+    const roleSelect = document.getElementById('roleSelect');
+    const manualId = document.getElementById('manualId');
+    const adminIdContainer = document.getElementById('adminIdContainer');
+    const avatarFile = document.getElementById('avatarFile');
+    const fileDropZone = document.getElementById('fileDropZone');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileError = document.getElementById('fileError');
+    const photoContainer = document.getElementById('photoContainer');
+    const photoRequired = document.getElementById('photoRequired');
+    const photoOptional = document.getElementById('photoOptional');
+    const confirmationCard = document.getElementById('confirmationCard');
+    const resultId = document.getElementById('resultId');
+    const resultPin = document.getElementById('resultPin');
+    const resultName = document.getElementById('resultName');
+    const resultSchool = document.getElementById('resultSchool');
+    const resultRole = document.getElementById('resultRole');
+    const resultAvatar = document.getElementById('resultAvatar');
+
+    // ------------------------------------------------------------
+    // 3. HANDLE ROLE CHANGE
+    // ------------------------------------------------------------
+    roleSelect.addEventListener('change', function() {
+      const role = this.value;
+      
+      if (role === 'admin') {
+        // Admin: tampilkan input ID manual, foto opsional
+        adminIdContainer.classList.remove('hidden');
+        manualId.required = true;
+        photoRequired.classList.add('hidden');
+        photoOptional.classList.remove('hidden');
+        avatarFile.required = false;
+      } else if (role === 'peserta') {
+        // Peserta: sembunyikan ID manual, foto wajib
+        adminIdContainer.classList.add('hidden');
+        manualId.required = false;
+        manualId.value = '';
+        photoRequired.classList.remove('hidden');
+        photoOptional.classList.add('hidden');
+        avatarFile.required = true;
+      } else {
+        // Default (kosong)
+        adminIdContainer.classList.add('hidden');
+        manualId.required = false;
+        photoRequired.classList.remove('hidden');
+        photoOptional.classList.add('hidden');
+        avatarFile.required = false;
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 4. VALIDASI FILE (MAX 500KB)
+    // ------------------------------------------------------------
+    const MAX_FILE_SIZE = 500 * 1024;
+
+    function validateFile(file) {
+      fileError.classList.add('hidden');
+      fileError.textContent = '';
+
+      if (!file) {
+        fileName.textContent = 'Belum ada file';
+        fileSize.textContent = '';
+        return true;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeInKB = (file.size / 1024).toFixed(2);
+        const maxInKB = (MAX_FILE_SIZE / 1024).toFixed(0);
+        fileError.textContent = `⚠️ Ukuran file ${sizeInKB}KB melebihi batas maksimal ${maxInKB}KB.`;
+        fileError.classList.remove('hidden');
+        fileName.textContent = file.name;
+        fileSize.textContent = `(${sizeInKB}KB) - ❌ Terlalu besar`;
+        return false;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        fileError.textContent = '⚠️ Hanya file gambar yang diperbolehkan.';
+        fileError.classList.remove('hidden');
+        fileName.textContent = file.name;
+        fileSize.textContent = `(❌ Bukan gambar)`;
+        return false;
+      }
+
+      const sizeInKB = (file.size / 1024).toFixed(2);
+      fileName.textContent = file.name;
+      fileSize.textContent = `(${sizeInKB}KB) ✅`;
+      return true;
+    }
+
+    avatarFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      validateFile(file);
+    });
+
+    // Drag and drop
+    fileDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileDropZone.classList.add('dragover');
+    });
+
+    fileDropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      fileDropZone.classList.remove('dragover');
+    });
+
+    fileDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileDropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        avatarFile.files = files;
+        validateFile(files[0]);
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 5. FUNGSI PEMBANTU
+    // ------------------------------------------------------------
+    function generatePin() {
+      return String(Math.floor(1000 + Math.random() * 9000));
+    }
+
+    function generateUniqueId(schoolName) {
+      let code = schoolName
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .slice(0, 6);
+      while (code.length < 3) code += 'X';
+      code = code.toUpperCase();
+
+      const key = `counter_${code}`;
+      let counter = parseInt(localStorage.getItem(key) || '0', 10);
+      counter += 1;
+      localStorage.setItem(key, String(counter));
+      const padded = String(counter).padStart(3, '0');
+      return `${code}-${padded}`;
+    }
+
+    function copyResult(type) {
+      const text = type === 'id' ? resultId.textContent : resultPin.textContent;
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`📋 ${type.toUpperCase()} disalin: ${text}`);
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert(`📋 ${type.toUpperCase()} disalin: ${text}`);
+      });
+    }
+    window.copyResult = copyResult;
+
+    function resetForm() {
+      confirmationCard.classList.add('hidden');
+      registerForm.reset();
+      avatarFile.value = '';
+      fileName.textContent = 'Belum ada file';
+      fileSize.textContent = '';
+      fileError.classList.add('hidden');
+      adminIdContainer.classList.add('hidden');
+      manualId.required = false;
+      photoRequired.classList.remove('hidden');
+      photoOptional.classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    window.resetForm = resetForm;
+
+    // ------------------------------------------------------------
+    // 6. REGISTRASI
+    // ------------------------------------------------------------
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = fullName.value.trim();
+      const school = schoolSelect.value;
+      const role = roleSelect.value;
+      const file = avatarFile.files[0];
+
+      // Validasi dasar
+      if (!name || !school || !role) {
+        alert('⚠️ Harap lengkapi semua field yang wajib diisi.');
+        return;
+      }
+
+      let uniqueId, pin;
+
+      // Proses berdasarkan role
+      if (role === 'peserta') {
+        // Peserta: ID otomatis, foto wajib
+        if (!file) {
+          alert('⚠️ Foto/Avatar wajib diisi untuk Peserta.');
+          return;
+        }
+        
+        const isValid = validateFile(file);
+        if (!isValid) {
+          alert('⚠️ File tidak valid. Pastikan ukuran < 500KB dan berupa gambar.');
+          return;
+        }
+
+        uniqueId = generateUniqueId(school);
+        pin = generatePin();
+
+      } else if (role === 'admin') {
+        // Admin: ID manual, foto opsional
+        const manualIdValue = manualId.value.trim();
+        if (!manualIdValue) {
+          alert('⚠️ ID manual wajib diisi untuk Admin.');
+          return;
+        }
+        uniqueId = manualIdValue;
+        pin = generatePin();
+
+        // Cek apakah ID sudah digunakan
+        const { data: existing, error: checkError } = await supabaseClient
+          .from('users')
+          .select('unique_id')
+          .eq('unique_id', uniqueId)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking ID:', checkError);
+        }
+
+        if (existing) {
+          alert(`⚠️ ID "${uniqueId}" sudah digunakan. Silakan gunakan ID lain.`);
+          return;
+        }
+      }
+
+      // Upload avatar
+      let avatarUrl = '';
+      if (file) {
+        try {
+          const fileExt = file.name.split('.').pop();
+          const fileNameStorage = `${uniqueId}.${fileExt}`;
+          
+          const { error: uploadError } = await supabaseClient.storage
+            .from('avatars')
+            .upload(fileNameStorage, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            alert('❌ Gagal upload foto: ' + uploadError.message);
+            return;
+          }
+
+          const { data: urlData } = supabaseClient.storage
+            .from('avatars')
+            .getPublicUrl(fileNameStorage);
+          avatarUrl = urlData.publicUrl;
+        } catch (err) {
+          console.error('Error upload:', err);
+          alert('❌ Terjadi kesalahan saat upload file.');
+          return;
+        }
+      } else {
+        // Jika tidak ada foto, gunakan placeholder
+        avatarUrl = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=random&size=128';
+      }
+
+      // Simpan ke database
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .insert([{
+            unique_id: uniqueId,
+            full_name: name,
+            school_name: school,
+            avatar_url: avatarUrl,
+            pin: pin,
+            role: role
+          }])
+          .select();
+
+        if (error) {
+          console.error('Insert error:', error);
+          
+          // Handle duplicate ID
+          if (error.code === '23505') {
+            alert(`⚠️ ID "${uniqueId}" sudah digunakan. Silakan gunakan ID lain.`);
+          } else {
+            alert('❌ Gagal menyimpan data: ' + error.message);
+          }
+          return;
+        }
+
+        // Tampilkan konfirmasi
+        resultId.textContent = uniqueId;
+        resultPin.textContent = pin;
+        resultName.textContent = name;
+        resultSchool.textContent = school;
+        resultRole.textContent = role;
+        resultAvatar.textContent = avatarUrl;
+        confirmationCard.classList.remove('hidden');
+
+        // Reset form
+        registerForm.reset();
+        avatarFile.value = '';
+        fileName.textContent = 'Belum ada file';
+        fileSize.textContent = '';
+        fileError.classList.add('hidden');
+        adminIdContainer.classList.add('hidden');
+        manualId.required = false;
+        photoRequired.classList.remove('hidden');
+        photoOptional.classList.add('hidden');
+
+        confirmationCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      } catch (err) {
+        console.error('Error:', err);
+        alert('❌ Terjadi kesalahan saat menyimpan data.');
+      }
+    });
+
+    console.log('✅ Admin Register siap digunakan.');
+  </script>
+</body>
+</html>

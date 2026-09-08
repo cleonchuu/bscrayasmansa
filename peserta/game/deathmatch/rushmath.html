@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Rush - Deathmatch Mode</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px rgba(225, 29, 72, 0.4); }
+      50% { box-shadow: 0 0 50px rgba(225, 29, 72, 0.8); }
+    }
+    .btn-ready-glow {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    .key-btn {
+      transition: all 0.1s ease;
+    }
+    .key-btn:active {
+      transform: scale(0.92);
+      background-color: #f43f5e !important;
+    }
+  </style>
+</head>
+<body class="bg-[#0b0f19] text-white min-h-screen flex flex-col justify-between selection:bg-rose-500 selection:text-white">
+
+  <!-- HEADER NAVBAR -->
+  <header class="w-full bg-[#111827]/80 backdrop-blur-md border-b border-rose-900/30 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <a href="../../lobby.html" class="text-gray-400 hover:text-white transition-colors p-2 rounded-lg bg-gray-800/50">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+      <div>
+        <h1 class="text-lg font-black tracking-wider text-rose-500 flex items-center gap-2">
+          <i class="fas fa-skull-crossbones"></i> MATH RUSH
+        </h1>
+        <p id="playerName" class="text-xs text-gray-400">Peserta: <span class="text-gray-200 font-semibold">Memuat...</span></p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <!-- TIMER -->
+      <div class="bg-rose-950/40 border border-rose-500/30 px-3 py-1.5 rounded-xl text-center">
+        <span class="text-[10px] text-rose-300 block font-bold leading-none uppercase">Sisa Waktu</span>
+        <span id="timerDisplay" class="text-xl font-black text-rose-400 font-mono">60s</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN GAME AREA -->
+  <main class="flex-1 max-w-md w-full mx-auto px-4 py-6 flex flex-col justify-center items-center relative">
+
+    <!-- STATUS BANNER / SCORE -->
+    <div class="w-full bg-[#1e293b]/60 border border-white/10 rounded-2xl p-4 mb-6 flex items-center justify-between shadow-xl">
+      <div>
+        <p class="text-xs text-gray-400 uppercase font-bold">Skor Saat Ini</p>
+        <p id="currentScore" class="text-3xl font-black text-rose-400">0</p>
+      </div>
+      <div class="text-right">
+        <p class="text-xs text-gray-400 uppercase font-bold">Status Server</p>
+        <span id="syncStatus" class="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-400 bg-yellow-400/10 px-2.5 py-1 rounded-full border border-yellow-400/20">
+          <i class="fas fa-circle-notch fa-spin text-[10px]"></i> Menunggu SIAP
+        </span>
+      </div>
+    </div>
+
+    <!-- OVERLAY LAYAR "SIAP" (READY SCREEN) -->
+    <div id="readyOverlay" class="w-full bg-[#111827]/95 border border-rose-500/40 rounded-3xl p-6 text-center shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center my-auto z-30 transition-all">
+      <div class="w-20 h-20 rounded-full bg-rose-500/10 border-2 border-rose-500/30 flex items-center justify-center text-rose-500 text-3xl mb-4 animate-bounce">
+        <i class="fas fa-bolt"></i>
+      </div>
+      <h2 class="text-2xl font-black text-white mb-2">SIAP UNTUK DEATHMATCH?</h2>
+      <p class="text-sm text-gray-300 mb-6 max-w-xs leading-relaxed">
+        Tekan tombol <strong class="text-rose-400">"SAYA SIAP!"</strong> untuk mendaftarkan giliran kamu. Game akan dimulai setelah Admin membuka kunci.
+      </p>
+
+      <button id="btnReady" onclick="handleParticipantReady()" class="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-500 text-white font-black text-lg tracking-wider uppercase shadow-xl hover:brightness-110 active:scale-95 transition-all btn-ready-glow flex items-center justify-center gap-3">
+        <i class="fas fa-play-circle text-xl"></i> SAYA SIAP!
+      </button>
+    </div>
+
+    <!-- OVERLAY COUNTDOWN (HITUNG MUNDUR 3.. 2.. 1..) -->
+    <div id="countdownOverlay" class="hidden fixed inset-0 bg-black/90 backdrop-blur-lg z-50 flex-col items-center justify-center text-center">
+      <p class="text-rose-500 text-sm font-bold uppercase tracking-widest mb-2">Pertandingan Dimulai Dalam</p>
+      <div id="countdownNumber" class="text-8xl font-black text-white font-mono animate-ping">
+        3
+      </div>
+    </div>
+
+    <!-- BOX SOAL & JAWABAN -->
+    <div id="gameBox" class="w-full hidden flex-col items-center gap-4">
+      
+      <!-- Display Soal -->
+      <div class="w-full bg-[#111827] border-2 border-rose-500/30 rounded-3xl p-6 text-center shadow-2xl relative overflow-hidden">
+        <p class="text-xs font-bold text-rose-400 uppercase tracking-widest mb-1">Soal Aritmatika</p>
+        <div id="questionDisplay" class="text-4xl md:text-5xl font-black text-white font-mono my-2 tracking-wide">
+          ? + ?
+        </div>
+        
+        <!-- Input Jawaban Sementara -->
+        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-center gap-2">
+          <span class="text-sm text-gray-400">Jawaban:</span>
+          <span id="answerInput" class="text-2xl font-bold text-rose-400 font-mono min-w-[60px] inline-block bg-black/40 px-3 py-1 rounded-lg border border-rose-500/20">
+            -
+          </span>
+        </div>
+      </div>
+
+      <!-- KEYPAD NUMERIK -->
+      <div class="w-full grid grid-cols-3 gap-3 mt-2">
+        <button onclick="pressKey('1')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">1</button>
+        <button onclick="pressKey('2')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">2</button>
+        <button onclick="pressKey('3')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">3</button>
+        <button onclick="pressKey('4')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">4</button>
+        <button onclick="pressKey('5')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">5</button>
+        <button onclick="pressKey('6')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">6</button>
+        <button onclick="pressKey('7')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">7</button>
+        <button onclick="pressKey('8')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">8</button>
+        <button onclick="pressKey('9')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">9</button>
+        
+        <button onclick="clearKey()" class="key-btn bg-amber-600/20 border border-amber-500/30 text-amber-400 text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-amber-600/30">C</button>
+        <button onclick="pressKey('0')" class="key-btn bg-[#1e293b] hover:bg-[#334155] border border-white/10 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg">0</button>
+        <button onclick="submitAnswer()" class="key-btn bg-rose-600 border border-rose-500 text-white text-xl font-bold py-4 rounded-2xl shadow-lg hover:bg-rose-500 active:bg-rose-700">
+          <i class="fas fa-check"></i>
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="w-full py-3 text-center text-xs text-gray-500 border-t border-white/5 bg-[#0b0f19]">
+    Game Penentuan Seri Deathmatch Mode &bull; Math Rush
+  </footer>
+
+  <script>
+    // 1. SUPABASE CONFIG
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // 2. STATE VARIABLES
+    let currentUser = null;
+    let currentScore = 0;
+    let timeLeft = 60;
+    let timerInterval = null;
+    let currentInput = "";
+    let currentCorrectAnswer = 0;
+    let isGameActive = false; // Flag penting agar tidak re-trigger saat update skor
+    let isStarting = false;   // Flag penanda sedang countdown
+
+    // 3. INIT SESSION CHECK
+    async function initPage() {
+      const session = localStorage.getItem('userSession');
+      if (!session) {
+        window.location.href = '../../login.html';
+        return;
+      }
+
+      currentUser = JSON.parse(session);
+      document.getElementById('playerName').querySelector('span').textContent = currentUser.full_name || 'Peserta';
+    }
+
+    // 4. HANDLE "SIAP" -> SIMPAN STATUS & LISTEN ADMIN
+    async function handleParticipantReady() {
+      const btnReady = document.getElementById('btnReady');
+      const syncStatus = document.getElementById('syncStatus');
+
+      btnReady.disabled = true;
+      btnReady.className = "w-full py-4 rounded-2xl bg-amber-600/90 text-white font-black text-sm md:text-base tracking-wider uppercase shadow-xl flex items-center justify-center gap-3 cursor-wait border border-amber-500/40";
+      btnReady.innerHTML = `<i class="fas fa-spinner fa-spin text-xl"></i> MENUNGGU ADMIN MEMBUKA KUNCI...`;
+
+      try {
+        const { error } = await supabaseClient
+          .from('deathmatch_participants')
+          .upsert({
+            user_id: currentUser.unique_id,
+            full_name: currentUser.full_name,
+            school_name: currentUser.school_name,
+            game_name: 'Math Rush',
+            score: 0,
+            status: 'READY',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,game_name' });
+
+        if (error) throw error;
+
+        syncStatus.className = "inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20";
+        syncStatus.innerHTML = `<i class="fas fa-check-circle text-[10px]"></i> Siap! Menunggu Admin...`;
+
+        listenForAdminStart();
+
+      } catch (err) {
+        console.error('Gagal sync siap:', err);
+        alert('Gagal terhubung ke database Supabase. Coba tekan lagi!');
+        btnReady.disabled = false;
+        btnReady.className = "w-full py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-rose-500 text-white font-black text-lg tracking-wider uppercase shadow-xl hover:brightness-110 active:scale-95 transition-all btn-ready-glow flex items-center justify-center gap-3";
+        btnReady.innerHTML = `<i class="fas fa-play-circle text-xl"></i> SAYA SIAP!`;
+      }
+    }
+
+    // 5. LISTEN DENGAN REALTIME (CEK AGAR TIDAK DOUBLE START)
+    function listenForAdminStart() {
+      supabaseClient
+        .channel('participant_status_listener')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'deathmatch_participants',
+            filter: `user_id=eq.${currentUser.unique_id}`
+          },
+          (payload) => {
+            // Mencegah trigger ulang jika game sudah/sedang berjalan
+            if (isGameActive || isStarting) return;
+
+            if (payload.new.status === 'STARTED' && payload.new.game_name === 'Math Rush') {
+              startCountdownFlow();
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // 6. HITUNG MUNDUR (COUNTDOWN 3.. 2.. 1..)
+    function startCountdownFlow() {
+      isStarting = true;
+      document.getElementById('readyOverlay').classList.add('hidden');
+      
+      const countdownOverlay = document.getElementById('countdownOverlay');
+      const countdownNumber = document.getElementById('countdownNumber');
+      countdownOverlay.classList.remove('hidden');
+      countdownOverlay.classList.add('flex');
+
+      let count = 3;
+      countdownNumber.textContent = count;
+
+      const countInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          countdownNumber.textContent = count;
+        } else if (count === 0) {
+          countdownNumber.textContent = "START!";
+        } else {
+          clearInterval(countInterval);
+          countdownOverlay.classList.add('hidden');
+          countdownOverlay.classList.remove('flex');
+          
+          document.getElementById('gameBox').classList.remove('hidden');
+          document.getElementById('gameBox').classList.add('flex');
+          
+          isStarting = false;
+          startGame();
+        }
+      }, 1000);
+    }
+
+    // 7. MULAI GAMEPLAY & TIMER
+    function startGame() {
+      if (isGameActive) return; // Mencegah pemanggilan ganda
+      isGameActive = true;
+      currentScore = 0;
+      timeLeft = 60;
+      updateScoreUI();
+      generateQuestion();
+
+      const syncStatus = document.getElementById('syncStatus');
+      syncStatus.className = "inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 bg-rose-400/10 px-2.5 py-1 rounded-full border border-rose-400/20";
+      syncStatus.innerHTML = `<i class="fas fa-gamepad text-[10px]"></i> Bertanding`;
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timerDisplay').textContent = `${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    // 8. GENERATE SOAL
+    function generateQuestion() {
+      const ops = ['+', '-', '*'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b;
+
+      if (op === '+') {
+        a = Math.floor(Math.random() * 50) + 1;
+        b = Math.floor(Math.random() * 50) + 1;
+        currentCorrectAnswer = a + b;
+      } else if (op === '-') {
+        a = Math.floor(Math.random() * 50) + 10;
+        b = Math.floor(Math.random() * a);
+        currentCorrectAnswer = a - b;
+      } else if (op === '*') {
+        a = Math.floor(Math.random() * 12) + 1;
+        b = Math.floor(Math.random() * 12) + 1;
+        currentCorrectAnswer = a * b;
+      }
+
+      const displayOp = op === '*' ? '×' : op;
+      document.getElementById('questionDisplay').textContent = `${a} ${displayOp} ${b}`;
+      clearKey();
+    }
+
+    // 9. KEYPAD LOGIC
+    function pressKey(num) {
+      if (!isGameActive) return;
+      if (currentInput.length < 4) {
+        currentInput += num;
+        document.getElementById('answerInput').textContent = currentInput;
+      }
+    }
+
+    function clearKey() {
+      currentInput = "";
+      document.getElementById('answerInput').textContent = "-";
+    }
+
+    function submitAnswer() {
+      if (!isGameActive || currentInput === "") return;
+
+      const userVal = parseInt(currentInput, 10);
+      if (userVal === currentCorrectAnswer) {
+        currentScore += 10;
+        updateScoreUI();
+        syncScoreToSupabase();
+      }
+
+      generateQuestion();
+    }
+
+    function updateScoreUI() {
+      document.getElementById('currentScore').textContent = currentScore;
+    }
+
+    // 10. AUTO-SYNC SKOR TANPA RESET GAME
+    async function syncScoreToSupabase() {
+      try {
+        await supabaseClient
+          .from('deathmatch_participants')
+          .update({
+            score: currentScore,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', currentUser.unique_id)
+          .eq('game_name', 'Math Rush');
+      } catch (e) {
+        console.error("Error auto-syncing score:", e);
+      }
+    }
+
+    // 11. GAME OVER
+    async function endGame() {
+      clearInterval(timerInterval);
+      isGameActive = false;
+
+      await supabaseClient
+        .from('deathmatch_participants')
+        .update({
+          score: currentScore,
+          status: 'FINISHED',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.unique_id)
+        .eq('game_name', 'Math Rush');
+
+      alert(`WAKTU HABIS!\nSkor Akhir Math Rush Kamu: ${currentScore}`);
+      window.location.href = '../../gamelobby.html';
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

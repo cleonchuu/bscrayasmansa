@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk Input Jawaban - Mimic Sudoku</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+
+    /* Overlay Animasi Respon (Merah / Hijau) */
+    .flash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .flash-correct { background-color: #16a34a; }
+    .flash-wrong { background-color: #dc2626; }
+
+    /* Overlay Pembekuan Sesi (Timeout) */
+    .freeze-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Styling Tombol Kalkulator */
+    .calc-btn {
+      background: #334155;
+      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
+    }
+
+    .calc-btn:active:not(:disabled) {
+      transform: scale(0.95);
+      background: #475569;
+    }
+
+    .calc-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
+    <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+      <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
+    </div>
+    <h2 id="freezeTitle" class="text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2">
+      WAKTU HABIS!
+    </h2>
+    <p id="freezeMessage" class="text-slate-400 text-sm md:text-base max-w-md mb-6">
+      Sesi pengisian jawaban telah dibekukan oleh Admin. Harap tunggu putaran/sesi berikutnya.
+    </p>
+    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs font-mono text-slate-400">
+      <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+      Status System: <span id="freezeStatusText" class="text-rose-400 font-bold uppercase">TIMEOUT</span>
+    </div>
+  </div>
+
+  <div id="flashOverlay" class="flash-screen hidden">
+    <div id="flashIcon" class="text-8xl mb-4"></div>
+    <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
+  </div>
+
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+    
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
+      <div>
+        <h1 class="text-xl font-black text-amber-400 tracking-wide">🎯 KIOSK PESERTA</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Mimic Sudoku Fast Play</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
+        <i class="fas fa-stopwatch text-amber-400 text-sm"></i>
+        <span id="kioskTimerDisplay" class="font-mono font-bold text-amber-400 text-sm">05:00</span>
+      </div>
+    </div>
+
+    <div id="stepSchool" class="space-y-4">
+      <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
+      <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+        </div>
+    </div>
+
+    <div id="stepStudent" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
+        <button id="btnBackToSchool" class="text-xs text-amber-400 hover:underline">← Ganti Sekolah</button>
+      </div>
+      <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+        </div>
+    </div>
+
+    <div id="stepCalculator" class="space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
+        <div>
+          <div id="selectedStudentName" class="font-bold text-lg text-white">Nama Peserta</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400">Asal Sekolah</div>
+        </div>
+        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Batal</button>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
+        <div id="calcDisplay" class="text-4xl font-mono font-bold tracking-wider text-amber-400 min-h-[48px] break-all"></div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <button class="calc-btn" onclick="appendCalc('7')">7</button>
+        <button class="calc-btn" onclick="appendCalc('8')">8</button>
+        <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        
+        <button class="calc-btn" onclick="appendCalc('4')">4</button>
+        <button class="calc-btn" onclick="appendCalc('5')">5</button>
+        <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        
+        <button class="calc-btn" onclick="appendCalc('1')">1</button>
+        <button class="calc-btn" onclick="appendCalc('2')">2</button>
+        <button class="calc-btn" onclick="appendCalc('3')">3</button>
+
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+        <button class="calc-btn" onclick="appendCalc('0')">0</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+      </div>
+
+      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center">
+        <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. KONEKSI SUPABASE
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // KONSTANTA GAME
+    const CURRENT_GAME_NAME = "Mimic Sudoku";
+    const POINTS_PER_CORRECT_ANSWER = 10;
+
+    // STATE VARIABEL
+    let allUsers = [];
+    let selectedSchool = '';
+    let selectedStudent = null;
+    let currentInput = '';
+    let isSubmitting = false;
+    let isFrozen = false;
+
+    // ELEMEN DOM
+    const stepSchool = document.getElementById('stepSchool');
+    const stepStudent = document.getElementById('stepStudent');
+    const stepCalculator = document.getElementById('stepCalculator');
+    const schoolList = document.getElementById('schoolList');
+    const studentList = document.getElementById('studentList');
+    const calcDisplay = document.getElementById('calcDisplay');
+    const freezeOverlay = document.getElementById('freezeOverlay');
+    const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
+
+    // 2. MONITOR STATUS GAME SINKRON DARI SUPABASE (ID = 3)
+    function listenToGameStatus() {
+      // Polling setiap 1.5 detik untuk memantau ID = 3
+      setInterval(async () => {
+        try {
+          const { data, error } = await supabaseClient
+            .from('chesskey_master_sequence')
+            .select('grid_data')
+            .eq('id', 3)
+            .single();
+
+          if (error || !data) return;
+
+          const statusData = data.grid_data;
+          if (!statusData) return;
+
+          const status = statusData.status; // "active" | "timeout" | "stopped"
+          const timeLeft = statusData.time_left || 0;
+          const message = statusData.message || "";
+
+          // Format Waktu Display
+          const mins = Math.floor(timeLeft / 60);
+          const secs = timeLeft % 60;
+          kioskTimerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+          // Logika Pembekuan Layar
+          if (status === 'timeout' || status === 'stopped') {
+            freezeKiosk(status, message);
+          } else if (status === 'active') {
+            unfreezeKiosk();
+          }
+
+        } catch (err) {
+          console.error("Error polling game status:", err);
+        }
+      }, 1500);
+    }
+
+    // BEKUKAN KIOSK PESERTA
+    function freezeKiosk(status, message) {
+      if (isFrozen) return;
+      isFrozen = true;
+
+      document.getElementById('freezeTitle').textContent = (status === 'timeout') ? "WAKTU HABIS!" : "SESI DIBEKUKAN";
+      document.getElementById('freezeMessage').textContent = message || "Papan sedang dibekukan oleh Admin.";
+      document.getElementById('freezeStatusText').textContent = status;
+
+      freezeOverlay.classList.remove('hidden');
+
+      // Nonaktifkan semua tombol
+      document.querySelectorAll('button').forEach(btn => btn.disabled = true);
+    }
+
+    // BUKA PEMBEKUAN KIOSK
+    function unfreezeKiosk() {
+      if (!isFrozen) return;
+      isFrozen = false;
+
+      freezeOverlay.classList.add('hidden');
+      document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+    }
+
+    // 3. LOAD DATA PESERTA
+    async function loadAllParticipants() {
+      if (!supabaseClient) return;
+
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('role', 'peserta');
+
+      if (error) {
+        alert('Gagal mengambil data peserta');
+        return;
+      }
+
+      allUsers = data;
+      renderSchools();
+    }
+
+    // 4. RENDER SEKOLAH & PESERTA
+    function renderSchools() {
+      const schools = [...new Set(allUsers.map(u => u.school_name))];
+      schoolList.innerHTML = '';
+
+      schools.forEach(school => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
+        btn.onclick = () => selectSchool(school);
+        schoolList.appendChild(btn);
+      });
+    }
+
+    function selectSchool(schoolName) {
+      selectedSchool = schoolName;
+      stepSchool.classList.add('hidden');
+      stepStudent.classList.remove('hidden');
+
+      const filteredStudents = allUsers.filter(u => u.school_name === schoolName);
+      studentList.innerHTML = '';
+
+      filteredStudents.forEach(student => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
+        btn.onclick = () => openCalculator(student);
+        studentList.appendChild(btn);
+      });
+    }
+
+    document.getElementById('btnBackToSchool').onclick = () => {
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    };
+
+    document.getElementById('btnCancelCalc').onclick = resetToStart;
+
+    function openCalculator(student) {
+      selectedStudent = student;
+      currentInput = '';
+      updateDisplay();
+
+      document.getElementById('selectedStudentName').textContent = student.full_name;
+      document.getElementById('selectedStudentSchool').textContent = student.school_name;
+
+      stepStudent.classList.add('hidden');
+      stepCalculator.classList.remove('hidden');
+    }
+
+    // 5. KALKULATOR LOGIC
+    function appendCalc(val) {
+      if (isFrozen) return;
+      if (currentInput.length < 10) { 
+        currentInput += val;
+        updateDisplay();
+      }
+    }
+
+    function clearCalc() {
+      if (isFrozen) return;
+      currentInput = '';
+      updateDisplay();
+    }
+
+    function deleteCalc() {
+      if (isFrozen) return;
+      currentInput = currentInput.slice(0, -1);
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      calcDisplay.textContent = currentInput || '0';
+    }
+
+    // 6. AMBIL KUNCI JAWABAN REAL-TIME (ID 1 & 2)
+    async function getCorrectAnswerFromDB() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('chesskey_master_sequence')
+          .select('id, grid_data')
+          .in('id', [1, 2]);
+
+        if (error || !data || data.length < 2) return null;
+
+        const row1 = data.find(item => item.id === 1);
+        const row2 = data.find(item => item.id === 2);
+
+        if (!row1 || !row2) return null;
+
+        const masterArray = row1.grid_data; 
+        const targetIndex = Number(row2.grid_data); 
+
+        return String(masterArray[targetIndex - 1]);
+      } catch (err) {
+        console.error("Error fetching DB sequence:", err);
+        return null;
+      }
+    }
+
+    // 7. SUBMIT JAWABAN
+    async function submitAnswer() {
+      if (!currentInput || isSubmitting || isFrozen) return;
+      
+      isSubmitting = true;
+      document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
+
+      const correctAnswer = await getCorrectAnswerFromDB();
+
+      if (correctAnswer === null) {
+        alert('Gagal terhubung ke master soal database!');
+        isSubmitting = false;
+        document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+        return;
+      }
+
+      const isCorrect = (currentInput.trim() === correctAnswer.trim());
+
+      if (isCorrect && selectedStudent) {
+        await supabaseClient
+          .from('game_scores')
+          .insert([
+            {
+              user_unique_id: selectedStudent.unique_id,
+              game_name: CURRENT_GAME_NAME,
+              score_obtained: POINTS_PER_CORRECT_ANSWER
+            }
+          ]);
+      }
+
+      triggerFlashEffect(isCorrect);
+    }
+
+    function triggerFlashEffect(isCorrect) {
+      const overlay = document.getElementById('flashOverlay');
+      const icon = document.getElementById('flashIcon');
+      const text = document.getElementById('flashText');
+
+      overlay.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
+      icon.textContent = isCorrect ? '✅' : '❌';
+      text.textContent = isCorrect ? 'JAWABAN BENAR!' : 'JAWABAN SALAH!';
+
+      overlay.classList.remove('hidden');
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        isSubmitting = false;
+        document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+        resetToStart();
+        loadAllParticipants(); 
+      }, 3000);
+    }
+
+    function resetToStart() {
+      currentInput = '';
+      selectedStudent = null;
+      selectedSchool = '';
+      
+      stepCalculator.classList.add('hidden');
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    }
+
+    // Inisialisasi
+    loadAllParticipants();
+    listenToGameStatus();
+  </script>
+</body>
+</html>

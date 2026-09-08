@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lobby Peserta - Game Competition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    /* Custom scrollbar untuk carousel */
+    .carousel-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    .carousel-container::-webkit-scrollbar-track {
+      background: #1e293b;
+      border-radius: 10px;
+    }
+    .carousel-container::-webkit-scrollbar-thumb {
+      background: #f59e0b;
+      border-radius: 10px;
+    }
+    .carousel-container::-webkit-scrollbar-thumb:hover {
+      background: #fbbf24;
+    }
+
+    /* Animasi fade-in */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Modal animation */
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .modal-fade-in {
+      animation: modalFadeIn 0.3s ease-out;
+    }
+
+    /* Card hover effect */
+    .day-card {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .day-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Game card hover */
+    .game-card {
+      transition: all 0.3s ease;
+    }
+    .game-card:hover {
+      transform: translateX(4px);
+    }
+
+    /* Glow button */
+    .btn-glow {
+      transition: all 0.3s ease;
+    }
+    .btn-glow:hover:not(:disabled) {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+      transform: scale(1.05);
+    }
+
+    .btn-glow-danger {
+      transition: all 0.3s ease;
+    }
+    .btn-glow-danger:hover:not(:disabled) {
+      box-shadow: 0 0 20px rgba(225, 29, 72, 0.5);
+      transform: scale(1.05);
+    }
+
+    /* Loading spinner */
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top: 3px solid #f59e0b;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Glassmorphism effect */
+    .glass {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Profile photo 3x4 */
+    .profile-photo {
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body class="bg-[#0f172a] min-h-screen text-white">
+
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="fixed inset-0 bg-[#0f172a] flex items-center justify-center z-50">
+    <div class="text-center">
+      <div class="spinner mx-auto"></div>
+      <p class="mt-4 text-gray-400">Memuat Lobby...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent" class="hidden max-w-6xl mx-auto px-4 py-6 fade-in-up">
+    
+    <!-- Profile Header -->
+    <div class="bg-[#1e293b] rounded-2xl shadow-2xl p-6 mb-8 relative glass border border-white/5">
+      <button id="logoutBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200">
+        <i class="fas fa-sign-out-alt text-xl"></i>
+        <span class="text-sm ml-1">Logout</span>
+      </button>
+
+      <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+        <div class="flex-shrink-0">
+          <div class="w-32 h-42 md:w-40 md:h-52 rounded-xl overflow-hidden bg-[#0f172a] border-2 border-[#f59e0b]/30">
+            <img id="profilePhoto" src="" alt="Foto Profil" class="w-full h-full profile-photo" />
+          </div>
+        </div>
+
+        <div class="flex-1 text-center md:text-left">
+          <h2 id="fullName" class="text-2xl md:text-3xl font-bold text-white">Nama Peserta</h2>
+          <div class="flex items-center justify-center md:justify-start gap-3 mt-1">
+            <p id="schoolName" class="text-gray-300 text-lg">Asal Sekolah</p>
+            <div class="w-10 h-10 rounded-full overflow-hidden bg-[#0f172a] border border-white/10 flex-shrink-0">
+              <img id="schoolLogo" src="" alt="Logo Sekolah" class="w-full h-full object-cover" />
+            </div>
+          </div>
+          
+          <div class="mt-4 inline-block bg-gradient-to-r from-[#f59e0b]/20 to-[#fbbf24]/20 border border-[#f59e0b]/30 rounded-xl px-6 py-3">
+            <p class="text-sm text-gray-400">Total Poin Akumulasi</p>
+            <p id="totalPoints" class="text-3xl font-bold text-[#fbbf24]">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hari Kompetisi Principal -->
+    <div class="mb-10">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-semibold text-white">
+          <i class="fas fa-calendar-alt text-[#f59e0b] mr-2"></i>
+          Hari Kompetisi Utama
+        </h3>
+        <span class="text-sm text-gray-400"><i class="fas fa-arrows-alt-h mr-1"></i>Geser untuk melihat</span>
+      </div>
+
+      <div class="carousel-container overflow-x-auto overflow-y-hidden pb-4 flex gap-6 snap-x snap-mandatory scroll-smooth" id="carouselContainer">
+      </div>
+    </div>
+
+    <!-- Deathmatch Section -->
+    <div class="mb-12">
+      <div class="bg-gradient-to-r from-rose-950/60 via-[#1e293b] to-slate-900 border border-rose-500/30 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-rose-500/20 pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="bg-rose-600 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-widest animate-pulse">
+                Penentuan Seri
+              </span>
+              <h3 class="text-2xl font-black text-rose-400 tracking-wide flex items-center gap-2">
+                <i class="fas fa-skull-crossbones text-rose-500"></i> DEATHMATCH MODE
+              </h3>
+            </div>
+            <p class="text-gray-400 text-sm mt-1">
+              Babak penentu saat poin skor akumulasi sama. Poin di sini <strong class="text-rose-300">tidak menambahkan</strong> poin akumulasi utama.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Math Rush -->
+          <div class="bg-[#0f172a]/90 border border-rose-500/30 rounded-2xl p-5 flex flex-col justify-between hover:border-rose-500/60 transition-all duration-300 shadow-lg">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 font-bold text-xl">
+                  <i class="fas fa-calculator"></i>
+                </div>
+                <span id="badgeMathRush" class="text-xs px-3 py-1 rounded-full font-semibold bg-gray-800 text-gray-400 border border-white/5">
+                  🔒 Terkunci
+                </span>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-1">Math Rush</h4>
+              <p class="text-xs text-gray-400 mb-4">Selesaikan beruntun operasi aritmatika cepat 1 menit via keypad kalkulator.</p>
+            </div>
+            <button id="btnMathRush" disabled onclick="startDeathmatch('rushmath')" class="w-full py-3 rounded-xl font-black text-sm bg-gray-700 text-gray-500 cursor-not-allowed opacity-50 transition-all">
+              🔒 Terkunci oleh Admin
+            </button>
+          </div>
+
+          <!-- Rolling Game -->
+          <div class="bg-[#0f172a]/90 border border-rose-500/30 rounded-2xl p-5 flex flex-col justify-between hover:border-rose-500/60 transition-all duration-300 shadow-lg">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xl">
+                  <i class="fas fa-dice"></i>
+                </div>
+                <span id="badgeRollingGame" class="text-xs px-3 py-1 rounded-full font-semibold bg-gray-800 text-gray-400 border border-white/5">
+                  🔒 Terkunci
+                </span>
+              </div>
+              <h4 class="text-lg font-bold text-white mb-1">Rolling Game</h4>
+              <p class="text-xs text-gray-400 mb-4">Uji keberuntungan dan strategi acak pada mode deathmatch tantangan angka.</p>
+            </div>
+            <button id="btnRollingGame" disabled onclick="startDeathmatch('rollinggame')" class="w-full py-3 rounded-xl font-black text-sm bg-gray-700 text-gray-500 cursor-not-allowed opacity-50 transition-all">
+              🔒 Terkunci oleh Admin
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal Game -->
+  <div id="gameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-[#1e293b] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-fade-in p-6 border border-white/10 shadow-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 id="modalDayTitle" class="text-2xl font-bold text-white">Hari 1</h3>
+          <p id="modalDayDate" class="text-gray-400 text-sm">Hari kompetisi</p>
+        </div>
+        <button id="closeModalBtn" class="text-gray-400 hover:text-white transition-colors duration-200">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+
+      <div id="gameList" class="space-y-4">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. KONFIGURASI SUPABASE
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // 2. ELEMEN DOM
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const profilePhoto = document.getElementById('profilePhoto');
+    const fullName = document.getElementById('fullName');
+    const schoolName = document.getElementById('schoolName');
+    const schoolLogo = document.getElementById('schoolLogo');
+    const totalPoints = document.getElementById('totalPoints');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const carouselContainer = document.getElementById('carouselContainer');
+    const gameModal = document.getElementById('gameModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalDayTitle = document.getElementById('modalDayTitle');
+    const modalDayDate = document.getElementById('modalDayDate');
+    const gameList = document.getElementById('gameList');
+
+    let scheduleAccess = {}; // Menyimpan state dari game_schedule
+
+    // 3. CHECK SESSION
+    async function checkSessionAndLoadData() {
+      try {
+        const session = localStorage.getItem('userSession');
+        if (!session) {
+          redirectToLogin();
+          return;
+        }
+
+        const userData = JSON.parse(session);
+        if (!userData.loggedIn || userData.role !== 'peserta') {
+          redirectToLogin();
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('unique_id', userData.unique_id)
+          .single();
+
+        if (error || !data) {
+          console.error('Error fetching user data:', error);
+          redirectToLogin();
+          return;
+        }
+
+        const updatedSession = {
+          ...userData,
+          full_name: data.full_name,
+          school_name: data.school_name,
+          photo_url: data.photo_url,
+          total_points: data.total_points || 0
+        };
+        localStorage.setItem('userSession', JSON.stringify(updatedSession));
+
+        displayProfile(data);
+        await loadGameSchedule();
+
+        loadingScreen.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Error:', err);
+        redirectToLogin();
+      }
+    }
+
+    function redirectToLogin() {
+      window.location.href = 'login.html';
+    }
+
+    // 4. DISPLAY PROFILE
+    function displayProfile(data) {
+      if (data.photo_url) {
+        profilePhoto.src = data.photo_url;
+        profilePhoto.onerror = function() {
+          this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name) + '&size=200&background=0f172a&color=f59e0b';
+        };
+      } else {
+        profilePhoto.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name) + '&size=200&background=0f172a&color=f59e0b';
+      }
+
+      fullName.textContent = data.full_name || 'Nama tidak tersedia';
+      schoolName.textContent = data.school_name || 'Sekolah tidak tersedia';
+
+      if (data.school_name) {
+        const schoolNameFile = data.school_name.toLowerCase().replace(/\s+/g, '_');
+        const logoPath = `assets/images/logo/${schoolNameFile}.jpg`;
+        schoolLogo.src = logoPath;
+        schoolLogo.onerror = function() {
+          this.src = 'assets/images/logo/default.png';
+          this.onerror = function() {
+            this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.school_name || 'S') + '&size=40&background=0f172a&color=94a3b8';
+          };
+        };
+      } else {
+        schoolLogo.src = 'assets/images/logo/default.png';
+      }
+
+      totalPoints.textContent = data.total_points || 0;
+    }
+
+    // 5. FETCH GAME SCHEDULE FROM SUPABASE (Tabel: public.game_schedule)
+    const daysData = [
+      { day: 1, title: 'Hari Pertama', date: '15 Jan 2026' },
+      { day: 2, title: 'Hari Kedua', date: '16 Jan 2026' },
+      { day: 3, title: 'Hari Ketiga', date: '17 Jan 2026' }
+    ];
+
+    async function loadGameSchedule() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('game_schedule')
+          .select('*')
+          .order('day_number', { ascending: true })
+          .order('game_number', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          data.forEach(item => {
+            const key = `${item.day_number}-${item.game_number}`;
+            scheduleAccess[key] = {
+              is_open: item.is_open || false,
+              game_url: item.game_url || `./game/day${item.day_number}/game${item.game_number}.html`
+            };
+          });
+        }
+        generateCarouselCards();
+      } catch (err) {
+        console.error('Gagal memuat game_schedule:', err);
+      }
+    }
+
+    // 6. CAROUSEL
+    function generateCarouselCards() {
+      carouselContainer.innerHTML = '';
+
+      daysData.forEach((day) => {
+        let openCount = 0;
+        for (let game = 1; game <= 3; game++) {
+          const key = `${day.day}-${game}`;
+          if (scheduleAccess[key] && scheduleAccess[key].is_open) {
+            openCount++;
+          }
+        }
+
+        const card = document.createElement('div');
+        card.className = 'day-card flex-shrink-0 w-72 bg-[#1e293b] rounded-xl p-6 border border-white/5 snap-start hover:border-[#f59e0b]/50 transition-all duration-300';
+        card.innerHTML = `
+          <div class="flex items-start justify-between mb-3">
+            <span class="text-sm font-semibold text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-1 rounded-full">
+              Day ${day.day}
+            </span>
+            <span class="text-xs text-gray-400">${day.date}</span>
+          </div>
+          <h4 class="text-lg font-semibold text-white mb-2">${day.title}</h4>
+          <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+            <span class="text-sm ${openCount > 0 ? 'text-green-400' : 'text-gray-400'} font-medium">
+              <i class="fas fa-gamepad mr-1"></i>
+              ${openCount}/3 Terbuka
+            </span>
+            <span class="text-[#f59e0b] text-sm font-semibold">
+              <i class="fas fa-chevron-right"></i> Lihat
+            </span>
+          </div>
+        `;
+        
+        card.addEventListener('click', () => openGameModal(day.day, day.title, day.date));
+        carouselContainer.appendChild(card);
+      });
+    }
+
+    // 7. OPEN MODAL
+    function openGameModal(dayNumber, dayTitle, dayDate) {
+      modalDayTitle.textContent = `${dayTitle} (Day ${dayNumber})`;
+      modalDayDate.textContent = dayDate;
+      gameList.innerHTML = '';
+      
+      for (let game = 1; game <= 3; game++) {
+        const key = `${dayNumber}-${game}`;
+        const gameInfo = scheduleAccess[key] || { is_open: false, game_url: '#' };
+        const isOpen = gameInfo.is_open;
+
+        // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 2 && game === 1) {
+          gameName = "Crypta Treasure Hunt";
+        }
+
+        const gameCard = document.createElement('div');
+        gameCard.className = 'game-card bg-[#0f172a] rounded-xl p-4 border border-white/5 flex items-center justify-between';
+        
+        gameCard.innerHTML = `
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center">
+              <i class="fas fa-gamepad text-[#f59e0b] text-xl"></i>
+            </div>
+            <div>
+              <h4 class="text-white font-semibold">${gameName}</h4>
+              <p class="text-sm ${isOpen ? 'text-green-400 font-medium' : 'text-gray-500'}">
+                ${isOpen ? '✅ Terbuka' : '🔒 Terkunci oleh Admin'}
+              </p>
+            </div>
+          </div>
+          <button 
+            class="btn-glow px-5 py-2 rounded-lg font-semibold transition-all duration-200 
+              ${isOpen ? 'bg-[#f59e0b] text-[#0f172a] hover:bg-[#fbbf24] cursor-pointer' : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'}"
+            ${isOpen ? '' : 'disabled'}
+            data-url="${gameInfo.game_url}"
+            data-day="${dayNumber}"
+            data-game="${game}"
+          >
+            ${isOpen ? '🎮 Mulai Game' : '🔒 Terkunci'}
+          </button>
+        `;
+
+        const startBtn = gameCard.querySelector('button');
+        if (isOpen) {
+          startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startGame(startBtn.dataset.url, startBtn.dataset.day, startBtn.dataset.game);
+          });
+        }
+
+        gameList.appendChild(gameCard);
+      }
+
+      gameModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 8. START GAME
+    function startGame(url, dayNumber, gameNumber) {
+      localStorage.setItem('currentGame', JSON.stringify({
+        day: dayNumber,
+        game: gameNumber,
+        started_at: new Date().toISOString()
+      }));
+
+      // Path redirect disesuaikan jika berupa path relatif dari root
+      let targetPath = url;
+      if (targetPath.startsWith('/peserta/')) {
+        targetPath = '.' + targetPath.replace('/peserta', '');
+      }
+
+      window.location.href = targetPath;
+    }
+
+    function startDeathmatch(gameType) {
+      window.location.href = `./game/deathmatch/${gameType}.html`;
+    }
+
+    // 9. CLOSE MODAL & LOGOUT
+    function closeModal() {
+      gameModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    closeModalBtn.addEventListener('click', closeModal);
+    gameModal.addEventListener('click', (e) => { if (e.target === gameModal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    logoutBtn.addEventListener('click', () => {
+      if (confirm('Anda yakin ingin logout?')) {
+        localStorage.removeItem('userSession');
+        localStorage.removeItem('currentGame');
+        window.location.href = 'login.html';
+      }
+    });
+
+    // 10. REALTIME SUBSCRIPTION (Listen Perubahan Status di game_schedule)
+    function subscribeGameUpdates() {
+      supabaseClient
+        .channel('realtime_game_schedule')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_schedule' }, () => {
+          loadGameSchedule();
+        })
+        .subscribe();
+    }
+
+    // 11. INIT
+    async function init() {
+      await checkSessionAndLoadData();
+      subscribeGameUpdates();
+    }
+
+    init();
+  </script>
+</body>
+</html>
