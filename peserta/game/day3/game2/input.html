@@ -140,11 +140,23 @@
     const selectedStudentName = document.getElementById('selectedStudentName');
     const selectedStudentSchool = document.getElementById('selectedStudentSchool');
 
-    // 4. INIT SESI USER & KUNCI JAWABAN
+    // 4. INIT SESI USER DARI LOCALSTORAGE & FETCH KUNCI JAWABAN
     async function initKiosk() {
+      // 1) Ambil Sesi Akun dari localStorage (Sama seperti Arithmetic Bingo)
+      const sess = localStorage.getItem('userSession');
+      if (!sess) {
+        selectedStudentName.textContent = "Pengguna Tidak Ditemukan";
+        selectedStudentSchool.textContent = "Silakan login terlebih dahulu";
+        return;
+      }
+
+      currentUser = JSON.parse(sess);
+      selectedStudentName.textContent = currentUser.full_name || currentUser.unique_id || 'Peserta';
+      selectedStudentSchool.textContent = currentUser.school_name || 'Sekolah';
+
       if (!supabaseClient) return;
 
-      // Fetch Kunci Jawaban dari Tabel system_morse_match (Soal Terbaru)
+      // 2) Fetch Kunci Jawaban dari Tabel system_morse_match (Soal Terbaru)
       const { data: questionData, error: qError } = await supabaseClient
         .from('system_morse_match')
         .select('correct_answer')
@@ -155,33 +167,7 @@
       if (!qError && questionData) {
         targetCorrectAnswer = String(questionData.correct_answer);
       } else {
-        console.error('Gagal mengambil kunci jawaban:', qError);
-      }
-
-      // Fetch Akun Peserta yang Sedang Login
-      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-
-      if (authError || !user) {
-        selectedStudentName.textContent = "Pengguna Tidak Ditemukan";
-        selectedStudentSchool.textContent = "Silakan login terlebih dahulu";
-        return;
-      }
-
-      // Ambil detail data profil pengguna dari tabel users
-      const { data: userData, error: userError } = await supabaseClient
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (!userError && userData) {
-        currentUser = userData;
-        selectedStudentName.textContent = userData.full_name || 'Peserta';
-        selectedStudentSchool.textContent = userData.school_name || 'Sekolah';
-      } else {
-        currentUser = { id: user.id, unique_id: user.id, full_name: user.email };
-        selectedStudentName.textContent = user.email;
-        selectedStudentSchool.textContent = '-';
+        console.error('Gagal mengambil kunci jawaban dari Supabase:', qError);
       }
     }
 
@@ -209,7 +195,13 @@
 
     // 6. SUBMIT JAWABAN & PROSES HASIL
     async function submitAnswer() {
-      if (!currentInput || !currentUser || !targetCorrectAnswer) return;
+      if (!currentInput || !currentUser) return;
+
+      // Jika kunci jawaban gagal di-fetch, jangan eksekusi submit
+      if (targetCorrectAnswer === null) {
+        alert("Gagal terhubung ke database soal.");
+        return;
+      }
 
       const isCorrect = (currentInput.trim() === targetCorrectAnswer.trim());
 
@@ -218,7 +210,7 @@
           .from('game_scores')
           .insert([
             {
-              user_unique_id: currentUser.unique_id || currentUser.id,
+              user_unique_id: currentUser.unique_id,
               game_name: CURRENT_GAME_NAME,
               score_obtained: POINTS_PER_CORRECT_ANSWER
             }
@@ -250,7 +242,7 @@
       }, 3000);
     }
 
-    // Inisialisasi awal
+    // Inisialisasi saat halaman dibuka
     initKiosk();
   </script>
 </body>
