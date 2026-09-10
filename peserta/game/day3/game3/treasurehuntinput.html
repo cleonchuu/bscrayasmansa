@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk Input Jawaban - Admin</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+
+    /* Animasi Layar Respon (Merah / Hijau) */
+    .flash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .flash-correct {
+      background-color: #16a34a; /* Green 600 */
+    }
+
+    .flash-wrong {
+      background-color: #dc2626; /* Red 600 */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Styling Tombol Kalkulator */
+    .calc-btn {
+      background: #334155;
+      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
+    }
+
+    .calc-btn:active {
+      transform: scale(0.95);
+      background: #475569;
+    }
+
+    .calc-btn-action {
+      background: #f59e0b; /* Accent Kuning */
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- FLASHER SCREEN (POPUP BENAR/SALAH 3 DETIK) -->
+  <div id="flashOverlay" class="flash-screen hidden">
+    <div id="flashIcon" class="text-8xl mb-4"></div>
+    <div id="flashText" class="tracking-wider uppercase"></div>
+  </div>
+
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+    
+    <!-- HEADER -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-black text-amber-400 tracking-wide">🎯 KIOSK JAWABAN PESERTA</h1>
+      <p class="text-xs text-slate-400 mt-1">Pilih Sekolah & Nama untuk Memulai Input Jawaban</p>
+    </div>
+
+    <!-- TAHAP 1: PILIH SEKOLAH -->
+    <div id="stepSchool" class="space-y-4">
+      <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
+      <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+        <!-- List Sekolah akan di-generate via JS -->
+      </div>
+    </div>
+
+    <!-- TAHAP 2: PILIH NAMA PESERTA -->
+    <div id="stepStudent" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
+        <button id="btnBackToSchool" class="text-xs text-amber-400 hover:underline">← Ganti Sekolah</button>
+      </div>
+      <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1">
+        <!-- List Peserta akan di-generate via JS -->
+      </div>
+    </div>
+
+    <!-- TAHAP 3: KALKULATOR JAWABAN -->
+    <div id="stepCalculator" class="space-y-4 hidden">
+      <!-- Info Peserta Terpilih -->
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
+        <div>
+          <div id="selectedStudentName" class="font-bold text-lg text-white">Nama Peserta</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400">Asal Sekolah</div>
+        </div>
+        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Batal</button>
+      </div>
+
+      <!-- Display Jawaban -->
+      <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
+        <div id="calcDisplay" class="text-4xl font-mono font-bold tracking-wider text-amber-400 min-h-[48px] break-all"></div>
+      </div>
+
+      <!-- Pad Kalkulator -->
+      <div class="grid grid-cols-3 gap-3">
+        <button class="calc-btn" onclick="appendCalc('7')">7</button>
+        <button class="calc-btn" onclick="appendCalc('8')">8</button>
+        <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        
+        <button class="calc-btn" onclick="appendCalc('4')">4</button>
+        <button class="calc-btn" onclick="appendCalc('5')">5</button>
+        <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        
+        <button class="calc-btn" onclick="appendCalc('1')">1</button>
+        <button class="calc-btn" onclick="appendCalc('2')">2</button>
+        <button class="calc-btn" onclick="appendCalc('3')">3</button>
+
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+        <button class="calc-btn" onclick="appendCalc('0')">0</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+      </div>
+
+      <!-- Tombol Submit -->
+      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95">
+        SUBMIT JAWABAN 🚀
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. KONEKSI SUPABASE
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // 2. KUNCI JAWABAN SOAL SEKARANG (Dapat disesuaikan atau di-fetch dari DB)
+    const TARGET_CORRECT_ANSWER = "13"; // Contoh kunci jawaban aktual
+    const POINTS_PER_CORRECT_ANSWER = 100; // Tambahan poin jika benar
+
+    // 3. STATE VARIABEL
+    let allUsers = [];
+    let selectedSchool = '';
+    let selectedStudent = null;
+    let currentInput = '';
+
+    // 4. ELEMEN DOM
+    const stepSchool = document.getElementById('stepSchool');
+    const stepStudent = document.getElementById('stepStudent');
+    const stepCalculator = document.getElementById('stepCalculator');
+    const schoolList = document.getElementById('schoolList');
+    const studentList = document.getElementById('studentList');
+    const calcDisplay = document.getElementById('calcDisplay');
+
+    // 5. LOAD DATA PESERTA DARI SUPABASE
+    async function loadAllParticipants() {
+      if (!supabaseClient) return;
+
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('role', 'peserta');
+
+      if (error) {
+        alert('Gagal mengambil data peserta');
+        return;
+      }
+
+      allUsers = data;
+      renderSchools();
+    }
+
+    // 6. RENDER LIST SEKOLAH
+    function renderSchools() {
+      const schools = [...new Set(allUsers.map(u => u.school_name))];
+      schoolList.innerHTML = '';
+
+      schools.forEach(school => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
+        btn.onclick = () => selectSchool(school);
+        schoolList.appendChild(btn);
+      });
+    }
+
+    // 7. PILIH SEKOLAH & RENDER PESERTA
+    function selectSchool(schoolName) {
+      selectedSchool = schoolName;
+      stepSchool.classList.add('hidden');
+      stepStudent.classList.remove('hidden');
+
+      const filteredStudents = allUsers.filter(u => u.school_name === schoolName);
+      studentList.innerHTML = '';
+
+      filteredStudents.forEach(student => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
+        btn.onclick = () => openCalculator(student);
+        studentList.appendChild(btn);
+      });
+    }
+
+    // NAVIGASI KEMBALI
+    document.getElementById('btnBackToSchool').onclick = () => {
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    };
+
+    document.getElementById('btnCancelCalc').onclick = resetToStart;
+
+    // 8. BUKA KALKULATOR
+    function openCalculator(student) {
+      selectedStudent = student;
+      currentInput = '';
+      updateDisplay();
+
+      document.getElementById('selectedStudentName').textContent = student.full_name;
+      document.getElementById('selectedStudentSchool').textContent = student.school_name;
+
+      stepStudent.classList.add('hidden');
+      stepCalculator.classList.remove('hidden');
+    }
+
+    // 9. LOGIKA KALKULATOR
+    function appendCalc(val) {
+      if (currentInput.length < 10) { // Limit 10 digit
+        currentInput += val;
+        updateDisplay();
+      }
+    }
+
+    function clearCalc() {
+      currentInput = '';
+      updateDisplay();
+    }
+
+    function deleteCalc() {
+      currentInput = currentInput.slice(0, -1);
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      calcDisplay.textContent = currentInput || '0';
+    }
+
+    // 10. SUBMIT JAWABAN & PROSES HASIL
+// Nama Game & Poin Hadiah
+const CURRENT_GAME_NAME = "Crypta Treasure Hunt";
+
+async function submitAnswer() {
+  if (!currentInput) return;
+
+  const isCorrect = (currentInput === TARGET_CORRECT_ANSWER);
+
+  if (isCorrect && selectedStudent) {
+    // 1. Simpan Poin Terpisah Khusus Game Crypta Treasure Hunt
+    const { error } = await supabaseClient
+      .from('game_scores')
+      .insert([
+        {
+          user_unique_id: selectedStudent.unique_id,
+          game_name: CURRENT_GAME_NAME,
+          score_obtained: POINTS_PER_CORRECT_ANSWER
+        }
+      ]);
+
+    if (error) {
+      console.error('Gagal menyimpan skor game:', error);
+    }
+    // Catatan: Trigger SQL di atas akan otomatis menambah total_points pada tabel users!
+  }
+
+  // 2. Tampilkan Efek Layar Merah / Hijau 3 Detik
+  triggerFlashEffect(isCorrect);
+}
+
+    // 11. EFEK MERAH / HIJAU 3 DETIK + AUTO RESET
+    function triggerFlashEffect(isCorrect) {
+      const overlay = document.getElementById('flashOverlay');
+      const icon = document.getElementById('flashIcon');
+      const text = document.getElementById('flashText');
+
+      overlay.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
+      icon.textContent = isCorrect ? '✅' : '❌';
+      text.textContent = isCorrect ? 'JAWABAN BENAR!' : 'JAWABAN SALAH!';
+
+      // Tampilkan Overlay Fullscreen
+      overlay.classList.remove('hidden');
+
+      // Tahan 3 Detik (3000 ms) lalu Kembali ke Menu Awal
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        resetToStart();
+        loadAllParticipants(); // Refresh data terbaru
+      }, 3000);
+    }
+
+    // RESET RECURSIVE KE TAHAP 1
+    function resetToStart() {
+      currentInput = '';
+      selectedStudent = null;
+      selectedSchool = '';
+      
+      stepCalculator.classList.add('hidden');
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    }
+
+    // Inisialisasi Pertama
+    loadAllParticipants();
+  </script>
+</body>
+</html>

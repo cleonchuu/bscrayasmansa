@@ -111,424 +111,488 @@
 
   </main>
 
-  <!-- JAVASCRIPT ENGINE -->
-  <script>
-    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ <!-- CDN Supabase JS (Pastikan ini ada sebelum script utama agar tidak error) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    // BASE URL SUPABASE STORAGE
-    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+<!-- JAVASCRIPT ENGINE -->
+<script>
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /**
-     * HELPER UNTUK MENDAPATKAN URL AUDIO DARI BUCKET SUPABASE
-     */
-    function getAudioUrl(gender, filename) {
-      const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
-      return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+
+  // Offset potong hening di akhir audio (dalam detik)
+  const SILENCE_OFFSET = 1; 
+
+  function getAudioUrl(gender, filename) {
+    const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
+    return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
+  }
+
+  // Helper khusus untuk memanggil sound effect dari bucket sounds_effect
+  function getSoundEffectUrl(filename) {
+    return `${STORAGE_BASE_URL}/sounds_effect/${filename}`;
+  }
+
+  const SOUND_BELL = getSoundEffectUrl('bell.mp3');
+  const SOUND_BEEP = getSoundEffectUrl('bell.mp3');
+
+  /**
+   * MATH GENERATOR ENGINE
+   */
+  class MathGenerator {
+    static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+
+    static getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    /**
-     * GENERATOR ANGKA & URUTAN AUDIO SUPABASE STORAGE
-     */
-    class MathGenerator {
-      static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
-
-      static getRandomInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-
-      static generateInitialNumber(genderFolder = 'female') {
-        const type = Math.random();
-        if (type < 0.4) {
-          const val = this.getRandomInt(2, 20);
-          return { 
-            value: val, 
-            display: `${val}`, 
-            audioSequence: [getAudioUrl(genderFolder, `${val}.mp3`)] 
-          };
-        } else if (type < 0.7) {
-          const base = this.getRandomInt(2, 6);
-          const val = Math.pow(base, 2);
-          return { 
-            value: val, 
-            display: `${base}²`, 
-            audioSequence: [
-              getAudioUrl(genderFolder, `${base}.mp3`), 
-              getAudioUrl(genderFolder, `pangkat_dua.mp3`)
-            ] 
-          };
-        } else {
-          const sq = this.PERFECT_SQUARES[Math.floor(Math.random() * this.PERFECT_SQUARES.length)];
-          const val = Math.sqrt(sq);
-          return { 
-            value: val, 
-            display: `√${sq}`, 
-            audioSequence: [
-              getAudioUrl(genderFolder, `akar_dari.mp3`), 
-              getAudioUrl(genderFolder, `${sq}.mp3`)
-            ] 
-          };
-        }
-      }
-
-      static generateOperation(currentValue, genderFolder = 'male') {
-        const ops = ['+', '-', '×', '÷'];
-        const op = ops[Math.floor(Math.random() * ops.length)];
-        let operandObj = {};
-        let finalVal = currentValue;
-
-        if (op === '+') {
-          operandObj = this.generateOperandValue(genderFolder);
-          finalVal = currentValue + operandObj.value;
-        } else if (op === '-') {
-          operandObj = this.generateOperandValue(genderFolder);
-          finalVal = currentValue - operandObj.value;
-        } else if (op === '×') {
-          const mult = this.getRandomInt(2, 5);
-          operandObj = { 
-            value: mult, 
-            display: `${mult}`, 
-            audioSequence: [getAudioUrl(genderFolder, `${mult}.mp3`)] 
-          };
-          finalVal = currentValue * mult;
-        } else if (op === '÷') {
-          const factors = [];
-          for (let i = 1; i <= Math.abs(currentValue); i++) {
-            if (currentValue % i === 0) factors.push(i);
-          }
-          const div = factors.length > 1 ? factors[this.getRandomInt(1, factors.length - 1)] : 1;
-          operandObj = { 
-            value: div, 
-            display: `${div}`, 
-            audioSequence: [getAudioUrl(genderFolder, `${div}.mp3`)] 
-          };
-          finalVal = currentValue / div;
-        }
-
-        let opFileName = "";
-        if (op === '+') opFileName = "ditambah.mp3";
-        else if (op === '-') opFileName = "dikurangi.mp3";
-        else if (op === '×') opFileName = "dikali.mp3";
-        else if (op === '÷') opFileName = "dibagi.mp3";
-
-        const opAudioUrl = getAudioUrl(genderFolder, opFileName);
-
-        return {
-          operator: op,
-          operand: operandObj,
-          newTotal: finalVal,
-          display: `${op} ${operandObj.display}`,
-          audioSequence: [opAudioUrl, ...operandObj.audioSequence]
+    static generateInitialNumber(genderFolder = 'female') {
+      const type = Math.random();
+      if (type < 0.4) {
+        const val = this.getRandomInt(2, 20);
+        return { 
+          value: val, 
+          display: `${val}`, 
+          audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] 
+        };
+      } else if (type < 0.7) {
+        const base = this.getRandomInt(2, 6);
+        const val = Math.pow(base, 2);
+        return { 
+          value: val, 
+          display: `${base}²`, 
+          audioUrls: [
+            getAudioUrl(genderFolder, `${base}.mp3`), 
+            getAudioUrl(genderFolder, `pangkat_dua.mp3`)
+          ] 
+        };
+      } else {
+        const sq = this.PERFECT_SQUARES[Math.floor(Math.random() * this.PERFECT_SQUARES.length)];
+        const val = Math.sqrt(sq);
+        return { 
+          value: val, 
+          display: `√${sq}`, 
+          audioUrls: [
+            getAudioUrl(genderFolder, `akar_dari.mp3`), 
+            getAudioUrl(genderFolder, `${sq}.mp3`)
+          ] 
         };
       }
+    }
 
-      static generateOperandValue(genderFolder = 'female') {
-        const type = Math.random();
-        if (type < 0.5) {
-          const val = this.getRandomInt(1, 15);
-          return { 
-            value: val, 
-            display: `${val}`, 
-            audioSequence: [getAudioUrl(genderFolder, `${val}.mp3`)] 
-          };
-        } else if (type < 0.8) {
-          const base = this.getRandomInt(2, 5);
-          return { 
-            value: Math.pow(base, 2), 
-            display: `${base}²`, 
-            audioSequence: [
-              getAudioUrl(genderFolder, `${base}.mp3`), 
-              getAudioUrl(genderFolder, `pangkat_dua.mp3`)
-            ] 
-          };
-        } else {
-          const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
-          return { 
-            value: Math.sqrt(sq), 
-            display: `√${sq}`, 
-            audioSequence: [
-              getAudioUrl(genderFolder, `akar_dari.mp3`), 
-              getAudioUrl(genderFolder, `${sq}.mp3`)
-            ] 
-          };
+    static generateOperation(currentValue, genderFolder = 'male') {
+      const ops = ['+', '-', '×', '÷'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let operandObj = {};
+      let finalVal = currentValue;
+
+      if (op === '+') {
+        operandObj = this.generateOperandValue(genderFolder);
+        finalVal = currentValue + operandObj.value;
+      } else if (op === '-') {
+        operandObj = this.generateOperandValue(genderFolder);
+        finalVal = currentValue - operandObj.value;
+      } else if (op === '×') {
+        const mult = this.getRandomInt(2, 5);
+        operandObj = { 
+          value: mult, 
+          display: `${mult}`, 
+          audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] 
+        };
+        finalVal = currentValue * mult;
+      } else if (op === '÷') {
+        const factors = [];
+        for (let i = 1; i <= Math.abs(currentValue); i++) {
+          if (currentValue % i === 0) factors.push(i);
         }
+        const div = factors.length > 1 ? factors[this.getRandomInt(1, factors.length - 1)] : 1;
+        operandObj = { 
+          value: div, 
+          display: `${div}`, 
+          audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] 
+        };
+        finalVal = currentValue / div;
+      }
+
+      let opFileName = "";
+      if (op === '+') opFileName = "ditambah.mp3";
+      else if (op === '-') opFileName = "dikurangi.mp3";
+      else if (op === '×') opFileName = "dikali.mp3";
+      else if (op === '÷') opFileName = "dibagi.mp3";
+
+      const opAudioUrl = getAudioUrl(genderFolder, opFileName);
+
+      return {
+        operator: op,
+        operand: operandObj,
+        newTotal: finalVal,
+        display: `${op} ${operandObj.display}`,
+        audioUrls: [opAudioUrl, ...operandObj.audioUrls]
+      };
+    }
+
+    static generateOperandValue(genderFolder = 'female') {
+      const type = Math.random();
+      if (type < 0.5) {
+        const val = this.getRandomInt(1, 15);
+        return { 
+          value: val, 
+          display: `${val}`, 
+          audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] 
+        };
+      } else if (type < 0.8) {
+        const base = this.getRandomInt(2, 5);
+        return { 
+          value: Math.pow(base, 2), 
+          display: `${base}²`, 
+          audioUrls: [
+            getAudioUrl(genderFolder, `${base}.mp3`), 
+            getAudioUrl(genderFolder, `pangkat_dua.mp3`)
+          ] 
+        };
+      } else {
+        const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
+        return { 
+          value: Math.sqrt(sq), 
+          display: `√${sq}`, 
+          audioUrls: [
+            getAudioUrl(genderFolder, `akar_dari.mp3`), 
+            getAudioUrl(genderFolder, `${sq}.mp3`)
+          ] 
+        };
+      }
+    }
+  }
+
+  /**
+   * FAST AUDIO ENGINE (Web Audio API)
+   */
+  class WebAudioEngine {
+    constructor() {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.cache = new Map();
+      this.activeSource = null;
+    }
+
+    async preloadAudio(url) {
+      if (this.cache.has(url)) return this.cache.get(url);
+
+      try {
+        const res = await fetch(url);
+        const arrayBuffer = await res.arrayBuffer();
+        const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        this.cache.set(url, audioBuffer);
+        return audioBuffer;
+      } catch (e) {
+        console.warn(`Gagal memuat/mendecode audio: ${url}`, e);
+        return null;
       }
     }
 
-    /**
-     * AUDIO PLAYER ENGINE
-     */
-    class LocalAudioEngine {
-      static currentAudio = null;
+    async preloadBatch(urls) {
+      const uniqueUrls = [...new Set(urls)];
+      await Promise.all(uniqueUrls.map(u => this.preloadAudio(u)));
+    }
 
-      static playSequence(audioPaths) {
-        return new Promise((resolve) => {
-          if (!audioPaths || audioPaths.length === 0) return resolve();
+    playBuffer(buffer, offsetTrim = SILENCE_OFFSET) {
+      return new Promise((resolve) => {
+        if (!buffer) return resolve();
 
-          let currentIndex = 0;
-
-          const playNext = () => {
-            if (currentIndex >= audioPaths.length) {
-              this.currentAudio = null;
-              return resolve();
-            }
-
-            const path = audioPaths[currentIndex];
-            const audio = new Audio(path);
-            this.currentAudio = audio;
-
-            audio.onended = () => {
-              currentIndex++;
-              playNext();
-            };
-
-            audio.onerror = (e) => {
-              console.warn(`Gagal memuat audio Supabase: ${path}`, e);
-              currentIndex++;
-              playNext();
-            };
-
-            audio.play().catch((err) => {
-              console.warn(`Gagal memutar audio Supabase: ${path}`, err);
-              currentIndex++;
-              playNext();
-            });
-          };
-
-          playNext();
-        });
-      }
-
-      static playSingle(audioPath) {
-        return new Promise((resolve) => {
-          const audio = new Audio(audioPath);
-          this.currentAudio = audio;
-          audio.onended = () => {
-            this.currentAudio = null;
-            resolve();
-          };
-          audio.onerror = () => resolve();
-          audio.play().catch(() => resolve());
-        });
-      }
-
-      static stop() {
-        if (this.currentAudio) {
-          this.currentAudio.pause();
-          this.currentAudio = null;
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
         }
+
+        const source = this.ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.ctx.destination);
+
+        this.activeSource = source;
+
+        // Untuk sound effect (bell/beep), mainkan full tanpa offset potong hening
+        const isSFX = buffer.duration < 1.0; 
+        const playDuration = isSFX ? buffer.duration : Math.max(0.1, buffer.duration - offsetTrim);
+
+        source.start(0);
+
+        setTimeout(() => {
+          resolve();
+        }, playDuration * 1000);
+      });
+    }
+
+    async playSequence(urls) {
+      for (const url of urls) {
+        const buffer = await this.preloadAudio(url);
+        await this.playBuffer(buffer);
       }
     }
 
-    /**
-     * APP ENGINE
-     */
-    class MathDiscoAdmin {
-      constructor() {
-        this.isPlaying = false;
-        this.femaleTotal = 0; 
-        this.maleTotal = 0;   
-        this.historySteps = [];
-        this.timerInterval = null;
-        this.remainingSeconds = 300;
+    stop() {
+      if (this.activeSource) {
+        try { this.activeSource.stop(); } catch(e){}
+        this.activeSource = null;
+      }
+    }
+  }
+
+  /**
+   * APP CONTROLLER
+   */
+  class MathDiscoAdmin {
+    constructor() {
+      this.isPlaying = false;
+      this.femaleTotal = 0; 
+      this.maleTotal = 0;   
+      this.historySteps = [];
+      this.timerInterval = null;
+      this.remainingSeconds = 300;
+      this.audioEngine = new WebAudioEngine();
+    }
+
+    async startGame() {
+      if (this.isPlaying) return;
+      this.isPlaying = true;
+      this.resetGameDisplay();
+      this.historySteps = [];
+
+      const btnStart = document.getElementById('btnStartGame');
+      if (btnStart) {
+        btnStart.disabled = true;
+        btnStart.classList.add('opacity-50', 'cursor-not-allowed');
       }
 
-      async startGame() {
-        if (this.isPlaying) return;
-        this.isPlaying = true;
-        this.resetGameDisplay();
-        this.historySteps = [];
+      // 1. Generate alur game (7 operasi) & daftar semua audio
+      const allAudioUrls = this.generateFullGameSteps();
 
-        document.getElementById('btnStartGame').disabled = true;
-        document.getElementById('btnStartGame').classList.add('opacity-50', 'cursor-not-allowed');
+      // 2. Pre-download audio
+      this.showLoadingStatus("Mengunduh Suara Audio...", true);
+      await this.audioEngine.preloadBatch(allAudioUrls);
+      this.showLoadingStatus("", false);
 
-        this.start5MinTimer();
+      // 3. Jalankan Timer
+      this.start5MinTimer();
 
-        // RONDE 1:
-        // 1. TIM BIRU (FEMALE)
-        const initBlue = MathGenerator.generateInitialNumber('female');
-        this.femaleTotal = initBlue.value;
-        this.historySteps.push({ team: 'blue', display: initBlue.display, audioSequence: initBlue.audioSequence });
-        
-        this.updateDisplay('blue', initBlue.display, true);
-        await LocalAudioEngine.playSequence(initBlue.audioSequence);
-        this.updateDisplay('blue', initBlue.display, false);
+      // 4. Update Target Jawaban ke Supabase DB
+      await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
 
-        await this.delay(600);
+      // 5. Mainkan ronde utama
+      for (const step of this.historySteps) {
+        if (!this.isPlaying) return;
 
-        // 2. TIM MERAH (MALE)
-        const initRed = MathGenerator.generateInitialNumber('male');
-        this.maleTotal = initRed.value;
-        this.historySteps.push({ team: 'red', display: initRed.display, audioSequence: initRed.audioSequence });
+        this.updateDisplay(step.team, step.display, true);
+        await this.audioEngine.playSequence(step.audioUrls);
+        this.updateDisplay(step.team, step.display, false);
 
-        this.updateDisplay('red', initRed.display, true);
-        await LocalAudioEngine.playSequence(initRed.audioSequence);
-        this.updateDisplay('red', initRed.display, false);
-
-        // RONDE 2 SAMPAI 10
-        for (let step = 2; step <= 10; step++) {
-          if (!this.isPlaying) return;
-
-          await this.delay(600);
-
-          // TIM BIRU (FEMALE)
-          const blueOp = MathGenerator.generateOperation(this.femaleTotal, 'female');
-          this.femaleTotal = blueOp.newTotal;
-          this.historySteps.push({ team: 'blue', display: blueOp.display, audioSequence: blueOp.audioSequence });
-
-          this.updateDisplay('blue', blueOp.display, true);
-          await LocalAudioEngine.playSequence(blueOp.audioSequence);
-          this.updateDisplay('blue', blueOp.display, false);
-
-          if (!this.isPlaying) return;
-
-          await this.delay(600);
-
-          // TIM MERAH (MALE)
-          const redOp = MathGenerator.generateOperation(this.maleTotal, 'male');
-          this.maleTotal = redOp.newTotal;
-          this.historySteps.push({ team: 'red', display: redOp.display, audioSequence: redOp.audioSequence });
-
-          this.updateDisplay('red', redOp.display, true);
-          await LocalAudioEngine.playSequence(redOp.audioSequence);
-          this.updateDisplay('red', redOp.display, false);
-        }
-
-        // SIMPAN JAWABAN KE SUPABASE (TABEL system_number_disco)
-        await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
-
-        // SOUND BELL (jika bell.mp3 juga diupload di Supabase, bisa arahkan url-nya ke sana)
-        if (this.isPlaying && this.remainingSeconds > 0) {
-          await LocalAudioEngine.playSingle('/assets/sounds/bell.mp3');
-        }
-
-        await this.enterRepeatMode();
+        await this.delay(200);
       }
 
-      async enterRepeatMode() {
-        const repeatIndicator = document.getElementById('repeatIndicator');
+      // Selesai ronde utama -> Bunyikan BELL
+      if (this.isPlaying && this.remainingSeconds > 0) {
+        await this.audioEngine.playSequence([SOUND_BELL]);
+      }
+
+      // Masuk ke Mode Looping / Repeat
+      await this.enterRepeatMode();
+    }
+
+    generateFullGameSteps() {
+      const audioUrls = [];
+
+      // Ronde 1: Tim Biru (Female)
+      const initBlue = MathGenerator.generateInitialNumber('female');
+      this.femaleTotal = initBlue.value;
+      this.historySteps.push({ team: 'blue', display: initBlue.display, audioUrls: initBlue.audioUrls });
+      audioUrls.push(...initBlue.audioUrls);
+
+      // Ronde 1: Tim Merah (Male)
+      const initRed = MathGenerator.generateInitialNumber('male');
+      this.maleTotal = initRed.value;
+      this.historySteps.push({ team: 'red', display: initRed.display, audioUrls: initRed.audioUrls });
+      audioUrls.push(...initRed.audioUrls);
+
+      // Ronde 2 s.d 10
+      for (let step = 2; step <= 7; step++) {
+        const blueOp = MathGenerator.generateOperation(this.femaleTotal, 'female');
+        this.femaleTotal = blueOp.newTotal;
+        this.historySteps.push({ team: 'blue', display: blueOp.display, audioUrls: blueOp.audioUrls });
+        audioUrls.push(...blueOp.audioUrls);
+
+        const redOp = MathGenerator.generateOperation(this.maleTotal, 'male');
+        this.maleTotal = redOp.newTotal;
+        this.historySteps.push({ team: 'red', display: redOp.display, audioUrls: redOp.audioUrls });
+        audioUrls.push(...redOp.audioUrls);
+      }
+
+      // Tambahkan SFX ke preloader
+      audioUrls.push(SOUND_BELL, SOUND_BEEP);
+      return audioUrls;
+    }
+
+    async enterRepeatMode() {
+      const repeatIndicator = document.getElementById('repeatIndicator');
+      if (repeatIndicator) {
         repeatIndicator.classList.remove('hidden');
         repeatIndicator.classList.add('flex');
-
-        while (this.isPlaying && this.remainingSeconds > 0) {
-          for (let i = 0; i < this.historySteps.length; i++) {
-            if (!this.isPlaying || this.remainingSeconds <= 0) break;
-
-            const step = this.historySteps[i];
-
-            await this.delay(600);
-            if (!this.isPlaying || this.remainingSeconds <= 0) break;
-
-            this.updateDisplay(step.team, step.display, true);
-            await LocalAudioEngine.playSequence(step.audioSequence);
-            this.updateDisplay(step.team, step.display, false);
-          }
-
-          if (this.isPlaying && this.remainingSeconds > 0) {
-            await LocalAudioEngine.playSingle('/assets/sounds/bell.mp3');
-          }
-        }
       }
 
-      start5MinTimer() {
-        this.stopGameTimer();
-        this.remainingSeconds = 300;
+      while (this.isPlaying && this.remainingSeconds > 0) {
+        for (const step of this.historySteps) {
+          if (!this.isPlaying || this.remainingSeconds <= 0) break;
+
+          this.updateDisplay(step.team, step.display, true);
+          await this.audioEngine.playSequence(step.audioUrls);
+          this.updateDisplay(step.team, step.display, false);
+
+          await this.delay(200);
+        }
+
+        // Setiap kali satu putaran looping selesai -> Bunyikan BELL lagi
+        if (this.isPlaying && this.remainingSeconds > 0) {
+          await this.audioEngine.playSequence([SOUND_BELL]);
+        }
+      }
+    }
+
+    showLoadingStatus(msg, show) {
+      let loadingElem = document.getElementById('audioLoadingMsg');
+      if (!loadingElem) {
+        loadingElem = document.createElement('div');
+        loadingElem.id = 'audioLoadingMsg';
+        loadingElem.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg font-bold text-sm animate-bounce z-50';
+        document.body.appendChild(loadingElem);
+      }
+
+      if (show) {
+        loadingElem.textContent = msg;
+        loadingElem.classList.remove('hidden');
+      } else {
+        loadingElem.classList.add('hidden');
+      }
+    }
+
+    start5MinTimer() {
+      this.stopGameTimer();
+      this.remainingSeconds = 300;
+      this.updateTimerUI();
+
+      this.timerInterval = setInterval(() => {
+        this.remainingSeconds--;
         this.updateTimerUI();
 
-        this.timerInterval = setInterval(() => {
-          this.remainingSeconds--;
-          this.updateTimerUI();
-
-          if (this.remainingSeconds <= 0) {
-            this.stopGameTimer();
-            this.resetGame();
-          }
-        }, 1000);
-      }
-
-      stopGameTimer() {
-        if (this.timerInterval) {
-          clearInterval(this.timerInterval);
-          this.timerInterval = null;
+        if (this.remainingSeconds <= 0) {
+          this.stopGameTimer();
+          this.resetGame();
         }
+      }, 1000);
+    }
+
+    stopGameTimer() {
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval);
+        this.timerInterval = null;
       }
+    }
 
-      updateTimerUI() {
-        const mins = Math.floor(this.remainingSeconds / 60);
-        const secs = this.remainingSeconds % 60;
-        const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        
-        const timerElem = document.getElementById('timerDisplay');
+    updateTimerUI() {
+      const mins = Math.floor(this.remainingSeconds / 60);
+      const secs = this.remainingSeconds % 60;
+      const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      
+      const timerElem = document.getElementById('timerDisplay');
+      if (timerElem) {
         timerElem.textContent = formatted;
-
         if (this.remainingSeconds <= 30) {
           timerElem.className = "text-red-400 font-mono text-sm font-bold animate-pulse";
         } else {
           timerElem.className = "text-emerald-400 font-mono text-sm font-bold";
         }
       }
+    }
 
-      async upsertTargetAnswers(femaleAnswer, maleAnswer) {
-        try {
-          const { error } = await supabaseClient
-            .from('system_number_disco')
-            .upsert([
-              { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
-              { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
-            ]);
+    async upsertTargetAnswers(femaleAnswer, maleAnswer) {
+      try {
+        const { error } = await supabaseClient
+          .from('system_number_disco')
+          .upsert([
+            { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
+            { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
+          ]);
 
-          if (error) {
-            console.error('Error updating target answers:', error);
-          } else {
-            console.log('✅ Kunci Jawaban Berhasil Di-update ke Supabase! (ID 1: Female, ID 2: Male)');
-          }
-        } catch (err) {
-          console.error('Network Exception:', err);
-        }
+        if (error) console.error('Error updating target answers:', error);
+      } catch (err) {
+        console.error('Network Exception:', err);
       }
+    }
 
-      updateDisplay(team, formattedText, isSpeaking) {
-        const container = document.getElementById(team === 'blue' ? 'containerBlue' : 'containerRed');
-        const displayFormatted = document.getElementById(team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted');
+    updateDisplay(team, formattedText, isSpeaking) {
+      const container = document.getElementById(team === 'blue' ? 'containerBlue' : 'containerRed');
+      const displayFormatted = document.getElementById(team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted');
 
-        displayFormatted.textContent = formattedText;
+      if (displayFormatted) displayFormatted.textContent = formattedText;
 
+      if (container) {
         if (isSpeaking) {
           container.classList.add(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
         } else {
           container.classList.remove(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
         }
       }
+    }
 
-      resetGameDisplay() {
-        this.femaleTotal = 0;
-        this.maleTotal = 0;
-        document.getElementById('displayBlueFormatted').textContent = "--";
-        document.getElementById('displayRedFormatted').textContent = "--";
-        
-        const repeatIndicator = document.getElementById('repeatIndicator');
+    resetGameDisplay() {
+      this.femaleTotal = 0;
+      this.maleTotal = 0;
+      const blueDisp = document.getElementById('displayBlueFormatted');
+      const redDisp = document.getElementById('displayRedFormatted');
+      if (blueDisp) blueDisp.textContent = "--";
+      if (redDisp) redDisp.textContent = "--";
+      
+      const repeatIndicator = document.getElementById('repeatIndicator');
+      if (repeatIndicator) {
         repeatIndicator.classList.add('hidden');
         repeatIndicator.classList.remove('flex');
       }
+    }
 
-      resetGame() {
-        LocalAudioEngine.stop();
-        this.stopGameTimer();
-        this.isPlaying = false;
-        this.resetGameDisplay();
-        this.remainingSeconds = 300;
-        this.updateTimerUI();
-        document.getElementById('btnStartGame').disabled = false;
-        document.getElementById('btnStartGame').classList.remove('opacity-50', 'cursor-not-allowed');
+    resetGame() {
+      this.audioEngine.stop();
+      this.stopGameTimer();
+      this.isPlaying = false;
+      this.resetGameDisplay();
+      this.remainingSeconds = 300;
+      this.updateTimerUI();
+      const btnStart = document.getElementById('btnStartGame');
+      if (btnStart) {
+        btnStart.disabled = false;
+        btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+    async resetGame() {
+      this.audioEngine.stop();
+      this.stopGameTimer();
+      
+      // Bunyikan BEEP pas waktu habis / game selesai berakhir
+      if (this.isPlaying) {
+        await this.audioEngine.playSequence([SOUND_BEEP]);
       }
 
-      delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+      this.isPlaying = false;
+      this.resetGameDisplay();
+      this.remainingSeconds = 300;
+      this.updateTimerUI();
+      const btnStart = document.getElementById('btnStartGame');
+      if (btnStart) {
+        btnStart.disabled = false;
+        btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
       }
     }
 
-    const app = new MathDiscoAdmin();
-  </script>
-</body>
-</html>
+    delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+  }
+
+  const app = new MathDiscoAdmin();
+</script>

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk Input Jawaban - Number Disco</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+
+    /* Overlay Animasi Respon Hasil */
+    .flash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .flash-correct { background-color: #16a34a; }
+    .flash-wrong { background-color: #dc2626; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Styling Tombol Keypad */
+    .calc-btn {
+      background: #334155;
+      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
+    }
+
+    .calc-btn:active:not(:disabled) {
+      transform: scale(0.95);
+      background: #475569;
+    }
+
+    .calc-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- OVERLAY FLASH RESULT DETAIL -->
+  <div id="flashOverlay" class="flash-screen hidden"></div>
+
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+    
+    <!-- HEADER KIOSK -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
+      <div>
+        <h1 class="text-xl font-black text-amber-400 tracking-wide">🎯 KIOSK PESERTA</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Number Disco Fast Play</p>
+      </div>
+      <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300">
+        Status: <span class="text-emerald-400 font-bold">READY</span>
+      </div>
+    </div>
+
+    <!-- STEP 1: PILIH SEKOLAH -->
+    <div id="stepSchool" class="space-y-4">
+      <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
+      <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
+    </div>
+
+    <!-- STEP 2: PILIH PESERTA -->
+    <div id="stepStudent" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
+        <button id="btnBackToSchool" class="text-xs text-amber-400 hover:underline">← Ganti Sekolah</button>
+      </div>
+      <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
+    </div>
+
+    <!-- STEP 3: INPUT JAWABAN (DUAL PANEL NUMBER DISCO) -->
+    <div id="stepCalculator" class="space-y-4 hidden">
+      <!-- Info Peserta Terpilih -->
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
+        <div>
+          <div id="selectedStudentName" class="font-bold text-lg text-white">Nama Peserta</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400">Asal Sekolah</div>
+        </div>
+        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Batal</button>
+      </div>
+
+      <!-- Tab Pemilihan Panel -->
+      <div class="grid grid-cols-2 gap-3">
+        <button id="tabBlue" onclick="switchPanel('blue')" class="py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-blue-900/40 border-blue-500 text-blue-300">
+          <span>TIM BIRU</span>
+          <span id="badgeBlue" class="text-[10px] opacity-75">(Tersisa 2x)</span>
+        </button>
+        <button id="tabRed" onclick="switchPanel('red')" class="py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400">
+          <span>TIM MERAH</span>
+          <span id="badgeRed" class="text-[10px] opacity-75">(Tersisa 2x)</span>
+        </button>
+      </div>
+
+      <!-- Dual Panel Display -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Panel Biru -->
+        <div id="panelBlue" onclick="switchPanel('blue')" class="cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-blue-500 ring-2 ring-blue-500/30">
+          <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider text-left">Jawaban Biru</div>
+          <div id="displayBlue" class="text-3xl font-mono font-bold tracking-wider text-amber-400 min-h-[40px] flex items-center justify-end break-all">-</div>
+        </div>
+
+        <!-- Panel Merah -->
+        <div id="panelRed" onclick="switchPanel('red')" class="cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60">
+          <div class="text-[10px] font-bold text-red-400 uppercase tracking-wider text-left">Jawaban Merah</div>
+          <div id="displayRed" class="text-3xl font-mono font-bold tracking-wider text-amber-400 min-h-[40px] flex items-center justify-end break-all">-</div>
+        </div>
+      </div>
+
+      <!-- Keypad Calculator -->
+      <div class="grid grid-cols-3 gap-3">
+        <button class="calc-btn" onclick="appendCalc('7')">7</button>
+        <button class="calc-btn" onclick="appendCalc('8')">8</button>
+        <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        
+        <button class="calc-btn" onclick="appendCalc('4')">4</button>
+        <button class="calc-btn" onclick="appendCalc('5')">5</button>
+        <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        
+        <button class="calc-btn" onclick="appendCalc('1')">1</button>
+        <button class="calc-btn" onclick="appendCalc('2')">2</button>
+        <button class="calc-btn" onclick="appendCalc('3')">3</button>
+
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+        <button class="calc-btn" onclick="appendCalc('0')">0</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+      </div>
+
+      <!-- Submit Button -->
+      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center">
+        <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. KONEKSI SUPABASE
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // STATE VARIABEL
+    let allUsers = [];
+    let selectedSchool = '';
+    let selectedStudent = null;
+    let isSubmitting = false;
+
+    // STATE NUMBER DISCO
+    let activePanel = 'blue';
+    let valBlue = "-";
+    let valRed = "-";
+    let countSubmittedBlue = 0;
+    let countSubmittedRed = 0;
+    let targetAnswerBlue = null;
+    let targetAnswerRed = null;
+
+    // ELEMEN DOM
+    const stepSchool = document.getElementById('stepSchool');
+    const stepStudent = document.getElementById('stepStudent');
+    const stepCalculator = document.getElementById('stepCalculator');
+    const schoolList = document.getElementById('schoolList');
+    const studentList = document.getElementById('studentList');
+
+    // 2. LOAD DATA PESERTA
+    async function loadAllParticipants() {
+      if (!supabaseClient) return;
+
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('role', 'peserta');
+
+      if (error) {
+        alert('Gagal mengambil data peserta');
+        return;
+      }
+
+      allUsers = data;
+      renderSchools();
+    }
+
+    // 3. RENDER SEKOLAH & PESERTA
+    function renderSchools() {
+      const schools = [...new Set(allUsers.map(u => u.school_name))];
+      schoolList.innerHTML = '';
+
+      schools.forEach(school => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
+        btn.onclick = () => selectSchool(school);
+        schoolList.appendChild(btn);
+      });
+    }
+
+    function selectSchool(schoolName) {
+      selectedSchool = schoolName;
+      stepSchool.classList.add('hidden');
+      stepStudent.classList.remove('hidden');
+
+      const filteredStudents = allUsers.filter(u => u.school_name === schoolName);
+      studentList.innerHTML = '';
+
+      filteredStudents.forEach(student => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+        btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
+        btn.onclick = () => openCalculator(student);
+        studentList.appendChild(btn);
+      });
+    }
+
+    document.getElementById('btnBackToSchool').onclick = () => {
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    };
+
+    document.getElementById('btnCancelCalc').onclick = resetToStart;
+
+    async function openCalculator(student) {
+      selectedStudent = student;
+      valBlue = "-";
+      valRed = "-";
+      document.getElementById('displayBlue').textContent = "-";
+      document.getElementById('displayRed').textContent = "-";
+
+      document.getElementById('selectedStudentName').textContent = student.full_name;
+      document.getElementById('selectedStudentSchool').textContent = student.school_name;
+
+      stepStudent.classList.add('hidden');
+      stepCalculator.classList.remove('hidden');
+
+      await loadTargetAnswers();
+      await checkExistingSubmissions();
+    }
+
+    // 4. KUNCI JAWABAN & RIWAYAT PADA TABEL `game_scores`
+    async function loadTargetAnswers() {
+      const { data, error } = await supabaseClient
+        .from('system_number_disco')
+        .select('team_gender, target_answer');
+      
+      if (data) {
+        data.forEach(item => {
+          if (item.team_gender === 'female') targetAnswerBlue = Number(item.target_answer);
+          if (item.team_gender === 'male') targetAnswerRed = Number(item.target_answer);
+        });
+      }
+    }
+
+    async function checkExistingSubmissions() {
+      if (!selectedStudent) return;
+
+      const { data, error } = await supabaseClient
+        .from('game_scores')
+        .select('game_name')
+        .eq('user_unique_id', selectedStudent.unique_id)
+        .in('game_name', ['Number Disco Blue', 'Number Disco Red']);
+
+      if (data) {
+        countSubmittedBlue = data.filter(d => d.game_name === 'Number Disco Blue').length;
+        countSubmittedRed = data.filter(d => d.game_name === 'Number Disco Red').length;
+      } else {
+        countSubmittedBlue = 0;
+        countSubmittedRed = 0;
+      }
+
+      updatePanelLocks();
+    }
+
+    function updatePanelLocks() {
+      const badgeBlue = document.getElementById('badgeBlue');
+      const badgeRed = document.getElementById('badgeRed');
+      const btnSubmit = document.getElementById('btnSubmitAnswer');
+
+      badgeBlue.textContent = `(Tersisa ${Math.max(0, 2 - countSubmittedBlue)}x)`;
+      badgeRed.textContent = `(Tersisa ${Math.max(0, 2 - countSubmittedRed)}x)`;
+
+      btnSubmit.disabled = false;
+      document.getElementById('btnSubmitText').textContent = "SUBMIT JAWABAN 🚀";
+
+      if (countSubmittedBlue >= 2 && countSubmittedRed < 2) {
+        switchPanel('red');
+      } else if (countSubmittedRed >= 2 && countSubmittedBlue < 2) {
+        switchPanel('blue');
+      } else if (countSubmittedBlue >= 2 && countSubmittedRed >= 2) {
+        btnSubmit.disabled = true;
+        document.getElementById('btnSubmitText').textContent = "BATAS PENGISIAN HABIS 🔒";
+      }
+    }
+
+    function switchPanel(panel) {
+      if (panel === 'blue' && countSubmittedBlue >= 2) return;
+      if (panel === 'red' && countSubmittedRed >= 2) return;
+
+      activePanel = panel;
+      const pBlue = document.getElementById('panelBlue');
+      const pRed = document.getElementById('panelRed');
+      const tabBlue = document.getElementById('tabBlue');
+      const tabRed = document.getElementById('tabRed');
+
+      if (panel === 'blue') {
+        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-blue-500 ring-2 ring-blue-500/30";
+        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
+
+        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-blue-900/40 border-blue-500 text-blue-300";
+        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
+      } else {
+        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-red-500 ring-2 ring-red-500/30";
+        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
+
+        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-red-900/40 border-red-500 text-red-300";
+        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
+      }
+    }
+
+    // 5. KEYPAD CONTROLLER
+    function appendCalc(val) {
+      if (activePanel === 'blue') {
+        if (countSubmittedBlue >= 2) return;
+        if (valBlue === "-" || valBlue === "0") valBlue = val;
+        else if (valBlue.length < 10) valBlue += val;
+        document.getElementById('displayBlue').textContent = valBlue;
+      } else {
+        if (countSubmittedRed >= 2) return;
+        if (valRed === "-" || valRed === "0") valRed = val;
+        else if (valRed.length < 10) valRed += val;
+        document.getElementById('displayRed').textContent = valRed;
+      }
+    }
+
+    function clearCalc() {
+      if (activePanel === 'blue') {
+        valBlue = "-";
+        document.getElementById('displayBlue').textContent = "-";
+      } else {
+        valRed = "-";
+        document.getElementById('displayRed').textContent = "-";
+      }
+    }
+
+    function deleteCalc() {
+      if (activePanel === 'blue') {
+        if (valBlue !== "-" && valBlue.length > 0) {
+          valBlue = valBlue.slice(0, -1);
+          if (valBlue === "") valBlue = "-";
+        }
+        document.getElementById('displayBlue').textContent = valBlue;
+      } else {
+        if (valRed !== "-" && valRed.length > 0) {
+          valRed = valRed.slice(0, -1);
+          if (valRed === "") valRed = "-";
+        }
+        document.getElementById('displayRed').textContent = valRed;
+      }
+    }
+
+    // 6. SUBMIT JAWABAN KE TABEL `game_scores`
+    async function submitAnswer() {
+      if (isSubmitting || !selectedStudent) return;
+      
+      const inserts = [];
+      const results = [];
+
+      // Evaluasi Biru
+      if (valBlue !== "-" && countSubmittedBlue < 2) {
+        const isCorrectBlue = Number(valBlue) === targetAnswerBlue;
+        inserts.push({
+          user_unique_id: selectedStudent.unique_id,
+          game_name: 'Number Disco Blue',
+          score_obtained: isCorrectBlue ? 1 : 0
+        });
+        results.push({
+          team: 'BIRU',
+          val: valBlue,
+          isCorrect: isCorrectBlue,
+          colorClass: 'text-blue-300'
+        });
+      }
+
+      // Evaluasi Merah
+      if (valRed !== "-" && countSubmittedRed < 2) {
+        const isCorrectRed = Number(valRed) === targetAnswerRed;
+        inserts.push({
+          user_unique_id: selectedStudent.unique_id,
+          game_name: 'Number Disco Red',
+          score_obtained: isCorrectRed ? 1 : 0
+        });
+        results.push({
+          team: 'MERAH',
+          val: valRed,
+          isCorrect: isCorrectRed,
+          colorClass: 'text-rose-300'
+        });
+      }
+
+      if (inserts.length === 0) {
+        alert("Silakan isi setidaknya satu jawaban (Biru atau Merah)!");
+        return;
+      }
+
+      isSubmitting = true;
+      document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
+
+      // Insert ke tabel game_scores
+      const { error } = await supabaseClient
+        .from('game_scores')
+        .insert(inserts);
+
+      if (error) {
+        alert("Gagal mengirim jawaban: " + error.message);
+        isSubmitting = false;
+        document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      } else {
+        triggerFlashEffect(results);
+      }
+    }
+
+    // FLASH EFFECT HASIL
+    function triggerFlashEffect(results) {
+      const overlay = document.getElementById('flashOverlay');
+      const allCorrect = results.every(r => r.isCorrect);
+
+      overlay.className = `flash-screen ${allCorrect ? 'flash-correct' : 'flash-wrong'}`;
+
+      let htmlContent = `<div class="text-[0.6em] mb-4">${allCorrect ? '🎉 SEMUA BENAR!' : 'HASIL EVALUASI'}</div>`;
+      htmlContent += `<div class="flex flex-col gap-3 text-2xl font-bold bg-black/40 p-6 rounded-3xl border border-white/20 min-w-[300px]">`;
+
+      results.forEach(res => {
+        const icon = res.isCorrect ? '✅ BENAR' : '❌ SALAH';
+        htmlContent += `
+          <div class="flex items-center justify-between gap-6 border-b border-white/10 pb-2 last:border-0 last:pb-0">
+            <span class="${res.colorClass}">${res.team} (${res.val}):</span>
+            <span>${icon}</span>
+          </div>
+        `;
+      });
+
+      htmlContent += `</div>`;
+
+      overlay.innerHTML = htmlContent;
+      overlay.classList.remove('hidden');
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        isSubmitting = false;
+        document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+        resetToStart();
+        loadAllParticipants(); 
+      }, 3000);
+    }
+
+    function resetToStart() {
+      valBlue = "-";
+      valRed = "-";
+      selectedStudent = null;
+      selectedSchool = '';
+      
+      stepCalculator.classList.add('hidden');
+      stepStudent.classList.add('hidden');
+      stepSchool.classList.remove('hidden');
+    }
+
+    // Inisialisasi awal
+    loadAllParticipants();
+  </script>
+</body>
+</html>
