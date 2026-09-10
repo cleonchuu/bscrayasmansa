@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Morse Match - Kiosk Peserta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+
+    .key-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      font-size: 1.5rem;
+      font-weight: 800;
+      border-radius: 1rem;
+      padding: 1.25rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      transition: all 0.15s ease;
+    }
+
+    .key-btn:active:not(:disabled) {
+      transform: scale(0.92);
+      background: #334155;
+    }
+
+    .key-btn-op {
+      background: #1e1b4b;
+      border-color: #4338ca;
+      color: #818cf8;
+    }
+
+    .key-btn-op:active:not(:disabled) {
+      background: #3730a3;
+    }
+
+    .audio-playing {
+      animation: pulse-border 1s infinite alternate;
+    }
+
+    @keyframes pulse-border {
+      0% { border-color: #6366f1; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+      100% { border-color: #a855f7; box-shadow: 0 0 25px rgba(168, 85, 247, 0.8); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- PLAYER AUDIO SINGLE -->
+  <audio id="audioMorse" preload="auto"></audio>
+
+  <main class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
+    
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+      <div>
+        <h1 class="text-xl font-black text-indigo-400 tracking-wide flex items-center gap-2">
+          <i class="fas fa-radio"></i> MORSE MATCH
+        </h1>
+        <p id="playerName" class="text-xs text-slate-400 mt-0.5">Peserta: Loading...</p>
+      </div>
+      <div id="audioStatusBadge" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> IDLE
+      </div>
+    </div>
+
+    <!-- DISPLAY INPUT & STATUS AUDIO -->
+    <div id="displayCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-6 text-center transition-all duration-300">
+      <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1">Simbol / Angka Terakhir</p>
+      <div id="currentSymbolDisplay" class="text-4xl font-black text-amber-400 min-h-[48px] flex items-center justify-center">
+        -
+      </div>
+      <p id="audioStatusText" class="text-xs text-indigo-300 mt-2 font-medium h-4">Tekan tombol untuk memutar morse</p>
+    </div>
+
+    <!-- KEYPAD CONTAINER -->
+    <div class="grid grid-cols-4 gap-3">
+      
+      <!-- Baris 1: Operator Tambahan -->
+      <button onclick="playMorse('akar', '√')" class="key-btn key-btn-op text-lg">√</button>
+      <button onclick="playMorse('pangkat', 'x²')" class="key-btn key-btn-op text-lg">xʸ</button>
+      <button onclick="playMorse('bagi', '÷')" class="key-btn key-btn-op">÷</button>
+      <button onclick="playMorse('kali', '×')" class="key-btn key-btn-op">×</button>
+
+      <!-- Baris 2: Angka 7, 8, 9 & Operator Kurang -->
+      <button onclick="playMorse('7', '7')" class="key-btn">7</button>
+      <button onclick="playMorse('8', '8')" class="key-btn">8</button>
+      <button onclick="playMorse('9', '9')" class="key-btn">9</button>
+      <button onclick="playMorse('kurang', '-')" class="key-btn key-btn-op">-</button>
+
+      <!-- Baris 3: Angka 4, 5, 6 & Operator Tambah -->
+      <button onclick="playMorse('4', '4')" class="key-btn">4</button>
+      <button onclick="playMorse('5', '5')" class="key-btn">5</button>
+      <button onclick="playMorse('6', '6')" class="key-btn">6</button>
+      <button onclick="playMorse('tambah', '+')" class="key-btn key-btn-op">+</button>
+
+      <!-- Baris 4: Angka 1, 2, 3 & Angka 0 -->
+      <button onclick="playMorse('1', '1')" class="key-btn">1</button>
+      <button onclick="playMorse('2', '2')" class="key-btn">2</button>
+      <button onclick="playMorse('3', '3')" class="key-btn">3</button>
+      <button onclick="playMorse('0', '0')" class="key-btn">0</button>
+
+    </div>
+
+  </main>
+
+  <script>
+    const BUCKET_MORSE = 'https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/morse/';
+
+    const audioMorse = document.getElementById('audioMorse');
+    const displayCard = document.getElementById('displayCard');
+    const currentSymbolDisplay = document.getElementById('currentSymbolDisplay');
+    const audioStatusText = document.getElementById('audioStatusText');
+    const audioStatusBadge = document.getElementById('audioStatusBadge');
+
+    function initUser() {
+      const sess = localStorage.getItem('userSession');
+      if (sess) {
+        const user = JSON.parse(sess);
+        document.getElementById('playerName').textContent = `Peserta: ${user.full_name || user.unique_id}`;
+      } else {
+        document.getElementById('playerName').textContent = `Peserta: Standalone Mode`;
+      }
+    }
+
+    // FUNGSI MEMUTAR AUDIO MORSE KANONIKAL
+    function playMorse(fileName, labelDisplay) {
+      audioMorse.pause();
+      audioMorse.currentTime = 0;
+
+      currentSymbolDisplay.textContent = labelDisplay;
+      
+      const morseUrl = `${BUCKET_MORSE}${fileName}.wav`;
+      audioMorse.src = morseUrl;
+
+      updateStatusUI('PLAYING', `Memutar Morse '${labelDisplay}'...`, 'bg-amber-500');
+
+      audioMorse.play().catch(err => {
+        console.error("Gagal memutar audio Morse:", err);
+        updateStatusUI('ERROR', 'File Morse tidak ditemukan / gagal muat', 'bg-rose-500');
+      });
+
+      audioMorse.onended = () => {
+        updateStatusUI('IDLE', 'Siap menekan tombol berikutnya', 'bg-emerald-500');
+      };
+    }
+
+    function updateStatusUI(state, message, badgeColorClass) {
+      audioStatusText.textContent = message;
+      audioStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full ${badgeColorClass}"></span> ${state}`;
+
+      if (state === 'PLAYING') {
+        displayCard.classList.add('audio-playing');
+      } else {
+        displayCard.classList.remove('audio-playing');
+      }
+    }
+
+    initUser();
+  </script>
+</body>
+</html>

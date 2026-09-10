@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk Input Jawaban</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+
+    /* Animasi Layar Respon (Merah / Hijau) */
+    .flash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .flash-correct {
+      background-color: #16a34a; /* Green 600 */
+    }
+
+    .flash-wrong {
+      background-color: #dc2626; /* Red 600 */
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Styling Tombol Kalkulator */
+    .calc-btn {
+      background: #334155;
+      color: #ffffff;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
+    }
+
+    .calc-btn:active {
+      transform: scale(0.95);
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- FLASHER SCREEN (POPUP BENAR/SALAH 3 DETIK) -->
+  <div id="flashOverlay" class="flash-screen hidden">
+    <div id="flashIcon" class="text-8xl mb-4"></div>
+    <div id="flashText" class="tracking-wider uppercase"></div>
+  </div>
+
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+    
+    <!-- HEADER -->
+    <div class="text-center mb-6">
+      <h1 class="text-2xl font-black text-amber-400 tracking-wide">🎯 KIOSK JAWABAN PESERTA</h1>
+      <p class="text-xs text-slate-400 mt-1">Masukkan Jawaban Anda</p>
+    </div>
+
+    <!-- KALKULATOR JAWABAN -->
+    <div id="stepCalculator" class="space-y-4">
+      <!-- Info Peserta Terpilih -->
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
+        <div>
+          <div id="selectedStudentName" class="font-bold text-lg text-white">Memuat nama...</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400">Memuat sekolah...</div>
+        </div>
+      </div>
+
+      <!-- Display Jawaban -->
+      <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
+        <div id="calcDisplay" class="text-4xl font-mono font-bold tracking-wider text-amber-400 min-h-[48px] break-all">0</div>
+      </div>
+
+      <!-- Pad Kalkulator -->
+      <div class="grid grid-cols-3 gap-3">
+        <button class="calc-btn" onclick="appendCalc('7')">7</button>
+        <button class="calc-btn" onclick="appendCalc('8')">8</button>
+        <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        
+        <button class="calc-btn" onclick="appendCalc('4')">4</button>
+        <button class="calc-btn" onclick="appendCalc('5')">5</button>
+        <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        
+        <button class="calc-btn" onclick="appendCalc('1')">1</button>
+        <button class="calc-btn" onclick="appendCalc('2')">2</button>
+        <button class="calc-btn" onclick="appendCalc('3')">3</button>
+
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+        <button class="calc-btn" onclick="appendCalc('0')">0</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+      </div>
+
+      <!-- Tombol Submit -->
+      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95">
+        SUBMIT JAWABAN 🚀
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    // 1. KONEKSI SUPABASE
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // 2. STATE VARIABEL
+    const CURRENT_GAME_NAME = "Crypta Treasure Hunt";
+    const POINTS_PER_CORRECT_ANSWER = 100;
+    
+    let currentUser = null;
+    let targetCorrectAnswer = null;
+    let currentInput = '';
+
+    // 3. ELEMEN DOM
+    const calcDisplay = document.getElementById('calcDisplay');
+    const selectedStudentName = document.getElementById('selectedStudentName');
+    const selectedStudentSchool = document.getElementById('selectedStudentSchool');
+
+    // 4. INIT SESI USER & KUNCI JAWABAN
+    async function initKiosk() {
+      if (!supabaseClient) return;
+
+      // Fetch Kunci Jawaban dari Tabel system_morse_match (Soal Terbaru)
+      const { data: questionData, error: qError } = await supabaseClient
+        .from('system_morse_match')
+        .select('correct_answer')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!qError && questionData) {
+        targetCorrectAnswer = String(questionData.correct_answer);
+      } else {
+        console.error('Gagal mengambil kunci jawaban:', qError);
+      }
+
+      // Fetch Akun Peserta yang Sedang Login
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+      if (authError || !user) {
+        selectedStudentName.textContent = "Pengguna Tidak Ditemukan";
+        selectedStudentSchool.textContent = "Silakan login terlebih dahulu";
+        return;
+      }
+
+      // Ambil detail data profil pengguna dari tabel users
+      const { data: userData, error: userError } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!userError && userData) {
+        currentUser = userData;
+        selectedStudentName.textContent = userData.full_name || 'Peserta';
+        selectedStudentSchool.textContent = userData.school_name || 'Sekolah';
+      } else {
+        currentUser = { id: user.id, unique_id: user.id, full_name: user.email };
+        selectedStudentName.textContent = user.email;
+        selectedStudentSchool.textContent = '-';
+      }
+    }
+
+    // 5. LOGIKA KALKULATOR
+    function appendCalc(val) {
+      if (currentInput.length < 10) {
+        currentInput += val;
+        updateDisplay();
+      }
+    }
+
+    function clearCalc() {
+      currentInput = '';
+      updateDisplay();
+    }
+
+    function deleteCalc() {
+      currentInput = currentInput.slice(0, -1);
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      calcDisplay.textContent = currentInput || '0';
+    }
+
+    // 6. SUBMIT JAWABAN & PROSES HASIL
+    async function submitAnswer() {
+      if (!currentInput || !currentUser || !targetCorrectAnswer) return;
+
+      const isCorrect = (currentInput.trim() === targetCorrectAnswer.trim());
+
+      if (isCorrect) {
+        const { error } = await supabaseClient
+          .from('game_scores')
+          .insert([
+            {
+              user_unique_id: currentUser.unique_id || currentUser.id,
+              game_name: CURRENT_GAME_NAME,
+              score_obtained: POINTS_PER_CORRECT_ANSWER
+            }
+          ]);
+
+        if (error) {
+          console.error('Gagal menyimpan skor game:', error);
+        }
+      }
+
+      triggerFlashEffect(isCorrect);
+    }
+
+    // 7. EFEK MERAH / HIJAU 3 DETIK
+    function triggerFlashEffect(isCorrect) {
+      const overlay = document.getElementById('flashOverlay');
+      const icon = document.getElementById('flashIcon');
+      const text = document.getElementById('flashText');
+
+      overlay.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
+      icon.textContent = isCorrect ? '✅' : '❌';
+      text.textContent = isCorrect ? 'JAWABAN BENAR!' : 'JAWABAN SALAH!';
+
+      overlay.classList.remove('hidden');
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        clearCalc();
+      }, 3000);
+    }
+
+    // Inisialisasi awal
+    initKiosk();
+  </script>
+</body>
+</html>

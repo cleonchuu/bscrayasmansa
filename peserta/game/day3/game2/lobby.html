@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lobby Utama Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; filter: blur(20px); }
+      50% { opacity: 0.8; filter: blur(30px); }
+    }
+    .glow-bg {
+      animation: pulseGlow 4s infinite ease-in-out;
+    }
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-hover:hover {
+      transform: translateY(-8px) scale(1.02);
+    }
+  </style>
+</head>
+<body class="bg-[#0f172a] min-h-screen text-white flex flex-col items-center justify-center relative overflow-hidden px-4">
+
+  <!-- Background Ambient Glow -->
+  <div class="absolute -top-20 -left-20 w-96 h-96 bg-amber-500/20 rounded-full glow-bg pointer-events-none"></div>
+  <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-blue-500/20 rounded-full glow-bg pointer-events-none" style="animation-delay: 2s;"></div>
+
+  <!-- Header Lobby -->
+  <div class="text-center mb-10 z-10">
+    <div class="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-4 py-1.5 rounded-full mb-3">
+      <i class="fas fa-gamepad text-amber-400"></i>
+      <span class="text-amber-400 text-xs font-bold uppercase tracking-widest">Lobby Game</span>
+    </div>
+    <h1 class="text-3xl md:text-5xl font-black tracking-tight text-white mb-2">
+      Morse Match
+    </h1>
+    <p class="text-gray-400 text-sm md:text-base max-w-md mx-auto">
+      Pilih salah satu mode di bawah untuk langsung menuju arena permainan.
+    </p>
+  </div>
+
+  <!-- Container 2 Button Utama -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl z-10">
+
+    <!-- BUTTON / CARD 1 -->
+    <a href="memory.html" class="card-hover group relative block bg-[#1e293b]/80 backdrop-blur-md border border-amber-500/30 rounded-2xl p-6 md:p-8 hover:border-amber-400 shadow-2xl overflow-hidden">
+      <!-- Gradient overlay saat hover -->
+      <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+      <div class="flex items-start justify-between mb-6 relative z-10">
+        <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-2xl group-hover:bg-amber-500 group-hover:text-slate-900 transition-all duration-300">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <span class="text-xs font-bold bg-amber-500/20 text-amber-300 px-3 py-1 rounded-full border border-amber-500/30">
+          MEMORY
+        </span>
+      </div>
+
+      <div class="relative z-10">
+        <h2 class="text-2xl font-bold text-white mb-2 group-hover:text-amber-400 transition-colors">
+          MORSE LIBRARY
+        </h2>
+        <p class="text-gray-400 text-sm mb-6 line-clamp-2">
+          Hapalkan sandi morse dalam 15 menit
+        </p>
+
+        <div class="inline-flex items-center gap-2 text-amber-400 font-bold text-sm group-hover:translate-x-2 transition-transform">
+          <span>Masuk Arena Game</span>
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+    </a>
+
+    <!-- BUTTON / CARD 2 -->
+    <a href="input.html" class="card-hover group relative block bg-[#1e293b]/80 backdrop-blur-md border border-rose-500/30 rounded-2xl p-6 md:p-8 hover:border-rose-400 shadow-2xl overflow-hidden">
+      <!-- Gradient overlay saat hover -->
+      <div class="absolute inset-0 bg-gradient-to-br from-rose-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+      <div class="flex items-start justify-between mb-6 relative z-10">
+        <div class="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 text-2xl group-hover:bg-rose-500 group-hover:text-slate-900 transition-all duration-300">
+          <i class="fas fa-skull-crossbones"></i>
+        </div>
+        <span class="text-xs font-bold bg-rose-500/20 text-rose-300 px-3 py-1 rounded-full border border-rose-500/30">
+          MODE UTAMA
+        </span>
+      </div>
+
+      <div class="relative z-10">
+        <h2 class="text-2xl font-bold text-white mb-2 group-hover:text-rose-400 transition-colors">
+          KODE JAWABAN INPUT
+        </h2>
+        <p class="text-gray-400 text-sm mb-6 line-clamp-2">
+          Ketemu jawabannya, langsung masukin kesini
+        </p>
+
+        <div class="inline-flex items-center gap-2 text-rose-400 font-bold text-sm group-hover:translate-x-2 transition-transform">
+          <span>Masuk Arena Game</span>
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Footer / Back Button -->
+  <div class="mt-10 z-10">
+    <a href="../../../gamelobby.html" class="text-gray-400 hover:text-white text-sm flex items-center gap-2 transition-colors">
+      <i class="fas fa-arrow-left"></i>
+      <span>Kembali ke Lobby Peserta</span>
+    </a>
+  </div>
+
+</body>
+</html>
