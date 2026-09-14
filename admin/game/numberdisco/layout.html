@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Disco - Stage Display Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
+    body { font-family: 'Poppins', sans-serif; background-color: #030712; color: #ffffff; overflow: hidden; }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+    .glow-blue { box-shadow: 0 0 35px rgba(59, 130, 246, 0.25); border: 3px solid #1e40af; }
+    .glow-red { box-shadow: 0 0 35px rgba(239, 68, 68, 0.25); border: 3px solid #991b1b; }
+    .active-speaking-blue { box-shadow: 0 0 90px rgba(59, 130, 246, 0.9) !important; border-color: #3b82f6 !important; background-color: rgba(30, 58, 138, 0.35) !important; transform: scale(1.02); }
+    .active-speaking-red { box-shadow: 0 0 90px rgba(239, 68, 68, 0.9) !important; border-color: #ef4444 !important; background-color: rgba(127, 29, 29, 0.35) !important; transform: scale(1.02); }
+    .view-panel { transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out; }
+    .hidden-view { opacity: 0; pointer-events: none; transform: scale(0.96); position: absolute; inset: 0; }
+    .active-view { opacity: 1; pointer-events: auto; transform: scale(1); position: relative; }
+  </style>
+</head>
+<body class="min-h-screen p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+
+  <!-- OVERLAY UNTUK INIT AUDIO (AUTOPLAY UNLOCK) -->
+  <div id="startOverlay" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+    <div class="p-4 bg-indigo-600/20 text-indigo-400 rounded-3xl border border-indigo-500/30 mb-6 animate-bounce">
+      <i class="fas fa-compact-disc text-6xl"></i>
+    </div>
+    <h2 class="text-3xl font-black font-math text-white mb-2">NUMBER DISCO STAGE ENGINE</h2>
+    <p class="text-slate-400 text-sm max-w-md mb-8">Klik tombol di bawah satu kali untuk mengaktifkan sistem Audio & Sync Realtime sebelum dikontrol dari Admin.</p>
+    <button onclick="unlockAudioAndStart()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold rounded-2xl shadow-2xl transition-all flex items-center gap-3">
+      <i class="fas fa-power-off text-xl"></i> Aktifkan Stage Display
+    </button>
+  </div>
+
+  <header class="bg-slate-900/90 border border-slate-800 px-6 py-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-10">
+    <div class="flex items-center gap-4">
+      <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+        <i class="fas fa-compact-disc fa-spin text-3xl"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-black tracking-wider text-white uppercase font-math">NUMBER DISCO</h1>
+        <p class="text-xs text-slate-400">STAGE DISPLAY ENGINE</p>
+      </div>
+    </div>
+
+    <!-- TIMER DISPLAY & STATUS LOG INJECTOR -->
+    <div class="flex items-center gap-4">
+      <div id="statusLoader" class="hidden items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-4 py-2 rounded-2xl text-xs font-bold animate-pulse">
+        <i class="fas fa-spinner fa-spin"></i> <span id="statusLoaderText">Memproses Soal...</span>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl">
+        <i class="fas fa-stopwatch text-slate-400 text-xs"></i>
+        <span id="timerDisplay" class="text-emerald-400 font-mono text-sm font-bold">05:00</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="relative flex-1 my-6 flex items-center justify-center">
+
+    <!-- 1. GAME VIEW -->
+    <main id="viewGame" class="view-panel active-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+      <div id="stageContainerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[550px] glow-blue transition-all duration-300 relative">
+        <span class="absolute top-6 left-6 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
+          <i class="fas fa-venus mr-1"></i> TIM BIRU (FEMALE)
+        </span>
+        <div id="stageDisplayBlue" class="text-8xl lg:text-[10rem] font-black font-math text-white tracking-widest drop-shadow-[0_0_35px_rgba(59,130,246,0.8)]">--</div>
+      </div>
+
+      <div id="stageContainerRed" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[550px] glow-red transition-all duration-300 relative">
+        <span class="absolute top-6 left-6 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
+          <i class="fas fa-mars mr-1"></i> TIM MERAH (MALE)
+        </span>
+        <div id="stageDisplayRed" class="text-8xl lg:text-[10rem] font-black font-math text-white tracking-widest drop-shadow-[0_0_35px_rgba(239,68,68,0.8)]">--</div>
+      </div>
+    </main>
+
+    <!-- 2. LEADERBOARD VIEW -->
+    <section id="viewLeaderboard" class="view-panel hidden-view w-full max-w-6xl flex flex-col items-center justify-center">
+      <h2 class="text-4xl font-black text-amber-400 uppercase font-math mb-6"><i class="fas fa-trophy mr-2"></i> PAPAN PERINGKAT TOP 10</h2>
+      <div id="leaderboardGrid" class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto p-2"></div>
+    </section>
+
+    <!-- 3. ALL PLAYERS VIEW -->
+    <section id="viewAllPlayers" class="view-panel hidden-view w-full flex flex-col items-center justify-center">
+      <h2 class="text-3xl font-black text-indigo-400 uppercase font-math mb-6"><i class="fas fa-users mr-2"></i> REKAPITULASI POIN SELURUH PESERTA</h2>
+      <div id="allPlayersGrid" class="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[600px] overflow-y-auto p-2"></div>
+    </section>
+
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+    const SILENCE_OFFSET = 0.3;
+
+    function getAudioUrl(gender, filename) {
+      return `${STORAGE_BASE_URL}/${gender === 'female' ? 'voice_female' : 'voice_male'}/${filename}`;
+    }
+    const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+
+    /* MATH GENERATOR LOGIC */
+    class MathGenerator {
+      static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+      static getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+      static generateInitialNumber(genderFolder = 'female') {
+        const type = Math.random();
+        if (type < 0.4) {
+          const val = this.getRandomInt(2, 20);
+          return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
+        } else if (type < 0.7) {
+          const base = this.getRandomInt(2, 6);
+          return { value: Math.pow(base, 2), display: `${base}²`, audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] };
+        } else {
+          const sq = this.PERFECT_SQUARES[Math.floor(Math.random() * this.PERFECT_SQUARES.length)];
+          return { value: Math.sqrt(sq), display: `√${sq}`, audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] };
+        }
+      }
+
+      static generateOperation(currentValue, genderFolder = 'male') {
+        const ops = ['+', '-', '×', '÷'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        let operandObj = {}, finalVal = currentValue;
+
+        if (op === '+') { operandObj = this.generateOperandValue(genderFolder); finalVal += operandObj.value; }
+        else if (op === '-') { operandObj = this.generateOperandValue(genderFolder); finalVal -= operandObj.value; }
+        else if (op === '×') {
+          const mult = this.getRandomInt(2, 5);
+          operandObj = { value: mult, display: `${mult}`, audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] };
+          finalVal *= mult;
+        } else if (op === '÷') {
+          const factors = [];
+          for (let i = 1; i <= Math.abs(currentValue); i++) { if (currentValue % i === 0) factors.push(i); }
+          const div = factors.length > 1 ? factors[this.getRandomInt(1, factors.length - 1)] : 1;
+          operandObj = { value: div, display: `${div}`, audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] };
+          finalVal /= div;
+        }
+
+        let opFileName = op === '+' ? "ditambah.mp3" : op === '-' ? "dikurangi.mp3" : op === '×' ? "dikali.mp3" : "dibagi.mp3";
+        return { display: `${op} ${operandObj.display}`, newTotal: finalVal, audioUrls: [getAudioUrl(genderFolder, opFileName), ...operandObj.audioUrls] };
+      }
+
+      static generateOperandValue(genderFolder = 'female') {
+        const type = Math.random();
+        if (type < 0.5) {
+          const val = this.getRandomInt(1, 15);
+          return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
+        } else if (type < 0.8) {
+          const base = this.getRandomInt(2, 5);
+          return { value: Math.pow(base, 2), display: `${base}²`, audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] };
+        } else {
+          const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
+          return { value: Math.sqrt(sq), display: `√${sq}`, audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] };
+        }
+      }
+    }
+
+    /* AUDIO ENGINE */
+    class WebAudioEngine {
+      constructor() { 
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
+        this.cache = new Map(); 
+      }
+      async initContext() {
+        if (this.ctx.state === 'suspended') {
+          await this.ctx.resume();
+        }
+      }
+      async preloadAudio(url) {
+        if (this.cache.has(url)) return this.cache.get(url);
+        try {
+          const res = await fetch(url);
+          const arrayBuffer = await res.arrayBuffer();
+          const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+          this.cache.set(url, audioBuffer);
+          return audioBuffer;
+        } catch (e) { return null; }
+      }
+      async preloadBatch(urls) { await Promise.all([...new Set(urls)].map(u => this.preloadAudio(u))); }
+      playBuffer(buffer) {
+        return new Promise((resolve) => {
+          if (!buffer) return resolve();
+          this.initContext();
+          const source = this.ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(this.ctx.destination);
+          const playDuration = buffer.duration < 0.8 ? buffer.duration : Math.max(0.1, buffer.duration - SILENCE_OFFSET);
+          source.start(0);
+          setTimeout(() => resolve(), playDuration * 1000);
+        });
+      }
+      async playSequence(urls) {
+        for (const url of urls) {
+          const buffer = await this.preloadAudio(url);
+          await this.playBuffer(buffer);
+        }
+      }
+    }
+
+    /* ENGINE CONTROLLER DIRECTLY IN LAYOUT */
+    class LayoutGameEngine {
+      constructor() {
+        this.isPlaying = false;
+        this.femaleTotal = 0;
+        this.maleTotal = 0;
+        this.historySteps = [];
+        this.remainingSeconds = 300;
+        this.timerInterval = null;
+        this.audioEngine = new WebAudioEngine();
+      }
+
+      async startEngine() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+        this.historySteps = [];
+
+        this.setLoaderStatus("Mengunduh Sound & Soal...", true);
+
+        // 1. Generate 10 Ronde Soal & Kumpulkan URL Audio
+        const allAudioUrls = [];
+        const initBlue = MathGenerator.generateInitialNumber('female');
+        this.femaleTotal = initBlue.value;
+        this.historySteps.push({ team: 'blue', display: initBlue.display, audioUrls: initBlue.audioUrls });
+        allAudioUrls.push(...initBlue.audioUrls);
+
+        const initRed = MathGenerator.generateInitialNumber('male');
+        this.maleTotal = initRed.value;
+        this.historySteps.push({ team: 'red', display: initRed.display, audioUrls: initRed.audioUrls });
+        allAudioUrls.push(...initRed.audioUrls);
+
+        for (let i = 2; i <= 10; i++) {
+          const blueOp = MathGenerator.generateOperation(this.femaleTotal, 'female');
+          this.femaleTotal = blueOp.newTotal;
+          this.historySteps.push({ team: 'blue', display: blueOp.display, audioUrls: blueOp.audioUrls });
+          allAudioUrls.push(...blueOp.audioUrls);
+
+          const redOp = MathGenerator.generateOperation(this.maleTotal, 'male');
+          this.maleTotal = redOp.newTotal;
+          this.historySteps.push({ team: 'red', display: redOp.display, audioUrls: redOp.audioUrls });
+          allAudioUrls.push(...redOp.audioUrls);
+        }
+        allAudioUrls.push(SOUND_BELL);
+
+        // 2. Pre-download Audio
+        await this.audioEngine.preloadBatch(allAudioUrls);
+        this.setLoaderStatus("", false);
+
+        // 3. Upsert Kunci Jawaban ke Supabase DB
+        await supabaseClient.from('system_number_disco').upsert([
+          { id: 1, team_gender: 'female', target_answer: this.femaleTotal, updated_at: new Date() },
+          { id: 2, team_gender: 'male', target_answer: this.maleTotal, updated_at: new Date() }
+        ]);
+
+        // 4. Jalankan Timer 5 Menit
+        this.startTimer();
+
+        // 5. Eksekusi 10 Ronde Pemutaran Soal & Suara
+        for (const step of this.historySteps) {
+          if (!this.isPlaying) return;
+          await this.updateStageAndSync(step.team, step.display, true);
+          await this.audioEngine.playSequence(step.audioUrls);
+          await this.updateStageAndSync(step.team, step.display, false);
+          await new Promise(r => setTimeout(r, 200));
+        }
+
+        // Loop Pengulangan jika Waktu Masih Ada
+        while (this.isPlaying && this.remainingSeconds > 0) {
+          await this.audioEngine.playSequence([SOUND_BELL]);
+          for (const step of this.historySteps) {
+            if (!this.isPlaying || this.remainingSeconds <= 0) break;
+            await this.updateStageAndSync(step.team, step.display, true);
+            await this.audioEngine.playSequence(step.audioUrls);
+            await this.updateStageAndSync(step.team, step.display, false);
+            await new Promise(r => setTimeout(r, 200));
+          }
+        }
+      }
+
+      async updateStageAndSync(team, text, isSpeaking) {
+        updateStageUI(team, text, isSpeaking);
+        await supabaseClient.from('system_number_disco_live').upsert([
+          { id: team === 'blue' ? 1 : 2, team: team, display_text: text, is_speaking: isSpeaking, updated_at: new Date() }
+        ]);
+      }
+
+      startTimer() {
+        this.remainingSeconds = 300;
+        clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => {
+          this.remainingSeconds--;
+          const m = Math.floor(this.remainingSeconds / 60), s = this.remainingSeconds % 60;
+          document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          if (this.remainingSeconds <= 0) this.resetEngine();
+        }, 1000);
+      }
+
+      async resetEngine() {
+        this.isPlaying = false;
+        clearInterval(this.timerInterval);
+        document.getElementById('timerDisplay').textContent = "05:00";
+        await this.updateStageAndSync('blue', '--', false);
+        await this.updateStageAndSync('red', '--', false);
+      }
+
+      setLoaderStatus(text, show) {
+        const loader = document.getElementById('statusLoader');
+        document.getElementById('statusLoaderText').textContent = text;
+        if (show) loader.classList.remove('hidden'), loader.classList.add('flex');
+        else loader.classList.add('hidden'), loader.classList.remove('flex');
+      }
+    }
+
+    const engine = new LayoutGameEngine();
+
+    function unlockAudioAndStart() {
+      engine.audioEngine.initContext();
+      document.getElementById('startOverlay').classList.add('hidden');
+      setupRealtimeListeners();
+    }
+
+    // DENGARKAN REMOTE KONTROL DARI ADMIN (SETELAH UNLOCK)
+    function setupRealtimeListeners() {
+      supabaseClient.channel('system_number_disco_control_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
+          if (payload.new && payload.new.action) {
+            if (payload.new.action === 'START_GAME') engine.startEngine();
+            if (payload.new.action === 'RESET') engine.resetEngine();
+          }
+        }).subscribe();
+
+      supabaseClient.channel('admin_layout_number_disco_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
+          if (payload.new && payload.new.current_view) handleViewSwitch(payload.new.current_view);
+        }).subscribe();
+    }
+
+    function handleViewSwitch(viewName) {
+      document.getElementById('viewGame').className = viewName === 'game' ? 'view-panel active-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto' : 'view-panel hidden-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto';
+      document.getElementById('viewLeaderboard').className = viewName === 'leaderboard' ? 'view-panel active-view w-full max-w-6xl flex flex-col items-center justify-center' : 'view-panel hidden-view w-full max-w-6xl flex flex-col items-center justify-center';
+      document.getElementById('viewAllPlayers').className = viewName === 'all_players' ? 'view-panel active-view w-full flex flex-col items-center justify-center' : 'view-panel hidden-view w-full flex flex-col items-center justify-center';
+    }
+
+    function updateStageUI(team, text, isSpeaking) {
+      const isBlue = team === 'blue';
+      const container = document.getElementById(isBlue ? 'stageContainerBlue' : 'stageContainerRed');
+      const display = document.getElementById(isBlue ? 'stageDisplayBlue' : 'stageDisplayRed');
+      if (display) display.textContent = text;
+      if (container) {
+        if (isSpeaking) container.classList.add(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
+        else container.classList.remove(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lobby - Mimic Sudoku</title>
+  <title>Lobby - Frenzy Cross Maze</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome untuk ikon tombol -->
@@ -24,8 +24,8 @@
     
     <!-- BADGE GAME DAY 2 -->
     <div class="flex items-center justify-between mb-6">
-      <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-        Day 2 • Game 1
+      <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+        Day 2 • Game 2
       </span>
       <div id="userBadge" class="text-xs text-slate-400 font-medium">
         <!-- Nama Player dari localStorage akan muncul di sini -->
@@ -35,14 +35,14 @@
     <!-- TITLE & LOGO SECTION -->
     <div class="text-center mb-8">
       <!-- Container Logo / Icon Gambar -->
-      <div class="inline-flex items-center justify-center w-24 h-24 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/30 overflow-hidden shadow-inner p-2">
-        <!-- Ganti src di bawah dengan path gambar logo Mimic Sudoku kamu -->
-        <img src="assets/images/mimic_sudoku_logo.png" alt="Mimic Sudoku Logo" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/96?text=LOGO';" />
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-indigo-500/10 rounded-2xl mb-4 border border-indigo-500/30 overflow-hidden shadow-inner p-2">
+        <!-- Ganti src di bawah dengan path gambar logo Frenzy Cross Maze kamu -->
+        <img src="assets/images/frenzy_cross_maze_logo.png" alt="Frenzy Cross Maze Logo" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/96?text=LOGO';" />
       </div>
       
-      <h1 class="text-3xl font-black tracking-wide text-white">MIMIC SUDOKU</h1>
+      <h1 class="text-3xl font-black tracking-wide text-white">FRENZY CROSS MAZE</h1>
       <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
-        Uji kemampuan analisis dan logika penataan angka dalam versi Sudoku adaptif yang penuh dengan tantangan peniruan pola!
+        Navigasikan jalanmu menembus labirin yang rumit, temukan rute tercepat, dan selesaikan tantangan persilangan sebelum waktu habis!
       </p>
     </div>
 
@@ -50,7 +50,7 @@
     <div class="space-y-4">
       
       <!-- 1. TOMBOL JOIN GAME (MAIN ACTION) -->
-      <button onclick="handleJoinGame()" class="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
+      <button onclick="handleJoinGame()" class="w-full py-4 px-6 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
         <i class="fa-solid fa-gamepad text-xl"></i>
         <span>JOIN GAME NOW</span>
       </button>
@@ -80,7 +80,7 @@
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-4 border-b border-slate-700">
         <h3 class="font-bold text-white flex items-center gap-2">
-          <span>🎬</span> Simulasi Cara Bermain Mimic Sudoku
+          <span>🎬</span> Simulasi Cara Bermain Frenzy Cross Maze
         </h3>
         <button onclick="closeVideoModal()" class="text-slate-400 hover:text-white text-xl font-bold w-8 h-8 rounded-full hover:bg-slate-700 flex items-center justify-center">
           &times;
@@ -90,7 +90,7 @@
       <!-- Modal Body (Video Embed / Player) -->
       <div class="p-4 bg-black flex items-center justify-center min-h-[300px]">
         <video id="tutorialVideo" controls class="w-full rounded-xl">
-          <source src="assets/videos/mimic_sudoku_tutorial.mp4" type="video/mp4">
+          <source src="assets/videos/frenzy_cross_maze_tutorial.mp4" type="video/mp4">
           Browser Anda tidak mendukung pemutaran video.
         </video>
       </div>
@@ -119,7 +119,7 @@
 
     // 1. Handlers Tombol Join Game
     function handleJoinGame() {
-      window.location.href = 'mimicsudoku.html';
+      window.location.href = 'frenzycross.html';
     }
 
     // 2. Handlers Modal Video Tutorial
@@ -140,7 +140,7 @@
 
     // 3. Handlers Simulasi Permainan (Practice Mode)
     function handleStartSimulation() {
-      window.location.href = 'mimic_sudoku_simulation.html';
+      window.location.href = 'frenzy_cross_maze_simulation.html';
     }
   </script>
 </body>

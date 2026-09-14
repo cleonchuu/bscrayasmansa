@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Arithmetic Bingo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    .glow-amber { box-shadow: 0 0 25px rgba(245, 158, 11, 0.2); }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
+
+  <!-- AUDIO BEL PLAYER -->
+  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- TOP ROW: CONTROL PANEL & LEADERBOARD RINGKAS -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- KIRI & TENGAH: CONTROL PANEL & DISPLAY SOAL -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Panel Header & Switch Start/Stop Auto Loop -->
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <span class="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs px-3 py-1 rounded-full font-bold">
+              CONTROL PANEL ADMIN
+            </span>
+            <h1 class="text-2xl font-black text-white mt-2">Arithmetic Bingo Admin</h1>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="btnStartGame" onclick="toggleAutoRun()" class="px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2">
+              <i class="fas fa-play"></i> Mulai Game (Auto Loop 20s)
+            </button>
+          </div>
+        </div>
+
+        <!-- Display Soal Utama & Timer Admin -->
+        <div class="bg-slate-900 border border-amber-500/30 p-8 rounded-2xl text-center relative overflow-hidden glow-amber">
+          <div class="flex justify-between items-center mb-4">
+            <span id="qNumDisplay" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+              Soal #0 / 99
+            </span>
+            <span id="timerAdmin" class="text-xl font-mono font-black text-rose-400">
+              <i class="fas fa-clock mr-1"></i>20
+            </span>
+          </div>
+
+          <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Soal Aktif Peserta</p>
+          <h2 id="currentQuestion" class="text-4xl md:text-5xl font-black text-white my-6">
+            Siap Memulai?
+          </h2>
+
+          <!-- Key Answer -->
+          <div class="pt-4 border-t border-white/5 flex items-center justify-center gap-2">
+            <span class="text-xs text-gray-500">Kunci Jawaban:</span>
+            <span id="currentAnswer" class="text-xs font-mono font-bold text-emerald-400 blur-sm select-none">??</span>
+            <button onclick="toggleAnswerVisibility()" class="text-xs text-gray-400 hover:text-white ml-2">
+              <i id="eyeIcon" class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- KANAN: LEADERBOARD 10 BESAR (PANEL ADMIN) -->
+      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+            <h3 class="font-black text-lg text-amber-400 flex items-center gap-2">
+              <i class="fas fa-trophy"></i> Live Klasemen Top 10
+            </h3>
+            <span class="text-[10px] text-emerald-400 font-mono animate-pulse">● Live Sync</span>
+          </div>
+
+          <div id="leaderboardList" class="space-y-2">
+            <p class="text-xs text-gray-500 text-center py-4">Memuat klasemen Top 10...</p>
+          </div>
+        </div>
+
+        <p class="text-[10px] text-gray-500 text-center mt-6">
+          Data diperbarui otomatis secara real-time dari Supabase.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- MIDDLE ROW: DAFTAR SELURUH PESERTA & POIN + AKSI RESET -->
+    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+      <div class="flex flex-col sm:flex-row items-center justify-between mb-4 border-b border-white/10 pb-3 gap-3">
+        <h3 class="font-black text-lg text-indigo-400 flex items-center gap-2">
+          <i class="fas fa-users"></i> Daftar Seluruh Peserta & Poin
+        </h3>
+        <div class="flex items-center gap-3">
+          <span id="totalParticipantCount" class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-lg">0 Peserta</span>
+          <!-- TOMBOL RESET SKOR KHUSUS GAME BINGO -->
+          <button onclick="resetBingoScores()" class="px-3 py-1 rounded-lg font-bold text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1.5 active:scale-95">
+            <i class="fas fa-trash-alt"></i> Reset Poin Game Ini
+          </button>
+        </div>
+      </div>
+
+      <div id="allParticipantsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-h-[220px] overflow-y-auto pr-2">
+        <p class="col-span-full text-xs text-gray-500 text-center py-4">Memuat data seluruh peserta...</p>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW: KONTROL REMOTE TAMPILAN LAYAR (LAYOUT STAGE) -->
+    <div class="bg-slate-900 border border-indigo-500/30 p-6 rounded-2xl space-y-4">
+      <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-2">
+        <div>
+          <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
+            REMOTE DISPLAY CONTROL
+          </span>
+          <h3 class="text-lg font-black text-white mt-1 flex items-center gap-2">
+            <i class="fas fa-tv text-cyan-400"></i> Kontrol Tampilan Layar Utama (Layout Tab)
+          </h3>
+        </div>
+        
+        <!-- NAVIGASI LAYOUT MODES -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="switchStageView('question')" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-gamepad"></i> Tampilkan Soal Game
+          </button>
+          <button onclick="switchStageView('leaderboard')" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-trophy"></i> Mode Papan Peringkat
+          </button>
+          <button onclick="switchStageView('all_players')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-users"></i> Tampilkan Seluruh Poin
+          </button>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        Tekan tombol peringkat di bawah satu per satu untuk menampilkan podium 10 besar secara bertahap (*reveal animation*) di layar stage panggung:
+      </p>
+
+      <!-- TOMBOL REVEAL PERINGKAT 10 s.d 1 -->
+      <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
+        <button onclick="revealRankOnStage(10)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#10</span>
+        </button>
+        <button onclick="revealRankOnStage(9)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#9</span>
+        </button>
+        <button onclick="revealRankOnStage(8)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#8</span>
+        </button>
+        <button onclick="revealRankOnStage(7)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#7</span>
+        </button>
+        <button onclick="revealRankOnStage(6)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#6</span>
+        </button>
+        <button onclick="revealRankOnStage(5)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#5</span>
+        </button>
+        <button onclick="revealRankOnStage(4)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px] opacity-60">RANK</span>
+          <span>#4</span>
+        </button>
+        <button onclick="revealRankOnStage(3)" class="py-2.5 bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px]">🥉 TOP 3</span>
+          <span>#3</span>
+        </button>
+        <button onclick="revealRankOnStage(2)" class="py-2.5 bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
+          <span class="text-[10px]">🥈 TOP 2</span>
+          <span>#2</span>
+        </button>
+        <button onclick="revealRankOnStage(1)" class="py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex flex-col items-center justify-center gap-1 animate-bounce">
+          <span class="text-[10px]">👑 JUARA 1</span>
+          <span>#1</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let usedAnswers = new Set();
+    let qCount = 0;
+    let autoInterval = null;
+    let timerInterval = null;
+    let isAutoRunning = false;
+    let isAnswerVisible = false;
+
+    // FUNGSI BUNYI BEL
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) {
+        bell.currentTime = 0;
+        bell.play().catch(() => {
+          console.log("Autoplay diblokir browser, interaksi tombol admin telah mengaktifkannya.");
+        });
+      }
+    }
+
+    // 1. GENERATE SOAL (1 - 99)
+    async function generateAndPublishQuestion() {
+      if (qCount >= 99) {
+        stopAutoRun();
+        document.getElementById('currentQuestion').textContent = "BINGO SELESAI!";
+        document.getElementById('qNumDisplay').textContent = "Soal #99 / 99";
+        return;
+      }
+
+      let ans;
+      do {
+        ans = Math.floor(Math.random() * 99) + 1;
+      } while (usedAnswers.has(ans) && usedAnswers.size < 99);
+
+      usedAnswers.add(ans);
+      qCount++;
+
+      let qText = "";
+      const mode = Math.floor(Math.random() * 3);
+
+      if (mode === 0) {
+        let a = Math.floor(Math.random() * (ans - 1)) + 1;
+        qText = `${a} + ${ans - a} = ?`;
+      } else if (mode === 1) {
+        let add = Math.floor(Math.random() * 30) + 5;
+        qText = `${ans + add} - ${add} = ?`;
+      } else {
+        let mult = 2;
+        if (ans % 3 === 0) mult = 3;
+        if (ans % 5 === 0) mult = 5;
+        if (ans % mult === 0 && (ans / mult) >= 1) {
+          qText = `${ans / mult} × ${mult} = ?`;
+        } else {
+          qText = `${ans + 10} - 10 = ?`;
+        }
+      }
+
+      const formattedAns = String(ans).padStart(2, '0');
+      document.getElementById('qNumDisplay').textContent = `Soal #${qCount} / 99`;
+      document.getElementById('currentQuestion').textContent = qText;
+      document.getElementById('currentAnswer').textContent = formattedAns;
+
+      // Putar Bunyi Bel
+      playBell();
+
+      // Update Supabase system
+      await supabaseClient.from('system_arithmatic_bingo').update({
+        question_text: qText,
+        correct_answer: ans,
+        question_number: qCount,
+        start_time: new Date().toISOString(),
+        is_active: true
+      }).eq('id', 1);
+
+      startAdminTimer(20);
+    }
+
+    // 2. TIMER DISPLAY ADMIN (20 DETIK)
+    function startAdminTimer(seconds) {
+      clearInterval(timerInterval);
+      let left = seconds;
+      document.getElementById('timerAdmin').innerHTML = `<i class="fas fa-clock mr-1"></i>${left}`;
+
+      timerInterval = setInterval(() => {
+        left--;
+        document.getElementById('timerAdmin').innerHTML = `<i class="fas fa-clock mr-1"></i>${left}`;
+        if (left <= 0) {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    }
+
+    // 3. KONTROL AUTO-RUN LOOP
+    function toggleAutoRun() {
+      if (!isAutoRunning) {
+        startAutoRun();
+      } else {
+        stopAutoRun();
+      }
+    }
+
+    function startAutoRun() {
+      isAutoRunning = true;
+      const btn = document.getElementById('btnStartGame');
+      btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-rose-600 hover:bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-600/20";
+      btn.innerHTML = `<i class="fas fa-stop"></i> Hentikan Loop Auto`;
+
+      generateAndPublishQuestion();
+      autoInterval = setInterval(() => {
+        generateAndPublishQuestion();
+      }, 20000);
+    }
+
+    function stopAutoRun() {
+      isAutoRunning = false;
+      clearInterval(autoInterval);
+      clearInterval(timerInterval);
+      const btn = document.getElementById('btnStartGame');
+      btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20";
+      btn.innerHTML = `<i class="fas fa-play"></i> Lanjutkan Game (Auto Loop 20s)`;
+    }
+
+    function toggleAnswerVisibility() {
+      isAnswerVisible = !isAnswerVisible;
+      const ansElem = document.getElementById('currentAnswer');
+      const iconElem = document.getElementById('eyeIcon');
+      
+      if (isAnswerVisible) {
+        ansElem.classList.remove('blur-sm');
+        iconElem.className = 'fas fa-eye-slash';
+      } else {
+        ansElem.classList.add('blur-sm');
+        iconElem.className = 'fas fa-eye';
+      }
+    }
+
+    // 4. KONTROL TAMPILAN LAYAR UTAMA (REMOTE DISPLAY)
+    async function switchStageView(viewName) {
+      const updatePayload = {
+        current_view: viewName,
+        updated_at: new Date().toISOString()
+      };
+
+      // Reset reveal rank jika masuk ke mode leaderboard agar tampilan awalnya bersih
+      if (viewName === 'leaderboard') {
+        updatePayload.revealed_rank = 0;
+      }
+
+      await supabaseClient
+        .from('admin_layout_arithmatic_bingo')
+        .update(updatePayload)
+        .eq('id', 1);
+    }
+
+    // Reveal peringkat tertentu (10 s.d. 1) di layar panggung
+    async function revealRankOnStage(rankNum) {
+      await supabaseClient
+        .from('admin_layout_arithmatic_bingo')
+        .update({
+          current_view: 'leaderboard',
+          revealed_rank: rankNum,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+    }
+
+    // 5. FITUR RESET SKOR KHUSUS GAME "Bingo Math"
+    async function resetBingoScores() {
+      const confirmReset = confirm("Apakah Anda yakin ingin MENGHAPUS SEMUA POIN peserta khusus untuk Arithmetic Bingo?");
+      if (!confirmReset) return;
+
+      const { error } = await supabaseClient
+        .from('game_scores')
+        .delete()
+        .eq('game_name', 'Bingo Math');
+
+      if (error) {
+        alert("Gagal mereset poin: " + error.message);
+      } else {
+        alert("Poin peserta untuk game Arithmetic Bingo berhasil dikosongkan.");
+        loadScoresData();
+      }
+    }
+
+    // 6. REALTIME DATA SCORES
+    async function loadScoresData() {
+      const { data, error } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, score_obtained')
+        .eq('game_name', 'Bingo Math');
+
+      if (error || !data) return;
+
+      let scoreMap = {};
+      data.forEach(row => {
+        scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + row.score_obtained;
+      });
+
+      let allSorted = Object.keys(scoreMap)
+        .map(uid => ({ uid, total: scoreMap[uid] }))
+        .sort((a, b) => b.total - a.total);
+
+      renderTop10(allSorted.slice(0, 10));
+      renderAllParticipants(allSorted);
+    }
+
+    function renderTop10(top10Data) {
+      const container = document.getElementById('leaderboardList');
+      container.innerHTML = '';
+
+      if (top10Data.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Belum ada skor masuk.</p>`;
+        return;
+      }
+
+      top10Data.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between p-2.5 rounded-xl text-xs ${idx === 0 ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold' : 'bg-slate-800/60 text-gray-300'}`;
+        
+        let badge = `#${idx + 1}`;
+        if (idx === 0) badge = '🥇';
+        if (idx === 1) badge = '🥈';
+        if (idx === 2) badge = '🥉';
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2 overflow-hidden">
+            <span class="w-5 text-center font-bold">${badge}</span>
+            <span class="truncate">${item.uid}</span>
+          </div>
+          <span class="font-mono font-bold text-amber-400">+${item.total}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function renderAllParticipants(allData) {
+      const container = document.getElementById('allParticipantsList');
+      const countDisplay = document.getElementById('totalParticipantCount');
+      
+      container.innerHTML = '';
+      countDisplay.textContent = `${allData.length} Peserta`;
+
+      if (allData.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-xs text-gray-500 text-center py-4">Belum ada peserta terdaftar.</p>`;
+        return;
+      }
+
+      allData.forEach((item, idx) => {
+        const itemCard = document.createElement('div');
+        itemCard.className = "bg-slate-800/80 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs";
+        itemCard.innerHTML = `
+          <div class="flex items-center gap-2 overflow-hidden">
+            <span class="text-slate-500 font-mono text-[10px]">#${idx + 1}</span>
+            <span class="font-bold text-slate-200 truncate">${item.uid}</span>
+          </div>
+          <span class="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+${item.total}</span>
+        `;
+        container.appendChild(itemCard);
+      });
+    }
+
+    function subscribeRealtimeScores() {
+      supabaseClient
+        .channel('admin_leaderboard_bingo')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_scores' }, () => {
+          loadScoresData();
+        })
+        .subscribe();
+    }
+
+    // Init Data awal
+    loadScoresData();
+    subscribeRealtimeScores();
+  </script>
+</body>
+</html>

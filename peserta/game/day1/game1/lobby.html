@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lobby - Mimic Sudoku</title>
-  <!-- Tailwind CSS CDN -->
+  <title>Lobby - Arithmetic Bingo</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome untuk ikon tombol -->
+  <!-- FontAwesome untuk ikon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
       background-color: #0f172a;
       color: #ffffff;
       font-family: 'Segoe UI', system-ui, sans-serif;
-      user-select: none;
     }
   </style>
 </head>
@@ -22,27 +20,24 @@
   <!-- CARD LOBBY MAIN CONTAINER -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
     
-    <!-- BADGE GAME DAY 2 -->
+    <!-- BADGE GAME DAY 1 -->
     <div class="flex items-center justify-between mb-6">
-      <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-        Day 2 • Game 1
+      <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+        Day 1 • Game 1
       </span>
       <div id="userBadge" class="text-xs text-slate-400 font-medium">
         <!-- Nama Player dari localStorage akan muncul di sini -->
       </div>
     </div>
 
-    <!-- TITLE & LOGO SECTION -->
+    <!-- TITLE & DESCRIPTION -->
     <div class="text-center mb-8">
-      <!-- Container Logo / Icon Gambar -->
-      <div class="inline-flex items-center justify-center w-24 h-24 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/30 overflow-hidden shadow-inner p-2">
-        <!-- Ganti src di bawah dengan path gambar logo Mimic Sudoku kamu -->
-        <img src="assets/images/mimic_sudoku_logo.png" alt="Mimic Sudoku Logo" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/96?text=LOGO';" />
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-amber-500/20 text-amber-400 rounded-2xl mb-4 border border-amber-500/30 shadow-inner">
+        <i class="fa-solid fa-[#1] text-4xl font-black">🔢</i>
       </div>
-      
-      <h1 class="text-3xl font-black tracking-wide text-white">MIMIC SUDOKU</h1>
+      <h1 class="text-3xl font-black tracking-wide text-white">ARITHMETIC BINGO</h1>
       <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
-        Uji kemampuan analisis dan logika penataan angka dalam versi Sudoku adaptif yang penuh dengan tantangan peniruan pola!
+        Selesaikan soal aritmatika cepat, dapatkan angkanya, dan susun pola Bingo kamu untuk memenangkan pertandingan!
       </p>
     </div>
 
@@ -50,7 +45,7 @@
     <div class="space-y-4">
       
       <!-- 1. TOMBOL JOIN GAME (MAIN ACTION) -->
-      <button onclick="handleJoinGame()" class="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
+      <button onclick="handleJoinGame()" class="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
         <i class="fa-solid fa-gamepad text-xl"></i>
         <span>JOIN GAME NOW</span>
       </button>
@@ -80,7 +75,7 @@
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-4 border-b border-slate-700">
         <h3 class="font-bold text-white flex items-center gap-2">
-          <span>🎬</span> Simulasi Cara Bermain Mimic Sudoku
+          <span>🎬</span> Simulasi Cara Bermain Arithmetic Bingo
         </h3>
         <button onclick="closeVideoModal()" class="text-slate-400 hover:text-white text-xl font-bold w-8 h-8 rounded-full hover:bg-slate-700 flex items-center justify-center">
           &times;
@@ -89,9 +84,10 @@
 
       <!-- Modal Body (Video Embed / Player) -->
       <div class="p-4 bg-black flex items-center justify-center min-h-[300px]">
+        <!-- Contoh HTML5 Video / YouTube Embed -->
         <video id="tutorialVideo" controls class="w-full rounded-xl">
-          <source src="assets/videos/mimic_sudoku_tutorial.mp4" type="video/mp4">
-          Browser Anda tidak mendukung pemutaran video.
+          <source src="assets/videos/arithmetic_bingo_tutorial.mp4" type="video/mp4">
+          Browser kamu tidak mendukung pemutaran video.
         </video>
       </div>
 
@@ -119,7 +115,8 @@
 
     // 1. Handlers Tombol Join Game
     function handleJoinGame() {
-      window.location.href = 'mimicsudoku.html';
+      // Direct ke halaman arena permainan asli
+      window.location.href = 'arithmaticbingo.html';
     }
 
     // 2. Handlers Modal Video Tutorial
@@ -128,6 +125,7 @@
 
     function openVideoModal() {
       videoModal.classList.remove('hidden');
+      // tutorialVideo.play(); // opsional jika ingin autoplay saat dibuka
     }
 
     function closeVideoModal() {
@@ -140,7 +138,8 @@
 
     // 3. Handlers Simulasi Permainan (Practice Mode)
     function handleStartSimulation() {
-      window.location.href = 'mimic_sudoku_simulation.html';
+      // Direct ke halaman simulasi / sandbox mode tanpa update DB skor
+      window.location.href = 'arithmaticbingo.html';
     }
   </script>
 </body>

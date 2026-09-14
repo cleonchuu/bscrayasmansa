@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Number Disco</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
+    body { font-family: 'Poppins', sans-serif; background-color: #030712; color: #ffffff; }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+    .glow-blue { box-shadow: 0 0 25px rgba(59, 130, 246, 0.25); border: 2px solid #1e40af; }
+    .glow-red { box-shadow: 0 0 25px rgba(239, 68, 68, 0.25); border: 2px solid #991b1b; }
+    .active-speaking-blue { box-shadow: 0 0 50px rgba(59, 130, 246, 0.8) !important; border-color: #3b82f6 !important; }
+    .active-speaking-red { box-shadow: 0 0 50px rgba(239, 68, 68, 0.8) !important; border-color: #ef4444 !important; }
+  </style>
+</head>
+<body class="min-h-screen p-4 lg:p-6 flex flex-col justify-between space-y-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+
+  <!-- HEADER CONTROL PANEL -->
+  <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-2xl backdrop-blur-md">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+        <i class="fas fa-compact-disc fa-spin text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-wider text-white uppercase font-math">NUMBER DISCO</h1>
+        <p class="text-xs text-slate-400">Control Panel Admin (Remote Only)</p>
+      </div>
+    </div>
+
+    <!-- KONTROL STAGE VIEW -->
+    <div class="flex items-center gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+      <span class="text-xs text-slate-400 font-bold px-3 uppercase tracking-wider hidden sm:inline">Stage View:</span>
+      <button onclick="switchStageView('game')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all">
+        <i class="fas fa-tv"></i> Tampilan Game
+      </button>
+      <button onclick="switchStageView('leaderboard')" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl transition-all">
+        <i class="fas fa-trophy"></i> Papan Peringkat
+      </button>
+      <button onclick="switchStageView('all_players')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-all">
+        <i class="fas fa-users"></i> Poin Peserta
+      </button>
+    </div>
+
+    <!-- KONTROL TOMBOL UTAMA -->
+    <div class="flex items-center gap-3">
+      <button id="btnStartGame" onclick="sendControlAction('START_GAME')" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center gap-2">
+        <i class="fas fa-play"></i> Mulai Game (10 Ronde)
+      </button>
+      <button id="btnReset" onclick="sendControlAction('RESET')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-2xl border border-slate-700 transition-all">
+        <i class="fas fa-undo"></i> Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN MONITORING DISPLAY -->
+  <main class="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto">
+    <div id="containerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[480px] glow-blue transition-all duration-300 relative">
+      <span class="absolute top-4 left-4 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
+        <i class="fas fa-venus"></i> TIM BIRU (FEMALE)
+      </span>
+      <div id="displayBlueFormatted" class="text-7xl lg:text-9xl font-black font-math text-white tracking-widest">--</div>
+    </div>
+
+    <div id="containerRed" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[480px] glow-red transition-all duration-300 relative">
+      <span class="absolute top-4 left-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold px-3 py-1 rounded-full uppercase">
+        <i class="fas fa-mars"></i> TIM MERAH (MALE)
+      </span>
+      <div id="displayRedFormatted" class="text-7xl lg:text-9xl font-black font-math text-white tracking-widest">--</div>
+    </div>
+  </main>
+
+  <!-- PANEL REKAPITULASI POIN -->
+  <section class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl backdrop-blur-md">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+      <div class="flex items-center gap-3">
+        <i class="fas fa-users text-indigo-400 text-lg"></i>
+        <h3 class="text-lg font-bold text-white uppercase tracking-wider">Daftar Seluruh Peserta & Poin</h3>
+      </div>
+      <button onclick="fetchAndRenderScores()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-all">
+        <i class="fas fa-sync-alt"></i> Refresh Poin
+      </button>
+    </div>
+    <div id="adminScoresGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-48 overflow-y-auto pr-1"></div>
+  </section>
+
+  <script>
+    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function switchStageView(viewName) {
+      await supabaseClient.from('admin_layout_number_disco').update({ current_view: viewName, updated_at: new Date().toISOString() }).eq('id', 1);
+    }
+
+    async function sendControlAction(action) {
+      await supabaseClient.from('system_number_disco_control').update({ action: action, updated_at: new Date().toISOString() }).eq('id', 1);
+    }
+
+    // Dengarkan Perubahan Tampilan dari Layout
+    supabaseClient.channel('system_number_disco_live_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_number_disco_live' }, (payload) => {
+        if (payload.new) updateMonitoringUI(payload.new.team, payload.new.display_text, payload.new.is_speaking);
+      })
+      .subscribe();
+
+    function updateMonitoringUI(team, displayText, isSpeaking) {
+      const isBlue = team === 'blue';
+      const container = document.getElementById(isBlue ? 'containerBlue' : 'containerRed');
+      const display = document.getElementById(isBlue ? 'displayBlueFormatted' : 'displayRedFormatted');
+
+      if (display) display.textContent = displayText;
+      if (container) {
+        if (isSpeaking) container.classList.add(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
+        else container.classList.remove(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
+      }
+    }
+
+    async function fetchAndRenderScores() {
+      const grid = document.getElementById('adminScoresGrid');
+      const { data } = await supabaseClient.from('game_scores').select('user_unique_id, score_obtained').eq('game_name', 'Number Disco');
+      if (!data) return;
+
+      let scoreMap = {};
+      data.forEach(r => { scoreMap[r.user_unique_id] = (scoreMap[r.user_unique_id] || 0) + r.score_obtained; });
+
+      grid.innerHTML = '';
+      Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).forEach((uid, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between text-xs";
+        card.innerHTML = `<div><span class="text-slate-500">#${idx+1}</span> <span class="font-semibold text-slate-200 ml-1">${uid}</span></div><span class="font-bold text-emerald-400">+${scoreMap[uid]}</span>`;
+        grid.appendChild(card);
+      });
+    }
+
+    fetchAndRenderScores();
+  </script>
+</body>
+</html>
