@@ -46,9 +46,12 @@
       font-size: 1.8rem;
       font-weight: bold;
       border-radius: 1rem;
-      padding: 1.25rem;
+      padding: 1.1rem;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
       transition: all 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .calc-btn:active:not(:disabled) {
@@ -133,23 +136,24 @@
         </div>
       </div>
 
-      <!-- Keypad Calculator -->
-      <div class="grid grid-cols-3 gap-3">
+      <!-- Keypad Calculator (Grid 4 Kolom) -->
+      <div class="grid grid-cols-4 gap-2.5">
         <button class="calc-btn" onclick="appendCalc('7')">7</button>
         <button class="calc-btn" onclick="appendCalc('8')">8</button>
         <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
         
         <button class="calc-btn" onclick="appendCalc('4')">4</button>
         <button class="calc-btn" onclick="appendCalc('5')">5</button>
         <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
         
         <button class="calc-btn" onclick="appendCalc('1')">1</button>
         <button class="calc-btn" onclick="appendCalc('2')">2</button>
         <button class="calc-btn" onclick="appendCalc('3')">3</button>
+        <button class="calc-btn text-sky-400" onclick="toggleNegative()">-</button>
 
-        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
-        <button class="calc-btn" onclick="appendCalc('0')">0</button>
-        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+        <button class="calc-btn col-span-4" onclick="appendCalc('0')">0</button>
       </div>
 
       <!-- Submit Button -->
@@ -176,8 +180,8 @@
     let activePanel = 'blue';
     let valBlue = "-";
     let valRed = "-";
-    let countSubmittedBlue = 0;
-    let countSubmittedRed = 0;
+    let inputLeftBlue = 2;
+    let inputLeftRed = 2;
     let targetAnswerBlue = null;
     let targetAnswerRed = null;
 
@@ -258,10 +262,10 @@
       stepCalculator.classList.remove('hidden');
 
       await loadTargetAnswers();
-      await checkExistingSubmissions();
+      await checkInputLimits();
     }
 
-    // 4. KUNCI JAWABAN & RIWAYAT PADA TABEL `game_scores`
+    // 4. KUNCI JAWABAN & BACA BATAS INPUT DARI TABEL `system_input_max_number_disco`
     async function loadTargetAnswers() {
       const { data, error } = await supabaseClient
         .from('system_number_disco')
@@ -275,22 +279,32 @@
       }
     }
 
-    async function checkExistingSubmissions() {
+    async function getOrInitInputLeft(userUniqueId, color) {
+      let { data, error } = await supabaseClient
+        .from('system_input_max_number_disco')
+        .select('input_left')
+        .eq('user_unique_id', userUniqueId)
+        .eq('color', color)
+        .maybeSingle();
+
+      if (!data) {
+        const { data: newData, error: insertErr } = await supabaseClient
+          .from('system_input_max_number_disco')
+          .insert([{ user_unique_id: userUniqueId, color: color, input_left: 2 }])
+          .select('input_left')
+          .single();
+
+        return newData ? newData.input_left : 2;
+      }
+
+      return data.input_left;
+    }
+
+    async function checkInputLimits() {
       if (!selectedStudent) return;
 
-      const { data, error } = await supabaseClient
-        .from('game_scores')
-        .select('game_name')
-        .eq('user_unique_id', selectedStudent.unique_id)
-        .in('game_name', ['Number Disco Blue', 'Number Disco Red']);
-
-      if (data) {
-        countSubmittedBlue = data.filter(d => d.game_name === 'Number Disco Blue').length;
-        countSubmittedRed = data.filter(d => d.game_name === 'Number Disco Red').length;
-      } else {
-        countSubmittedBlue = 0;
-        countSubmittedRed = 0;
-      }
+      inputLeftBlue = await getOrInitInputLeft(selectedStudent.unique_id, 'blue');
+      inputLeftRed = await getOrInitInputLeft(selectedStudent.unique_id, 'red');
 
       updatePanelLocks();
     }
@@ -300,25 +314,25 @@
       const badgeRed = document.getElementById('badgeRed');
       const btnSubmit = document.getElementById('btnSubmitAnswer');
 
-      badgeBlue.textContent = `(Tersisa ${Math.max(0, 2 - countSubmittedBlue)}x)`;
-      badgeRed.textContent = `(Tersisa ${Math.max(0, 2 - countSubmittedRed)}x)`;
+      badgeBlue.textContent = `(Tersisa ${Math.max(0, inputLeftBlue)}x)`;
+      badgeRed.textContent = `(Tersisa ${Math.max(0, inputLeftRed)}x)`;
 
       btnSubmit.disabled = false;
       document.getElementById('btnSubmitText').textContent = "SUBMIT JAWABAN 🚀";
 
-      if (countSubmittedBlue >= 2 && countSubmittedRed < 2) {
+      if (inputLeftBlue <= 0 && inputLeftRed > 0) {
         switchPanel('red');
-      } else if (countSubmittedRed >= 2 && countSubmittedBlue < 2) {
+      } else if (inputLeftRed <= 0 && inputLeftBlue > 0) {
         switchPanel('blue');
-      } else if (countSubmittedBlue >= 2 && countSubmittedRed >= 2) {
+      } else if (inputLeftBlue <= 0 && inputLeftRed <= 0) {
         btnSubmit.disabled = true;
         document.getElementById('btnSubmitText').textContent = "BATAS PENGISIAN HABIS 🔒";
       }
     }
 
     function switchPanel(panel) {
-      if (panel === 'blue' && countSubmittedBlue >= 2) return;
-      if (panel === 'red' && countSubmittedRed >= 2) return;
+      if (panel === 'blue' && inputLeftBlue <= 0) return;
+      if (panel === 'red' && inputLeftRed <= 0) return;
 
       activePanel = panel;
       const pBlue = document.getElementById('panelBlue');
@@ -341,17 +355,35 @@
       }
     }
 
-    // 5. KEYPAD CONTROLLER
+    // 5. KEYPAD CONTROLLER (WITH NEGATIVE SUPPORT)
     function appendCalc(val) {
       if (activePanel === 'blue') {
-        if (countSubmittedBlue >= 2) return;
+        if (inputLeftBlue <= 0) return;
         if (valBlue === "-" || valBlue === "0") valBlue = val;
+        else if (valBlue === "-0") valBlue = "-" + val;
         else if (valBlue.length < 10) valBlue += val;
         document.getElementById('displayBlue').textContent = valBlue;
       } else {
-        if (countSubmittedRed >= 2) return;
+        if (inputLeftRed <= 0) return;
         if (valRed === "-" || valRed === "0") valRed = val;
+        else if (valRed === "-0") valRed = "-" + val;
         else if (valRed.length < 10) valRed += val;
+        document.getElementById('displayRed').textContent = valRed;
+      }
+    }
+
+    function toggleNegative() {
+      if (activePanel === 'blue') {
+        if (inputLeftBlue <= 0) return;
+        if (valBlue === "-") valBlue = "-";
+        else if (valBlue.startsWith("-")) valBlue = valBlue.substring(1);
+        else valBlue = "-" + valBlue;
+        document.getElementById('displayBlue').textContent = valBlue;
+      } else {
+        if (inputLeftRed <= 0) return;
+        if (valRed === "-") valRed = "-";
+        else if (valRed.startsWith("-")) valRed = valRed.substring(1);
+        else valRed = "-" + valRed;
         document.getElementById('displayRed').textContent = valRed;
       }
     }
@@ -370,27 +402,28 @@
       if (activePanel === 'blue') {
         if (valBlue !== "-" && valBlue.length > 0) {
           valBlue = valBlue.slice(0, -1);
-          if (valBlue === "") valBlue = "-";
+          if (valBlue === "" || valBlue === "-") valBlue = "-";
         }
         document.getElementById('displayBlue').textContent = valBlue;
       } else {
         if (valRed !== "-" && valRed.length > 0) {
           valRed = valRed.slice(0, -1);
-          if (valRed === "") valRed = "-";
+          if (valRed === "" || valRed === "-") valRed = "-";
         }
         document.getElementById('displayRed').textContent = valRed;
       }
     }
 
-    // 6. SUBMIT JAWABAN KE TABEL `game_scores`
+    // 6. SUBMIT JAWABAN KE TABEL `game_scores` & UPDATE LIMIT KE `system_input_max_number_disco`
     async function submitAnswer() {
       if (isSubmitting || !selectedStudent) return;
       
       const inserts = [];
       const results = [];
+      const limitsToUpdate = [];
 
       // Evaluasi Biru
-      if (valBlue !== "-" && countSubmittedBlue < 2) {
+      if (valBlue !== "-" && valBlue !== "-0" && inputLeftBlue > 0) {
         const isCorrectBlue = Number(valBlue) === targetAnswerBlue;
         inserts.push({
           user_unique_id: selectedStudent.unique_id,
@@ -403,10 +436,14 @@
           isCorrect: isCorrectBlue,
           colorClass: 'text-blue-300'
         });
+        limitsToUpdate.push({
+          color: 'blue',
+          newLeft: inputLeftBlue - 1
+        });
       }
 
       // Evaluasi Merah
-      if (valRed !== "-" && countSubmittedRed < 2) {
+      if (valRed !== "-" && valRed !== "-0" && inputLeftRed > 0) {
         const isCorrectRed = Number(valRed) === targetAnswerRed;
         inserts.push({
           user_unique_id: selectedStudent.unique_id,
@@ -419,6 +456,10 @@
           isCorrect: isCorrectRed,
           colorClass: 'text-rose-300'
         });
+        limitsToUpdate.push({
+          color: 'red',
+          newLeft: inputLeftRed - 1
+        });
       }
 
       if (inserts.length === 0) {
@@ -429,18 +470,29 @@
       isSubmitting = true;
       document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
 
-      // Insert ke tabel game_scores
-      const { error } = await supabaseClient
+      // 1. Insert ke tabel game_scores
+      const { error: scoreErr } = await supabaseClient
         .from('game_scores')
         .insert(inserts);
 
-      if (error) {
-        alert("Gagal mengirim jawaban: " + error.message);
+      if (scoreErr) {
+        alert("Gagal mengirim jawaban: " + scoreErr.message);
         isSubmitting = false;
         document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      } else {
-        triggerFlashEffect(results);
+        return;
       }
+
+      // 2. Update nilai input_left ke tabel system_input_max_number_disco
+      for (const item of limitsToUpdate) {
+        await supabaseClient
+          .from('system_input_max_number_disco')
+          .update({ input_left: item.newLeft })
+          .eq('user_unique_id', selectedStudent.unique_id)
+          .eq('color', item.color);
+      }
+
+      // Trigger efek layar & reset
+      triggerFlashEffect(results);
     }
 
     // FLASH EFFECT HASIL

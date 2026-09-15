@@ -621,16 +621,21 @@
       .subscribe();
     
     async function fetchAndRenderStageScores(isAllPlayersView) {
+      // Menggunakan .or dengan ilike supaya mencakup 'Number Disco Blue', 'Number Disco Red', dll.
       const { data, error } = await supabaseClient
         .from('game_scores')
-        .select('user_unique_id, score_obtained')
-        .eq('game_name', 'Number Disco');
+        .select('user_unique_id, score_obtained, game_name')
+        .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
 
-      if (error || !data) return;
+      if (error || !data) {
+        console.error("Gagal mengambil skor stage:", error);
+        return;
+      }
 
       let scoreMap = {};
       data.forEach(row => {
-        scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + row.score_obtained;
+        const uid = row.user_unique_id || 'Tanpa Nama';
+        scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
       });
 
       cachedScores = Object.keys(scoreMap)
