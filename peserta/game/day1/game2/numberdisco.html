@@ -78,8 +78,14 @@
         <h1 class="text-xl font-black text-amber-400 tracking-wide">🎯 KIOSK PESERTA</h1>
         <p class="text-xs text-slate-400 mt-0.5">Number Disco Fast Play</p>
       </div>
-      <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300">
-        Status: <span class="text-emerald-400 font-bold">READY</span>
+      <div class="flex items-center gap-3">
+        <!-- TIMER DISPLAY REALTIME -->
+        <div id="timerDisplay" class="bg-amber-500/20 border border-amber-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 hidden">
+          ⏱️ Sisa: <span id="timerText">05:00</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300">
+          Status: <span class="text-emerald-400 font-bold">READY</span>
+        </div>
       </div>
     </div>
 
@@ -170,11 +176,23 @@
     const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+    // KONFIGURASI SKOR DAN WAKTU
+    const SCORE_CONFIG = {
+      MAX_POINT: 40,
+      MIN_POINT: 20,
+      TOTAL_TIME_SECONDS: 300 // 5 Menit (300 Detik)
+    };
+
     // STATE VARIABEL
     let allUsers = [];
     let selectedSchool = '';
     let selectedStudent = null;
     let isSubmitting = false;
+
+    // TIMER & UPDATED_AT STATE
+    let timerInterval = null;
+    let updatedAtBlue = null;
+    let updatedAtRed = null;
 
     // STATE NUMBER DISCO
     let activePanel = 'blue';
@@ -191,8 +209,54 @@
     const stepCalculator = document.getElementById('stepCalculator');
     const schoolList = document.getElementById('schoolList');
     const studentList = document.getElementById('studentList');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerText = document.getElementById('timerText');
 
-    // 2. LOAD DATA PESERTA
+    // 2. KONTROL TIMER REALTIME BERBASIS UPDATED_AT DARI SUPABASE
+    function startRealtimeTimer() {
+      stopTimer();
+      timerDisplay.classList.remove('hidden');
+
+      timerInterval = setInterval(() => {
+        const activeUpdatedAt = activePanel === 'blue' ? updatedAtBlue : updatedAtRed;
+        if (!activeUpdatedAt) return;
+
+        const startTime = new Date(activeUpdatedAt).getTime();
+        const now = new Date().getTime();
+        const elapsedSeconds = Math.floor((now - startTime) / 1000);
+        const remainingSeconds = Math.max(0, SCORE_CONFIG.TOTAL_TIME_SECONDS - elapsedSeconds);
+
+        const mins = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        timerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+    }
+
+    /**
+     * Hitung Poin Berdasarkan Selisih Waktu updated_at
+     */
+    function calculateScoreFromUpdatedAt(updatedAtString) {
+      if (!updatedAtString) return SCORE_CONFIG.MIN_POINT;
+
+      const startTime = new Date(updatedAtString).getTime();
+      const now = new Date().getTime();
+      const elapsedSeconds = (now - startTime) / 1000; // Selisih detik (presisi float)
+
+      // Hitung sisa waktu
+      const remainingSeconds = Math.max(0, SCORE_CONFIG.TOTAL_TIME_SECONDS - elapsedSeconds);
+
+      // Rumus Penurunan Linear: Min + (Sisa Waktu / 300) * (Max - Min)
+      const range = SCORE_CONFIG.MAX_POINT - SCORE_CONFIG.MIN_POINT;
+      const rawScore = SCORE_CONFIG.MIN_POINT + ((remainingSeconds / SCORE_CONFIG.TOTAL_TIME_SECONDS) * range);
+
+      return parseFloat(rawScore.toFixed(2));
+    }
+
+    // 3. LOAD DATA PESERTA
     async function loadAllParticipants() {
       if (!supabaseClient) return;
 
@@ -210,7 +274,7 @@
       renderSchools();
     }
 
-    // 3. RENDER SEKOLAH & PESERTA
+    // 4. RENDER SEKOLAH & PESERTA
     function renderSchools() {
       const schools = [...new Set(allUsers.map(u => u.school_name))];
       schoolList.innerHTML = '';
@@ -261,20 +325,27 @@
       stepStudent.classList.add('hidden');
       stepCalculator.classList.remove('hidden');
 
-      await loadTargetAnswers();
+      await loadTargetAnswersAndTimestamps();
       await checkInputLimits();
+      startRealtimeTimer();
     }
 
-    // 4. KUNCI JAWABAN & BACA BATAS INPUT DARI TABEL `system_input_max_number_disco`
-    async function loadTargetAnswers() {
+    // 5. AMBIL TARGET_ANSWER DAN UPDATED_AT DARI TABEL `system_number_disco`
+    async function loadTargetAnswersAndTimestamps() {
       const { data, error } = await supabaseClient
         .from('system_number_disco')
-        .select('team_gender, target_answer');
+        .select('team_gender, target_answer, updated_at');
       
       if (data) {
         data.forEach(item => {
-          if (item.team_gender === 'female') targetAnswerBlue = Number(item.target_answer);
-          if (item.team_gender === 'male') targetAnswerRed = Number(item.target_answer);
+          if (item.team_gender === 'female') {
+            targetAnswerBlue = Number(item.target_answer);
+            updatedAtBlue = item.updated_at; // Timestamp dari DB
+          }
+          if (item.team_gender === 'male') {
+            targetAnswerRed = Number(item.target_answer);
+            updatedAtRed = item.updated_at; // Timestamp dari DB
+          }
         });
       }
     }
@@ -355,7 +426,7 @@
       }
     }
 
-    // 5. KEYPAD CONTROLLER (WITH NEGATIVE SUPPORT)
+    // 6. KEYPAD CONTROLLER (WITH NEGATIVE SUPPORT)
     function appendCalc(val) {
       if (activePanel === 'blue') {
         if (inputLeftBlue <= 0) return;
@@ -414,7 +485,7 @@
       }
     }
 
-    // 6. SUBMIT JAWABAN KE TABEL `game_scores` & UPDATE LIMIT KE `system_input_max_number_disco`
+    // 7. SUBMIT JAWABAN (DENGAN HITUNGAN KALKULASI DARI UPDATED_AT)
     async function submitAnswer() {
       if (isSubmitting || !selectedStudent) return;
       
@@ -425,15 +496,20 @@
       // Evaluasi Biru
       if (valBlue !== "-" && valBlue !== "-0" && inputLeftBlue > 0) {
         const isCorrectBlue = Number(valBlue) === targetAnswerBlue;
+        // Hitung skor berdasarkan updated_at tim biru
+        const calculatedScoreBlue = calculateScoreFromUpdatedAt(updatedAtBlue);
+        const finalScoreBlue = isCorrectBlue ? calculatedScoreBlue : 0;
+
         inserts.push({
           user_unique_id: selectedStudent.unique_id,
           game_name: 'Number Disco Blue',
-          score_obtained: isCorrectBlue ? 1 : 0
+          score_obtained: finalScoreBlue
         });
         results.push({
           team: 'BIRU',
           val: valBlue,
           isCorrect: isCorrectBlue,
+          earnedScore: finalScoreBlue,
           colorClass: 'text-blue-300'
         });
         limitsToUpdate.push({
@@ -445,15 +521,20 @@
       // Evaluasi Merah
       if (valRed !== "-" && valRed !== "-0" && inputLeftRed > 0) {
         const isCorrectRed = Number(valRed) === targetAnswerRed;
+        // Hitung skor berdasarkan updated_at tim merah
+        const calculatedScoreRed = calculateScoreFromUpdatedAt(updatedAtRed);
+        const finalScoreRed = isCorrectRed ? calculatedScoreRed : 0;
+
         inserts.push({
           user_unique_id: selectedStudent.unique_id,
           game_name: 'Number Disco Red',
-          score_obtained: isCorrectRed ? 1 : 0
+          score_obtained: finalScoreRed
         });
         results.push({
           team: 'MERAH',
           val: valRed,
           isCorrect: isCorrectRed,
+          earnedScore: finalScoreRed,
           colorClass: 'text-rose-300'
         });
         limitsToUpdate.push({
@@ -468,6 +549,7 @@
       }
 
       isSubmitting = true;
+      stopTimer();
       document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
 
       // 1. Insert ke tabel game_scores
@@ -503,10 +585,10 @@
       overlay.className = `flash-screen ${allCorrect ? 'flash-correct' : 'flash-wrong'}`;
 
       let htmlContent = `<div class="text-[0.6em] mb-4">${allCorrect ? '🎉 SEMUA BENAR!' : 'HASIL EVALUASI'}</div>`;
-      htmlContent += `<div class="flex flex-col gap-3 text-2xl font-bold bg-black/40 p-6 rounded-3xl border border-white/20 min-w-[300px]">`;
+      htmlContent += `<div class="flex flex-col gap-3 text-2xl font-bold bg-black/40 p-6 rounded-3xl border border-white/20 min-w-[320px]">`;
 
       results.forEach(res => {
-        const icon = res.isCorrect ? '✅ BENAR' : '❌ SALAH';
+        const icon = res.isCorrect ? `✅ +${res.earnedScore} PTS` : '❌ SALAH';
         htmlContent += `
           <div class="flex items-center justify-between gap-6 border-b border-white/10 pb-2 last:border-0 last:pb-0">
             <span class="${res.colorClass}">${res.team} (${res.val}):</span>
@@ -530,6 +612,8 @@
     }
 
     function resetToStart() {
+      stopTimer();
+      timerDisplay.classList.add('hidden');
       valBlue = "-";
       valRed = "-";
       selectedStudent = null;

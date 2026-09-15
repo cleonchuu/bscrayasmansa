@@ -264,7 +264,7 @@
       }
     }
 
-    // --- MATH GENERATOR ENGINE ---
+// --- MATH GENERATOR ENGINE ---
     class MathGenerator {
       static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
 
@@ -272,13 +272,14 @@
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
+      // Generate Angka Awal (Diatur rentang 2 - 50 agar seimbang)
       static generateInitialNumber(genderFolder = 'female') {
         const type = Math.random();
         if (type < 0.4) {
-          const val = this.getRandomInt(2, 20);
+          const val = this.getRandomInt(2, 50);
           return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
         } else if (type < 0.7) {
-          const base = this.getRandomInt(2, 6);
+          const base = this.getRandomInt(2, 7); // max 49
           const val = Math.pow(base, 2);
           return { 
             value: val, 
@@ -296,31 +297,62 @@
         }
       }
 
+      // Generate Operasi dengan Validasi Hasil Harus 2 Digit (10 - 99)
       static generateOperation(currentValue, genderFolder = 'male') {
         const ops = ['+', '-', '×', '÷'];
-        const op = ops[Math.floor(Math.random() * ops.length)];
+        let op = '';
         let operandObj = {};
-        let finalVal = currentValue;
+        let finalVal = 0;
+        let attempts = 0;
 
-        if (op === '+') {
-          operandObj = this.generateOperandValue(genderFolder);
-          finalVal = currentValue + operandObj.value;
-        } else if (op === '-') {
-          operandObj = this.generateOperandValue(genderFolder);
-          finalVal = currentValue - operandObj.value;
-        } else if (op === '×') {
-          const mult = this.getRandomInt(2, 5);
-          operandObj = { value: mult, display: `${mult}`, audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] };
-          finalVal = currentValue * mult;
-        } else if (op === '÷') {
-          const factors = [];
-          for (let i = 1; i <= Math.abs(currentValue); i++) {
-            if (currentValue % i === 0) factors.push(i);
+        // Looping acak sampai menemukan hasil akhir 2 digit (10 <= finalVal <= 99)
+        do {
+          attempts++;
+          op = ops[Math.floor(Math.random() * ops.length)];
+
+          if (op === '+') {
+            operandObj = this.generateOperandValue(genderFolder);
+            finalVal = currentValue + operandObj.value;
+          } else if (op === '-') {
+            operandObj = this.generateOperandValue(genderFolder);
+            finalVal = currentValue - operandObj.value;
+          } else if (op === '×') {
+            const mult = this.getRandomInt(2, 4);
+            operandObj = { value: mult, display: `${mult}`, audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] };
+            finalVal = currentValue * mult;
+          } else if (op === '÷') {
+            const factors = [];
+            for (let i = 1; i <= Math.abs(currentValue); i++) {
+              if (currentValue % i === 0) factors.push(i);
+            }
+            // Hindari pembagian dengan 1 agar angka berubah
+            const validFactors = factors.filter(f => f !== 1);
+            const div = validFactors.length > 0 ? validFactors[Math.floor(Math.random() * validFactors.length)] : 1;
+            
+            operandObj = { value: div, display: `${div}`, audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] };
+            finalVal = currentValue / div;
           }
-          const div = factors.length > 1 ? factors[this.getRandomInt(1, factors.length - 1)] : 1;
-          operandObj = { value: div, display: `${div}`, audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] };
-          finalVal = currentValue / div;
-        }
+
+          // Safety guard: Jika setelah 20x coba belum nemu (misal angka awal terlalu kecil/besar),
+          // paksa operasi tambah/kurang sederhana yang pasti menghasilkan 2 digit.
+          if (attempts > 20) {
+            const target = this.getRandomInt(10, 99);
+            const diff = target - currentValue;
+            if (diff >= 0) {
+              op = '+';
+              operandObj = { value: diff, display: `${diff}`, audioUrls: [getAudioUrl(genderFolder, `${diff}.mp3`)] };
+              finalVal = target;
+            } else {
+              op = '-';
+              const absDiff = Math.abs(diff);
+              op = '-';
+              operandObj = { value: absDiff, display: `${absDiff}`, audioUrls: [getAudioUrl(genderFolder, `${absDiff}.mp3`)] };
+              finalVal = target;
+            }
+            break;
+          }
+
+        } while (finalVal < 10 || finalVal > 99);
 
         let opFileName = "";
         if (op === '+') opFileName = "ditambah.mp3";
@@ -340,7 +372,7 @@
       static generateOperandValue(genderFolder = 'female') {
         const type = Math.random();
         if (type < 0.5) {
-          const val = this.getRandomInt(1, 15);
+          const val = this.getRandomInt(1, 25);
           return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
         } else if (type < 0.8) {
           const base = this.getRandomInt(2, 5);
@@ -359,7 +391,7 @@
         }
       }
     }
-
+    
     // --- FAST AUDIO ENGINE (PRELOAD & MEMORY CACHING) ---
     class WebAudioEngine {
       constructor() {
