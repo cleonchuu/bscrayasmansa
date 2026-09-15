@@ -9,84 +9,177 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
-    body { font-family: 'Poppins', sans-serif; background-color: #030712; color: #ffffff; overflow: hidden; }
-    .font-math { font-family: 'Orbitron', sans-serif; }
-    .glow-blue { box-shadow: 0 0 35px rgba(59, 130, 246, 0.25); border: 3px solid #1e40af; }
-    .glow-red { box-shadow: 0 0 35px rgba(239, 68, 68, 0.25); border: 3px solid #991b1b; }
-    .active-speaking-blue { box-shadow: 0 0 90px rgba(59, 130, 246, 0.9) !important; border-color: #3b82f6 !important; background-color: rgba(30, 58, 138, 0.35) !important; transform: scale(1.02); }
-    .active-speaking-red { box-shadow: 0 0 90px rgba(239, 68, 68, 0.9) !important; border-color: #ef4444 !important; background-color: rgba(127, 29, 29, 0.35) !important; transform: scale(1.02); }
-    .view-panel { transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out; }
-    .hidden-view { opacity: 0; pointer-events: none; transform: scale(0.96); position: absolute; inset: 0; }
-    .active-view { opacity: 1; pointer-events: auto; transform: scale(1); position: relative; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #030712;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .font-math {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .glow-blue {
+      box-shadow: 0 0 35px rgba(59, 130, 246, 0.3);
+      border: 3px solid #1e40af;
+    }
+
+    .glow-red {
+      box-shadow: 0 0 35px rgba(239, 68, 68, 0.3);
+      border: 3px solid #991b1b;
+    }
+
+    .active-speaking-blue {
+      box-shadow: 0 0 80px rgba(59, 130, 246, 0.9) !important;
+      border-color: #3b82f6 !important;
+      background-color: rgba(30, 58, 138, 0.3) !important;
+      transform: scale(1.02);
+    }
+
+    .active-speaking-red {
+      box-shadow: 0 0 80px rgba(239, 68, 68, 0.9) !important;
+      border-color: #ef4444 !important;
+      background-color: rgba(127, 29, 29, 0.3) !important;
+      transform: scale(1.02);
+    }
+
+    /* SYSTEM STAGE VIEW SWITCHER ENGINE */
+    .stage-view {
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .stage-view.hidden-view {
+      opacity: 0;
+      transform: scale(0.92);
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+    }
+    .stage-view.active-view {
+      opacity: 1;
+      transform: scale(1);
+      position: relative;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    @keyframes cardZoomIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-card-pop {
+      animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
+    .glow-indigo { box-shadow: 0 0 45px rgba(99, 102, 241, 0.35); }
   </style>
 </head>
-<body class="min-h-screen p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+<body class="min-h-screen p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
 
-  <!-- OVERLAY UNTUK INIT AUDIO (AUTOPLAY UNLOCK) -->
-  <div id="startOverlay" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-    <div class="p-4 bg-indigo-600/20 text-indigo-400 rounded-3xl border border-indigo-500/30 mb-6 animate-bounce">
-      <i class="fas fa-compact-disc text-6xl"></i>
+  <!-- OVERLAY UNTUK UNLOCK AUDIO BROWSER -->
+  <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
+    <div class="p-6 bg-indigo-600/20 rounded-full border border-indigo-500/40 text-indigo-400 mb-4 animate-bounce">
+      <i class="fas fa-power-off text-4xl"></i>
     </div>
-    <h2 class="text-3xl font-black font-math text-white mb-2">NUMBER DISCO STAGE ENGINE</h2>
-    <p class="text-slate-400 text-sm max-w-md mb-8">Klik tombol di bawah satu kali untuk mengaktifkan sistem Audio & Sync Realtime sebelum dikontrol dari Admin.</p>
-    <button onclick="unlockAudioAndStart()" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold rounded-2xl shadow-2xl transition-all flex items-center gap-3">
-      <i class="fas fa-power-off text-xl"></i> Aktifkan Stage Display
-    </button>
+    <h2 class="text-2xl font-black font-math tracking-wider text-white">KLIK LAYAR UNTUK MENGAKTIFKAN STAGE</h2>
+    <p class="text-sm text-slate-400 mt-2">Diperlukan interaksi awal agar browser mengizinkan audio putar otomatis</p>
   </div>
 
-  <header class="bg-slate-900/90 border border-slate-800 px-6 py-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-10">
-    <div class="flex items-center gap-4">
+  <!-- HEADER STAGE -->
+  <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-20 relative">
+    <div class="flex items-center gap-3">
       <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
-        <i class="fas fa-compact-disc fa-spin text-3xl"></i>
+        <i class="fas fa-compact-disc fa-spin text-2xl"></i>
       </div>
       <div>
-        <h1 class="text-3xl font-black tracking-wider text-white uppercase font-math">NUMBER DISCO</h1>
-        <p class="text-xs text-slate-400">STAGE DISPLAY ENGINE</p>
+        <h1 class="text-2xl font-black tracking-wider text-white font-math uppercase">NUMBER DISCO</h1>
+        <p id="stageStatus" class="text-xs text-slate-400">MENUNGGU SINYAL ADMIN...</p>
       </div>
     </div>
-
-    <!-- TIMER DISPLAY & STATUS LOG INJECTOR -->
-    <div class="flex items-center gap-4">
-      <div id="statusLoader" class="hidden items-center gap-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 px-4 py-2 rounded-2xl text-xs font-bold animate-pulse">
-        <i class="fas fa-spinner fa-spin"></i> <span id="statusLoaderText">Memproses Soal...</span>
+    <div class="flex items-center gap-3">
+      <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+        <span class="flex h-2.5 w-2.5 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+        </span>
+        <span class="text-amber-400 font-bold text-xs tracking-wider uppercase font-math">MENGULANGI</span>
       </div>
-      <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl">
-        <i class="fas fa-stopwatch text-slate-400 text-xs"></i>
-        <span id="timerDisplay" class="text-emerald-400 font-mono text-sm font-bold">05:00</span>
+      <div class="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2">
+        <i class="fas fa-stopwatch text-emerald-400 text-xs"></i>
+        <span id="timerDisplay" class="text-xs font-bold text-emerald-400 font-mono">05:00</span>
       </div>
     </div>
   </header>
 
-  <div class="relative flex-1 my-6 flex items-center justify-center">
+  <!-- CONTAINER UTAMA WIDGET STAGE -->
+  <div class="w-full max-w-7xl mx-auto my-auto relative z-10">
 
-    <!-- 1. GAME VIEW -->
-    <main id="viewGame" class="view-panel active-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
-      <div id="stageContainerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[550px] glow-blue transition-all duration-300 relative">
+    <!-- 1. LAYAR UTAMA DISPLAY GAME -->
+    <main id="viewGame" class="stage-view active-view grid grid-cols-2 gap-8 h-[68vh] w-full">
+      <div id="containerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center glow-blue transition-all duration-300 relative">
         <span class="absolute top-6 left-6 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
-          <i class="fas fa-venus mr-1"></i> TIM BIRU (FEMALE)
+          <i class="fas fa-venus"></i> TIM BIRU (FEMALE)
         </span>
-        <div id="stageDisplayBlue" class="text-8xl lg:text-[10rem] font-black font-math text-white tracking-widest drop-shadow-[0_0_35px_rgba(59,130,246,0.8)]">--</div>
+        <div id="displayBlueFormatted" class="text-7xl lg:text-9xl font-black font-math text-white tracking-widest drop-shadow-[0_0_30px_rgba(59,130,246,0.8)]">
+          --
+        </div>
       </div>
 
-      <div id="stageContainerRed" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center min-h-[550px] glow-red transition-all duration-300 relative">
+      <div id="containerRed" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center glow-red transition-all duration-300 relative">
         <span class="absolute top-6 left-6 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
-          <i class="fas fa-mars mr-1"></i> TIM MERAH (MALE)
+          <i class="fas fa-mars"></i> TIM MERAH (MALE)
         </span>
-        <div id="stageDisplayRed" class="text-8xl lg:text-[10rem] font-black font-math text-white tracking-widest drop-shadow-[0_0_35px_rgba(239,68,68,0.8)]">--</div>
+        <div id="displayRedFormatted" class="text-7xl lg:text-9xl font-black font-math text-white tracking-widest drop-shadow-[0_0_30px_rgba(239,68,68,0.8)]">
+          --
+        </div>
       </div>
     </main>
 
-    <!-- 2. LEADERBOARD VIEW -->
-    <section id="viewLeaderboard" class="view-panel hidden-view w-full max-w-6xl flex flex-col items-center justify-center">
-      <h2 class="text-4xl font-black text-amber-400 uppercase font-math mb-6"><i class="fas fa-trophy mr-2"></i> PAPAN PERINGKAT TOP 10</h2>
-      <div id="leaderboardGrid" class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto p-2"></div>
-    </section>
+    <!-- 2. VIEW PAPAN PERINGKAT TOP 10 (MODE FOCUS CARD 1 PER 1) -->
+    <div id="viewLeaderboard" class="stage-view hidden-view bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
+      <div class="mb-6">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+          FINAL STANDINGS
+        </span>
+        <h2 class="text-3xl md:text-5xl font-black text-white mt-3 tracking-wide flex items-center justify-center gap-3">
+          <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
+        </h2>
+      </div>
 
-    <!-- 3. ALL PLAYERS VIEW -->
-    <section id="viewAllPlayers" class="view-panel hidden-view w-full flex flex-col items-center justify-center">
-      <h2 class="text-3xl font-black text-indigo-400 uppercase font-math mb-6"><i class="fas fa-users mr-2"></i> REKAPITULASI POIN SELURUH PESERTA</h2>
-      <div id="allPlayersGrid" class="w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[600px] overflow-y-auto p-2"></div>
-    </section>
+      <div class="relative max-w-lg mx-auto min-h-[420px] flex items-center justify-center">
+        <div class="absolute -left-12 md:-left-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+
+        <div id="stageLeaderboardGrid" class="w-full">
+          <p class="text-slate-500 text-lg py-12 font-medium">Menunggu Admin Menekan Tombol Peringkat...</p>
+        </div>
+
+        <div class="absolute -right-12 md:-right-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
+          <i class="fas fa-chevron-right"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. VIEW SELURUH PESERTA -->
+    <div id="viewAllPlayers" class="stage-view hidden-view bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md glow-indigo">
+      <div class="text-center mb-6">
+        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+          TOTAL SCORE LIST
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black text-white mt-2 tracking-wide flex items-center justify-center gap-3">
+          <i class="fas fa-users text-indigo-400"></i> REKAP POIN SELURUH PESERTA
+        </h2>
+      </div>
+
+      <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
+        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
+    </div>
 
   </div>
 
@@ -94,18 +187,90 @@
     const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-    const SILENCE_OFFSET = 0.3;
+    const SILENCE_OFFSET = 1; 
+
+    let audioUnlocked = false;
+    let cachedScores = [];
+    let currentRevealedRank = -1;
+    let lastRevealedRank = -1;
+    let autoScrollInterval = null;
 
     function getAudioUrl(gender, filename) {
-      return `${STORAGE_BASE_URL}/${gender === 'female' ? 'voice_female' : 'voice_male'}/${filename}`;
+      const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
+      return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
     }
-    const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
 
-    /* MATH GENERATOR LOGIC */
+    function getSoundEffectUrl(filename) {
+      return `${STORAGE_BASE_URL}/sounds_effect/${filename}`;
+    }
+
+    const SOUND_BELL = getSoundEffectUrl('bell.mp3');
+    const SOUND_BEEP = getSoundEffectUrl('bell.mp3');
+
+    function subscribeAdminLayoutRemote() {
+      supabaseClient
+        .channel('layout_remote_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
+          if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+        })
+        .subscribe();
+
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from('admin_layout_number_disco')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+        
+        if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+      }, 1000);
+    }
+
+    function handleViewSwitch(viewName, revealedRank) {
+      const gView = document.getElementById('viewGame');
+      const lbView = document.getElementById('viewLeaderboard');
+      const allView = document.getElementById('viewAllPlayers');
+
+      if (!gView || !lbView || !allView) return;
+
+      stopAutoScroll();
+
+      gView.classList.add('hidden-view'); gView.classList.remove('active-view');
+      lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
+      allView.classList.add('hidden-view'); allView.classList.remove('active-view');
+
+      const newRank = revealedRank || 0;
+
+      if (viewName === 'leaderboard') {
+        lbView.classList.remove('hidden-view');
+        lbView.classList.add('active-view');
+        
+        if (newRank !== lastRevealedRank) {
+          currentRevealedRank = newRank;
+          lastRevealedRank = newRank;
+          fetchAndRenderStageScores(false);
+        }
+      } else if (viewName === 'all_players') {
+        allView.classList.remove('hidden-view');
+        allView.classList.add('active-view');
+        lastRevealedRank = -1;
+        fetchAndRenderStageScores(true);
+      } else {
+        gView.classList.remove('hidden-view');
+        gView.classList.add('active-view');
+        lastRevealedRank = -1;
+      }
+    }
+
+    // --- MATH GENERATOR ENGINE ---
     class MathGenerator {
       static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
-      static getRandomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+      static getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
 
       static generateInitialNumber(genderFolder = 'female') {
         const type = Math.random();
@@ -114,34 +279,62 @@
           return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
         } else if (type < 0.7) {
           const base = this.getRandomInt(2, 6);
-          return { value: Math.pow(base, 2), display: `${base}²`, audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] };
+          const val = Math.pow(base, 2);
+          return { 
+            value: val, 
+            display: `${base}²`, 
+            audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] 
+          };
         } else {
           const sq = this.PERFECT_SQUARES[Math.floor(Math.random() * this.PERFECT_SQUARES.length)];
-          return { value: Math.sqrt(sq), display: `√${sq}`, audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] };
+          const val = Math.sqrt(sq);
+          return { 
+            value: val, 
+            display: `√${sq}`, 
+            audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] 
+          };
         }
       }
 
       static generateOperation(currentValue, genderFolder = 'male') {
         const ops = ['+', '-', '×', '÷'];
         const op = ops[Math.floor(Math.random() * ops.length)];
-        let operandObj = {}, finalVal = currentValue;
+        let operandObj = {};
+        let finalVal = currentValue;
 
-        if (op === '+') { operandObj = this.generateOperandValue(genderFolder); finalVal += operandObj.value; }
-        else if (op === '-') { operandObj = this.generateOperandValue(genderFolder); finalVal -= operandObj.value; }
-        else if (op === '×') {
+        if (op === '+') {
+          operandObj = this.generateOperandValue(genderFolder);
+          finalVal = currentValue + operandObj.value;
+        } else if (op === '-') {
+          operandObj = this.generateOperandValue(genderFolder);
+          finalVal = currentValue - operandObj.value;
+        } else if (op === '×') {
           const mult = this.getRandomInt(2, 5);
           operandObj = { value: mult, display: `${mult}`, audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] };
-          finalVal *= mult;
+          finalVal = currentValue * mult;
         } else if (op === '÷') {
           const factors = [];
-          for (let i = 1; i <= Math.abs(currentValue); i++) { if (currentValue % i === 0) factors.push(i); }
+          for (let i = 1; i <= Math.abs(currentValue); i++) {
+            if (currentValue % i === 0) factors.push(i);
+          }
           const div = factors.length > 1 ? factors[this.getRandomInt(1, factors.length - 1)] : 1;
           operandObj = { value: div, display: `${div}`, audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] };
-          finalVal /= div;
+          finalVal = currentValue / div;
         }
 
-        let opFileName = op === '+' ? "ditambah.mp3" : op === '-' ? "dikurangi.mp3" : op === '×' ? "dikali.mp3" : "dibagi.mp3";
-        return { display: `${op} ${operandObj.display}`, newTotal: finalVal, audioUrls: [getAudioUrl(genderFolder, opFileName), ...operandObj.audioUrls] };
+        let opFileName = "";
+        if (op === '+') opFileName = "ditambah.mp3";
+        else if (op === '-') opFileName = "dikurangi.mp3";
+        else if (op === '×') opFileName = "dikali.mp3";
+        else if (op === '÷') opFileName = "dibagi.mp3";
+
+        return {
+          operator: op,
+          operand: operandObj,
+          newTotal: finalVal,
+          display: `${op} ${operandObj.display}`,
+          audioUrls: [getAudioUrl(genderFolder, opFileName), ...operandObj.audioUrls]
+        };
       }
 
       static generateOperandValue(genderFolder = 'female') {
@@ -151,26 +344,31 @@
           return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
         } else if (type < 0.8) {
           const base = this.getRandomInt(2, 5);
-          return { value: Math.pow(base, 2), display: `${base}²`, audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] };
+          return { 
+            value: Math.pow(base, 2), 
+            display: `${base}²`, 
+            audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] 
+          };
         } else {
           const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
-          return { value: Math.sqrt(sq), display: `√${sq}`, audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] };
+          return { 
+            value: Math.sqrt(sq), 
+            display: `√${sq}`, 
+            audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] 
+          };
         }
       }
     }
 
-    /* AUDIO ENGINE */
+    // --- FAST AUDIO ENGINE (PRELOAD & MEMORY CACHING) ---
     class WebAudioEngine {
-      constructor() { 
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-        this.cache = new Map(); 
+      constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.cache = new Map();
+        this.activeSource = null;
       }
-      async initContext() {
-        if (this.ctx.state === 'suspended') {
-          await this.ctx.resume();
-        }
-      }
-      async preloadAudio(url) {
+
+      async fetchAndCacheAudio(url) {
         if (this.cache.has(url)) return this.cache.get(url);
         try {
           const res = await fetch(url);
@@ -178,182 +376,397 @@
           const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
           this.cache.set(url, audioBuffer);
           return audioBuffer;
-        } catch (e) { return null; }
+        } catch (e) {
+          console.warn(`Gagal memuat audio: ${url}`, e);
+          return null;
+        }
       }
-      async preloadBatch(urls) { await Promise.all([...new Set(urls)].map(u => this.preloadAudio(u))); }
-      playBuffer(buffer) {
+
+      async downloadAllAudioFiles(urls) {
+        const uniqueUrls = [...new Set(urls)];
+        await Promise.all(uniqueUrls.map(u => this.fetchAndCacheAudio(u)));
+      }
+
+      playBuffer(buffer, offsetTrim = SILENCE_OFFSET) {
         return new Promise((resolve) => {
           if (!buffer) return resolve();
-          this.initContext();
+          if (this.ctx.state === 'suspended') this.ctx.resume();
+
           const source = this.ctx.createBufferSource();
           source.buffer = buffer;
           source.connect(this.ctx.destination);
-          const playDuration = buffer.duration < 0.8 ? buffer.duration : Math.max(0.1, buffer.duration - SILENCE_OFFSET);
+          this.activeSource = source;
+
+          const isSFX = buffer.duration < 1.0; 
+          const playDuration = isSFX ? buffer.duration : Math.max(0.1, buffer.duration - offsetTrim);
+
           source.start(0);
-          setTimeout(() => resolve(), playDuration * 1000);
+          setTimeout(resolve, playDuration * 1000);
         });
       }
+
       async playSequence(urls) {
         for (const url of urls) {
-          const buffer = await this.preloadAudio(url);
+          const buffer = await this.fetchAndCacheAudio(url);
           await this.playBuffer(buffer);
+        }
+      }
+
+      stop() {
+        if (this.activeSource) {
+          try { this.activeSource.stop(); } catch(e){}
+          this.activeSource = null;
         }
       }
     }
 
-    /* ENGINE CONTROLLER DIRECTLY IN LAYOUT */
-    class LayoutGameEngine {
+    // --- STAGE ENGINE ---
+    class StageEngine {
       constructor() {
         this.isPlaying = false;
         this.femaleTotal = 0;
         this.maleTotal = 0;
         this.historySteps = [];
-        this.remainingSeconds = 300;
         this.timerInterval = null;
+        this.remainingSeconds = 300;
         this.audioEngine = new WebAudioEngine();
       }
 
-      async startEngine() {
+      async start() {
         if (this.isPlaying) return;
         this.isPlaying = true;
+        this.resetDisplay();
         this.historySteps = [];
 
-        this.setLoaderStatus("Mengunduh Sound & Soal...", true);
+        document.getElementById('stageStatus').textContent = "MENGUNDUH FILE SUARA & GENERATE KUNCI...";
 
-        // 1. Generate 10 Ronde Soal & Kumpulkan URL Audio
-        const allAudioUrls = [];
+        const allAudioUrls = this.generateFullGameSteps();
+
+        await this.audioEngine.downloadAllAudioFiles(allAudioUrls);
+
+        await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
+
+        document.getElementById('stageStatus').textContent = "GAME BERJALAN";
+
+        this.start5MinTimer();
+
+        for (const step of this.historySteps) {
+          if (!this.isPlaying) return;
+
+          await this.updateLiveState(step.team, step.display, true);
+          await this.audioEngine.playSequence(step.audioUrls);
+          await this.updateLiveState(step.team, step.display, false);
+
+          await this.delay(200);
+        }
+
+        if (this.isPlaying && this.remainingSeconds > 0) {
+          await this.audioEngine.playSequence([SOUND_BELL]);
+        }
+
+        await this.enterRepeatMode();
+      }
+
+      generateFullGameSteps() {
+        const audioUrls = [];
+
         const initBlue = MathGenerator.generateInitialNumber('female');
         this.femaleTotal = initBlue.value;
         this.historySteps.push({ team: 'blue', display: initBlue.display, audioUrls: initBlue.audioUrls });
-        allAudioUrls.push(...initBlue.audioUrls);
+        audioUrls.push(...initBlue.audioUrls);
 
         const initRed = MathGenerator.generateInitialNumber('male');
         this.maleTotal = initRed.value;
         this.historySteps.push({ team: 'red', display: initRed.display, audioUrls: initRed.audioUrls });
-        allAudioUrls.push(...initRed.audioUrls);
+        audioUrls.push(...initRed.audioUrls);
 
-        for (let i = 2; i <= 10; i++) {
+        for (let step = 2; step <= 7; step++) {
           const blueOp = MathGenerator.generateOperation(this.femaleTotal, 'female');
           this.femaleTotal = blueOp.newTotal;
           this.historySteps.push({ team: 'blue', display: blueOp.display, audioUrls: blueOp.audioUrls });
-          allAudioUrls.push(...blueOp.audioUrls);
+          audioUrls.push(...blueOp.audioUrls);
 
           const redOp = MathGenerator.generateOperation(this.maleTotal, 'male');
           this.maleTotal = redOp.newTotal;
           this.historySteps.push({ team: 'red', display: redOp.display, audioUrls: redOp.audioUrls });
-          allAudioUrls.push(...redOp.audioUrls);
-        }
-        allAudioUrls.push(SOUND_BELL);
-
-        // 2. Pre-download Audio
-        await this.audioEngine.preloadBatch(allAudioUrls);
-        this.setLoaderStatus("", false);
-
-        // 3. Upsert Kunci Jawaban ke Supabase DB
-        await supabaseClient.from('system_number_disco').upsert([
-          { id: 1, team_gender: 'female', target_answer: this.femaleTotal, updated_at: new Date() },
-          { id: 2, team_gender: 'male', target_answer: this.maleTotal, updated_at: new Date() }
-        ]);
-
-        // 4. Jalankan Timer 5 Menit
-        this.startTimer();
-
-        // 5. Eksekusi 10 Ronde Pemutaran Soal & Suara
-        for (const step of this.historySteps) {
-          if (!this.isPlaying) return;
-          await this.updateStageAndSync(step.team, step.display, true);
-          await this.audioEngine.playSequence(step.audioUrls);
-          await this.updateStageAndSync(step.team, step.display, false);
-          await new Promise(r => setTimeout(r, 200));
+          audioUrls.push(...redOp.audioUrls);
         }
 
-        // Loop Pengulangan jika Waktu Masih Ada
+        audioUrls.push(SOUND_BELL, SOUND_BEEP);
+        return audioUrls;
+      }
+
+      async enterRepeatMode() {
+        const repeatIndicator = document.getElementById('repeatIndicator');
+        if (repeatIndicator) repeatIndicator.classList.replace('hidden', 'flex');
+
         while (this.isPlaying && this.remainingSeconds > 0) {
-          await this.audioEngine.playSequence([SOUND_BELL]);
           for (const step of this.historySteps) {
             if (!this.isPlaying || this.remainingSeconds <= 0) break;
-            await this.updateStageAndSync(step.team, step.display, true);
+
+            await this.updateLiveState(step.team, step.display, true);
             await this.audioEngine.playSequence(step.audioUrls);
-            await this.updateStageAndSync(step.team, step.display, false);
-            await new Promise(r => setTimeout(r, 200));
+            await this.updateLiveState(step.team, step.display, false);
+
+            await this.delay(200);
+          }
+
+          if (this.isPlaying && this.remainingSeconds > 0) {
+            await this.audioEngine.playSequence([SOUND_BELL]);
           }
         }
       }
 
-      async updateStageAndSync(team, text, isSpeaking) {
-        updateStageUI(team, text, isSpeaking);
-        await supabaseClient.from('system_number_disco_live').upsert([
-          { id: team === 'blue' ? 1 : 2, team: team, display_text: text, is_speaking: isSpeaking, updated_at: new Date() }
-        ]);
+      async updateLiveState(team, text, isSpeaking) {
+        const container = document.getElementById(team === 'blue' ? 'containerBlue' : 'containerRed');
+        const display = document.getElementById(team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted');
+
+        if (display) display.textContent = text;
+        if (container) {
+          if (isSpeaking) {
+            container.classList.add(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
+          } else {
+            container.classList.remove(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
+          }
+        }
       }
 
-      startTimer() {
+      async upsertTargetAnswers(femaleAnswer, maleAnswer) {
+        try {
+          await supabaseClient.from('system_number_disco').upsert([
+            { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
+            { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
+          ]);
+        } catch (err) {
+          console.error('Error updating target answers:', err);
+        }
+      }
+
+      start5MinTimer() {
+        this.stopTimer();
         this.remainingSeconds = 300;
-        clearInterval(this.timerInterval);
+        this.updateTimerUI();
+
         this.timerInterval = setInterval(() => {
           this.remainingSeconds--;
-          const m = Math.floor(this.remainingSeconds / 60), s = this.remainingSeconds % 60;
-          document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          if (this.remainingSeconds <= 0) this.resetEngine();
+          this.updateTimerUI();
+
+          if (this.remainingSeconds <= 0) {
+            this.stopTimer();
+            this.reset();
+          }
         }, 1000);
       }
 
-      async resetEngine() {
+      stopTimer() {
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+      }
+
+      updateTimerUI() {
+        const mins = Math.floor(this.remainingSeconds / 60);
+        const secs = this.remainingSeconds % 60;
+        const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        const timerElem = document.getElementById('timerDisplay');
+        if (timerElem) timerElem.textContent = formatted;
+      }
+
+      resetDisplay() {
+        document.getElementById('displayBlueFormatted').textContent = "--";
+        document.getElementById('displayRedFormatted').textContent = "--";
+        const repeatIndicator = document.getElementById('repeatIndicator');
+        if (repeatIndicator) repeatIndicator.classList.replace('flex', 'hidden');
+      }
+
+      async reset() {
+        this.audioEngine.stop();
+        this.stopTimer();
+
+        if (this.isPlaying) {
+          await this.audioEngine.playSequence([SOUND_BEEP]);
+        }
+
         this.isPlaying = false;
-        clearInterval(this.timerInterval);
-        document.getElementById('timerDisplay').textContent = "05:00";
-        await this.updateStageAndSync('blue', '--', false);
-        await this.updateStageAndSync('red', '--', false);
+        this.resetDisplay();
+        this.remainingSeconds = 300;
+        this.updateTimerUI();
+        document.getElementById('stageStatus').textContent = "STAGE DISPLAY ENGINE (READY)";
       }
 
-      setLoaderStatus(text, show) {
-        const loader = document.getElementById('statusLoader');
-        document.getElementById('statusLoaderText').textContent = text;
-        if (show) loader.classList.remove('hidden'), loader.classList.add('flex');
-        else loader.classList.add('hidden'), loader.classList.remove('flex');
+      delay(ms) {
+        return new Promise(r => setTimeout(r, ms));
       }
     }
 
-    const engine = new LayoutGameEngine();
+    const engine = new StageEngine();
 
-    function unlockAudioAndStart() {
-      engine.audioEngine.initContext();
-      document.getElementById('startOverlay').classList.add('hidden');
-      setupRealtimeListeners();
+    function unlockAudio() {
+      audioUnlocked = true;
+      document.getElementById('audioUnlockOverlay').classList.add('hidden');
+      document.getElementById('stageStatus').textContent = "STAGE DISPLAY ENGINE (READY)";
     }
 
-    // DENGARKAN REMOTE KONTROL DARI ADMIN (SETELAH UNLOCK)
-    function setupRealtimeListeners() {
-      supabaseClient.channel('system_number_disco_control_changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
-          if (payload.new && payload.new.action) {
-            if (payload.new.action === 'START_GAME') engine.startEngine();
-            if (payload.new.action === 'RESET') engine.resetEngine();
-          }
-        }).subscribe();
+    // Realtime Signal Listener dari Admin
+    supabaseClient.channel('stage_control_channel')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
+        if (payload.new && payload.new.action === 'START_GAME') {
+          if (!audioUnlocked) unlockAudio();
+          engine.start();
+        } else if (payload.new && payload.new.action === 'RESET') {
+          engine.reset();
+        }
+      })
+      .subscribe();
+    
+    async function fetchAndRenderStageScores(isAllPlayersView) {
+      const { data, error } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, score_obtained')
+        .eq('game_name', 'Number Disco');
 
-      supabaseClient.channel('admin_layout_number_disco_changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
-          if (payload.new && payload.new.current_view) handleViewSwitch(payload.new.current_view);
-        }).subscribe();
-    }
+      if (error || !data) return;
 
-    function handleViewSwitch(viewName) {
-      document.getElementById('viewGame').className = viewName === 'game' ? 'view-panel active-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto' : 'view-panel hidden-view w-full grid grid-cols-1 md:grid-cols-2 gap-8 my-auto';
-      document.getElementById('viewLeaderboard').className = viewName === 'leaderboard' ? 'view-panel active-view w-full max-w-6xl flex flex-col items-center justify-center' : 'view-panel hidden-view w-full max-w-6xl flex flex-col items-center justify-center';
-      document.getElementById('viewAllPlayers').className = viewName === 'all_players' ? 'view-panel active-view w-full flex flex-col items-center justify-center' : 'view-panel hidden-view w-full flex flex-col items-center justify-center';
-    }
+      let scoreMap = {};
+      data.forEach(row => {
+        scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + row.score_obtained;
+      });
 
-    function updateStageUI(team, text, isSpeaking) {
-      const isBlue = team === 'blue';
-      const container = document.getElementById(isBlue ? 'stageContainerBlue' : 'stageContainerRed');
-      const display = document.getElementById(isBlue ? 'stageDisplayBlue' : 'stageDisplayRed');
-      if (display) display.textContent = text;
-      if (container) {
-        if (isSpeaking) container.classList.add(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
-        else container.classList.remove(isBlue ? 'active-speaking-blue' : 'active-speaking-red');
+      cachedScores = Object.keys(scoreMap)
+        .map(uid => ({ uid, total: scoreMap[uid] }))
+        .sort((a, b) => b.total - a.total);
+
+      if (isAllPlayersView) {
+        renderAllPlayersList();
+        startAutoScroll();
+      } else {
+        renderStageLeaderboard();
       }
     }
+
+    function renderStageLeaderboard() {
+      const container = document.getElementById('stageLeaderboardGrid');
+      
+      if (currentRevealedRank === 0 || cachedScores.length === 0) {
+        container.innerHTML = `<p class="text-slate-500 text-lg py-12 font-medium">Siap-siap... Pengumuman Pemenang!</p>`;
+        return;
+      }
+
+      const targetIdx = currentRevealedRank - 1;
+      const targetPlayer = cachedScores[targetIdx];
+
+      if (!targetPlayer) {
+        container.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada data untuk Peringkat #${currentRevealedRank}</p>`;
+        return;
+      }
+
+      let cardTheme = "from-slate-800 to-slate-900 border-slate-700/80 text-white";
+      let badgeLabel = `PERINGKAT #${currentRevealedRank}`;
+      let badgeBg = "bg-slate-700/60 text-slate-300 border-slate-600";
+      let glowEffect = "shadow-slate-900/50";
+
+      if (currentRevealedRank === 1) {
+        cardTheme = "from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80 text-amber-100";
+        badgeLabel = "👑 JUARA 1 (WINNER)";
+        badgeBg = "bg-amber-400 text-slate-950 border-amber-300 font-black";
+        glowEffect = "shadow-2xl shadow-amber-500/30";
+      } else if (currentRevealedRank === 2) {
+        cardTheme = "from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80 text-slate-100";
+        badgeLabel = "🥈 JUARA 2 (RUNNER UP)";
+        badgeBg = "bg-slate-200 text-slate-950 border-white font-black";
+        glowEffect = "shadow-xl shadow-slate-300/20";
+      } else if (currentRevealedRank === 3) {
+        cardTheme = "from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80 text-amber-200";
+        badgeLabel = "🥉 JUARA 3";
+        badgeBg = "bg-amber-600 text-white border-amber-500 font-black";
+        glowEffect = "shadow-xl shadow-amber-700/20";
+      }
+
+      const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}`;
+
+      container.innerHTML = `
+        <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 md:p-10 ${glowEffect} flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+          <div class="px-5 py-2 rounded-full border text-xs md:text-sm font-black tracking-widest uppercase ${badgeBg}">
+            ${badgeLabel}
+          </div>
+
+          <div class="relative">
+            <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden shadow-inner flex items-center justify-center p-2">
+              <img src="${avatarUrl}" alt="${targetPlayer.uid}" class="w-full h-full object-contain" />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-2xl md:text-4xl font-black truncate max-w-xs md:max-w-md mx-auto tracking-wide">
+              ${targetPlayer.uid}
+            </h3>
+            <div class="inline-block text-xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
+              +${targetPlayer.total} PTS
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAllPlayersList() {
+      const container = document.getElementById('allPlayersGrid');
+      container.innerHTML = '';
+
+      if (cachedScores.length === 0) {
+        container.innerHTML = `<p class="col-span-2 text-center text-slate-500 py-10">Belum ada peserta terdaftar.</p>`;
+        return;
+      }
+
+      cachedScores.forEach((item, idx) => {
+        const rankNumber = idx + 1;
+        const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}`;
+
+        const card = document.createElement('div');
+        card.className = "p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between";
+        card.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900/80 rounded-lg text-slate-400 border border-slate-700">#${rankNumber}</span>
+            <img src="${avatarUrl}" class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700" />
+            <span class="text-sm font-semibold text-slate-200 truncate">${item.uid}</span>
+          </div>
+          <span class="text-sm font-mono font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">+${item.total} PTS</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function startAutoScroll() {
+      stopAutoScroll();
+      const scrollElem = document.getElementById('scrollContainer');
+      let isWaiting = false;
+
+      autoScrollInterval = setInterval(() => {
+        if (isWaiting) return;
+        scrollElem.scrollTop += 1.5;
+
+        if (scrollElem.scrollTop + scrollElem.clientHeight >= scrollElem.scrollHeight - 2) {
+          isWaiting = true;
+          setTimeout(() => {
+            scrollElem.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => { isWaiting = false; }, 1200);
+          }, 2000);
+        }
+      }, 30);
+    }
+
+    function stopAutoScroll() {
+      if (autoScrollInterval) clearInterval(autoScrollInterval);
+    }
+
+    async function initStage() {
+      const { data: layoutData } = await supabaseClient.from('admin_layout_number_disco').select('*').eq('id', 1).maybeSingle();
+      if (layoutData) handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
+
+      subscribeAdminLayoutRemote();
+    }
+
+    initStage();
   </script>
 </body>
 </html>
