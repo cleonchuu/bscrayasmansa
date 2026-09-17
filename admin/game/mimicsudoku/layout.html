@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mimic Sudoku - Stage Display Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
+    body { font-family: 'Poppins', sans-serif; background-color: #030712; color: #fff; overflow: hidden; }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+    .glow-indigo { box-shadow: 0 0 35px rgba(99, 102, 241, 0.35); border: 2px solid rgba(99, 102, 241, 0.4); }
+    .glow-amber { box-shadow: 0 0 45px rgba(245, 158, 11, 0.3); border: 2px solid rgba(245, 158, 11, 0.4); }
+    .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
+    .grid-sudoku {
+      display: grid;
+      grid-template-columns: 32px repeat(9, 1fr) 56px;
+      grid-template-rows: 32px repeat(9, 1fr) 56px;
+    }
+    .border-subgrid-r { border-right: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    .border-subgrid-b { border-bottom: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    .stage-view { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .stage-view.hidden-view { opacity: 0; transform: scale(0.92); pointer-events: none; position: absolute; inset: 0; }
+    .stage-view.active-view { opacity: 1; transform: scale(1); position: relative; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+    @keyframes cardZoomIn { 0% { opacity: 0; transform: scale(0.7) translateY(40px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    @keyframes pulseAmber { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
+    .animate-target-pulse { animation: pulseAmber 1.5s ease-in-out infinite; }
+
+    /* DEBUG PANEL */
+    #debugPanel {
+      position: fixed; bottom: 16px; right: 16px;
+      width: 340px; max-height: 70vh; overflow-y: auto;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 11px;
+      z-index: 9999;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    #debugPanel .dbg-header {
+      padding: 8px 12px; background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; user-select: none;
+    }
+    #debugPanel .dbg-body { padding: 8px 12px; }
+    #debugPanel.collapsed .dbg-body { display: none; }
+    #debugPanel .dbg-line { padding: 3px 0; border-bottom: 1px solid #1e293b; word-break: break-all; }
+    #debugPanel .dbg-line:last-child { border-bottom: none; }
+    #debugPanel .dbg-key { color: #94a3b8; }
+    #debugPanel .dbg-val { color: #e2e8f0; font-weight: bold; }
+    #debugPanel .dbg-ok { color: #10b981; }
+    #debugPanel .dbg-err { color: #ef4444; }
+    #debugPanel .dbg-warn { color: #f59e0b; }
+    #debugPanel .dbg-btn {
+      background: #334155; border: 1px solid #475569; color: #cbd5e1;
+      padding: 4px 8px; border-radius: 6px; font-size: 10px;
+      cursor: pointer; margin: 2px;
+    }
+    #debugPanel .dbg-btn:hover { background: #475569; color: #fff; }
+    #debugPanel .dbg-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
+    #debugPanel .dbg-btn.danger:hover { background: #991b1b; }
+    #debugPanel .dbg-btn.success { background: #065f46; border-color: #047857; color: #a7f3d0; }
+    #debugPanel .dbg-btn.success:hover { background: #047857; }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
+
+  <!-- OVERLAY UNLOCK AUDIO -->
+  <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
+    <div class="p-6 bg-indigo-600/20 rounded-full border border-indigo-500/40 text-indigo-400 mb-4 animate-bounce">
+      <i class="fas fa-power-off text-4xl"></i>
+    </div>
+    <h2 class="text-2xl font-black font-math tracking-wider text-white">KLIK LAYAR UNTUK MENGAKTIFKAN STAGE</h2>
+    <p class="text-sm text-slate-400 mt-2">Diperlukan interaksi awal agar browser mengizinkan audio putar otomatis</p>
+  </div>
+
+  <!-- HEADER -->
+  <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-20 relative">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+        <i class="fas fa-th fa-spin text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-wider text-white font-math uppercase">MIMIC SUDOKU</h1>
+        <p id="stageStatus" class="text-xs text-slate-400">MENUNGGU SINYAL ADMIN...</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="levelIndicator" class="hidden items-center gap-2 bg-purple-500/10 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+        <i class="fas fa-layer-group text-purple-400 text-xs"></i>
+        <span id="levelText" class="text-purple-400 font-bold text-xs tracking-wider uppercase font-math">LEVEL 1</span>
+      </div>
+      <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+        <span class="flex h-2.5 w-2.5 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+        </span>
+        <span class="text-amber-400 font-bold text-xs tracking-wider uppercase font-math">AKTIF</span>
+      </div>
+      <div class="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2">
+        <i class="fas fa-stopwatch text-emerald-400 text-xs"></i>
+        <span id="timerDisplay" class="text-xs font-bold text-emerald-400 font-mono">--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="w-full max-w-7xl mx-auto my-auto relative z-10">
+    <!-- VIEW 1: GAME -->
+    <main id="viewGame" class="stage-view active-view flex flex-col items-center justify-center gap-4 w-full">
+      <div class="w-full max-w-4xl bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-4 md:p-6 glow-indigo">
+        <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+          <div>
+            <h2 class="text-xl font-black text-amber-400 flex items-center gap-2">
+              <i class="fas fa-edit"></i> PAPAN SOAL / TEBAKAN
+            </h2>
+            <p class="text-xs text-gray-400 mt-1">Tanpa repetisi angka per sel | Hijau vs Merah</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span id="loopTimerDisplay" class="hidden text-xs font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full">
+              <i class="fas fa-sync-alt fa-spin mr-1"></i>5s
+            </span>
+            <span id="statusBadge" class="text-xs px-3 py-1 rounded-full font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
+          </div>
+        </div>
+
+        <div class="w-full overflow-x-auto">
+          <div class="min-w-[580px] max-w-[680px] mx-auto grid-sudoku gap-1.5 items-center justify-center">
+            <div class="w-8 h-8"></div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">A</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">B</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs border-subgrid-r h-full">C</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">D</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">E</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs border-subgrid-r h-full">F</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">G</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">H</div>
+            <div class="flex items-center justify-center font-bold text-indigo-400 text-xs">I</div>
+            <div class="w-14 h-8"></div>
+            <div id="gridQuestionArea" class="contents"></div>
+            <div class="w-8 h-14"></div>
+            <div id="colClueQ-0" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-1" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-2" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+            <div id="colClueQ-3" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-4" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-5" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] border-subgrid-r"></div>
+            <div id="colClueQ-6" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-7" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div id="colClueQ-8" class="bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px]"></div>
+            <div class="w-14 h-14"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full max-w-md bg-slate-900 border border-amber-500/40 p-4 rounded-2xl glow-amber text-center">
+        <p class="text-xs font-semibold text-slate-300 tracking-widest uppercase">TENTUKAN ANGKA DIBALIK CELL</p>
+        <h2 id="targetCellDisplay" class="text-5xl md:text-6xl font-black text-amber-400 tracking-wider animate-target-pulse pt-2 font-math">--</h2>
+      </div>
+    </main>
+
+    <!-- VIEW 2: LEADERBOARD -->
+    <div id="viewLeaderboard" class="stage-view hidden-view bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
+      <div class="mb-6">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
+        <h2 class="text-3xl md:text-5xl font-black text-white mt-3 tracking-wide flex items-center justify-center gap-3">
+          <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
+        </h2>
+      </div>
+      <div class="relative max-w-lg mx-auto min-h-[420px] flex items-center justify-center">
+        <div id="stageLeaderboardGrid" class="w-full">
+          <p class="text-slate-500 text-lg py-12 font-medium">Menunggu Admin Menekan Tombol Peringkat...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: ALL PLAYERS -->
+    <div id="viewAllPlayers" class="stage-view hidden-view bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md glow-indigo">
+      <div class="text-center mb-6">
+        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE LIST</span>
+        <h2 class="text-3xl md:text-4xl font-black text-white mt-2 tracking-wide flex items-center justify-center gap-3">
+          <i class="fas fa-users text-indigo-400"></i> REKAP POIN SELURUH PESERTA
+        </h2>
+      </div>
+      <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
+        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DEBUG PANEL                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="debugPanel">
+    <div class="dbg-header" onclick="document.getElementById('debugPanel').classList.toggle('collapsed')">
+      <span style="color:#a855f7;font-weight:bold;">🐛 DEBUG PANEL</span>
+      <span style="color:#94a3b8;">▼</span>
+    </div>
+    <div class="dbg-body">
+      <div class="dbg-line">
+        <span class="dbg-key">Realtime:</span>
+        <span id="dbgRealtime" class="dbg-val dbg-warn">connecting...</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">Control Table:</span>
+        <span id="dbgControl" class="dbg-val">-</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">action:</span>
+        <span id="dbgAction" class="dbg-val">-</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">current_level:</span>
+        <span id="dbgLevel" class="dbg-val">-</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">updated_at:</span>
+        <span id="dbgUpdated" class="dbg-val">-</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">Engine:</span>
+        <span id="dbgEngine" class="dbg-val">idle</span>
+      </div>
+      <div class="dbg-line">
+        <span class="dbg-key">Last Event:</span>
+        <span id="dbgLastEvent" class="dbg-val">-</span>
+      </div>
+      <div style="margin-top:8px;border-top:1px solid #334155;padding-top:8px;">
+        <div style="color:#94a3b8;margin-bottom:4px;">Test Tools:</div>
+        <button class="dbg-btn" onclick="debugReadAll()">🔍 Read All</button>
+        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_1')">▶ L1</button>
+        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_2')">▶ L2</button>
+        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_3')">▶ L3</button>
+        <button class="dbg-btn danger" onclick="debugTrigger('RESET','none')">⟲ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // LOGGER
+    // ═══════════════════════════════════════════════════════════
+    const DEBUG = true;
+    const LOG = {
+      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+    const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+    const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+    const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
+
+    // State global
+    let audioUnlocked = false;   // ← TAMBAHKAN INI
+
+    // ═══════════════════════════════════════════════════════════
+    // LEVEL CONFIG
+    // ═══════════════════════════════════════════════════════════
+    const LEVEL_CONFIG = {
+      level_1: { cells: 1, durationSec: 120, label: 'LEVEL 1 (1 Sel, 2 Menit)' },
+      level_2: { cells: 2, durationSec: 240, label: 'LEVEL 2 (2 Sel, 4 Menit)' },
+      level_3: { cells: 3, durationSec: 300, label: 'LEVEL 3 (3 Sel, 5 Menit)' }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // DEBUG PANEL UPDATER
+    // ═══════════════════════════════════════════════════════════
+    const DBG = {
+      set: (id, text, cls = '') => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = text;
+          el.className = 'dbg-val ' + cls;
+        }
+      },
+      realtime: (text, cls) => DBG.set('dbgRealtime', text, cls),
+      control: (text, cls) => DBG.set('dbgControl', text, cls),
+      action: (text, cls) => DBG.set('dbgAction', text, cls),
+      level: (text, cls) => DBG.set('dbgLevel', text, cls),
+      updated: (text, cls) => DBG.set('dbgUpdated', text, cls),
+      engine: (text, cls) => DBG.set('dbgEngine', text, cls),
+      lastEvent: (text, cls) => DBG.set('dbgLastEvent', text, cls)
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO ENGINE
+    // ═══════════════════════════════════════════════════════════
+    class WebAudioEngine {
+      constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.cache = new Map();
+      }
+      async fetchAndCache(url) {
+        if (this.cache.has(url)) return this.cache.get(url);
+        try {
+          const res = await fetch(url);
+          const buf = await res.arrayBuffer();
+          const audio = await this.ctx.decodeAudioData(buf);
+          this.cache.set(url, audio);
+          return audio;
+        } catch (e) {
+          LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`, e.message);
+          return null;
+        }
+      }
+      async play(url) {
+        const buf = await this.fetchAndCache(url);
+        if (!buf) return;
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(this.ctx.destination);
+        src.start(0);
+        LOG.info('AUDIO', `🔊 Playing: ${url.split('/').pop()}`);
+      }
+    }
+    const audioEngine = new WebAudioEngine();
+
+    // ═══════════════════════════════════════════════════════════
+    // SUDOKU GENERATOR
+    // ═══════════════════════════════════════════════════════════
+    class SudokuGenerator {
+      static generate() {
+        const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+        this._solve(board);
+        return board;
+      }
+      static _solve(b) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (b[r][c] === 0) {
+              const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+              for (const n of nums) {
+                if (this._isValid(b, r, c, n)) {
+                  b[r][c] = n;
+                  if (this._solve(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      static _isValid(b, r, c, val) {
+        for (let i = 0; i < 9; i++) if (b[r][i] === val || b[i][c] === val) return false;
+        const sr = Math.floor(r/3)*3, sc = Math.floor(c/3)*3;
+        for (let i = 0; i < 3; i++)
+          for (let j = 0; j < 3; j++)
+            if (b[sr+i][sc+j] === val) return false;
+        return true;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CELL MEMORY
+    // ═══════════════════════════════════════════════════════════
+    class CellMemory {
+      constructor() { this.reset(); }
+      reset() {
+        this.memory = Array.from({ length: 9 }, () =>
+          Array.from({ length: 9 }, () => [])
+        );
+      }
+      nextFor(r, c) {
+        if (this.memory[r][c].length === 0) {
+          this.memory[r][c] = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+        }
+        return this.memory[r][c].pop();
+      }
+      generateBoard() {
+        const g = Array.from({ length: 9 }, () => Array(9).fill(0));
+        for (let r = 0; r < 9; r++)
+          for (let c = 0; c < 9; c++)
+            g[r][c] = this.nextFor(r, c);
+        return g;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STAGE ENGINE
+    // ═══════════════════════════════════════════════════════════
+    class StageEngine {
+      constructor() {
+        this.isPlaying = false;
+        this.currentLevel = null;
+        this.masterGrid = [];
+        this.questionGrid = [];
+        this.targetCells = [];
+        this.answerValue = 0;
+        this.remainingSeconds = 0;
+        this.timerInterval = null;
+        this.loopInterval = null;
+        this.loopTimerInterval = null;
+        this.loopTimeLeft = 5;
+        this.cellMemory = new CellMemory();
+      }
+
+      async start(level) {
+        LOG.ok('ENGINE', `🚀 START dipanggil (level=${level})`);
+        DBG.engine(`starting ${level}`, 'dbg-warn');
+
+        if (this.isPlaying) {
+          LOG.warn('ENGINE', 'Sudah playing, reset dulu...');
+          this.reset();
+          await new Promise(r => setTimeout(r, 300));
+        }
+
+        const config = LEVEL_CONFIG[level];
+        if (!config) {
+          LOG.error('ENGINE', `❌ Level tidak dikenal: ${level}`);
+          DBG.engine(`error: unknown level`, 'dbg-err');
+          return;
+        }
+
+        this.isPlaying = true;
+        this.currentLevel = level;
+
+        this.updateStatus(`GAME BERJALAN — ${config.label}`, 'active');
+        this.showLevelIndicator(config.label);
+
+        // 1. Generate master grid
+        LOG.step('ENGINE', 'Generate master grid...');
+        this.masterGrid = SudokuGenerator.generate();
+        LOG.ok('ENGINE', `Grid dibuat. Baris 1: [${this.masterGrid[0].join(',')}]`);
+
+        // 2. Pilih target cells
+        LOG.step('ENGINE', `Pilih ${config.cells} cell random...`);
+        this.targetCells = this.pickRandomCells(config.cells);
+        this.targetCells.forEach(t => {
+          LOG.info('ENGINE', `  Target: ${COL_LETTERS[t.c]}${t.r + 1} = ${this.masterGrid[t.r][t.c]}`);
+        });
+
+        // 3. Hitung jawaban
+        this.answerValue = this.targetCells.reduce((s, t) => s + this.masterGrid[t.r][t.c], 0);
+        LOG.ok('ENGINE', `Jawaban = ${this.answerValue}`);
+
+        // 4. Update display target
+        const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
+        document.getElementById('targetCellDisplay').textContent = expr;
+
+        // 5. Set durasi
+        this.remainingSeconds = config.durationSec;
+        this.updateTimerUI();
+
+        // 6. Publish ke Supabase
+        await this.publishToSupabase();
+
+        // 7. Render + loop
+        this.cellMemory.reset();
+        this.simulateParticipantBoard();
+        this.startBoardLoop();
+        this.startSessionTimer();
+
+        DBG.engine(`running ${level}`, 'dbg-ok');
+        LOG.ok('ENGINE', '✅ ENGINE SIAP');
+      }
+
+      reset() {
+        LOG.warn('ENGINE', '🔄 RESET');
+        this.isPlaying = false;
+        this.currentLevel = null;
+        clearInterval(this.timerInterval);
+        clearInterval(this.loopInterval);
+        clearInterval(this.loopTimerInterval);
+
+        this.remainingSeconds = 0;
+        this.updateTimerUI();
+        this.updateStatus('STAGE READY', 'ready');
+        this.hideLevelIndicator();
+        document.getElementById('targetCellDisplay').textContent = '--';
+        this.renderBlankBoard();
+        DBG.engine('idle', '');
+      }
+
+      pickRandomCells(count) {
+        const all = [];
+        for (let r = 0; r < 9; r++)
+          for (let c = 0; c < 9; c++)
+            all.push({ r, c });
+        for (let i = all.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [all[i], all[j]] = [all[j], all[i]];
+        }
+        return all.slice(0, count);
+      }
+
+      simulateParticipantBoard() {
+        if (!this.masterGrid.length) return;
+        this.questionGrid = this.cellMemory.generateBoard();
+        this.renderQuestionBoard();
+      }
+
+      async publishToSupabase() {
+        try {
+          LOG.step('SUPA', 'Publish master grid (id=1)...');
+          const { error: e1 } = await supabaseClient.from('system_mimic_sudoku').upsert(
+            { id: 1, grid_data: this.masterGrid.flat(), updated_at: new Date().toISOString() },
+            { onConflict: 'id' }
+          );
+          if (e1) { LOG.error('SUPA', 'Gagal simpan id=1', e1); return; }
+
+          LOG.step('SUPA', 'Publish target cells (id=2)...');
+          const targetIndices = this.targetCells.map(t => (t.r * 9) + t.c + 1);
+          const { error: e2 } = await supabaseClient.from('system_mimic_sudoku').upsert(
+            { id: 2, grid_data: targetIndices, updated_at: new Date().toISOString() },
+            { onConflict: 'id' }
+          );
+          if (e2) { LOG.error('SUPA', 'Gagal simpan id=2', e2); return; }
+
+          LOG.step('SUPA', 'Publish jawaban (id=3)...');
+          const { error: e3 } = await supabaseClient.from('system_mimic_sudoku').upsert(
+            { id: 3, grid_data: this.answerValue, updated_at: new Date().toISOString() },
+            { onConflict: 'id' }
+          );
+          if (e3) { LOG.error('SUPA', 'Gagal simpan id=3', e3); return; }
+
+          LOG.ok('SUPA', '✅ Semua data tersimpan.');
+        } catch (e) {
+          LOG.error('SUPA', 'Exception', e);
+        }
+      }
+
+      startBoardLoop() {
+        this.resetLoopTimerUI();
+        this.loopInterval = setInterval(async () => {
+          if (!this.isPlaying) return;
+          LOG.step('LOOP', 'Ganti papan...');
+          this.simulateParticipantBoard();
+          this.resetLoopTimerUI();
+          audioEngine.play(SOUND_BELL);
+        }, 5000);
+      }
+
+      resetLoopTimerUI() {
+        clearInterval(this.loopTimerInterval);
+        this.loopTimeLeft = 5;
+        this.updateLoopTimerUI(this.loopTimeLeft);
+        this.loopTimerInterval = setInterval(() => {
+          this.loopTimeLeft--;
+          this.updateLoopTimerUI(this.loopTimeLeft);
+          if (this.loopTimeLeft <= 0) clearInterval(this.loopTimerInterval);
+        }, 1000);
+      }
+
+      startSessionTimer() {
+        clearInterval(this.timerInterval);
+        this.updateTimerUI();
+        this.timerInterval = setInterval(() => {
+          if (!this.isPlaying) return;
+          this.remainingSeconds--;
+          this.updateTimerUI();
+          if (this.remainingSeconds <= 0) {
+            LOG.warn('TIMER', '⏰ Waktu habis!');
+            this.handleTimeout();
+          }
+        }, 1000);
+      }
+
+      async handleTimeout() {
+        clearInterval(this.timerInterval);
+        clearInterval(this.loopInterval);
+        clearInterval(this.loopTimerInterval);
+        this.isPlaying = false;
+
+        LOG.warn('ENGINE', '⏰ TIMEOUT — beep + freeze');
+        audioEngine.play(SOUND_BEEP);
+
+        this.updateStatus('WAKTU HABIS!', 'timeout');
+        this.renderBlankBoard();
+        DBG.engine('timeout', 'dbg-err');
+      }
+
+      updateStatus(text, state) {
+        document.getElementById('stageStatus').textContent = text;
+        const badge = document.getElementById('statusBadge');
+        const repeat = document.getElementById('repeatIndicator');
+        if (state === 'active') {
+          badge.textContent = 'ACTIVE';
+          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          repeat.classList.replace('hidden', 'flex');
+        } else if (state === 'timeout') {
+          badge.textContent = 'TIMEOUT';
+          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          repeat.classList.replace('flex', 'hidden');
+        } else {
+          badge.textContent = 'Ready';
+          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-slate-800 text-gray-400 border border-white/5';
+          repeat.classList.replace('flex', 'hidden');
+        }
+      }
+
+      showLevelIndicator(label) {
+        document.getElementById('levelText').textContent = label;
+        document.getElementById('levelIndicator').classList.replace('hidden', 'flex');
+      }
+      hideLevelIndicator() {
+        document.getElementById('levelIndicator').classList.replace('flex', 'hidden');
+      }
+
+      updateTimerUI() {
+        const m = Math.floor(Math.max(0, this.remainingSeconds) / 60);
+        const s = Math.max(0, this.remainingSeconds) % 60;
+        document.getElementById('timerDisplay').textContent =
+          `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+
+      updateLoopTimerUI(sec) {
+        const el = document.getElementById('loopTimerDisplay');
+        if (sec > 0) {
+          el.classList.remove('hidden');
+          el.innerHTML = `<i class="fas fa-sync-alt fa-spin mr-1"></i>${sec}s`;
+        } else {
+          el.classList.add('hidden');
+        }
+      }
+
+      renderQuestionBoard() {
+  const container = document.getElementById('gridQuestionArea');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+
+  for (let r = 0; r < 9; r++) {
+    const rowHeader = document.createElement('div');
+    rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+    rowHeader.textContent = r + 1;
+    container.appendChild(rowHeader);
+
+    for (let c = 0; c < 9; c++) {
+      const val = this.questionGrid[r][c];
+      const isTarget = targetSet.has(`${r},${c}`);
+      const cell = document.createElement('div');
+      let subgrid = '';
+      if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+      if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+
+      const style = isTarget
+        ? 'bg-amber-500/30 border-4 border-amber-400 animate-pulse scale-110 z-20 shadow-2xl shadow-amber-500/50'
+        : 'bg-slate-800/80 border border-slate-700/60';
+
+      const textColor = isTarget ? 'text-white' : 'text-amber-400';
+      
+      cell.className = `aspect-square ${style} rounded-lg flex items-center justify-center font-black text-lg md:text-xl ${textColor} transition-all ${subgrid}`;
+      cell.textContent = val || '';  // ← INI KUNCINYA: selalu tampil angka
+      container.appendChild(cell);
+    }
+
+    const rowClue = document.createElement('div');
+    rowClue.id = `rowClueQ-${r}`;
+    rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-w-[52px] min-h-[44px] ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+    container.appendChild(rowClue);
+  }
+
+  this.renderClues();
+}
+
+      renderClues() {
+        const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+        for (let r = 0; r < 9; r++) {
+          let green = 0;
+          for (let c = 0; c < 9; c++) {
+            if (targetSet.has(`${r},${c}`)) continue;
+            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+          }
+          const el = document.getElementById(`rowClueQ-${r}`);
+          if (el) el.innerHTML = this.renderDots(green, 9 - green);
+        }
+        for (let c = 0; c < 9; c++) {
+          let green = 0;
+          for (let r = 0; r < 9; r++) {
+            if (targetSet.has(`${r},${c}`)) continue;
+            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+          }
+          const el = document.getElementById(`colClueQ-${c}`);
+          if (el) el.innerHTML = this.renderDots(green, 9 - green);
+        }
+      }
+
+      renderDots(green, red) {
+        let html = '';
+        for (let i = 0; i < green; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
+        for (let i = 0; i < red; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
+        return html;
+      }
+
+      renderBlankBoard() {
+        const container = document.getElementById('gridQuestionArea');
+        if (!container) return;
+        container.innerHTML = '';
+        for (let r = 0; r < 9; r++) {
+          const rowHeader = document.createElement('div');
+          rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          rowHeader.textContent = r + 1;
+          container.appendChild(rowHeader);
+          for (let c = 0; c < 9; c++) {
+            const cell = document.createElement('div');
+            let subgrid = '';
+            if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+            if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+            cell.className = `aspect-square bg-slate-800/80 border border-slate-700/60 rounded-lg ${subgrid}`;
+            container.appendChild(cell);
+          }
+          const rowClue = document.createElement('div');
+          rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-w-[52px] min-h-[44px] ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          container.appendChild(rowClue);
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // VIEW SWITCHER
+    // ═══════════════════════════════════════════════════════════
+    let cachedScores = [];
+    let currentRevealedRank = -1;
+    let lastRevealedRank = -1;
+    let autoScrollInterval = null;
+
+    function handleViewSwitch(viewName, revealedRank) {
+      const gView = document.getElementById('viewGame');
+      const lbView = document.getElementById('viewLeaderboard');
+      const allView = document.getElementById('viewAllPlayers');
+      if (!gView) return;
+      stopAutoScroll();
+      gView.classList.add('hidden-view'); gView.classList.remove('active-view');
+      lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
+      allView.classList.add('hidden-view'); allView.classList.remove('active-view');
+
+      const newRank = revealedRank || 0;
+      if (viewName === 'leaderboard') {
+        lbView.classList.remove('hidden-view'); lbView.classList.add('active-view');
+        if (newRank !== lastRevealedRank) {
+          currentRevealedRank = newRank; lastRevealedRank = newRank;
+          fetchAndRenderStageScores(false);
+        }
+      } else if (viewName === 'all_players') {
+        allView.classList.remove('hidden-view'); allView.classList.add('active-view');
+        lastRevealedRank = -1;
+        fetchAndRenderStageScores(true);
+      } else {
+        gView.classList.remove('hidden-view'); gView.classList.add('active-view');
+        lastRevealedRank = -1;
+      }
+      LOG.info('VIEW', `View switched → ${viewName} (rank=${newRank})`);
+    }
+
+    async function fetchAndRenderStageScores(isAll) {
+  const { data, error } = await supabaseClient.from('game_scores')
+    .select('user_unique_id, score_obtained, game_name')
+    .eq('game_name', 'Mimic Sudoku');   // ← FILTER TEPAT
+      if (error || !data) return;
+      let map = {};
+      data.forEach(r => {
+        const uid = r.user_unique_id || 'Tanpa Nama';
+        map[uid] = (map[uid] || 0) + (r.score_obtained || 0);
+      });
+      cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a,b) => b.total - a.total);
+      if (isAll) renderAllPlayersList(); else renderStageLeaderboard();
+    }
+
+    function renderStageLeaderboard() {
+      const c = document.getElementById('stageLeaderboardGrid');
+      if (currentRevealedRank === 0 || cachedScores.length === 0) {
+        c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`; return;
+      }
+      const p = cachedScores[currentRevealedRank - 1];
+      if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada data #${currentRevealedRank}</p>`; return; }
+      const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+      c.innerHTML = `
+        <div class="animate-card-pop bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
+          <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${currentRevealedRank}</div>
+          <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${avatar}" class="w-full h-full object-contain"/></div>
+          <h3 class="text-3xl font-black">${p.uid}</h3>
+          <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${p.total} PTS</div>
+        </div>`;
+    }
+
+    function renderAllPlayersList() {
+      const c = document.getElementById('allPlayersGrid');
+      c.innerHTML = '';
+      cachedScores.forEach((it, idx) => {
+        const div = document.createElement('div');
+        div.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between';
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900 rounded-lg text-slate-400">#${idx+1}</span>
+            <span class="text-sm font-semibold text-slate-200">${it.uid}</span>
+          </div>
+          <span class="text-sm font-mono font-bold text-indigo-400">+${it.total} PTS</span>`;
+        c.appendChild(div);
+      });
+    }
+
+    function startAutoScroll() {
+      stopAutoScroll();
+      const el = document.getElementById('scrollContainer');
+      let waiting = false;
+      autoScrollInterval = setInterval(() => {
+        if (waiting) return;
+        el.scrollTop += 1.5;
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+          waiting = true;
+          setTimeout(() => { el.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => waiting = false, 1200); }, 2000);
+        }
+      }, 30);
+    }
+    function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
+
+    // ═══════════════════════════════════════════════════════════
+    // UNLOCK AUDIO
+    // ═══════════════════════════════════════════════════════════
+    function unlockAudio() {
+      audioUnlocked = true;   // ← TAMBAHKAN INI
+      document.getElementById('audioUnlockOverlay').classList.add('hidden');
+      document.getElementById('stageStatus').textContent = "STAGE READY";
+      LOG.ok('AUDIO', '✅ Unlocked. Stage siap.');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DEBUG TOOLS
+    // ═══════════════════════════════════════════════════════════
+    async function debugReadAll() {
+      LOG.step('DEBUG', '🔍 Baca semua tabel...');
+
+      const { data: control, error: e1 } = await supabaseClient
+        .from('system_mimic_sudoku_control').select('*');
+      if (e1) LOG.error('DEBUG', 'Control error', e1);
+      else {
+        console.log('%c📋 system_mimic_sudoku_control:', 'color:#10b981;font-weight:bold');
+        console.table(control);
+        if (control && control[0]) {
+          DBG.control('✓ ok', 'dbg-ok');
+          DBG.action(control[0].action || '-');
+          DBG.level(control[0].current_level || '-');
+          DBG.updated(control[0].updated_at ? new Date(control[0].updated_at).toLocaleTimeString() : '-');
+        }
+      }
+
+      const { data: sudoku, error: e2 } = await supabaseClient
+        .from('system_mimic_sudoku').select('id, grid_data, updated_at');
+      if (e2) LOG.error('DEBUG', 'Sudoku error', e2);
+      else {
+        console.log('%c📋 system_mimic_sudoku:', 'color:#10b981;font-weight:bold');
+        sudoku.forEach(r => {
+          const preview = Array.isArray(r.grid_data)
+            ? `[${r.grid_data.slice(0,9).join(',')}...] len=${r.grid_data.length}`
+            : String(r.grid_data).substring(0, 60);
+          console.log(`  id=${r.id} | ${preview}`);
+        });
+      }
+
+      const { data: layout, error: e3 } = await supabaseClient
+        .from('admin_layout_mimic_sudoku').select('*');
+      if (e3) LOG.error('DEBUG', 'Layout error', e3);
+      else {
+        console.log('%c📋 admin_layout_mimic_sudoku:', 'color:#10b981;font-weight:bold');
+        console.table(layout);
+      }
+    }
+    window.debugReadAll = debugReadAll;
+
+    async function debugTrigger(action, level) {
+      LOG.step('DEBUG', `🧪 Trigger manual: ${action} / ${level}`);
+      const { error } = await supabaseClient
+        .from('system_mimic_sudoku_control')
+        .update({
+          action: action,
+          current_level: level,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+      if (error) LOG.error('DEBUG', 'Gagal trigger', error);
+      else LOG.ok('DEBUG', 'Trigger terkirim. Tunggu event...');
+    }
+    window.debugTrigger = debugTrigger;
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBSCRIBE: system_mimic_sudoku_control
+    // ═══════════════════════════════════════════════════════════
+    const engine = new StageEngine();
+    let lastControlSignature = '';
+    let eventCount = 0;
+
+    LOG.ok('INIT', '🎧 Mendaftarkan listener...');
+    DBG.realtime('subscribing...', 'dbg-warn');
+
+    supabaseClient.channel('stage_mimic_control')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'system_mimic_sudoku_control'
+      }, (payload) => {
+        eventCount++;
+        const now = new Date().toLocaleTimeString();
+        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
+        console.log(`%c📡 [EVENT #${eventCount}] UPDATE DITERIMA @ ${now}`, 'color:#10b981;font-weight:bold;font-size:15px');
+        console.log('%c📦 payload.new:', 'color:#3b82f6;font-weight:bold', payload.new);
+
+        if (!payload.new) {
+          LOG.warn('EVENT', 'payload.new kosong');
+          return;
+        }
+
+        const data = payload.new;
+        DBG.lastEvent(`#${eventCount} ${data.action}`, 'dbg-ok');
+        DBG.action(data.action || '-');
+        DBG.level(data.current_level || '-');
+        DBG.updated(data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : '-');
+
+        const sig = `${data.action}|${data.current_level}|${data.updated_at}`;
+        LOG.info('EVENT', `signature: ${sig}`);
+        LOG.info('EVENT', `last:      ${lastControlSignature}`);
+
+        if (sig === lastControlSignature) {
+          LOG.warn('EVENT', '⚠️ Signature sama, SKIP');
+          return;
+        }
+        lastControlSignature = sig;
+
+        if (data.action === 'START_GAME') {
+          LOG.ok('EVENT', `→ engine.start("${data.current_level}")`);
+          if (!audioUnlocked) unlockAudio();
+          engine.start(data.current_level);
+        } else if (data.action === 'RESET') {
+          LOG.ok('EVENT', '→ engine.reset()');
+          engine.reset();
+        } else {
+          LOG.warn('EVENT', `Action tidak dikenal: ${data.action}`);
+        }
+        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
+      })
+      .subscribe((status) => {
+        LOG.info('INIT', `Channel status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          DBG.realtime('✓ subscribed', 'dbg-ok');
+          LOG.ok('INIT', '✅ Listener siap. Menunggu event...');
+          setTimeout(() => debugReadAll(), 500);
+        } else if (status === 'CHANNEL_ERROR') {
+          DBG.realtime('✗ error', 'dbg-err');
+          LOG.error('INIT', '❌ Gagal subscribe! Cek Realtime di Supabase.');
+        } else if (status === 'TIMED_OUT') {
+          DBG.realtime('✗ timeout', 'dbg-err');
+        } else if (status === 'CLOSED') {
+          DBG.realtime('✗ closed', 'dbg-warn');
+        } else {
+          DBG.realtime(status, 'dbg-warn');
+        }
+      });
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBSCRIBE: admin_layout_mimic_sudoku
+    // ═══════════════════════════════════════════════════════════
+    supabaseClient.channel('stage_layout_remote')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_layout_mimic_sudoku'
+      }, (payload) => {
+        if (payload.new) {
+          LOG.info('VIEW', `Layout update: ${payload.new.current_view}`);
+          handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+        }
+      })
+      .subscribe();
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function initStage() {
+      LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+      engine.renderBlankBoard();
+
+      const { data, error } = await supabaseClient
+        .from('admin_layout_mimic_sudoku').select('*').eq('id', 1).maybeSingle();
+      if (error) LOG.error('INIT', 'Layout fetch error', error);
+      if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+
+      LOG.ok('INIT', 'Stage siap. Menunggu sinyal admin...');
+    }
+
+    initStage();
+  </script>
+</body>
+</html>
