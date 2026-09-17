@@ -7,88 +7,88 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
-  
-  html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
-  
-  body { 
-    font-family: 'Poppins', sans-serif; 
-    background-color: #030712; 
-    color: #fff; 
-  }
-  
-  .font-math { font-family: 'Orbitron', sans-serif; }
-  
-  .glow-indigo { box-shadow: 0 0 35px rgba(99, 102, 241, 0.35); border: 2px solid rgba(99, 102, 241, 0.4); }
-  .glow-amber { box-shadow: 0 0 45px rgba(245, 158, 11, 0.3); border: 2px solid rgba(245, 158, 11, 0.4); }
-  .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
 
-  .border-subgrid-r { border-right: 2px solid rgba(129, 140, 248, 0.6) !important; }
-  .border-subgrid-b { border-bottom: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
 
-  .stage-view { transition: opacity 0.4s ease, transform 0.4s ease; }
-  .stage-view.hidden-view { 
-    opacity: 0; transform: scale(0.96); 
-    pointer-events: none; visibility: hidden; 
-  }
-  .stage-view.active-view { 
-    opacity: 1; transform: scale(1); 
-    visibility: visible; 
-  }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #030712;
+      color: #fff;
+    }
 
-  .custom-scroll::-webkit-scrollbar { width: 6px; }
-  .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-  .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+    .font-math { font-family: 'Orbitron', sans-serif; }
 
-  @keyframes cardZoomIn { 
-    0% { opacity: 0; transform: scale(0.7) translateY(40px); } 
-    100% { opacity: 1; transform: scale(1) translateY(0); } 
-  }
-  .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-  
-  @keyframes pulseAmber { 
-    0%, 100% { transform: scale(1); opacity: 1; } 
-    50% { transform: scale(1.05); opacity: 0.9; } 
-  }
-  .animate-target-pulse { animation: pulseAmber 1.5s ease-in-out infinite; }
+    .glow-indigo { box-shadow: 0 0 35px rgba(99, 102, 241, 0.35); border: 2px solid rgba(99, 102, 241, 0.4); }
+    .glow-amber { box-shadow: 0 0 45px rgba(245, 158, 11, 0.3); border: 2px solid rgba(245, 158, 11, 0.4); }
+    .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
 
-  /* DEBUG PANEL */
-  #debugPanel {
-    position: fixed; bottom: 16px; right: 16px;
-    width: 340px; max-height: 70vh; overflow-y: auto;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid #334155;
-    border-radius: 12px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 11px;
-    z-index: 9999;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-  }
-  #debugPanel .dbg-header {
-    padding: 8px 12px; background: #1e293b;
-    border-bottom: 1px solid #334155;
-    display: flex; justify-content: space-between; align-items: center;
-    cursor: pointer; user-select: none;
-  }
-  #debugPanel .dbg-body { padding: 8px 12px; }
-  #debugPanel.collapsed .dbg-body { display: none; }
-  #debugPanel .dbg-line { padding: 3px 0; border-bottom: 1px solid #1e293b; word-break: break-all; }
-  #debugPanel .dbg-line:last-child { border-bottom: none; }
-  #debugPanel .dbg-key { color: #94a3b8; }
-  #debugPanel .dbg-val { color: #e2e8f0; font-weight: bold; }
-  #debugPanel .dbg-ok { color: #10b981; }
-  #debugPanel .dbg-err { color: #ef4444; }
-  #debugPanel .dbg-warn { color: #f59e0b; }
-  #debugPanel .dbg-btn {
-    background: #334155; border: 1px solid #475569; color: #cbd5e1;
-    padding: 4px 8px; border-radius: 6px; font-size: 10px;
-    cursor: pointer; margin: 2px;
-  }
-  #debugPanel .dbg-btn:hover { background: #475569; color: #fff; }
-  #debugPanel .dbg-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
-  #debugPanel .dbg-btn.success { background: #065f46; border-color: #047857; color: #a7f3d0; }
-</style>
+    .border-subgrid-r { border-right: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    .border-subgrid-b { border-bottom: 2px solid rgba(129, 140, 248, 0.6) !important; }
+
+    .stage-view { transition: opacity 0.4s ease, transform 0.4s ease; }
+    .stage-view.hidden-view {
+      opacity: 0; transform: scale(0.96);
+      pointer-events: none; visibility: hidden;
+    }
+    .stage-view.active-view {
+      opacity: 1; transform: scale(1);
+      visibility: visible;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    @keyframes cardZoomIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes pulseAmber {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+    .animate-target-pulse { animation: pulseAmber 1.5s ease-in-out infinite; }
+
+    /* DEBUG PANEL */
+    #debugPanel {
+      position: fixed; bottom: 16px; right: 16px;
+      width: 340px; max-height: 70vh; overflow-y: auto;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 11px;
+      z-index: 9999;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    #debugPanel .dbg-header {
+      padding: 8px 12px; background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; user-select: none;
+    }
+    #debugPanel .dbg-body { padding: 8px 12px; }
+    #debugPanel.collapsed .dbg-body { display: none; }
+    #debugPanel .dbg-line { padding: 3px 0; border-bottom: 1px solid #1e293b; word-break: break-all; }
+    #debugPanel .dbg-line:last-child { border-bottom: none; }
+    #debugPanel .dbg-key { color: #94a3b8; }
+    #debugPanel .dbg-val { color: #e2e8f0; font-weight: bold; }
+    #debugPanel .dbg-ok { color: #10b981; }
+    #debugPanel .dbg-err { color: #ef4444; }
+    #debugPanel .dbg-warn { color: #f59e0b; }
+    #debugPanel .dbg-btn {
+      background: #334155; border: 1px solid #475569; color: #cbd5e1;
+      padding: 4px 8px; border-radius: 6px; font-size: 10px;
+      cursor: pointer; margin: 2px;
+    }
+    #debugPanel .dbg-btn:hover { background: #475569; color: #fff; }
+    #debugPanel .dbg-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
+    #debugPanel .dbg-btn.success { background: #065f46; border-color: #047857; color: #a7f3d0; }
+  </style>
 </head>
 <body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
 
@@ -148,9 +148,13 @@
 
     <!-- STATUS -->
     <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex-1 flex flex-col">
-      <div class="flex items-center gap-2 text-slate-400 mb-3">
-        <i class="fas fa-info-circle text-sm"></i>
-        <span class="text-[10px] font-bold uppercase tracking-widest">STATUS</span>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2 text-slate-400">
+          <i class="fas fa-info-circle text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">STATUS</span>
+        </div>
+        <!-- STATUS BADGE -->
+        <span id="statusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
       </div>
       <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
 
@@ -180,12 +184,9 @@
     <!-- VIEW: GAME -->
     <div id="viewGame" class="stage-view active-view absolute inset-0 flex items-center justify-center p-4">
       <div id="gridWrapper" class="flex flex-col">
-        <!-- Header kolom A-I -->
-        <div id="columnHeaders" class="grid gap-1.5 mb-1.5" style="grid-template-columns: 32px repeat(9, 1fr) 56px;"></div>
-        <!-- Grid sudoku -->
-        <div id="gridQuestionArea" class="grid gap-1.5" style="grid-template-columns: 32px repeat(9, 1fr) 56px;"></div>
-        <!-- Column clues -->
-        <div id="columnClues" class="grid gap-1.5 mt-1.5" style="grid-template-columns: 32px repeat(9, 1fr) 56px;"></div>
+        <div id="columnHeaders" class="grid gap-1.5 mb-1.5"></div>
+        <div id="gridQuestionArea" class="grid gap-1.5"></div>
+        <div id="columnClues" class="grid gap-1.5 mt-1.5"></div>
       </div>
     </div>
 
@@ -217,9 +218,7 @@
 
   </main>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- DEBUG PANEL (opsional, tinggal klik header untuk collapse)  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- DEBUG PANEL -->
   <div id="debugPanel">
     <div class="dbg-header" onclick="document.getElementById('debugPanel').classList.toggle('collapsed')">
       <span style="color:#a855f7;font-weight:bold;">🐛 DEBUG PANEL</span>
@@ -240,7 +239,35 @@
       </div>
     </div>
   </div>
+
   <script>
+    // ═══════════════════════════════════════════════════════════
+    // SAFE HELPERS — Anti-crash null reference
+    // ═══════════════════════════════════════════════════════════
+    function safeSetText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+    function safeSetClass(id, className) {
+      const el = document.getElementById(id);
+      if (el) el.className = className;
+    }
+    function safeToggle(id, removeCls, addCls) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove(removeCls);
+      el.classList.add(addCls);
+    }
+    function safeReplace(id, from, to) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.replace(from, to);
+    }
+    function safeSetHTML(id, html) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = html;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // LOGGER
     // ═══════════════════════════════════════════════════════════
@@ -265,8 +292,7 @@
     const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
     const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
 
-    // State global
-    let audioUnlocked = false;   // ← TAMBAHKAN INI
+    let audioUnlocked = false;
 
     // ═══════════════════════════════════════════════════════════
     // LEVEL CONFIG
@@ -278,7 +304,7 @@
     };
 
     // ═══════════════════════════════════════════════════════════
-    // DEBUG PANEL UPDATER
+    // DEBUG PANEL
     // ═══════════════════════════════════════════════════════════
     const DBG = {
       set: (id, text, cls = '') => {
@@ -288,13 +314,11 @@
           el.className = 'dbg-val ' + cls;
         }
       },
-      realtime: (text, cls) => DBG.set('dbgRealtime', text, cls),
-      control: (text, cls) => DBG.set('dbgControl', text, cls),
-      action: (text, cls) => DBG.set('dbgAction', text, cls),
-      level: (text, cls) => DBG.set('dbgLevel', text, cls),
-      updated: (text, cls) => DBG.set('dbgUpdated', text, cls),
-      engine: (text, cls) => DBG.set('dbgEngine', text, cls),
-      lastEvent: (text, cls) => DBG.set('dbgLastEvent', text, cls)
+      realtime: (t, c) => DBG.set('dbgRealtime', t, c),
+      action: (t, c) => DBG.set('dbgAction', t, c),
+      level: (t, c) => DBG.set('dbgLevel', t, c),
+      engine: (t, c) => DBG.set('dbgEngine', t, c),
+      lastEvent: (t, c) => DBG.set('dbgLastEvent', t, c)
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -453,7 +477,7 @@
 
         // 4. Update display target
         const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
-        document.getElementById('targetCellDisplay').textContent = expr;
+        safeSetText('targetCellDisplay', expr);
 
         // 5. Set durasi
         this.remainingSeconds = config.durationSec;
@@ -484,7 +508,7 @@
         this.updateTimerUI();
         this.updateStatus('STAGE READY', 'ready');
         this.hideLevelIndicator();
-        document.getElementById('targetCellDisplay').textContent = '--';
+        safeSetText('targetCellDisplay', '--');
         this.renderBlankBoard();
         DBG.engine('idle', '');
       }
@@ -588,204 +612,249 @@
       }
 
       updateStatus(text, state) {
-        document.getElementById('stageStatus').textContent = text;
+        // Guarded — semua null-safe
+        safeSetText('stageStatus', text);
+
         const badge = document.getElementById('statusBadge');
         const repeat = document.getElementById('repeatIndicator');
+
         if (state === 'active') {
-          badge.textContent = 'ACTIVE';
-          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          repeat.classList.replace('hidden', 'flex');
+          if (badge) {
+            badge.textContent = 'ACTIVE';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          }
+          if (repeat) repeat.classList.replace('hidden', 'flex');
         } else if (state === 'timeout') {
-          badge.textContent = 'TIMEOUT';
-          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          repeat.classList.replace('flex', 'hidden');
+          if (badge) {
+            badge.textContent = 'TIMEOUT';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20';
+          }
+          if (repeat) repeat.classList.replace('flex', 'hidden');
         } else {
-          badge.textContent = 'Ready';
-          badge.className = 'text-xs px-3 py-1 rounded-full font-mono bg-slate-800 text-gray-400 border border-white/5';
-          repeat.classList.replace('flex', 'hidden');
+          if (badge) {
+            badge.textContent = 'Ready';
+            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5';
+          }
+          if (repeat) repeat.classList.replace('flex', 'hidden');
         }
       }
 
       showLevelIndicator(label) {
-        document.getElementById('levelText').textContent = label;
-        document.getElementById('levelIndicator').classList.replace('hidden', 'flex');
+        safeSetText('levelText', label);
+        const el = document.getElementById('levelIndicator');
+        if (el) {
+          el.classList.remove('hidden');
+          el.classList.add('flex');
+        }
       }
       hideLevelIndicator() {
-        document.getElementById('levelIndicator').classList.replace('flex', 'hidden');
+        const el = document.getElementById('levelIndicator');
+        if (el) {
+          el.classList.remove('flex');
+          el.classList.add('hidden');
+        }
       }
 
       updateTimerUI() {
         const m = Math.floor(Math.max(0, this.remainingSeconds) / 60);
         const s = Math.max(0, this.remainingSeconds) % 60;
-        document.getElementById('timerDisplay').textContent =
-          `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        safeSetText('timerDisplay', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
       }
 
       updateLoopTimerUI(sec) {
         const el = document.getElementById('loopTimerDisplay');
+        if (!el) return;
         if (sec > 0) {
           el.classList.remove('hidden');
+          el.classList.add('flex');
           el.innerHTML = `<i class="fas fa-sync-alt fa-spin mr-1"></i>${sec}s`;
         } else {
           el.classList.add('hidden');
+          el.classList.remove('flex');
         }
       }
 
+      // ═══════════════════════════════════════════════════════
+      // RENDER GRID
+      // ═══════════════════════════════════════════════════════
+      _computeCellSize() {
+        const sidebar = document.querySelector('aside');
+        const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+        const availW = window.innerWidth - sidebarW - 60;
+        const availH = window.innerHeight - 100;
+        return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
+      }
+
       renderQuestionBoard() {
-  const container = document.getElementById('gridQuestionArea');
-  const colHeaders = document.getElementById('columnHeaders');
-  const colClues = document.getElementById('columnClues');
-  if (!container) return;
+        const container = document.getElementById('gridQuestionArea');
+        const colHeaders = document.getElementById('columnHeaders');
+        const colClues = document.getElementById('columnClues');
+        if (!container) return;
 
-  // Hitung ukuran cell optimal
-  const availableH = window.innerHeight - 80;  // ~80px untuk header kolom + clue
-  const availableW = window.innerWidth - 320 - 60;  // 320 = sidebar, 60 = padding
-  const cellSize = Math.floor(Math.min(availableW / 10.3, availableH / 10.3)) - 2;
-  const fontSize = Math.max(12, Math.floor(cellSize * 0.5));
+        const cellSize = this._computeCellSize();
+        const fontSize = Math.max(12, Math.floor(cellSize * 0.5));
+        const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
 
-  // Style grid
-  const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
-  container.style.gridTemplateColumns = gridCols;
-  if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
-  if (colClues) colClues.style.gridTemplateColumns = gridCols;
+        container.style.gridTemplateColumns = gridCols;
+        if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
+        if (colClues) colClues.style.gridTemplateColumns = gridCols;
 
-  // Header kolom (A-I)
-  if (colHeaders) {
-    colHeaders.innerHTML = '<div></div>';
-    for (let c = 0; c < 9; c++) {
-      const h = document.createElement('div');
-      h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-      h.textContent = COL_LETTERS[c];
-      colHeaders.appendChild(h);
+        // Header kolom A-I
+        if (colHeaders) {
+          colHeaders.innerHTML = '<div></div>';
+          for (let c = 0; c < 9; c++) {
+            const h = document.createElement('div');
+            h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+            h.textContent = COL_LETTERS[c];
+            colHeaders.appendChild(h);
+          }
+          colHeaders.appendChild(document.createElement('div'));
+        }
+
+        // Grid cell
+        container.innerHTML = '';
+        const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+
+        for (let r = 0; r < 9; r++) {
+          const rowHeader = document.createElement('div');
+          rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          rowHeader.textContent = r + 1;
+          container.appendChild(rowHeader);
+
+          for (let c = 0; c < 9; c++) {
+            const val = this.questionGrid[r][c];
+            const isTarget = targetSet.has(`${r},${c}`);
+            const cell = document.createElement('div');
+            let subgrid = '';
+            if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+            if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+
+            const style = isTarget
+              ? 'bg-amber-500/30 border-4 border-amber-400 animate-pulse z-20 shadow-2xl shadow-amber-500/50'
+              : 'bg-slate-800/80 border border-slate-700/60';
+            const textColor = isTarget ? 'text-white' : 'text-amber-400';
+
+            cell.style.width = cellSize + 'px';
+            cell.style.height = cellSize + 'px';
+            cell.style.fontSize = fontSize + 'px';
+            cell.className = `${style} rounded-lg flex items-center justify-center font-black ${textColor} transition-all ${subgrid}`;
+            cell.textContent = val || '';
+            container.appendChild(cell);
+          }
+
+          const rowClue = document.createElement('div');
+          rowClue.id = `rowClueQ-${r}`;
+          rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          rowClue.style.minHeight = cellSize + 'px';
+          container.appendChild(rowClue);
+        }
+
+        // Column clues
+        if (colClues) {
+          colClues.innerHTML = '<div></div>';
+          for (let c = 0; c < 9; c++) {
+            const cc = document.createElement('div');
+            cc.id = `colClueQ-${c}`;
+            cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+            colClues.appendChild(cc);
+          }
+          colClues.appendChild(document.createElement('div'));
+        }
+
+        this.renderClues();
+      }
+
+      renderClues() {
+        const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+        for (let r = 0; r < 9; r++) {
+          let green = 0;
+          for (let c = 0; c < 9; c++) {
+            if (targetSet.has(`${r},${c}`)) continue;
+            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+          }
+          const el = document.getElementById(`rowClueQ-${r}`);
+          if (el) el.innerHTML = this.renderDots(green, 9 - green);
+        }
+        for (let c = 0; c < 9; c++) {
+          let green = 0;
+          for (let r = 0; r < 9; r++) {
+            if (targetSet.has(`${r},${c}`)) continue;
+            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+          }
+          const el = document.getElementById(`colClueQ-${c}`);
+          if (el) el.innerHTML = this.renderDots(green, 9 - green);
+        }
+      }
+
+      renderDots(green, red) {
+        let html = '';
+        for (let i = 0; i < green; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
+        for (let i = 0; i < red; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
+        return html;
+      }
+
+      renderBlankBoard() {
+        const container = document.getElementById('gridQuestionArea');
+        const colHeaders = document.getElementById('columnHeaders');
+        const colClues = document.getElementById('columnClues');
+        if (!container) return;
+
+        const cellSize = this._computeCellSize();
+        const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
+
+        container.innerHTML = '';
+        if (colHeaders) colHeaders.innerHTML = '';
+        if (colClues) colClues.innerHTML = '';
+
+        container.style.gridTemplateColumns = gridCols;
+        if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
+        if (colClues) colClues.style.gridTemplateColumns = gridCols;
+
+        if (colHeaders) {
+          colHeaders.innerHTML = '<div></div>';
+          for (let c = 0; c < 9; c++) {
+            const h = document.createElement('div');
+            h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+            h.textContent = COL_LETTERS[c];
+            colHeaders.appendChild(h);
+          }
+          colHeaders.appendChild(document.createElement('div'));
+        }
+
+        for (let r = 0; r < 9; r++) {
+          const rowHeader = document.createElement('div');
+          rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          rowHeader.textContent = r + 1;
+          container.appendChild(rowHeader);
+
+          for (let c = 0; c < 9; c++) {
+            const cell = document.createElement('div');
+            let subgrid = '';
+            if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+            if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+            cell.style.width = cellSize + 'px';
+            cell.style.height = cellSize + 'px';
+            cell.className = `bg-slate-800/80 border border-slate-700/60 rounded-lg ${subgrid}`;
+            container.appendChild(cell);
+          }
+
+          const rowClue = document.createElement('div');
+          rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+          rowClue.style.minHeight = cellSize + 'px';
+          container.appendChild(rowClue);
+        }
+
+        if (colClues) {
+          colClues.innerHTML = '<div></div>';
+          for (let c = 0; c < 9; c++) {
+            const cc = document.createElement('div');
+            cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+            colClues.appendChild(cc);
+          }
+          colClues.appendChild(document.createElement('div'));
+        }
+      }
     }
-    const spacer = document.createElement('div');
-    colHeaders.appendChild(spacer);
-  }
-
-  // Grid cell
-  container.innerHTML = '';
-  const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
-
-  for (let r = 0; r < 9; r++) {
-    // Row header
-    const rowHeader = document.createElement('div');
-    rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-    rowHeader.textContent = r + 1;
-    container.appendChild(rowHeader);
-
-    // Cells
-    for (let c = 0; c < 9; c++) {
-      const val = this.questionGrid[r][c];
-      const isTarget = targetSet.has(`${r},${c}`);
-      const cell = document.createElement('div');
-      let subgrid = '';
-      if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
-      if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
-
-      const style = isTarget
-        ? 'bg-amber-500/30 border-4 border-amber-400 animate-pulse z-20 shadow-2xl shadow-amber-500/50'
-        : 'bg-slate-800/80 border border-slate-700/60';
-
-      const textColor = isTarget ? 'text-white' : 'text-amber-400';
-
-      cell.style.width = cellSize + 'px';
-      cell.style.height = cellSize + 'px';
-      cell.style.fontSize = fontSize + 'px';
-      cell.className = `${style} rounded-lg flex items-center justify-center font-black ${textColor} transition-all ${subgrid}`;
-      cell.textContent = val || '';
-      container.appendChild(cell);
-    }
-
-    // Row clue
-    const rowClue = document.createElement('div');
-    rowClue.id = `rowClueQ-${r}`;
-    rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[${cellSize}px] ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-    container.appendChild(rowClue);
-  }
-
-  // Column clues
-  if (colClues) {
-    colClues.innerHTML = '<div></div>';
-    for (let c = 0; c < 9; c++) {
-      const cc = document.createElement('div');
-      cc.id = `colClueQ-${c}`;
-      cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-      colClues.appendChild(cc);
-    }
-    const spacer = document.createElement('div');
-    colClues.appendChild(spacer);
-  }
-
-  this.renderClues();
-}
-
-renderBlankBoard() {
-  const container = document.getElementById('gridQuestionArea');
-  const colHeaders = document.getElementById('columnHeaders');
-  const colClues = document.getElementById('columnClues');
-  if (!container) return;
-
-  // Kosongkan semua
-  container.innerHTML = '';
-  if (colHeaders) colHeaders.innerHTML = '';
-  if (colClues) colClues.innerHTML = '';
-
-  // Hitung cell size
-  const availableH = window.innerHeight - 80;
-  const availableW = window.innerWidth - 320 - 60;
-  const cellSize = Math.floor(Math.min(availableW / 10.3, availableH / 10.3)) - 2;
-
-  const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
-  container.style.gridTemplateColumns = gridCols;
-  if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
-  if (colClues) colClues.style.gridTemplateColumns = gridCols;
-
-  // Header kolom
-  if (colHeaders) {
-    colHeaders.innerHTML = '<div></div>';
-    for (let c = 0; c < 9; c++) {
-      const h = document.createElement('div');
-      h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-      h.textContent = COL_LETTERS[c];
-      colHeaders.appendChild(h);
-    }
-    colHeaders.appendChild(document.createElement('div'));
-  }
-
-  // Grid cell kosong
-  for (let r = 0; r < 9; r++) {
-    const rowHeader = document.createElement('div');
-    rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-    rowHeader.textContent = r + 1;
-    container.appendChild(rowHeader);
-
-    for (let c = 0; c < 9; c++) {
-      const cell = document.createElement('div');
-      let subgrid = '';
-      if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
-      if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
-      cell.style.width = cellSize + 'px';
-      cell.style.height = cellSize + 'px';
-      cell.className = `bg-slate-800/80 border border-slate-700/60 rounded-lg ${subgrid}`;
-      container.appendChild(cell);
-    }
-
-    const rowClue = document.createElement('div');
-    rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-h-[${cellSize}px] ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-    container.appendChild(rowClue);
-  }
-
-  // Column clues
-  if (colClues) {
-    colClues.innerHTML = '<div></div>';
-    for (let c = 0; c < 9; c++) {
-      const cc = document.createElement('div');
-      cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-      colClues.appendChild(cc);
-    }
-    colClues.appendChild(document.createElement('div'));
-  }}}
-
 
     // ═══════════════════════════════════════════════════════════
     // VIEW SWITCHER
@@ -799,7 +868,8 @@ renderBlankBoard() {
       const gView = document.getElementById('viewGame');
       const lbView = document.getElementById('viewLeaderboard');
       const allView = document.getElementById('viewAllPlayers');
-      if (!gView) return;
+      if (!gView || !lbView || !allView) return;
+
       stopAutoScroll();
       gView.classList.add('hidden-view'); gView.classList.remove('active-view');
       lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
@@ -826,7 +896,7 @@ renderBlankBoard() {
     async function fetchAndRenderStageScores(isAll) {
       const { data, error } = await supabaseClient.from('game_scores')
         .select('user_unique_id, score_obtained, game_name')
-        .eq('game_name', 'Mimic Sudoku');   // ← FILTER TEPAT
+        .eq('game_name', 'Mimic Sudoku');
       if (error || !data) return;
       let map = {};
       data.forEach(r => {
@@ -839,6 +909,7 @@ renderBlankBoard() {
 
     function renderStageLeaderboard() {
       const c = document.getElementById('stageLeaderboardGrid');
+      if (!c) return;
       if (currentRevealedRank === 0 || cachedScores.length === 0) {
         c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`; return;
       }
@@ -856,6 +927,7 @@ renderBlankBoard() {
 
     function renderAllPlayersList() {
       const c = document.getElementById('allPlayersGrid');
+      if (!c) return;
       c.innerHTML = '';
       cachedScores.forEach((it, idx) => {
         const div = document.createElement('div');
@@ -873,6 +945,7 @@ renderBlankBoard() {
     function startAutoScroll() {
       stopAutoScroll();
       const el = document.getElementById('scrollContainer');
+      if (!el) return;
       let waiting = false;
       autoScrollInterval = setInterval(() => {
         if (waiting) return;
@@ -889,9 +962,10 @@ renderBlankBoard() {
     // UNLOCK AUDIO
     // ═══════════════════════════════════════════════════════════
     function unlockAudio() {
-      audioUnlocked = true;   // ← TAMBAHKAN INI
-      document.getElementById('audioUnlockOverlay').classList.add('hidden');
-      document.getElementById('stageStatus').textContent = "STAGE READY";
+      audioUnlocked = true;
+      const overlay = document.getElementById('audioUnlockOverlay');
+      if (overlay) overlay.classList.add('hidden');
+      safeSetText('stageStatus', "STAGE READY");
       LOG.ok('AUDIO', '✅ Unlocked. Stage siap.');
     }
 
@@ -900,23 +974,17 @@ renderBlankBoard() {
     // ═══════════════════════════════════════════════════════════
     async function debugReadAll() {
       LOG.step('DEBUG', '🔍 Baca semua tabel...');
-
-      const { data: control, error: e1 } = await supabaseClient
-        .from('system_mimic_sudoku_control').select('*');
+      const { data: control, error: e1 } = await supabaseClient.from('system_mimic_sudoku_control').select('*');
       if (e1) LOG.error('DEBUG', 'Control error', e1);
       else {
         console.log('%c📋 system_mimic_sudoku_control:', 'color:#10b981;font-weight:bold');
         console.table(control);
         if (control && control[0]) {
-          DBG.control('✓ ok', 'dbg-ok');
           DBG.action(control[0].action || '-');
           DBG.level(control[0].current_level || '-');
-          DBG.updated(control[0].updated_at ? new Date(control[0].updated_at).toLocaleTimeString() : '-');
         }
       }
-
-      const { data: sudoku, error: e2 } = await supabaseClient
-        .from('system_mimic_sudoku').select('id, grid_data, updated_at');
+      const { data: sudoku, error: e2 } = await supabaseClient.from('system_mimic_sudoku').select('id, grid_data, updated_at');
       if (e2) LOG.error('DEBUG', 'Sudoku error', e2);
       else {
         console.log('%c📋 system_mimic_sudoku:', 'color:#10b981;font-weight:bold');
@@ -927,34 +995,22 @@ renderBlankBoard() {
           console.log(`  id=${r.id} | ${preview}`);
         });
       }
-
-      const { data: layout, error: e3 } = await supabaseClient
-        .from('admin_layout_mimic_sudoku').select('*');
-      if (e3) LOG.error('DEBUG', 'Layout error', e3);
-      else {
-        console.log('%c📋 admin_layout_mimic_sudoku:', 'color:#10b981;font-weight:bold');
-        console.table(layout);
-      }
     }
     window.debugReadAll = debugReadAll;
 
     async function debugTrigger(action, level) {
-      LOG.step('DEBUG', `🧪 Trigger manual: ${action} / ${level}`);
+      LOG.step('DEBUG', `🧪 Trigger: ${action} / ${level}`);
       const { error } = await supabaseClient
         .from('system_mimic_sudoku_control')
-        .update({
-          action: action,
-          current_level: level,
-          updated_at: new Date().toISOString()
-        })
+        .update({ action, current_level: level, updated_at: new Date().toISOString() })
         .eq('id', 1);
       if (error) LOG.error('DEBUG', 'Gagal trigger', error);
-      else LOG.ok('DEBUG', 'Trigger terkirim. Tunggu event...');
+      else LOG.ok('DEBUG', 'Trigger terkirim.');
     }
     window.debugTrigger = debugTrigger;
 
     // ═══════════════════════════════════════════════════════════
-    // SUBSCRIBE: system_mimic_sudoku_control
+    // REALTIME LISTENER: system_mimic_sudoku_control
     // ═══════════════════════════════════════════════════════════
     const engine = new StageEngine();
     let lastControlSignature = '';
@@ -971,25 +1027,16 @@ renderBlankBoard() {
       }, (payload) => {
         eventCount++;
         const now = new Date().toLocaleTimeString();
-        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
-        console.log(`%c📡 [EVENT #${eventCount}] UPDATE DITERIMA @ ${now}`, 'color:#10b981;font-weight:bold;font-size:15px');
-        console.log('%c📦 payload.new:', 'color:#3b82f6;font-weight:bold', payload.new);
+        console.log(`%c📡 [EVENT #${eventCount}] UPDATE @ ${now}`, 'color:#10b981;font-weight:bold;font-size:15px');
+        console.log('  payload.new:', payload.new);
 
-        if (!payload.new) {
-          LOG.warn('EVENT', 'payload.new kosong');
-          return;
-        }
-
+        if (!payload.new) return;
         const data = payload.new;
         DBG.lastEvent(`#${eventCount} ${data.action}`, 'dbg-ok');
         DBG.action(data.action || '-');
         DBG.level(data.current_level || '-');
-        DBG.updated(data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : '-');
 
         const sig = `${data.action}|${data.current_level}|${data.updated_at}`;
-        LOG.info('EVENT', `signature: ${sig}`);
-        LOG.info('EVENT', `last:      ${lastControlSignature}`);
-
         if (sig === lastControlSignature) {
           LOG.warn('EVENT', '⚠️ Signature sama, SKIP');
           return;
@@ -1003,20 +1050,17 @@ renderBlankBoard() {
         } else if (data.action === 'RESET') {
           LOG.ok('EVENT', '→ engine.reset()');
           engine.reset();
-        } else {
-          LOG.warn('EVENT', `Action tidak dikenal: ${data.action}`);
         }
-        console.log('%c════════════════════════════════════════', 'color:#10b981;font-weight:bold');
       })
       .subscribe((status) => {
         LOG.info('INIT', `Channel status: ${status}`);
         if (status === 'SUBSCRIBED') {
           DBG.realtime('✓ subscribed', 'dbg-ok');
-          LOG.ok('INIT', '✅ Listener siap. Menunggu event...');
+          LOG.ok('INIT', '✅ Listener siap.');
           setTimeout(() => debugReadAll(), 500);
         } else if (status === 'CHANNEL_ERROR') {
           DBG.realtime('✗ error', 'dbg-err');
-          LOG.error('INIT', '❌ Gagal subscribe! Cek Realtime di Supabase.');
+          LOG.error('INIT', '❌ Gagal subscribe!');
         } else if (status === 'TIMED_OUT') {
           DBG.realtime('✗ timeout', 'dbg-err');
         } else if (status === 'CLOSED') {
@@ -1027,7 +1071,7 @@ renderBlankBoard() {
       });
 
     // ═══════════════════════════════════════════════════════════
-    // SUBSCRIBE: admin_layout_mimic_sudoku
+    // REALTIME: admin_layout_mimic_sudoku
     // ═══════════════════════════════════════════════════════════
     supabaseClient.channel('stage_layout_remote')
       .on('postgres_changes', {
@@ -1041,6 +1085,18 @@ renderBlankBoard() {
         }
       })
       .subscribe();
+
+    // ═══════════════════════════════════════════════════════════
+    // RESIZE HANDLER
+    // ═══════════════════════════════════════════════════════════
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (engine.isPlaying) engine.renderQuestionBoard();
+        else engine.renderBlankBoard();
+      }, 200);
+    });
 
     // ═══════════════════════════════════════════════════════════
     // INIT
