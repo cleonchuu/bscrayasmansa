@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frenzy Cross Math - Stage Display</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800;900&display=swap');
+    body { font-family: 'Inter', sans-serif; background: #030712; color: #fff; overflow: hidden; }
+    .font-mono-code { font-family: 'Fira Code', monospace; }
+
+    .stage-view { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .stage-view.hidden-view { opacity: 0; transform: scale(0.92); pointer-events: none; position: absolute; inset: 0; }
+    .stage-view.active-view { opacity: 1; transform: scale(1); position: relative; }
+
+    .cell-void { background: #05080f; border: 1px solid rgba(255,255,255,0.02); }
+    .cell-op { background: #0f172a; border: 1px solid #1e293b; color: #38bdf8; font-family: 'Fira Code', monospace; font-weight: 700; border-radius: 6px; }
+    .cell-num-open { background: #1e293b; border: 1.5px solid #334155; color: #fff; font-weight: 800; border-radius: 6px; }
+    .cell-num-hidden { background: #1e1b4b; border: 1.5px solid #4338ca; color: #a5b4fc; font-weight: 800; border-radius: 6px; box-shadow: inset 0 0 10px rgba(99,102,241,0.25); }
+    .cell-goal { background: #881337; border: 2px solid #f43f5e; color: #fff; font-weight: 900; border-radius: 6px; box-shadow: 0 0 20px rgba(244,63,94,0.7); animation: pulse-glow 2s infinite alternate; }
+    @keyframes pulse-glow { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(244,63,94,0.5); border-radius: 10px; }
+  </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl mb-4 z-20 relative">
+    <div class="flex items-center gap-3">
+      <div class="p-3 bg-rose-600/20 text-rose-400 rounded-2xl border border-rose-500/30">
+        <i class="fas fa-calculator text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-wider text-white uppercase">FRENZY CROSS MATH</h1>
+        <p id="stageStatus" class="text-xs text-slate-400">MENUNGGU SINYAL ADMIN...</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="sessionIndicator" class="hidden items-center gap-2 bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 rounded-xl">
+        <i class="fas fa-layer-group text-rose-400 text-xs"></i>
+        <span id="sessionText" class="text-rose-400 font-bold text-xs tracking-wider uppercase">SESI 1 / 5</span>
+      </div>
+      <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+        </span>
+        <span class="text-amber-400 font-bold text-xs tracking-wider uppercase">AKTIF</span>
+      </div>
+      <div class="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2">
+        <i class="fas fa-stopwatch text-emerald-400 text-xs"></i>
+        <span id="timerDisplay" class="text-xs font-bold text-emerald-400 font-mono">--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="w-full max-w-7xl mx-auto flex-1 relative">
+    <!-- VIEW GAME -->
+    <main id="viewGame" class="stage-view active-view flex flex-col items-center justify-center h-full w-full">
+      <div class="w-full flex justify-center">
+        <div id="gridContainer" class="grid gap-1 p-4 bg-slate-950 rounded-2xl border border-slate-800/80 shadow-inner"></div>
+      </div>
+      <div class="mt-4 bg-slate-900 border border-rose-500/40 p-3 rounded-2xl text-center">
+        <p class="text-xs text-slate-300 tracking-widest uppercase">SELESAIKAN PUZZLE</p>
+        <h2 id="sessionInfo" class="text-2xl font-black text-rose-400 font-mono-code pt-1">SESI -- / --</h2>
+      </div>
+    </main>
+
+    <!-- VIEW LEADERBOARD -->
+    <div id="viewLeaderboard" class="stage-view hidden-view bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 text-center relative">
+      <h2 class="text-3xl font-black text-white mb-6">
+        <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT
+      </h2>
+      <div id="stageLeaderboardGrid" class="max-w-lg mx-auto min-h-[420px] flex items-center justify-center">
+        <p class="text-slate-500">Menunggu peringkat...</p>
+      </div>
+    </div>
+
+    <!-- VIEW ALL PLAYERS -->
+    <div id="viewAllPlayers" class="stage-view hidden-view bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8">
+      <h2 class="text-3xl font-black text-white mb-6 text-center">
+        <i class="fas fa-users text-indigo-400"></i> SEMUA PESERTA
+      </h2>
+      <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll">
+        <div id="allPlayersGrid" class="grid grid-cols-2 gap-3"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI SUPABASE
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+
+  // ═══════════════════════════════════════════════════════════
+  // SESSION CONFIG — UBAH DI SINI KALAU MAU
+  // ═══════════════════════════════════════════════════════════
+  const SESSION_CONFIG = {
+    DURATION_PER_SESSION: 30,   // 30 detik per sesi
+    TOTAL_SESSIONS: 5,          // 5 sesi
+    GRID_SIZE: 15,              // 15 x 15
+    MAX_POINT: 10,              // poin max per sesi
+    MIN_POINT: 5                // poin min (½ max)
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // AUDIO ENGINE
+  // ═══════════════════════════════════════════════════════════
+  class WebAudioEngine {
+    constructor() {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.cache = new Map();
+    }
+    async fetchAndCache(url) {
+      if (this.cache.has(url)) return this.cache.get(url);
+      try {
+        const res = await fetch(url);
+        const buf = await res.arrayBuffer();
+        const audio = await this.ctx.decodeAudioData(buf);
+        this.cache.set(url, audio);
+        return audio;
+      } catch (e) {
+        console.warn(`[AUDIO] Gagal load ${url.split('/').pop()}:`, e.message);
+        return null;
+      }
+    }
+    async play(url) {
+      const buf = await this.fetchAndCache(url);
+      if (!buf) return;
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+      console.log(`[AUDIO] 🔊 Playing: ${url.split('/').pop()}`);
+    }
+  }
+  const audioEngine = new WebAudioEngine();
+
+  // ═══════════════════════════════════════════════════════════
+  // MATH CORE
+  // ═══════════════════════════════════════════════════════════
+  class MathCore {
+    static OPERATORS = ['+', '-', '×', '÷'];
+
+    static eval(a, op, b) {
+      switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '×': return a * b;
+        case '÷': return (b !== 0 && a % b === 0) ? a / b : null;
+        default: return null;
+      }
+    }
+
+    static generateValidTripletDual(valA, valC, maxVal = 99) {
+      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+      for (let op of shuffledOps) {
+        let b = null;
+        if (op === '+') b = valC - valA;
+        else if (op === '-') b = valA - valC;
+        else if (op === '×') { if (valA !== 0 && valC % valA === 0) b = valC / valA; }
+        else if (op === '÷') { if (valC !== 0 && valA % valC === 0) b = valA / valC; }
+        if (b !== null && Number.isInteger(b) && b > 0 && b <= maxVal) {
+          return { a: valA, op, b, c: valC };
+        }
+      }
+      return null;
+    }
+
+    static generateValidTriplet(fixedValue = null, position = 'A', maxVal = 99) {
+      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+      for (let op of shuffledOps) {
+        let a, b, c;
+        if (fixedValue !== null) {
+          if (position === 'A') {
+            a = fixedValue;
+            if (op === '+') { b = Math.floor(Math.random() * 20) + 1; c = a + b; }
+            else if (op === '-') { if (a > 1) { b = Math.floor(Math.random() * (a - 1)) + 1; c = a - b; } else continue; }
+            else if (op === '×') { b = Math.floor(Math.random() * 8) + 2; c = a * b; }
+            else if (op === '÷') {
+              let factors = [];
+              for (let i = 1; i <= a; i++) if (a % i === 0) factors.push(i);
+              b = factors[Math.floor(Math.random() * factors.length)];
+              c = a / b;
+            }
+          } else if (position === 'C') {
+            c = fixedValue;
+            if (op === '+') { if (c > 1) { a = Math.floor(Math.random() * (c - 1)) + 1; b = c - a; } else continue; }
+            else if (op === '-') { b = Math.floor(Math.random() * 25) + 1; a = c + b; }
+            else if (op === '×') {
+              let factors = [];
+              for (let i = 1; i <= c; i++) if (c % i === 0) factors.push(i);
+              a = factors[Math.floor(Math.random() * factors.length)];
+              b = c / a;
+            }
+            else if (op === '÷') { b = Math.floor(Math.random() * 6) + 2; a = c * b; }
+          }
+        } else {
+          a = Math.floor(Math.random() * 15) + 2;
+          b = Math.floor(Math.random() * 10) + 1;
+          c = this.eval(a, op, b);
+        }
+        if (a !== undefined && b !== undefined && c !== undefined && c !== null &&
+            a >= 0 && b >= 0 && c >= 0 && a <= maxVal && b <= maxVal && c <= maxVal) {
+          return { a, op, b, c };
+        }
+      }
+      return { a: 10, op: '+', b: 5, c: 15 };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // GRID NODE
+  // ═══════════════════════════════════════════════════════════
+  class GridNode {
+    constructor(r, c) {
+      this.r = r; this.c = c;
+      this.id = `node_${r}_${c}`;
+      this.type = 'void';
+      this.val = null;
+      this.isHidden = true;
+      this.isTarget = false;
+      this.connectedBlocks = [];
+    }
+    reset() {
+      this.type = 'void'; this.val = null;
+      this.isHidden = true; this.isTarget = false;
+      this.connectedBlocks = [];
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EQUATION BLOCK
+  // ═══════════════════════════════════════════════════════════
+  class EquationBlock {
+    constructor(id, r, c, dir, triplet, nodes) {
+      this.id = id; this.r = r; this.c = c;
+      this.dir = dir; this.triplet = triplet; this.nodes = nodes;
+    }
+    getInputs() { return [this.nodes[0], this.nodes[2], this.nodes[4]]; }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DOMINO MAZE ENGINE
+  // ═══════════════════════════════════════════════════════════
+  class DominoMazeEngine {
+    constructor(size = 15) {
+      this.size = size;
+      this.grid = Array.from({ length: size }, (_, r) =>
+        Array.from({ length: size }, (_, c) => new GridNode(r, c))
+      );
+      this.blocks = [];
+      this.numberNodes = [];
+      this.goalNode = null;
+      this.maxChainDepth = 0;
+    }
+
+    resetGrid() {
+      for (let r = 0; r < this.size; r++)
+        for (let c = 0; c < this.size; c++)
+          this.grid[r][c].reset();
+      this.blocks = []; this.numberNodes = [];
+      this.goalNode = null; this.maxChainDepth = 0;
+    }
+
+    getNode(r, c) {
+      if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
+      return this.grid[r][c];
+    }
+
+    canPlaceBlock(r, c, dir) {
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      for (let i = 0; i < 5; i++) if (!this.getNode(r + dr * i, c + dc * i)) return false;
+      const prev = this.getNode(r - dr, c - dc);
+      if (prev && prev.type !== 'void') return false;
+      const next = this.getNode(r + dr * 5, c + dc * 5);
+      if (next && next.type !== 'void') return false;
+      const pattern = ['number', 'operator', 'number', 'operator', 'number'];
+      for (let i = 0; i < 5; i++) {
+        const node = this.getNode(r + dr * i, c + dc * i);
+        if (node.type !== 'void') {
+          if (node.type !== pattern[i]) return false;
+          if (pattern[i] === 'operator') return false;
+        }
+      }
+      return true;
+    }
+
+    insertBlock(r, c, dir, fixedVal = null, pos = 'A') {
+      if (!this.canPlaceBlock(r, c, dir)) return null;
+      const triplet = MathCore.generateValidTriplet(fixedVal, pos);
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      const layout = [
+        { r, c, type: 'number', val: triplet.a },
+        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+      ];
+      for (let idx of [0, 2, 4]) {
+        const node = this.getNode(layout[idx].r, layout[idx].c);
+        if (node.type === 'number' && node.val !== layout[idx].val) return null;
+      }
+      const blockNodes = [];
+      layout.forEach(spec => {
+        const node = this.getNode(spec.r, spec.c);
+        node.type = spec.type; node.val = spec.val;
+        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
+        blockNodes.push(node);
+      });
+      const block = new EquationBlock(`blk_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
+      blockNodes.forEach(n => n.connectedBlocks.push(block));
+      this.blocks.push(block);
+      return block;
+    }
+
+    insertJunctionBlock(r, c, dir, valA, valC) {
+      if (!this.canPlaceBlock(r, c, dir)) return null;
+      const triplet = MathCore.generateValidTripletDual(valA, valC);
+      if (!triplet) return null;
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      const layout = [
+        { r, c, type: 'number', val: triplet.a },
+        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+      ];
+      const blockNodes = [];
+      layout.forEach(spec => {
+        const node = this.getNode(spec.r, spec.c);
+        node.type = spec.type; node.val = spec.val;
+        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
+        blockNodes.push(node);
+      });
+      const block = new EquationBlock(`blk_junc_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
+      blockNodes.forEach(n => n.connectedBlocks.push(block));
+      this.blocks.push(block);
+      return block;
+    }
+
+    generateOrganicLayout() {
+      let curR = Math.floor(this.size / 3);
+      let curC = Math.floor(this.size / 3);
+      let seedVal = Math.floor(Math.random() * 10) + 2;
+      let chainLen = 0;
+      let lastDir = null;
+      const targetBlocks = Math.floor(this.size * 1.2);
+
+      while (chainLen < targetBlocks) {
+        const nextDir = (lastDir === 'H') ? 'V' : (lastDir === 'V' ? 'H' : (Math.random() > 0.5 ? 'H' : 'V'));
+        const options = [];
+        if (nextDir === 'H') {
+          options.push({ dir: 'H', r: curR, c: curC, nextR: curR, nextC: curC + 4, pos: 'A' });
+          options.push({ dir: 'H', r: curR, c: curC - 4, nextR: curR, nextC: curC - 4, pos: 'C' });
+        } else {
+          options.push({ dir: 'V', r: curR, c: curC, nextR: curR + 4, nextC: curC, pos: 'A' });
+          options.push({ dir: 'V', r: curR - 4, c: curC, nextR: curR - 4, nextC: curC, pos: 'C' });
+        }
+        options.sort(() => Math.random() - 0.5);
+        let inserted = false;
+        for (let opt of options) {
+          const block = this.insertBlock(opt.r, opt.c, opt.dir, seedVal, opt.pos);
+          if (block) {
+            curR = opt.nextR; curC = opt.nextC;
+            seedVal = this.getNode(curR, curC).val;
+            lastDir = opt.dir; chainLen++; inserted = true; break;
+          }
+        }
+        if (!inserted) break;
+      }
+
+      let queue = [...this.numberNodes].sort(() => Math.random() - 0.5);
+      let attempts = 0;
+      while (queue.length > 0 && attempts < 1000) {
+        attempts++;
+        const node = queue.shift();
+        if (!node) continue;
+        let paired = false;
+        for (let otherNode of this.numberNodes) {
+          if (otherNode !== node && (otherNode.r === node.r || otherNode.c === node.c)) {
+            if (Math.abs(otherNode.r - node.r) === 4 && otherNode.c === node.c) {
+              const minR = Math.min(node.r, otherNode.r);
+              const valA = node.r === minR ? node.val : otherNode.val;
+              const valC = node.r === minR ? otherNode.val : node.val;
+              if (this.insertJunctionBlock(minR, node.c, 'V', valA, valC)) { paired = true; break; }
+            } else if (Math.abs(otherNode.c - node.c) === 4 && otherNode.r === node.r) {
+              const minC = Math.min(node.c, otherNode.c);
+              const valA = node.c === minC ? node.val : otherNode.val;
+              const valC = node.c === minC ? otherNode.val : node.val;
+              if (this.insertJunctionBlock(node.r, minC, 'H', valA, valC)) { paired = true; break; }
+            }
+          }
+        }
+        if (paired) continue;
+        const branchOpts = [
+          { dir: 'H', r: node.r, c: node.c, pos: 'A' },
+          { dir: 'V', r: node.r, c: node.c, pos: 'A' },
+          { dir: 'H', r: node.r, c: node.c - 4, pos: 'C' },
+          { dir: 'V', r: node.r - 4, c: node.c, pos: 'C' }
+        ].sort(() => Math.random() - 0.5);
+        for (let opt of branchOpts) {
+          const block = this.insertBlock(opt.r, opt.c, opt.dir, node.val, opt.pos);
+          if (block) {
+            block.nodes.forEach(n => { if (n.type === 'number' && !queue.includes(n)) queue.push(n); });
+            break;
+          }
+        }
+      }
+    }
+
+    solveLongestPathAndSetGoal() {
+      this.numberNodes.forEach(n => { n.isHidden = true; n.isTarget = false; });
+      if (this.blocks.length === 0) return;
+      let leafBlocks = this.blocks.filter(b => b.getInputs().some(n => n.connectedBlocks.length === 1));
+      if (leafBlocks.length < 2) leafBlocks = this.blocks.slice(0, 3);
+      let knownNodes = new Set();
+      leafBlocks.forEach(b => {
+        let inputs = b.getInputs();
+        inputs[0].isHidden = false; inputs[1].isHidden = false;
+        knownNodes.add(inputs[0]); knownNodes.add(inputs[1]);
+      });
+      let solvedBlocks = new Set();
+      let stepCount = 1;
+      let progress = true;
+      let lastSolvedNode = null;
+      let maxStepRecorded = 0;
+      while (progress) {
+        progress = false;
+        for (let block of this.blocks) {
+          if (solvedBlocks.has(block)) continue;
+          const inputs = block.getInputs();
+          const knownInputs = inputs.filter(n => knownNodes.has(n));
+          if (knownInputs.length >= 2) {
+            const unknownInputs = inputs.filter(n => !knownNodes.has(n));
+            if (unknownInputs.length === 1) {
+              const targetNode = unknownInputs[0];
+              knownNodes.add(targetNode);
+              lastSolvedNode = targetNode;
+              maxStepRecorded = stepCount;
+            }
+            solvedBlocks.add(block);
+            stepCount++;
+            progress = true;
+          }
+        }
+      }
+      this.goalNode = lastSolvedNode;
+      if (this.goalNode) {
+        this.goalNode.isTarget = true;
+        this.maxChainDepth = maxStepRecorded;
+      }
+    }
+
+    generate() {
+      const minTargetBlocks = Math.floor(this.size * 0.8);
+      let maxRetries = 20;
+      let attempt = 0;
+      while (attempt < maxRetries) {
+        attempt++;
+        this.resetGrid();
+        this.generateOrganicLayout();
+        if (this.blocks.length >= minTargetBlocks) {
+          this.solveLongestPathAndSetGoal();
+          if (this.maxChainDepth >= 5) break;
+        }
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let currentEngine = null;
+  let currentSessionIndex = 0;
+  let isPlaying = false;
+  let sessionTimer = null;
+  let sessionTimeLeft = 0;
+  let lastControlSig = '';
+
+  // ═══════════════════════════════════════════════════════════
+  // SESSION ENGINE
+  // ═══════════════════════════════════════════════════════════
+  async function startSession() {
+    console.log(`[SESSION] ▶ Memulai sesi ${currentSessionIndex + 1}/${SESSION_CONFIG.TOTAL_SESSIONS}`);
+    isPlaying = true;
+
+    // Update UI
+    document.getElementById('sessionText').textContent = `SESI ${currentSessionIndex + 1} / ${SESSION_CONFIG.TOTAL_SESSIONS}`;
+    document.getElementById('sessionIndicator').classList.replace('hidden', 'flex');
+    document.getElementById('repeatIndicator').classList.replace('hidden', 'flex');
+    document.getElementById('sessionInfo').textContent = `SESI ${currentSessionIndex + 1} / ${SESSION_CONFIG.TOTAL_SESSIONS}`;
+    document.getElementById('stageStatus').textContent = `SESI ${currentSessionIndex + 1} BERJALAN`;
+
+    // Generate puzzle
+    console.log('[SESSION] Generating puzzle...');
+    currentEngine = new DominoMazeEngine(SESSION_CONFIG.GRID_SIZE);
+    currentEngine.generate();
+    console.log(`[SESSION] Puzzle selesai. Blocks: ${currentEngine.blocks.length}, Depth: ${currentEngine.maxChainDepth}`);
+    renderGrid();
+
+    const answer = currentEngine.goalNode ? currentEngine.goalNode.val : null;
+    console.log(`[SESSION] Jawaban: ${answer}`);
+
+    await publishPuzzle(answer);
+    startSessionTimer();
+  }
+
+  async function publishPuzzle(answer) {
+    try {
+      await supabaseClient
+        .from('system_frenzy_cross_math')
+        .update({
+          target_answer: answer,
+          current_puzzle_json: {
+            size: currentEngine.size,
+            grid: currentEngine.grid.map(row => row.map(n => ({
+              type: n.type, val: n.val, isHidden: n.isHidden, isTarget: n.isTarget
+            }))),
+            goalNode: currentEngine.goalNode ? { r: currentEngine.goalNode.r, c: currentEngine.goalNode.c } : null
+          },
+          updated_at: new Date().toISOString()
+        })
+        .in('id', [1, 2]);
+      console.log('[SUPA] ✅ Puzzle & jawaban tersimpan.');
+    } catch (err) {
+      console.error('[SUPA] ❌ Gagal publish:', err);
+    }
+  }
+
+  function startSessionTimer() {
+    if (sessionTimer) clearInterval(sessionTimer);
+    sessionTimeLeft = SESSION_CONFIG.DURATION_PER_SESSION;
+    updateTimerUI();
+
+    sessionTimer = setInterval(() => {
+      sessionTimeLeft--;
+      updateTimerUI();
+      if (sessionTimeLeft <= 0) {
+        clearInterval(sessionTimer);
+        endSession();
+      }
+    }, 1000);
+  }
+
+  function updateTimerUI() {
+    const m = Math.floor(sessionTimeLeft / 60);
+    const s = sessionTimeLeft % 60;
+    document.getElementById('timerDisplay').textContent =
+      `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  async function endSession() {
+    currentSessionIndex++;
+    const isLastSession = currentSessionIndex >= SESSION_CONFIG.TOTAL_SESSIONS;
+
+    if (!isLastSession) {
+      // MASIH ADA SESI BERIKUTNYA → BELL
+      console.log(`[SESSION] ✅ Sesi ${currentSessionIndex} selesai. Lanjut ke sesi ${currentSessionIndex + 1}`);
+      console.log('[AUDIO] 🔔 Bell (masa loop)');
+      audioEngine.play(SOUND_BELL);
+
+      document.getElementById('stageStatus').textContent = `TRANSISI KE SESI ${currentSessionIndex + 1}...`;
+      await new Promise(r => setTimeout(r, 2000));
+      startSession();
+    } else {
+      // SEMUA SESI SELESAI → BEEP
+      console.log(`[SESSION] ✅ Semua ${SESSION_CONFIG.TOTAL_SESSIONS} sesi selesai.`);
+      console.log('[AUDIO] 🔕 Beep (loop habis)');
+      audioEngine.play(SOUND_BEEP);
+
+      isPlaying = false;
+      document.getElementById('stageStatus').textContent = 'SEMUA SESI SELESAI';
+      document.getElementById('repeatIndicator').classList.replace('flex', 'hidden');
+      document.getElementById('sessionIndicator').classList.replace('flex', 'hidden');
+      document.getElementById('timerDisplay').textContent = '--:--';
+
+      await supabaseClient
+        .from('frenzy_cross_math_control')
+        .update({ action: 'RESET', updated_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      console.log('[SESSION] Control direset.');
+    }
+  }
+
+  function resetStage() {
+    console.log('[STAGE] Reset');
+    isPlaying = false;
+    currentSessionIndex = 0;
+    if (sessionTimer) clearInterval(sessionTimer);
+    document.getElementById('sessionIndicator').classList.replace('flex', 'hidden');
+    document.getElementById('repeatIndicator').classList.replace('flex', 'hidden');
+    document.getElementById('stageStatus').textContent = 'STAGE READY';
+    document.getElementById('timerDisplay').textContent = '--:--';
+    document.getElementById('gridContainer').innerHTML = '';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER GRID
+  // ═══════════════════════════════════════════════════════════
+  function renderGrid() {
+    if (!currentEngine) return;
+    const container = document.getElementById('gridContainer');
+    const size = currentEngine.size;
+    container.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+    container.innerHTML = '';
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const node = currentEngine.grid[r][c];
+        const div = document.createElement('div');
+        div.className = "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex items-center justify-center font-bold text-xs transition-all select-none";
+
+        if (node.type === 'void') div.className += " cell-void";
+        else if (node.type === 'operator') { div.className += " cell-op"; div.textContent = node.val; }
+        else if (node.type === 'number') {
+          if (node.isTarget) { div.className += " cell-goal"; div.textContent = "GOAL"; }
+          else if (node.isHidden) { div.className += " cell-num-hidden"; div.textContent = "?"; }
+          else { div.className += " cell-num-open"; div.textContent = node.val; }
+        }
+        container.appendChild(div);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // VIEW SWITCHER
+  // ═══════════════════════════════════════════════════════════
+  let cachedScores = [];
+  let lastRevealedRank = -1;
+  let autoScrollInterval = null;
+
+  function handleViewSwitch(viewName, rank) {
+    ['viewGame', 'viewLeaderboard', 'viewAllPlayers'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
+    });
+
+    if (viewName === 'leaderboard') {
+      const v = document.getElementById('viewLeaderboard');
+      v.classList.remove('hidden-view'); v.classList.add('active-view');
+      if (rank !== lastRevealedRank) { lastRevealedRank = rank; fetchAndRenderScores(false, rank); }
+    } else if (viewName === 'all_players') {
+      const v = document.getElementById('viewAllPlayers');
+      v.classList.remove('hidden-view'); v.classList.add('active-view');
+      lastRevealedRank = -1;
+      fetchAndRenderScores(true);
+    } else {
+      const v = document.getElementById('viewGame');
+      v.classList.remove('hidden-view'); v.classList.add('active-view');
+      lastRevealedRank = -1;
+    }
+  }
+
+  async function fetchAndRenderScores(isAll, rank) {
+    const { data } = await supabaseClient.from('game_scores')
+      .select('user_unique_id, score_obtained, game_name')
+      .eq('game_name', 'Frenzy Cross Math');
+    if (!data) return;
+    let map = {};
+    data.forEach(r => { const u = r.user_unique_id || 'Tanpa Nama'; map[u] = (map[u] || 0) + (r.score_obtained || 0); });
+    cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a, b) => b.total - a.total);
+    if (isAll) renderAllPlayers(); else renderLeaderboard(rank);
+  }
+
+  function renderLeaderboard(rank) {
+    const c = document.getElementById('stageLeaderboardGrid');
+    if (!rank || rank === 0 || cachedScores.length === 0) {
+      c.innerHTML = `<p class="text-slate-500 text-lg">Siap-siap... Pengumuman Pemenang!</p>`; return;
+    }
+    const p = cachedScores[rank - 1];
+    if (!p) { c.innerHTML = `<p class="text-slate-400">Belum ada data #${rank}</p>`; return; }
+    const av = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    c.innerHTML = `
+      <div class="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
+        <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${rank}</div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${av}" class="w-full h-full object-contain"/></div>
+        <h3 class="text-3xl font-black">${p.uid}</h3>
+        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${Math.round(p.total)} PTS</div>
+      </div>`;
+  }
+
+  function renderAllPlayers() {
+    const c = document.getElementById('allPlayersGrid');
+    c.innerHTML = '';
+    cachedScores.forEach((it, idx) => {
+      const d = document.createElement('div');
+      d.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex justify-between';
+      d.innerHTML = `<span class="text-sm font-semibold">#${idx+1} ${it.uid}</span><span class="text-sm font-mono font-bold text-indigo-400">+${Math.round(it.total)} PTS</span>`;
+      c.appendChild(d);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // REALTIME LISTENERS
+  // ═══════════════════════════════════════════════════════════
+  supabaseClient.channel('stage_frenzy')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'frenzy_cross_math_control' }, (p) => {
+      if (!p.new) return;
+      const sig = `${p.new.action}|${p.new.updated_at}`;
+      if (sig === lastControlSig) return;
+      lastControlSig = sig;
+
+      const { action } = p.new;
+      console.log('[EVENT] Control action:', action);
+
+      if (action === 'START_GAME' && !isPlaying) {
+        currentSessionIndex = 0;
+        startSession();
+      } else if (action === 'RESET') {
+        resetStage();
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_frenzy_cross_math' }, (p) => {
+      if (p.new) handleViewSwitch(p.new.current_view, p.new.revealed_rank);
+    })
+    .subscribe();
+
+  // Polling fallback
+  setInterval(async () => {
+    const { data } = await supabaseClient
+      .from('frenzy_cross_math_control').select('action, updated_at').eq('id', 1).maybeSingle();
+    if (data) {
+      const sig = `${data.action}|${data.updated_at}`;
+      if (sig !== lastControlSig) {
+        lastControlSig = sig;
+        if (data.action === 'START_GAME' && !isPlaying) {
+          currentSessionIndex = 0;
+          startSession();
+        } else if (data.action === 'RESET') {
+          resetStage();
+        }
+      }
+    }
+  }, 3000);
+
+  // Initial layout
+  (async () => {
+    const { data } = await supabaseClient
+      .from('admin_layout_frenzy_cross_math').select('*').eq('id', 1).maybeSingle();
+    if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+  })();
+</script>
+</body>
+</html>

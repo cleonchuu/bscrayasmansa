@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kiosk - Frenzy Cross Math</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body { background: #0f172a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+    .flash-screen { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: white; }
+    .flash-correct { background: #16a34a; }
+    .flash-wrong { background: #dc2626; }
+    .freeze-screen { position: fixed; inset: 0; z-index: 9000; background: rgba(15,23,42,0.95); backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .calc-btn { background: #334155; color: #fff; font-size: 1.8rem; font-weight: bold; border-radius: 1rem; padding: 1.25rem; transition: all 0.1s; }
+    .calc-btn:active:not(:disabled) { transform: scale(0.95); background: #475569; }
+    .calc-btn:disabled { opacity: 0.4; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
+    <i class="fas fa-lock text-5xl text-rose-500 mb-4"></i>
+    <h2 id="freezeTitle" class="text-3xl font-black text-rose-500 uppercase mb-2">SESI DIBEKUKAN</h2>
+    <p id="freezeMessage" class="text-slate-400 text-sm">Menunggu admin...</p>
+  </div>
+
+  <div id="flashOverlay" class="flash-screen hidden">
+    <div id="flashIcon" class="text-8xl mb-4"></div>
+    <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
+  </div>
+
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
+      <div>
+        <h1 class="text-xl font-black text-rose-400">🧮 KIOSK PESERTA</h1>
+        <p class="text-xs text-slate-400 mt-0.5">Frenzy Cross Math</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="sessionBadge" class="bg-rose-500/20 border border-rose-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-300 hidden">
+          Sesi <span id="sessionNum">1</span>/5
+        </div>
+        <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+          <i class="fas fa-stopwatch text-amber-400 text-sm"></i>
+          <span id="kioskTimerDisplay" class="font-mono font-bold text-amber-400 text-sm">--:--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="stepSchool" class="space-y-4">
+      <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah:</label>
+      <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="stepStudent" class="space-y-4 hidden">
+      <div class="flex justify-between">
+        <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
+        <button id="btnBackToSchool" class="text-xs text-amber-400 hover:underline">← Ganti</button>
+      </div>
+      <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto"></div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="stepCalculator" class="space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
+        <div>
+          <div id="selectedStudentName" class="font-bold text-lg">Nama</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400">Sekolah</div>
+        </div>
+        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg">Batal</button>
+      </div>
+
+      <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
+        <div id="calcDisplay" class="text-4xl font-mono font-bold text-amber-400 min-h-[48px] break-all">0</div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <button class="calc-btn" onclick="appendCalc('7')">7</button>
+        <button class="calc-btn" onclick="appendCalc('8')">8</button>
+        <button class="calc-btn" onclick="appendCalc('9')">9</button>
+        <button class="calc-btn" onclick="appendCalc('4')">4</button>
+        <button class="calc-btn" onclick="appendCalc('5')">5</button>
+        <button class="calc-btn" onclick="appendCalc('6')">6</button>
+        <button class="calc-btn" onclick="appendCalc('1')">1</button>
+        <button class="calc-btn" onclick="appendCalc('2')">2</button>
+        <button class="calc-btn" onclick="appendCalc('3')">3</button>
+        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+        <button class="calc-btn" onclick="appendCalc('0')">0</button>
+        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+      </div>
+
+      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-xl rounded-2xl shadow-lg active:scale-95">
+        <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+  const supabaseClient = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  const CURRENT_GAME_NAME = "Frenzy Cross Math";
+
+  // ═══════════════════════════════════════════════════════════
+  // SESSION CONFIG — HARUS SAMA dengan layoutfrenzy.html
+  // ═══════════════════════════════════════════════════════════
+  const SESSION_CONFIG = {
+    DURATION_PER_SESSION: 30,
+    TOTAL_SESSIONS: 5,
+    MAX_POINT: 10,
+    MIN_POINT: 5
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let allUsers = [];
+  let selectedSchool = '';
+  let selectedStudent = null;
+  let currentInput = '';
+  let isSubmitting = false;
+  let isFrozen = false;
+
+  let sessionStartTime = null;
+
+  // ═══════════════════════════════════════════════════════════
+  // DOM
+  // ═══════════════════════════════════════════════════════════
+  const stepSchool = document.getElementById('stepSchool');
+  const stepStudent = document.getElementById('stepStudent');
+  const stepCalculator = document.getElementById('stepCalculator');
+  const schoolList = document.getElementById('schoolList');
+  const studentList = document.getElementById('studentList');
+  const calcDisplay = document.getElementById('calcDisplay');
+  const freezeOverlay = document.getElementById('freezeOverlay');
+  const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
+
+  // ═══════════════════════════════════════════════════════════
+  // HITUNG SKOR — Linear decay
+  // ═══════════════════════════════════════════════════════════
+  function calculateScore() {
+    if (!sessionStartTime) return SESSION_CONFIG.MIN_POINT;
+
+    const elapsedInCycle = ((Date.now() - sessionStartTime) / 1000) % SESSION_CONFIG.DURATION_PER_SESSION;
+    const remainingSec = Math.max(0, SESSION_CONFIG.DURATION_PER_SESSION - elapsedInCycle);
+    const range = SESSION_CONFIG.MAX_POINT - SESSION_CONFIG.MIN_POINT;
+    const score = SESSION_CONFIG.MIN_POINT + (remainingSec / SESSION_CONFIG.DURATION_PER_SESSION) * range;
+    return parseFloat(score.toFixed(2));
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // POLLING STATUS
+  // ═══════════════════════════════════════════════════════════
+  function listenToGameStatus() {
+    setInterval(async () => {
+      const { data } = await supabaseClient
+        .from('frenzy_cross_math_control')
+        .select('action, updated_at')
+        .eq('id', 1)
+        .maybeSingle();
+      if (!data) return;
+
+      if (data.action === 'START_GAME') {
+        const newStart = new Date(data.updated_at).getTime();
+        if (newStart !== sessionStartTime) {
+          sessionStartTime = newStart;
+          console.log(`[KIOSK] Sesi dimulai @ ${new Date(newStart).toLocaleTimeString()}`);
+        }
+        unfreezeKiosk();
+        updateKioskTimer();
+      } else if (data.action === 'RESET') {
+        sessionStartTime = null;
+        freezeKiosk('Sesi belum dimulai / selesai');
+        kioskTimerDisplay.textContent = '--:--';
+      }
+    }, 1500);
+
+    setInterval(() => {
+      if (sessionStartTime && !isFrozen) updateKioskTimer();
+    }, 1000);
+  }
+
+  function updateKioskTimer() {
+    if (!sessionStartTime) return;
+    const elapsedTotal = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const cycleIndex = Math.floor(elapsedTotal / SESSION_CONFIG.DURATION_PER_SESSION) + 1;
+
+    if (cycleIndex > SESSION_CONFIG.TOTAL_SESSIONS) {
+      kioskTimerDisplay.textContent = '00:00';
+      return;
+    }
+
+    const elapsedInCycle = elapsedTotal % SESSION_CONFIG.DURATION_PER_SESSION;
+    const remaining = Math.max(0, SESSION_CONFIG.DURATION_PER_SESSION - elapsedInCycle);
+
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    kioskTimerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+    const badge = document.getElementById('sessionBadge');
+    if (badge) badge.classList.remove('hidden');
+    const num = document.getElementById('sessionNum');
+    if (num) num.textContent = cycleIndex;
+  }
+
+  function freezeKiosk(msg) {
+    if (isFrozen) return;
+    isFrozen = true;
+    document.getElementById('freezeMessage').textContent = msg || 'Menunggu admin...';
+    freezeOverlay.classList.remove('hidden');
+    document.querySelectorAll('button').forEach(b => b.disabled = true);
+  }
+
+  function unfreezeKiosk() {
+    if (!isFrozen) return;
+    isFrozen = false;
+    freezeOverlay.classList.add('hidden');
+    document.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LOAD PESERTA
+  // ═══════════════════════════════════════════════════════════
+  async function loadParticipants() {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('role', 'peserta');
+
+    if (error) { alert('Gagal ambil data peserta: ' + error.message); return; }
+    allUsers = data || [];
+    renderSchools();
+  }
+
+  function renderSchools() {
+    const schools = [...new Set(allUsers.map(u => u.school_name))].filter(Boolean);
+    schoolList.innerHTML = '';
+    if (schools.length === 0) {
+      schoolList.innerHTML = '<p class="text-slate-500 text-center py-8">Belum ada peserta.</p>';
+      return;
+    }
+    schools.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex justify-between transition';
+      b.innerHTML = `<span>🏫 ${s}</span><span class="text-amber-400 text-xs">Pilih →</span>`;
+      b.onclick = () => selectSchool(s);
+      schoolList.appendChild(b);
+    });
+  }
+
+  function selectSchool(s) {
+    selectedSchool = s;
+    stepSchool.classList.add('hidden');
+    stepStudent.classList.remove('hidden');
+
+    const filtered = allUsers.filter(u => u.school_name === s);
+    studentList.innerHTML = '';
+    filtered.forEach(st => {
+      const b = document.createElement('button');
+      b.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex justify-between transition';
+      b.innerHTML = `<span>👤 ${st.full_name}</span><span class="text-amber-400 text-xs">Jawab →</span>`;
+      b.onclick = () => openCalculator(st);
+      studentList.appendChild(b);
+    });
+  }
+
+  document.getElementById('btnBackToSchool').onclick = () => {
+    stepStudent.classList.add('hidden');
+    stepSchool.classList.remove('hidden');
+  };
+  document.getElementById('btnCancelCalc').onclick = resetToStart;
+
+  function openCalculator(st) {
+    selectedStudent = st;
+    currentInput = '';
+    updateDisplay();
+    document.getElementById('selectedStudentName').textContent = st.full_name;
+    document.getElementById('selectedStudentSchool').textContent = st.school_name;
+    stepStudent.classList.add('hidden');
+    stepCalculator.classList.remove('hidden');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // KALKULATOR
+  // ═══════════════════════════════════════════════════════════
+  function appendCalc(v) {
+    if (isFrozen) return;
+    if (currentInput.length < 10) { currentInput += v; updateDisplay(); }
+  }
+  function clearCalc() { if (isFrozen) return; currentInput = ''; updateDisplay(); }
+  function deleteCalc() { if (isFrozen) return; currentInput = currentInput.slice(0, -1); updateDisplay(); }
+  function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
+
+  // ═══════════════════════════════════════════════════════════
+  // AMBIL JAWABAN dari system_frenzy_cross_math (id=1)
+  // ═══════════════════════════════════════════════════════════
+  async function getCorrectAnswer() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('system_frenzy_cross_math')
+        .select('target_answer')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[ANSWER] Error:', error);
+        return null;
+      }
+      if (!data || data.target_answer == null) {
+        console.warn('[ANSWER] Belum tersedia');
+        return null;
+      }
+      console.log('[ANSWER] Jawaban:', data.target_answer);
+      return String(data.target_answer);
+    } catch (err) {
+      console.error('[ANSWER] Exception:', err);
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // KUOTA
+  // ═══════════════════════════════════════════════════════════
+  async function getQuota(uid) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('system_input_max_frenzy_cross_math')
+        .select('input_left')
+        .eq('user_unique_id', uid)
+        .maybeSingle();
+
+      if (error) { console.warn('[QUOTA] Error:', error); return 999; }
+      if (!data) return 2;
+      return data.input_left ?? 0;
+    } catch (err) {
+      console.error('[QUOTA] Exception:', err);
+      return 999;
+    }
+  }
+
+  async function decrementQuota(uid, cur) {
+    try {
+      const { data } = await supabaseClient
+        .from('system_input_max_frenzy_cross_math')
+        .select('id')
+        .eq('user_unique_id', uid)
+        .maybeSingle();
+
+      if (!data) {
+        await supabaseClient
+          .from('system_input_max_frenzy_cross_math')
+          .insert([{ user_unique_id: uid, input_left: 1 }]);
+      } else {
+        await supabaseClient
+          .from('system_input_max_frenzy_cross_math')
+          .update({ input_left: Math.max(0, cur - 1), updated_at: new Date().toISOString() })
+          .eq('user_unique_id', uid);
+      }
+    } catch (err) {
+      console.error('[QUOTA] Gagal kurangi:', err);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SUBMIT
+  // ═══════════════════════════════════════════════════════════
+  async function submitAnswer() {
+    if (!currentInput || isSubmitting || isFrozen) return;
+    if (!sessionStartTime) { alert('Sesi belum dimulai!'); return; }
+
+    isSubmitting = true;
+    document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
+
+    const quota = await getQuota(selectedStudent.unique_id);
+    if (quota <= 0) {
+      alert('Kuota jawaban Anda sudah habis!');
+      isSubmitting = false;
+      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      return;
+    }
+
+    const correct = await getCorrectAnswer();
+    if (correct === null) {
+      alert('Kunci jawaban belum tersedia. Tunggu sesi dimulai.');
+      isSubmitting = false;
+      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      return;
+    }
+
+    const isCorrect = currentInput.trim() === correct.trim();
+    const points = isCorrect ? calculateScore() : 0;
+    console.log(`[SUBMIT] Input="${currentInput}" | Correct="${correct}" | Match=${isCorrect} | Points=${points}`);
+
+    const { error: scoreErr } = await supabaseClient
+      .from('game_scores')
+      .insert([{
+        user_unique_id: selectedStudent.unique_id,
+        game_name: CURRENT_GAME_NAME,
+        score_obtained: points
+      }]);
+
+    if (scoreErr) console.error('[SCORE] Gagal simpan:', scoreErr);
+
+    await decrementQuota(selectedStudent.unique_id, quota);
+
+    triggerFlash(isCorrect, points, correct);
+  }
+
+  function triggerFlash(isCorrect, points, correct) {
+    const ov = document.getElementById('flashOverlay');
+    const ic = document.getElementById('flashIcon');
+    const tx = document.getElementById('flashText');
+    ov.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
+    ic.textContent = isCorrect ? '✅' : '❌';
+    tx.innerHTML = isCorrect
+      ? `<div>BENAR!</div><div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${points.toFixed(2)} PTS</div>`
+      : `<div>SALAH!</div><div class="text-2xl mt-4 opacity-80">Jawaban benar: ${correct}</div>`;
+    ov.classList.remove('hidden');
+
+    setTimeout(() => {
+      ov.classList.add('hidden');
+      isSubmitting = false;
+      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      resetToStart();
+    }, 3000);
+  }
+
+  function resetToStart() {
+    currentInput = '';
+    selectedStudent = null;
+    selectedSchool = '';
+    updateDisplay();
+    stepCalculator.classList.add('hidden');
+    stepStudent.classList.add('hidden');
+    stepSchool.classList.remove('hidden');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
+  loadParticipants();
+  listenToGameStatus();
+  freezeKiosk('Menunggu admin memulai sesi...');
+</script>
+</body>
+</html>

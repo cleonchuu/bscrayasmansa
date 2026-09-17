@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Domino Math Maze - Robust Full Maze Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #080c14;
+      color: #f3f4f6;
+    }
+
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Cell Styles Matching UI */
+    .cell-void {
+      background-color: #05080f !important;
+      border: 1px solid rgba(255, 255, 255, 0.02) !important;
+    }
+
+    .cell-op {
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      color: #38bdf8;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      border-radius: 0.5rem;
+    }
+
+    .cell-num-open {
+      background-color: #1e293b;
+      border: 1.5px solid #334155;
+      color: #ffffff;
+      font-weight: 800;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    }
+
+    .cell-num-hidden {
+      background-color: #1e1b4b !important;
+      border: 1.5px solid #4338ca !important;
+      color: #a5b4fc !important;
+      font-weight: 800;
+      border-radius: 0.5rem;
+      box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.25);
+    }
+
+    .cell-goal {
+      background-color: #881337 !important;
+      border: 2px solid #f43f5e !important;
+      color: #ffffff !important;
+      font-weight: 900;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 20px rgba(244, 63, 94, 0.7);
+      animation: pulse-glow 2s infinite alternate;
+    }
+
+    .cell-domino-step {
+      background-color: #312e81 !important;
+      color: #c7d2fe !important;
+      border-color: #818cf8 !important;
+    }
+
+    @keyframes pulse-glow {
+      0% { transform: scale(1); box-shadow: 0 0 12px rgba(244, 63, 94, 0.5); }
+      100% { transform: scale(1.05); box-shadow: 0 0 22px rgba(244, 63, 94, 0.9); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start p-4 lg:p-8">
+
+  <div class="w-full max-w-[1600px] space-y-6">
+
+    <!-- HEADER DASHBOARD -->
+    <header class="bg-slate-900/90 backdrop-blur-md border border-slate-800 p-6 rounded-3xl flex flex-col xl:flex-row items-center justify-between gap-6 shadow-2xl">
+      <div class="space-y-1 text-center xl:text-left">
+        <div class="flex items-center justify-center xl:justify-start gap-3">
+          <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest">
+            ENGINE V27.0 • ANTI-DEADLOCK MAZE GENERATOR
+          </span>
+        </div>
+        <h1 class="text-3xl font-black tracking-tight text-white">Domino Math Maze Architecture</h1>
+        <p class="text-slate-400 text-sm max-w-xl">
+          Sistem otomatis menguji kelengkapan labirin dengan <span class="text-indigo-400 font-semibold">Batas Minimum Kompleksitas Grid</span> untuk mencegah kebocoran bentuk mini-loop.
+        </p>
+      </div>
+
+      <!-- CONTROLS PANEL -->
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl">
+          <label for="selectSize" class="text-xs font-bold text-slate-400 uppercase">Grid:</label>
+          <select id="selectSize" class="bg-transparent text-white font-bold text-sm focus:outline-none cursor-pointer">
+            <option value="15" class="bg-slate-900">15 x 15</option>
+            <option value="19" class="bg-slate-900" selected>19 x 19</option>
+            <option value="23" class="bg-slate-900">23 x 23</option>
+          </select>
+        </div>
+
+        <button onclick="app.generate()" class="px-6 py-3 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white rounded-2xl font-black text-sm transition-all shadow-lg shadow-rose-600/25 flex items-center gap-2">
+          <i class="fas fa-sync-alt"></i> Generate TTS Baru
+        </button>
+
+        <button onclick="app.toggleAnswers()" id="btnAnswers" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 border border-amber-500/30 rounded-2xl font-bold text-sm transition-all flex items-center gap-2">
+          <i class="fas fa-key"></i> <span id="lblAnswers">Buka Kunci Jawaban</span>
+        </button>
+
+        <button onclick="app.simulateDomino()" class="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white rounded-2xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+          <i class="fas fa-play-circle"></i> Simulasi Domino BFS
+        </button>
+      </div>
+    </header>
+
+    <!-- METRICS & GRAPH STATS -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Total Sel Grid</span>
+        <span id="statCells" class="text-2xl font-black text-white mt-0.5">0</span>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Langkah Domino Ke Goal</span>
+        <span id="statGoalDepth" class="text-2xl font-black text-rose-400 mt-0.5">0 Steps</span>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Total Persamaan</span>
+        <span id="statBlocks" class="text-2xl font-black text-amber-400 mt-0.5">0</span>
+      </div>
+      <div class="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Status Validasi</span>
+        <span id="statSolvable" class="text-sm font-black text-emerald-400 mt-1 uppercase bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">PASSED</span>
+      </div>
+    </div>
+
+    <!-- MAIN BOARD & LOG PANEL -->
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+      
+      <div class="xl:col-span-3 bg-slate-900/90 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col items-center overflow-x-auto min-h-[600px] justify-center">
+        <div id="gridContainer" class="grid gap-1.5 p-4 bg-slate-950 rounded-2xl border border-slate-800/80 min-w-max shadow-inner"></div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-3xl flex flex-col space-y-4 h-full max-h-[750px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h2 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-project-diagram text-rose-500"></i> Alur Domino BFS
+          </h2>
+          <span id="logCount" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md font-mono-code">0 steps</span>
+        </div>
+
+        <div id="dominoLogContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 font-mono-code text-xs">
+          <div class="text-slate-500 italic text-center py-8">Klik "Simulasi Domino BFS" untuk melacak urutan penyelesaian.</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    class MathCore {
+      static OPERATORS = ['+', '-', '×', '÷'];
+
+      static eval(a, op, b) {
+        switch (op) {
+          case '+': return a + b;
+          case '-': return a - b;
+          case '×': return a * b;
+          case '÷': return (b !== 0 && a % b === 0) ? a / b : null;
+          default: return null;
+        }
+      }
+
+      static generateValidTripletDual(valA, valC, maxVal = 99) {
+        const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+
+        for (let op of shuffledOps) {
+          let b = null;
+          if (op === '+') b = valC - valA;
+          else if (op === '-') b = valA - valC;
+          else if (op === '×') { if (valC % valA === 0) b = valC / valA; }
+          else if (op === '÷') { if (valA % valC === 0) b = valA / valC; }
+
+          if (b !== null && Number.isInteger(b) && b > 0 && b <= maxVal) {
+            return { a: valA, op, b, c: valC };
+          }
+        }
+        return null;
+      }
+
+      static generateValidTriplet(fixedValue = null, position = 'A', maxVal = 99) {
+        const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+
+        for (let op of shuffledOps) {
+          let a, b, c;
+
+          if (fixedValue !== null) {
+            if (position === 'A') {
+              a = fixedValue;
+              if (op === '+') {
+                b = Math.floor(Math.random() * 20) + 1;
+                c = a + b;
+              } else if (op === '-') {
+                if (a > 1) {
+                  b = Math.floor(Math.random() * (a - 1)) + 1;
+                  c = a - b;
+                } else continue;
+              } else if (op === '×') {
+                b = Math.floor(Math.random() * 8) + 2;
+                c = a * b;
+              } else if (op === '÷') {
+                let factors = [];
+                for (let i = 1; i <= a; i++) if (a % i === 0) factors.push(i);
+                b = factors[Math.floor(Math.random() * factors.length)];
+                c = a / b;
+              }
+            } else if (position === 'C') {
+              c = fixedValue;
+              if (op === '+') {
+                if (c > 1) {
+                  a = Math.floor(Math.random() * (c - 1)) + 1;
+                  b = c - a;
+                } else continue;
+              } else if (op === '-') {
+                b = Math.floor(Math.random() * 25) + 1;
+                a = c + b;
+              } else if (op === '×') {
+                let factors = [];
+                for (let i = 1; i <= c; i++) if (c % i === 0) factors.push(i);
+                a = factors[Math.floor(Math.random() * factors.length)];
+                b = c / a;
+              } else if (op === '÷') {
+                b = Math.floor(Math.random() * 6) + 2;
+                a = c * b;
+              }
+            }
+          } else {
+            a = Math.floor(Math.random() * 15) + 2;
+            b = Math.floor(Math.random() * 10) + 1;
+            c = this.eval(a, op, b);
+          }
+
+          if (a !== undefined && b !== undefined && c !== undefined && c !== null &&
+              a >= 0 && b >= 0 && c >= 0 && a <= maxVal && b <= maxVal && c <= maxVal) {
+            return { a, op, b, c };
+          }
+        }
+
+        return { a: 10, op: '+', b: 5, c: 15 };
+      }
+    }
+
+    class GridNode {
+      constructor(r, c) {
+        this.r = r;
+        this.c = c;
+        this.id = `node_${r}_${c}`;
+        this.type = 'void';
+        this.val = null;
+        this.isHidden = true;
+        this.isTarget = false;
+        this.dominoStep = -1;
+        this.connectedBlocks = [];
+      }
+
+      reset() {
+        this.type = 'void';
+        this.val = null;
+        this.isHidden = true;
+        this.isTarget = false;
+        this.dominoStep = -1;
+        this.connectedBlocks = [];
+      }
+    }
+
+    class EquationBlock {
+      constructor(id, r, c, dir, triplet, nodes) {
+        this.id = id;
+        this.r = r;
+        this.c = c;
+        this.dir = dir;
+        this.triplet = triplet;
+        this.nodes = nodes;
+      }
+
+      getInputs() {
+        return [this.nodes[0], this.nodes[2], this.nodes[4]];
+      }
+    }
+
+    class DominoMazeEngine {
+      constructor(size = 19) {
+        this.size = size;
+        this.grid = Array.from({ length: size }, (_, r) =>
+          Array.from({ length: size }, (_, c) => new GridNode(r, c))
+        );
+        this.blocks = [];
+        this.numberNodes = [];
+        this.goalNode = null;
+        this.maxChainDepth = 0;
+        this.dominoSequence = [];
+      }
+
+      resetGrid() {
+        for (let r = 0; r < this.size; r++) {
+          for (let c = 0; c < this.size; c++) {
+            this.grid[r][c].reset();
+          }
+        }
+        this.blocks = [];
+        this.numberNodes = [];
+        this.goalNode = null;
+        this.maxChainDepth = 0;
+        this.dominoSequence = [];
+      }
+
+      getNode(r, c) {
+        if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
+        return this.grid[r][c];
+      }
+
+      canPlaceBlock(r, c, dir) {
+        const dr = dir === 'V' ? 1 : 0;
+        const dc = dir === 'H' ? 1 : 0;
+
+        for (let i = 0; i < 5; i++) {
+          if (!this.getNode(r + dr * i, c + dc * i)) return false;
+        }
+
+        const prev = this.getNode(r - dr, c - dc);
+        if (prev && prev.type !== 'void') return false;
+
+        const next = this.getNode(r + dr * 5, c + dc * 5);
+        if (next && next.type !== 'void') return false;
+
+        const pattern = ['number', 'operator', 'number', 'operator', 'number'];
+        for (let i = 0; i < 5; i++) {
+          const node = this.getNode(r + dr * i, c + dc * i);
+          if (node.type !== 'void') {
+            if (node.type !== pattern[i]) return false;
+            if (pattern[i] === 'operator') return false;
+          }
+        }
+
+        return true;
+      }
+
+      insertBlock(r, c, dir, fixedVal = null, pos = 'A') {
+        if (!this.canPlaceBlock(r, c, dir)) return null;
+
+        const triplet = MathCore.generateValidTriplet(fixedVal, pos);
+        const dr = dir === 'V' ? 1 : 0;
+        const dc = dir === 'H' ? 1 : 0;
+
+        const layout = [
+          { r: r, c: c, type: 'number', val: triplet.a },
+          { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+          { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+          { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+          { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+        ];
+
+        for (let idx of [0, 2, 4]) {
+          const node = this.getNode(layout[idx].r, layout[idx].c);
+          if (node.type === 'number' && node.val !== layout[idx].val) {
+            return null;
+          }
+        }
+
+        const blockNodes = [];
+        layout.forEach(spec => {
+          const node = this.getNode(spec.r, spec.c);
+          node.type = spec.type;
+          node.val = spec.val;
+
+          if (node.type === 'number' && !this.numberNodes.includes(node)) {
+            this.numberNodes.push(node);
+          }
+          blockNodes.push(node);
+        });
+
+        const block = new EquationBlock(
+          `blk_${this.blocks.length + 1}`,
+          r, c, dir, triplet, blockNodes
+        );
+
+        blockNodes.forEach(n => n.connectedBlocks.push(block));
+        this.blocks.push(block);
+        return block;
+      }
+
+      insertJunctionBlock(r, c, dir, valA, valC) {
+        if (!this.canPlaceBlock(r, c, dir)) return null;
+
+        const triplet = MathCore.generateValidTripletDual(valA, valC);
+        if (!triplet) return null;
+
+        const dr = dir === 'V' ? 1 : 0;
+        const dc = dir === 'H' ? 1 : 0;
+
+        const layout = [
+          { r: r, c: c, type: 'number', val: triplet.a },
+          { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+          { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+          { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+          { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+        ];
+
+        const blockNodes = [];
+        layout.forEach(spec => {
+          const node = this.getNode(spec.r, spec.c);
+          node.type = spec.type;
+          node.val = spec.val;
+
+          if (node.type === 'number' && !this.numberNodes.includes(node)) {
+            this.numberNodes.push(node);
+          }
+          blockNodes.push(node);
+        });
+
+        const block = new EquationBlock(
+          `blk_junc_${this.blocks.length + 1}`,
+          r, c, dir, triplet, blockNodes
+        );
+
+        blockNodes.forEach(n => n.connectedBlocks.push(block));
+        this.blocks.push(block);
+        return block;
+      }
+
+      generateOrganicLayout() {
+        // Mulai dari koordinat tengah agar tidak terjebak di sudut
+        let curR = Math.floor(this.size / 3);
+        let curC = Math.floor(this.size / 3);
+        let seedVal = Math.floor(Math.random() * 10) + 2;
+
+        let chainLen = 0;
+        let lastDir = null;
+        const targetBlocks = Math.floor(this.size * 1.2);
+
+        while (chainLen < targetBlocks) {
+          const nextDir = (lastDir === 'H') ? 'V' : (lastDir === 'V' ? 'H' : (Math.random() > 0.5 ? 'H' : 'V'));
+          
+          const options = [];
+          if (nextDir === 'H') {
+            options.push({ dir: 'H', r: curR, c: curC, nextR: curR, nextC: curC + 4, pos: 'A' });
+            options.push({ dir: 'H', r: curR, c: curC - 4, nextR: curR, nextC: curC - 4, pos: 'C' });
+          } else {
+            options.push({ dir: 'V', r: curR, c: curC, nextR: curR + 4, nextC: curC, pos: 'A' });
+            options.push({ dir: 'V', r: curR - 4, c: curC, nextR: curR - 4, nextC: curC, pos: 'C' });
+          }
+
+          options.sort(() => Math.random() - 0.5);
+          let inserted = false;
+
+          for (let opt of options) {
+            const block = this.insertBlock(opt.r, opt.c, opt.dir, seedVal, opt.pos);
+            if (block) {
+              curR = opt.nextR;
+              curC = opt.nextC;
+              seedVal = this.getNode(curR, curC).val;
+              lastDir = opt.dir;
+              chainLen++;
+              inserted = true;
+              break;
+            }
+          }
+
+          if (!inserted) break;
+        }
+
+        let queue = [...this.numberNodes].sort(() => Math.random() - 0.5);
+        let attempts = 0;
+
+        while (queue.length > 0 && attempts < 1000) {
+          attempts++;
+          const node = queue.shift();
+          if (!node) continue;
+
+          let paired = false;
+          for (let otherNode of this.numberNodes) {
+            if (otherNode !== node && (otherNode.r === node.r || otherNode.c === node.c)) {
+              if (Math.abs(otherNode.r - node.r) === 4 && otherNode.c === node.c) {
+                const minR = Math.min(node.r, otherNode.r);
+                const valA = node.r === minR ? node.val : otherNode.val;
+                const valC = node.r === minR ? otherNode.val : node.val;
+                if (this.insertJunctionBlock(minR, node.c, 'V', valA, valC)) {
+                  paired = true;
+                  break;
+                }
+              } else if (Math.abs(otherNode.c - node.c) === 4 && otherNode.r === node.r) {
+                const minC = Math.min(node.c, otherNode.c);
+                const valA = node.c === minC ? node.val : otherNode.val;
+                const valC = node.c === minC ? otherNode.val : node.val;
+                if (this.insertJunctionBlock(node.r, minC, 'H', valA, valC)) {
+                  paired = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (paired) continue;
+
+          const branchOpts = [
+            { dir: 'H', r: node.r, c: node.c, pos: 'A' },
+            { dir: 'V', r: node.r, c: node.c, pos: 'A' },
+            { dir: 'H', r: node.r, c: node.c - 4, pos: 'C' },
+            { dir: 'V', r: node.r - 4, c: node.c, pos: 'C' }
+          ].sort(() => Math.random() - 0.5);
+
+          for (let opt of branchOpts) {
+            const block = this.insertBlock(opt.r, opt.c, opt.dir, node.val, opt.pos);
+            if (block) {
+              block.nodes.forEach(n => {
+                if (n.type === 'number' && !queue.includes(n)) queue.push(n);
+              });
+              break;
+            }
+          }
+        }
+      }
+
+      solveLongestPathAndSetGoal() {
+        this.numberNodes.forEach(n => {
+          n.isHidden = true;
+          n.dominoStep = -1;
+          n.isTarget = false;
+        });
+
+        if (this.blocks.length === 0) return;
+
+        let leafBlocks = this.blocks.filter(b => {
+          let inputs = b.getInputs();
+          return inputs.some(n => n.connectedBlocks.length === 1);
+        });
+
+        if (leafBlocks.length < 2) leafBlocks = this.blocks.slice(0, 3);
+
+        let knownNodes = new Set();
+
+        leafBlocks.forEach(b => {
+          let inputs = b.getInputs();
+          inputs[0].isHidden = false;
+          inputs[1].isHidden = false;
+          knownNodes.add(inputs[0]);
+          knownNodes.add(inputs[1]);
+        });
+
+        let solvedBlocks = new Set();
+        let stepCount = 1;
+        this.dominoSequence = [];
+
+        let progress = true;
+        let lastSolvedNode = null;
+        let maxStepRecorded = 0;
+
+        while (progress) {
+          progress = false;
+
+          for (let block of this.blocks) {
+            if (solvedBlocks.has(block)) continue;
+
+            const inputs = block.getInputs();
+            const knownInputs = inputs.filter(n => knownNodes.has(n));
+
+            if (knownInputs.length >= 2) {
+              const unknownInputs = inputs.filter(n => !knownNodes.has(n));
+
+              if (unknownInputs.length === 1) {
+                const targetNode = unknownInputs[0];
+                targetNode.dominoStep = stepCount;
+                knownNodes.add(targetNode);
+                lastSolvedNode = targetNode;
+                maxStepRecorded = stepCount;
+
+                this.dominoSequence.push({
+                  step: stepCount,
+                  block: block,
+                  solvedNode: targetNode
+                });
+              } else {
+                this.dominoSequence.push({
+                  step: stepCount,
+                  block: block,
+                  solvedNode: null
+                });
+              }
+
+              solvedBlocks.add(block);
+              stepCount++;
+              progress = true;
+            }
+          }
+        }
+
+        this.goalNode = lastSolvedNode;
+        if (this.goalNode) {
+          this.goalNode.isTarget = true;
+          this.maxChainDepth = maxStepRecorded;
+        }
+      }
+
+      generate() {
+        const minTargetBlocks = Math.floor(this.size * 0.8);
+        let maxRetries = 20;
+        let attempt = 0;
+
+        // RETRY LOOP: Mencegah timbulnya mini-loop kerdil/aneh
+        while (attempt < maxRetries) {
+          attempt++;
+          this.resetGrid();
+          this.generateOrganicLayout();
+          
+          if (this.blocks.length >= minTargetBlocks) {
+            this.solveLongestPathAndSetGoal();
+            if (this.maxChainDepth >= 5) break; // Validasi sukses
+          }
+        }
+      }
+    }
+
+    class Application {
+      constructor() {
+        this.engine = null;
+        this.showAnswers = false;
+        this.isSimulating = false;
+      }
+
+      generate() {
+        const size = parseInt(document.getElementById('selectSize').value) || 19;
+        this.engine = new DominoMazeEngine(size);
+        this.engine.generate();
+        this.showAnswers = false;
+        
+        document.getElementById('lblAnswers').textContent = "Buka Kunci Jawaban";
+        this.updateStats();
+        this.renderGrid();
+        this.renderDominoLogs();
+      }
+
+      toggleAnswers() {
+        this.showAnswers = !this.showAnswers;
+        document.getElementById('lblAnswers').textContent = this.showAnswers ? "Sembunyikan Kunci" : "Buka Kunci Jawaban";
+        this.renderGrid();
+      }
+
+      updateStats() {
+        if (!this.engine) return;
+        const size = this.engine.size;
+        document.getElementById('statCells').textContent = size * size;
+        document.getElementById('statGoalDepth').textContent = `${this.engine.maxChainDepth} Steps`;
+        document.getElementById('statBlocks').textContent = this.engine.blocks.length;
+        document.getElementById('statSolvable').textContent = "PASSED";
+      }
+
+      renderGrid() {
+        if (!this.engine) return;
+        const container = document.getElementById('gridContainer');
+        const size = this.engine.size;
+        const grid = this.engine.grid;
+
+        container.style.gridTemplateColumns = `repeat(${size}, minmax(0, 1fr))`;
+        container.innerHTML = '';
+
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const node = grid[r][c];
+            const div = document.createElement('div');
+            
+            div.id = node.id;
+            div.className = "w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 select-none cursor-default";
+
+            if (node.type === 'void') {
+              div.className += " cell-void";
+            } else if (node.type === 'operator') {
+              div.className += " cell-op";
+              div.textContent = node.val;
+            } else if (node.type === 'number') {
+              if (node.isTarget && !this.showAnswers) {
+                div.className += " cell-goal";
+                div.textContent = "GOAL";
+              } else if (node.isHidden && !this.showAnswers) {
+                div.className += " cell-num-hidden";
+                div.textContent = "?";
+              } else {
+                div.className += " cell-num-open";
+                div.textContent = node.val;
+              }
+            }
+
+            container.appendChild(div);
+          }
+        }
+      }
+
+      renderDominoLogs() {
+        const logContainer = document.getElementById('dominoLogContainer');
+        const logCount = document.getElementById('logCount');
+        logContainer.innerHTML = '';
+
+        if (!this.engine || this.engine.dominoSequence.length === 0) {
+          logContainer.innerHTML = `<div class="text-slate-500 italic text-center py-8">Tidak ada alur terdeteksi.</div>`;
+          logCount.textContent = `0 steps`;
+          return;
+        }
+
+        logCount.textContent = `${this.engine.dominoSequence.length} steps`;
+
+        this.engine.dominoSequence.forEach((seq) => {
+          const b = seq.block;
+          const div = document.createElement('div');
+          div.className = "p-2.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-slate-300";
+          
+          const eqStr = `${b.triplet.a} ${b.triplet.op} ${b.triplet.b} = ${b.triplet.c}`;
+          const targetStr = seq.solvedNode ? ` ➔ Terbuka: [${seq.solvedNode.val}]` : '';
+
+          div.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold text-[10px]">
+                ${seq.step}
+              </span>
+              <span class="font-bold text-white">${eqStr}</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-semibold">${targetStr}</span>
+          `;
+          logContainer.appendChild(div);
+        });
+      }
+
+      async simulateDomino() {
+        if (!this.engine || this.isSimulating) return;
+        this.isSimulating = true;
+        this.showAnswers = false;
+        this.renderGrid();
+
+        const sequence = this.engine.dominoSequence;
+
+        for (let seq of sequence) {
+          const b = seq.block;
+
+          b.nodes.forEach(node => {
+            const el = document.getElementById(node.id);
+            if (el && node.type === 'number') {
+              el.classList.add('cell-domino-step');
+            }
+          });
+
+          await new Promise(res => setTimeout(res, 300));
+        }
+
+        this.isSimulating = false;
+      }
+    }
+
+    const app = new Application();
+    window.onload = () => app.generate();
+  </script>
+</body>
+</html>

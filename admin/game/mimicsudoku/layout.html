@@ -765,9 +765,9 @@
     }
 
     async function fetchAndRenderStageScores(isAll) {
-  const { data, error } = await supabaseClient.from('game_scores')
-    .select('user_unique_id, score_obtained, game_name')
-    .eq('game_name', 'Mimic Sudoku');   // ← FILTER TEPAT
+      const { data, error } = await supabaseClient.from('game_scores')
+        .select('user_unique_id, score_obtained, game_name')
+        .eq('game_name', 'Mimic Sudoku');   // ← FILTER TEPAT
       if (error || !data) return;
       let map = {};
       data.forEach(r => {

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Frenzy Cross Math</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body { background-color: #0f172a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+    .view-btn-active { border-color: #6366f1 !important; background-color: rgba(99,102,241,0.2) !important; }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex justify-center">
+
+  <main class="w-full max-w-4xl space-y-6">
+
+    <!-- HEADER -->
+    <header class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-center text-rose-400 text-2xl font-black">
+          🧮
+        </div>
+        <div>
+          <h1 class="text-2xl font-black tracking-wide text-white">FRENZY CROSS MATH</h1>
+          <p class="text-xs text-slate-400">Realtime Game & Stage Display Manager</p>
+        </div>
+      </div>
+      <div id="statusBadge" class="bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        SYSTEM READY
+      </div>
+    </header>
+
+    <!-- CONTROL PANEL -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-gamepad text-rose-400"></i> Kontrol Game
+          </h2>
+
+          <div class="space-y-3 bg-slate-950 border border-slate-700 p-4 rounded-2xl">
+            <div class="flex justify-between items-center">
+              <span class="text-[10px] text-slate-400 uppercase font-bold">Konfigurasi Sesi:</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="bg-slate-900 p-2 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase">Durasi/Sesi</div>
+                <div class="font-bold text-white">60 detik</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase">Total Sesi</div>
+                <div class="font-bold text-white">5 sesi</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase">Grid</div>
+                <div class="font-bold text-white">15 × 15</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded-lg">
+                <div class="text-slate-500 text-[10px] uppercase">Poin/Sesi</div>
+                <div class="font-bold text-amber-400">20 - 40</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <button id="btnStartGame" onclick="executeGameStart()" class="w-full py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black text-lg rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-play"></i>
+            <span>JALANKAN PERMAINAN</span>
+          </button>
+
+          <div id="countdownContainer" class="hidden bg-rose-950/60 border border-rose-500/40 p-3 rounded-xl text-center">
+            <p class="text-xs text-rose-300 font-semibold mb-1">
+              ⚡ Sesi berjalan! Auto reset dalam: <span id="countText" class="font-bold text-amber-400">60s</span>
+            </p>
+            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+              <div id="progressBar" class="bg-rose-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATUS PANEL -->
+      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
+        <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-database text-cyan-400"></i> Status Sesi
+        </h2>
+
+        <div class="space-y-3 bg-slate-900 p-4 rounded-2xl border border-slate-700 text-sm">
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Action:</span>
+            <span id="dbAction" class="font-mono font-bold text-emerald-400">-</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Sesi Ke-:</span>
+            <span id="dbSession" class="font-mono font-bold text-rose-400">-</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Jawaban (Biru):</span>
+            <span id="dbAnswerB" class="font-mono font-bold text-blue-400">--</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-800 pb-2">
+            <span class="text-slate-400">Jawaban (Merah):</span>
+            <span id="dbAnswerR" class="font-mono font-bold text-rose-400">--</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Status Koneksi:</span>
+            <span id="dbConnStatus" class="font-mono font-bold text-emerald-400">● Connected</span>
+          </div>
+        </div>
+
+        <button onclick="manualResetControl()" class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-rotate-left text-amber-400"></i> Reset (Manual)
+        </button>
+      </section>
+    </div>
+
+    <!-- VIEW SWITCHER -->
+    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl">
+      <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button id="btnViewGame" onclick="switchStageView('game')" class="view-btn bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-display"></i> Mode Game
+        </button>
+        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="view-btn bg-slate-800 hover:bg-amber-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-trophy text-amber-400"></i> Papan Peringkat
+        </button>
+        <button id="btnViewAll" onclick="switchStageView('all_players')" class="view-btn bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-users text-emerald-400"></i> Semua Peserta
+        </button>
+      </div>
+
+      <div class="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4 mt-4">
+        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Pengumuman Peringkat 1 per 1:</p>
+        <div class="flex flex-wrap gap-2" id="rankButtonsContainer"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI SUPABASE
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+  const supabaseClient = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  // ═══════════════════════════════════════════════════════════
+  // LOGGER
+  // ═══════════════════════════════════════════════════════════
+  const DEBUG = true;
+  const LOG = {
+    ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+    info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+    warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+    error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+    step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let countdownInterval = null;
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER TOMBOL PERINGKAT
+  // ═══════════════════════════════════════════════════════════
+  function renderRankButtons() {
+    const c = document.getElementById('rankButtonsContainer');
+    if (!c) return;
+    c.innerHTML = '';
+    for (let r = 10; r >= 1; r--) {
+      const btn = document.createElement('button');
+      btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-amber-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition";
+      btn.innerHTML = `<i class="fas fa-award"></i> #${r}`;
+      btn.onclick = () => switchStageView('leaderboard', r);
+      c.appendChild(btn);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SWITCH VIEW PANGGUNG
+  // ═══════════════════════════════════════════════════════════
+  async function switchStageView(viewName, revealedRank = 0) {
+    if (!supabaseClient) return;
+    updateActiveViewUI(viewName, revealedRank);
+
+    LOG.step('VIEW', `Switch → ${viewName} (rank=${revealedRank})`);
+    const { error } = await supabaseClient
+      .from('admin_layout_frenzy_cross_math')
+      .update({
+        current_view: viewName,
+        revealed_rank: revealedRank,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    if (error) {
+      LOG.error('VIEW', 'Gagal switch view', error);
+      alert("Gagal mengubah view: " + error.message);
+    } else {
+      LOG.ok('VIEW', `View switched → ${viewName}`);
+    }
+  }
+
+  function updateActiveViewUI(viewName, rank = 0) {
+    const btns = document.querySelectorAll('.view-btn');
+    btns.forEach(b => b.classList.remove('border-purple-500', 'bg-purple-900/40'));
+
+    const map = { game: 'btnViewGame', leaderboard: 'btnViewLeaderboard', all_players: 'btnViewAll' };
+    const btn = document.getElementById(map[viewName]);
+    if (btn) btn.classList.add('border-purple-500', 'bg-purple-900/40');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXECUTE GAME START
+  // ═══════════════════════════════════════════════════════════
+  async function executeGameStart() {
+    if (!supabaseClient) return;
+
+    const btn = document.getElementById('btnStartGame');
+    btn.disabled = true;
+
+    LOG.ok('EXEC', '========== JALANKAN PERMAINAN ==========');
+
+    const { error } = await supabaseClient
+      .from('frenzy_cross_math_control')
+      .update({
+        action: 'START_GAME',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    if (error) {
+      LOG.error('EXEC', 'Gagal update control', error);
+      alert('Gagal mengirim perintah: ' + error.message);
+      btn.disabled = false;
+      return;
+    }
+
+    LOG.ok('EXEC', 'Action START_GAME terkirim.');
+    startCountdownUI();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // UI COUNTDOWN 10 DETIK
+  // ═══════════════════════════════════════════════════════════
+  function startCountdownUI() {
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    const container = document.getElementById('countdownContainer');
+    const countText = document.getElementById('countText');
+    const progressBar = document.getElementById('progressBar');
+    const btn = document.getElementById('btnStartGame');
+
+    container.classList.remove('hidden');
+    let secondsLeft = 10;
+    countText.textContent = `${secondsLeft}s`;
+    progressBar.style.width = '100%';
+
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      countText.textContent = `${secondsLeft}s`;
+      progressBar.style.width = `${(secondsLeft / 10) * 100}%`;
+
+      if (secondsLeft <= 0) {
+        clearInterval(countdownInterval);
+        container.classList.add('hidden');
+        btn.disabled = false;
+        LOG.info('EXEC', 'Countdown selesai.');
+      }
+    }, 1000);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // MANUAL RESET
+  // ═══════════════════════════════════════════════════════════
+  async function manualResetControl() {
+    if (!supabaseClient) return;
+
+    LOG.warn('RESET', 'Manual reset dipanggil.');
+
+    const { error } = await supabaseClient
+      .from('frenzy_cross_math_control')
+      .update({
+        action: 'RESET',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    if (error) {
+      LOG.error('RESET', 'Gagal reset', error);
+      alert('Gagal reset: ' + error.message);
+    } else {
+      LOG.ok('RESET', 'Reset terkirim.');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // UPDATE DATABASE UI (control table)
+  // ═══════════════════════════════════════════════════════════
+  function updateControlUI(data) {
+    if (!data) return;
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    setTxt('dbAction', data.action || '-');
+    if (data.updated_at) {
+      setTxt('dbUpdatedAt', new Date(data.updated_at).toLocaleTimeString('id-ID'));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LIVE DATA (jawaban biru & merah + sesi ke-)
+  // ═══════════════════════════════════════════════════════════
+  async function fetchLiveData() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('system_frenzy_cross_math')
+        .select('id, team_gender, target_answer, current_puzzle_json, updated_at');
+
+      if (error) {
+        LOG.error('LIVE', 'Fetch error', error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        document.getElementById('dbAnswerB').textContent = '--';
+        document.getElementById('dbAnswerR').textContent = '--';
+        return;
+      }
+
+      data.forEach(row => {
+        const el = row.team_gender === 'female'
+          ? document.getElementById('dbAnswerB')
+          : document.getElementById('dbAnswerR');
+        if (el) el.textContent = row.target_answer ?? '--';
+      });
+
+      LOG.info('LIVE', `Data updated: ${data.length} rows`);
+    } catch (err) {
+      LOG.error('LIVE', 'Exception', err);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // REALTIME SUBSCRIPTIONS
+  // ═══════════════════════════════════════════════════════════
+  function setupAllRealtimeChannels() {
+    if (!supabaseClient) return;
+
+    LOG.ok('REALTIME', 'Setting up channels...');
+
+    // Channel 1: Control table
+    supabaseClient
+      .channel('admin_frenzy_control')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'frenzy_cross_math_control'
+      }, (payload) => {
+        LOG.step('REALTIME', 'Control table UPDATE', payload.new);
+        if (payload.new) updateControlUI(payload.new);
+      })
+      .subscribe((status) => {
+        LOG.info('REALTIME', `Control channel: ${status}`);
+        const conn = document.getElementById('dbConnStatus');
+        if (conn) {
+          if (status === 'SUBSCRIBED') {
+            conn.textContent = '● Connected';
+            conn.className = 'font-mono font-bold text-emerald-400';
+          } else {
+            conn.textContent = '● ' + status;
+            conn.className = 'font-mono font-bold text-amber-400';
+          }
+        }
+      });
+
+    // Channel 2: Live data
+    supabaseClient
+      .channel('admin_frenzy_data')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'system_frenzy_cross_math'
+      }, (payload) => {
+        LOG.step('REALTIME', 'system_frenzy_cross_math updated');
+        fetchLiveData();
+      })
+      .subscribe();
+
+    // Channel 3: Layout
+    supabaseClient
+      .channel('admin_frenzy_layout')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_layout_frenzy_cross_math'
+      }, (payload) => {
+        if (payload.new) {
+          LOG.info('REALTIME', `Layout: ${payload.new.current_view}`);
+          updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
+        }
+      })
+      .subscribe();
+
+    // Polling fallback
+    setInterval(fetchLiveData, 3000);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
+  window.addEventListener('DOMContentLoaded', async () => {
+    LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
+
+    renderRankButtons();
+
+    // Fetch awal
+    const { data: control } = await supabaseClient
+      .from('frenzy_cross_math_control')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (control) updateControlUI(control);
+
+    const { data: layout } = await supabaseClient
+      .from('admin_layout_frenzy_cross_math')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (layout) updateActiveViewUI(layout.current_view, layout.revealed_rank);
+
+    await fetchLiveData();
+
+    setupAllRealtimeChannels();
+
+    LOG.ok('INIT', '══════════ ADMIN READY ══════════');
+  });
+</script>
+</body>
+</html>
