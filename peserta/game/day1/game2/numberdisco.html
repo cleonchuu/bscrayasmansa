@@ -332,23 +332,20 @@
 
     // 5. AMBIL TARGET_ANSWER DAN UPDATED_AT DARI TABEL `system_number_disco`
     async function loadTargetAnswersAndTimestamps() {
-      const { data, error } = await supabaseClient
-        .from('system_number_disco')
-        .select('team_gender, target_answer, updated_at');
-      
-      if (data) {
-        data.forEach(item => {
-          if (item.team_gender === 'female') {
-            targetAnswerBlue = Number(item.target_answer);
-            updatedAtBlue = item.updated_at; // Timestamp dari DB
-          }
-          if (item.team_gender === 'male') {
-            targetAnswerRed = Number(item.target_answer);
-            updatedAtRed = item.updated_at; // Timestamp dari DB
-          }
-        });
-      }
-    }
+  const { data, error } = await supabaseClient
+    .from('system_number_disco_question')
+    .select('blue_answer, red_answer, updated_at')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (data) {
+    targetAnswerBlue = data.blue_answer;
+    targetAnswerRed = data.red_answer;
+    updatedAtBlue = data.updated_at;
+    updatedAtRed = data.updated_at;
+    console.log('[KIOSK] Answers:', targetAnswerBlue, targetAnswerRed);
+  }
+}
 
     async function getOrInitInputLeft(userUniqueId, color) {
       let { data, error } = await supabaseClient

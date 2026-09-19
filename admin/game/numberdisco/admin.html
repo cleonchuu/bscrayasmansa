@@ -193,216 +193,469 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let userToDelete = null;
+  // Konfigurasi audio
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const GENDER_BUCKET = { blue: 'voice_female', red: 'voice_male' };
 
-    // Build tombol pengumuman Peringkat 10 sampai 1
-    function renderRankButtons() {
-      const container = document.getElementById('rankButtonsContainer');
-      container.innerHTML = '';
-      for (let r = 10; r >= 1; r--) {
-        const btn = document.createElement('button');
-        btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-amber-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition";
-        btn.innerHTML = `<i class="fas fa-award"></i> #${r}`;
-        btn.onclick = () => switchStageView('leaderboard', r);
-        container.appendChild(btn);
-      }
+  // Config level (bisa diubah sesuai kebutuhan)
+  const INITIAL_RANGE = { min: 2, max: 50 };
+  const TOTAL_STEPS = 7;  // 1 init + 6 operasi
+
+  // ═══════════════════════════════════════════════════════════
+  // MATH GENERATOR (dipindah dari layout ke admin)
+  // ═══════════════════════════════════════════════════════════
+  class MathGenerator {
+    static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
+
+    static getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Trigger Aksi Game (Start / Reset)
-    async function triggerAction(actionName) {
-      const { error } = await supabaseClient
-        .from('system_number_disco_control')
-        .update({ action: actionName, updated_at: new Date() })
-        .eq('id', 1);
-        
-      if (error) {
-        console.error("Gagal update action:", error);
-        alert("Gagal mengirim perintah: " + error.message);
-      }
-    }
-
-    // Switch View Panggung (Game / Leaderboard / All Players)
-    async function switchStageView(viewName, revealedRank = 0) {
-      updateActiveViewUI(viewName, revealedRank);
-
-      const { error } = await supabaseClient
-        .from('admin_layout_number_disco')
-        .update({ current_view: viewName, revealed_rank: revealedRank, updated_at: new Date() })
-        .eq('id', 1);
-
-      if (error) {
-        console.error("Error switching view:", error);
-        alert("Gagal mengubah view: " + error.message);
-      }
-    }
-
-    function updateActiveViewUI(viewName, rank = 0) {
-      const btnGame = document.getElementById('btnViewGame');
-      const btnLb = document.getElementById('btnViewLeaderboard');
-      const btnAll = document.getElementById('btnViewAll');
-      const badge = document.getElementById('activeViewBadge');
-
-      btnGame.classList.remove('view-btn-active');
-      btnLb.classList.remove('view-btn-active');
-      btnAll.classList.remove('view-btn-active');
-
-      if (viewName === 'leaderboard') {
-        btnLb.classList.add('view-btn-active');
-        badge.textContent = rank > 0 ? `VIEW: PERINGKAT #${rank}` : `VIEW: PAPAN PERINGKAT`;
-      } else if (viewName === 'all_players') {
-        btnAll.classList.add('view-btn-active');
-        badge.textContent = `VIEW: SEMUA PESERTA`;
+    // Generate langkah awal
+    static generateInitialNumber(team) {
+      const type = Math.random();
+      if (type < 0.4) {
+        const val = this.getRandomInt(INITIAL_RANGE.min, INITIAL_RANGE.max);
+        return {
+          type: 'initial',
+          value: val,
+          display: `${val}`,
+          audioFiles: [`${val}.mp3`]
+        };
+      } else if (type < 0.7) {
+        const base = this.getRandomInt(2, 7);
+        const val = base * base;
+        return {
+          type: 'initial',
+          value: val,
+          display: `${base}²`,
+          audioFiles: [`${base}.mp3`, `pangkat_dua.mp3`]
+        };
       } else {
-        btnGame.classList.add('view-btn-active');
-        badge.textContent = `VIEW: MODE GAME`;
+        const sq = this.PERFECT_SQUARES[this.getRandomInt(0, this.PERFECT_SQUARES.length - 1)];
+        const val = Math.sqrt(sq);
+        return {
+          type: 'initial',
+          value: val,
+          display: `√${sq}`,
+          audioFiles: [`akar_dari.mp3`, `${sq}.mp3`]
+        };
       }
     }
 
-    // Fetch Kunci Jawaban Realtime (Tim Biru & Merah)
-    async function fetchTargetAnswers() {
-      const { data, error } = await supabaseClient
-        .from('system_number_disco')
-        .select('team_gender, target_answer');
+    // Generate operand value
+    static generateOperandValue() {
+      const type = Math.random();
+      if (type < 0.5) {
+        const val = this.getRandomInt(1, 25);
+        return { value: val, display: `${val}`, audioFiles: [`${val}.mp3`] };
+      } else if (type < 0.8) {
+        const base = this.getRandomInt(2, 5);
+        return {
+          value: base * base,
+          display: `${base}²`,
+          audioFiles: [`${base}.mp3`, `pangkat_dua.mp3`]
+        };
+      } else {
+        const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
+        return {
+          value: Math.sqrt(sq),
+          display: `√${sq}`,
+          audioFiles: [`akar_dari.mp3`, `${sq}.mp3`]
+        };
+      }
+    }
 
-      if (!error && data) {
-        data.forEach(item => {
-          if (item.team_gender === 'female') {
-            document.getElementById('adminTargetBlue').textContent = item.target_answer ?? '--';
-          } else if (item.team_gender === 'male') {
-            document.getElementById('adminTargetRed').textContent = item.target_answer ?? '--';
+    // Generate operasi (hasil akhir harus 2 digit: 10-99)
+    static generateOperation(currentValue) {
+      const ops = ['+', '-', '×', '÷'];
+      let op, operand, finalVal, attempts = 0;
+
+      do {
+        attempts++;
+        op = ops[Math.floor(Math.random() * ops.length)];
+
+        if (op === '+') {
+          operand = this.generateOperandValue();
+          finalVal = currentValue + operand.value;
+        } else if (op === '-') {
+          operand = this.generateOperandValue();
+          finalVal = currentValue - operand.value;
+        } else if (op === '×') {
+          const mult = this.getRandomInt(2, 4);
+          operand = { value: mult, display: `${mult}`, audioFiles: [`${mult}.mp3`] };
+          finalVal = currentValue * mult;
+        } else {  // ÷
+          const factors = [];
+          for (let i = 2; i <= Math.abs(currentValue); i++) {
+            if (currentValue % i === 0) factors.push(i);
           }
-        });
+          const div = factors.length > 0 ? factors[Math.floor(Math.random() * factors.length)] : 2;
+          operand = { value: div, display: `${div}`, audioFiles: [`${div}.mp3`] };
+          finalVal = currentValue / div;
+        }
+
+        // Safety guard
+        if (attempts > 20) {
+          const target = this.getRandomInt(10, 99);
+          const diff = target - currentValue;
+          if (diff >= 0) {
+            op = '+';
+            operand = { value: diff, display: `${diff}`, audioFiles: [`${diff}.mp3`] };
+            finalVal = target;
+          } else {
+            op = '-';
+            const absDiff = Math.abs(diff);
+            operand = { value: absDiff, display: `${absDiff}`, audioFiles: [`${absDiff}.mp3`] };
+            finalVal = target;
+          }
+          break;
+        }
+      } while (finalVal < 10 || finalVal > 99);
+
+      let opFile = '';
+      if (op === '+') opFile = 'ditambah.mp3';
+      else if (op === '-') opFile = 'dikurangi.mp3';
+      else if (op === '×') opFile = 'dikali.mp3';
+      else if (op === '÷') opFile = 'dibagi.mp3';
+
+      return {
+        type: 'operation',
+        operator: op,
+        operand: operand,
+        value: finalVal,
+        display: `${op} ${operand.display}`,
+        audioFiles: [opFile, ...operand.audioFiles]
+      };
+    }
+
+    // Generate semua langkah untuk 1 tim
+    static generateFullSteps() {
+      const steps = [];
+      const initial = this.generateInitialNumber();
+      steps.push(initial);
+
+      let current = initial.value;
+      for (let i = 1; i < TOTAL_STEPS; i++) {
+        const op = this.generateOperation(current);
+        steps.push(op);
+        current = op.value;
       }
+
+      return {
+        steps: steps,
+        finalAnswer: current
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let userToDelete = null;
+  let lastQuestion = null;
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER RANK BUTTONS
+  // ═══════════════════════════════════════════════════════════
+  function renderRankButtons() {
+    const container = document.getElementById('rankButtonsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let r = 10; r >= 1; r--) {
+      const btn = document.createElement('button');
+      btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-amber-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition";
+      btn.innerHTML = `<i class="fas fa-award"></i> #${r}`;
+      btn.onclick = () => switchStageView('leaderboard', r);
+      container.appendChild(btn);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // GENERATE + PUBLISH SOAL
+  // ═══════════════════════════════════════════════════════════
+  async function generateAndPublishQuestion() {
+    console.log('[ADMIN] Generating question...');
+
+    // Generate untuk kedua tim
+    const blueResult = MathGenerator.generateFullSteps();
+    const redResult = MathGenerator.generateFullSteps();
+
+    console.log('[ADMIN] Blue steps:', blueResult.steps.length, 'Final:', blueResult.finalAnswer);
+    console.log('[ADMIN] Red steps:', redResult.steps.length, 'Final:', redResult.finalAnswer);
+
+    // Publish ke Supabase
+    const { error } = await supabaseClient
+      .from('system_number_disco_question')
+      .upsert({
+        id: 1,
+        blue_steps: blueResult.steps,
+        red_steps: redResult.steps,
+        blue_answer: blueResult.finalAnswer,
+        red_answer: redResult.finalAnswer,
+        generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('[ADMIN] Gagal publish soal:', error);
+      alert('Gagal generate soal: ' + error.message);
+      return false;
     }
 
-    // Tarik & Akumulasi Poin Supabase
-    async function fetchScores() {
-      const tbody = document.getElementById('adminScoreTableBody');
-      
-      const { data, error } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained, game_name')
-        .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
+    console.log('[ADMIN] Soal published');
+    lastQuestion = { blue: blueResult, red: redResult };
+    updatePreview();
+    return true;
+  }
 
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-400">Gagal mengambil data: ${error.message}</td></tr>`;
-        return;
-      }
+  // Preview soal di panel admin
+  function updatePreview() {
+    if (!lastQuestion) return;
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum Ada Skor Terdaftar</td></tr>`;
-        return;
-      }
+    const blueAns = document.getElementById('adminTargetBlue');
+    const redAns = document.getElementById('adminTargetRed');
 
-      let scoreMap = {};
-      data.forEach(row => {
-        const uid = row.user_unique_id || 'Tanpa Nama';
-        scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-      });
+    if (blueAns) blueAns.textContent = lastQuestion.blue.finalAnswer;
+    if (redAns) redAns.textContent = lastQuestion.red.finalAnswer;
+  }
 
-      const sorted = Object.keys(scoreMap)
-        .map(uid => ({ uid, total: scoreMap[uid] }))
-        .sort((a, b) => b.total - a.total);
-
-      tbody.innerHTML = '';
-      sorted.forEach((item, idx) => {
-        const rank = idx + 1;
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-800/30 transition border-b border-slate-800/40";
-        tr.innerHTML = `
-          <td class="p-3 font-mono font-bold text-amber-400">#${rank}</td>
-          <td class="p-3 font-semibold text-white">${item.uid}</td>
-          <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${item.total} PTS</td>
-          <td class="p-3 text-right">
-            <div class="flex items-center justify-end gap-2">
-              <button onclick="resetUserLimit('${item.uid}')" class="bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                <i class="fas fa-rotate text-amber-400"></i> Reset Kuota
-              </button>
-              <button onclick="openDeleteModal('${item.uid}')" class="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
-                <i class="fas fa-trash-can"></i> Hapus Poin
-              </button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+  // ═══════════════════════════════════════════════════════════
+  // TRIGGER ACTION
+  // ═══════════════════════════════════════════════════════════
+  async function triggerAction(actionName) {
+    // Kalau START, generate soal dulu
+    if (actionName === 'START_GAME') {
+      const ok = await generateAndPublishQuestion();
+      if (!ok) return;
     }
 
-    // Reset Kuota Test Peserta Tertentu
-    async function resetUserLimit(userUniqueId) {
-      const { error } = await supabaseClient
-        .from('system_input_max_number_disco')
-        .update({ input_left: 2 })
-        .eq('user_unique_id', userUniqueId);
+    // Kirim sinyal control
+    const { error } = await supabaseClient
+      .from('system_number_disco_control')
+      .update({
+        action: actionName,
+        trigger_id: Date.now(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
 
-      if (error) {
-        alert("Gagal mereset kuota " + userUniqueId + ": " + error.message);
-      } else {
-        alert("Kuota untuk " + userUniqueId + " berhasil dikembalikan ke 2!");
-      }
+    if (error) {
+      console.error('[ADMIN] Gagal update action:', error);
+      alert('Gagal kirim perintah: ' + error.message);
+    } else {
+      console.log(`[ADMIN] Action sent: ${actionName}`);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SWITCH VIEW
+  // ═══════════════════════════════════════════════════════════
+  async function switchStageView(viewName, revealedRank = 0) {
+    updateActiveViewUI(viewName, revealedRank);
+
+    const { error } = await supabaseClient
+      .from('admin_layout_number_disco')
+      .update({
+        current_view: viewName,
+        revealed_rank: revealedRank,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    if (error) console.error('[ADMIN] Switch view error:', error);
+  }
+
+  function updateActiveViewUI(viewName, rank = 0) {
+    const btnGame = document.getElementById('btnViewGame');
+    const btnLb = document.getElementById('btnViewLeaderboard');
+    const btnAll = document.getElementById('btnViewAll');
+    const badge = document.getElementById('activeViewBadge');
+
+    if (!btnGame) return;
+
+    btnGame.classList.remove('view-btn-active');
+    btnLb.classList.remove('view-btn-active');
+    btnAll.classList.remove('view-btn-active');
+
+    if (viewName === 'leaderboard') {
+      btnLb.classList.add('view-btn-active');
+      badge.textContent = rank > 0 ? `VIEW: PERINGKAT #${rank}` : `VIEW: PAPAN PERINGKAT`;
+    } else if (viewName === 'all_players') {
+      btnAll.classList.add('view-btn-active');
+      badge.textContent = `VIEW: SEMUA PESERTA`;
+    } else {
+      btnGame.classList.add('view-btn-active');
+      badge.textContent = `VIEW: MODE GAME`;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LIVE TARGET ANSWERS
+  // ═══════════════════════════════════════════════════════════
+  async function fetchLiveAnswers() {
+    const { data } = await supabaseClient
+      .from('system_number_disco_question')
+      .select('blue_answer, red_answer')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (data) {
+      const blueEl = document.getElementById('adminTargetBlue');
+      const redEl = document.getElementById('adminTargetRed');
+      if (blueEl) blueEl.textContent = data.blue_answer ?? '--';
+      if (redEl) redEl.textContent = data.red_answer ?? '--';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FETCH SCORES
+  // ═══════════════════════════════════════════════════════════
+  async function fetchScores() {
+    const tbody = document.getElementById('adminScoreTableBody');
+
+    const { data, error } = await supabaseClient
+      .from('game_scores')
+      .select('user_unique_id, score_obtained, game_name')
+      .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-400">Gagal: ${error.message}</td></tr>`;
+      return;
     }
 
-    // Reset Kuota Test SEMUA Peserta
-    async function resetAllLimits() {
-      if (!confirm("Apakah Anda yakin ingin mengembalikan kuota uji coba SEMUA peserta ke 2?")) return;
-
-      const { error } = await supabaseClient
-        .from('system_input_max_number_disco')
-        .update({ input_left: 2 })
-        .neq('user_unique_id', '');
-
-      if (error) {
-        alert("Gagal mereset seluruh kuota: " + error.message);
-      } else {
-        alert("Berhasil! Kuota semua peserta dikembalikan ke 2.");
-      }
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum Ada Skor</td></tr>`;
+      return;
     }
 
-    // Modal Hapus Poin
-    function openDeleteModal(userUniqueId) {
-      userToDelete = userUniqueId;
-      document.getElementById('targetDeleteUser').textContent = userUniqueId;
-      document.getElementById('deleteModal').classList.remove('hidden');
+    let scoreMap = {};
+    data.forEach(row => {
+      const uid = row.user_unique_id || 'Tanpa Nama';
+      scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
+    });
+
+    const sorted = Object.keys(scoreMap)
+      .map(uid => ({ uid, total: scoreMap[uid] }))
+      .sort((a, b) => b.total - a.total);
+
+    tbody.innerHTML = '';
+    sorted.forEach((item, idx) => {
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-800/30 transition border-b border-slate-800/40";
+      tr.innerHTML = `
+        <td class="p-3 font-mono font-bold text-amber-400">#${idx + 1}</td>
+        <td class="p-3 font-semibold text-white">${item.uid}</td>
+        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${item.total} PTS</td>
+        <td class="p-3 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="resetUserLimit('${item.uid}')" class="bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fas fa-rotate text-amber-400"></i> Reset Kuota
+            </button>
+            <button onclick="openDeleteModal('${item.uid}')" class="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+              <i class="fas fa-trash-can"></i> Hapus Poin
+            </button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // RESET FUNCTIONS
+  // ═══════════════════════════════════════════════════════════
+  async function resetUserLimit(userUniqueId) {
+    const { error } = await supabaseClient
+      .from('system_input_max_number_disco')
+      .update({ input_left: 2 })
+      .eq('user_unique_id', userUniqueId);
+
+    if (error) alert("Gagal: " + error.message);
+    else alert("Kuota " + userUniqueId + " → 2");
+  }
+
+  async function resetAllLimits() {
+    if (!confirm("Reset kuota SEMUA peserta ke 2?")) return;
+
+    const { error } = await supabaseClient
+      .from('system_input_max_number_disco')
+      .update({ input_left: 2 })
+      .neq('user_unique_id', '');
+
+    if (error) alert("Gagal: " + error.message);
+    else alert("Berhasil! Kuota semua peserta → 2");
+  }
+
+  async function resetAllScores() {
+    const confirmReset = confirm(
+      "Yakin ingin HAPUS SEMUA POIN Number Disco?\n\n" +
+      "Ini akan menghapus:\n• Number Disco Blue\n• Number Disco Red\n\n" +
+      "Tidak bisa dibatalkan."
+    );
+    if (!confirmReset) return;
+
+    const { error } = await supabaseClient
+      .from('game_scores')
+      .delete()
+      .or('game_name.eq.Number Disco Blue,game_name.eq.Number Disco Red');
+
+    if (error) {
+      alert("Gagal: " + error.message);
+    } else {
+      alert("✅ Poin Number Disco berhasil dikosongkan.");
+      fetchScores();
     }
+  }
 
-    function closeDeleteModal() {
-      userToDelete = null;
-      document.getElementById('deleteModal').classList.add('hidden');
-    }
+  // ═══════════════════════════════════════════════════════════
+  // MODAL HAPUS
+  // ═══════════════════════════════════════════════════════════
+  function openDeleteModal(userUniqueId) {
+    userToDelete = userUniqueId;
+    document.getElementById('targetDeleteUser').textContent = userUniqueId;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  }
 
-    // Eksekusi Penghapusan Poin di Supabase
-    async function executeDeleteScore() {
-      if (!userToDelete) return;
+  function closeDeleteModal() {
+    userToDelete = null;
+    document.getElementById('deleteModal').classList.add('hidden');
+  }
 
-      const confirmBtn = document.getElementById('confirmDeleteBtn');
-      confirmBtn.disabled = true;
-      confirmBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghapus...`;
+  async function executeDeleteScore() {
+    if (!userToDelete) return;
 
-      const { error } = await supabaseClient
-        .from('game_scores')
-        .delete()
-        .eq('user_unique_id', userToDelete);
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghapus...`;
 
-      confirmBtn.disabled = false;
-      confirmBtn.innerHTML = `Ya, Hapus Poin`;
-      closeDeleteModal();
+    const { error } = await supabaseClient
+      .from('game_scores')
+      .delete()
+      .eq('user_unique_id', userToDelete);
 
-      if (error) {
-        alert("Gagal menghapus poin: " + error.message);
-      } else {
-        fetchScores();
-      }
-    }
+    btn.disabled = false;
+    btn.innerHTML = `Ya, Hapus Poin`;
+    closeDeleteModal();
 
-    // Realtime Sync Listener
-    supabaseClient
-      .channel('admin_realtime_channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_number_disco' }, () => {
-        fetchTargetAnswers();
+    if (error) alert("Gagal: " + error.message);
+    else fetchScores();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // REALTIME LISTENERS
+  // ═══════════════════════════════════════════════════════════
+  function subscribeRealtime() {
+    supabaseClient.channel('admin_realtime_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_number_disco_question' }, () => {
+        fetchLiveAnswers();
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_scores' }, () => {
         fetchScores();
@@ -411,18 +664,38 @@
         if (payload.new) updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
       })
       .subscribe();
+  }
 
-    // Init Data awal saat halaman dibuka
-    async function initAdmin() {
-      renderRankButtons();
-      fetchScores();
-      fetchTargetAnswers();
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
+  async function initAdmin() {
+    renderRankButtons();
+    fetchScores();
+    fetchLiveAnswers();
 
-      const { data } = await supabaseClient.from('admin_layout_number_disco').select('*').eq('id', 1).maybeSingle();
-      if (data) updateActiveViewUI(data.current_view, data.revealed_rank);
-    }
+    const { data } = await supabaseClient
+      .from('admin_layout_number_disco')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (data) updateActiveViewUI(data.current_view, data.revealed_rank);
 
-    initAdmin();
-  </script>
+    subscribeRealtime();
+  }
+
+  // Expose functions
+  window.triggerAction = triggerAction;
+  window.switchStageView = switchStageView;
+  window.resetAllScores = resetAllScores;
+  window.resetAllLimits = resetAllLimits;
+  window.resetUserLimit = resetUserLimit;
+  window.openDeleteModal = openDeleteModal;
+  window.closeDeleteModal = closeDeleteModal;
+  window.executeDeleteScore = executeDeleteScore;
+  window.fetchScores = fetchScores;
+
+  initAdmin();
+</script>
 </body>
 </html>

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Panitia - Assign Tim Cataclysm Memory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 10px; }
+
+    .team-badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .animate-pulse-badge { animation: pulseBadge 1.5s infinite; }
+
+    .flash-in {
+      animation: flashIn 0.4s ease-out;
+    }
+    @keyframes flashIn {
+      0% { background-color: rgba(34, 197, 94, 0.4); }
+      100% { background-color: rgba(30, 41, 59, 0.8); }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-6">
+
+  <!-- OVERLAY NO USER -->
+  <div id="noUserOverlay" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md hidden flex-col items-center justify-center text-center p-6">
+    <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6">
+      <i class="fas fa-user-slash text-5xl text-rose-500"></i>
+    </div>
+    <h2 class="text-3xl font-black text-rose-500 uppercase mb-2">AKSES DITOLAK</h2>
+    <p class="text-slate-400 text-sm max-w-md mb-6">
+      Anda harus login sebagai panitia untuk mengakses panel ini.
+    </p>
+    <button onclick="location.href='/login.html'" class="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-2xl transition">
+      <i class="fas fa-sign-in-alt"></i> Ke Halaman Login
+    </button>
+  </div>
+
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- HEADER -->
+    <header class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-cyan-500/10 border border-cyan-500/30 rounded-2xl flex items-center justify-center text-cyan-400 text-2xl">
+          <i class="fas fa-users-gear"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-black tracking-wide text-white">PANEL PANITIA</h1>
+          <p class="text-xs text-slate-400">Assign Tim Manual — Cataclysm Memory</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-2">
+          <i class="fas fa-user-shield text-cyan-400 text-sm"></i>
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Panitia</div>
+            <div id="panitiaName" class="text-sm font-bold text-white">-</div>
+          </div>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Realtime</div>
+            <div id="realtimeStatus" class="text-sm font-bold text-emerald-400">Connected</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- STATS -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Peserta</div>
+        <div id="statTotal" class="text-3xl font-black text-white">0</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Sudah Di-assign</div>
+        <div id="statAssigned" class="text-3xl font-black text-emerald-400">0</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Belum Di-assign</div>
+        <div id="statUnassigned" class="text-3xl font-black text-amber-400">0</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Tim Terbentuk</div>
+        <div id="statTeams" class="text-3xl font-black text-cyan-400">0 / 10</div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- KIRI: PILIH PESERTA -->
+      <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h2 class="text-lg font-black text-white flex items-center gap-2">
+            <i class="fas fa-search text-cyan-400"></i> Pilih Peserta
+          </h2>
+          <span id="filteredCount" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">0 hasil</span>
+        </div>
+
+        <!-- Filter Sekolah -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <i class="fas fa-school"></i> Filter Sekolah:
+          </label>
+          <select id="schoolFilter" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-400 cursor-pointer">
+            <option value="">-- Semua Sekolah --</option>
+          </select>
+        </div>
+
+        <!-- Search Nama -->
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <i class="fas fa-search"></i> Cari Nama:
+          </label>
+          <input
+            type="text"
+            id="nameSearch"
+            placeholder="Ketik nama peserta..."
+            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyan-400"
+          />
+        </div>
+
+        <!-- Filter Status Assign -->
+        <div class="flex gap-2">
+          <button onclick="setStatusFilter('all')" id="btnFilterAll" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-cyan-600 text-white">
+            Semua
+          </button>
+          <button onclick="setStatusFilter('unassigned')" id="btnFilterUnassigned" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400">
+            Belum Di-assign
+          </button>
+          <button onclick="setStatusFilter('assigned')" id="btnFilterAssigned" class="flex-1 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400">
+            Sudah Di-assign
+          </button>
+        </div>
+
+        <!-- List Peserta -->
+        <div id="participantList" class="space-y-2 max-h-[500px] overflow-y-auto custom-scroll pr-2">
+          <p class="text-xs text-gray-500 text-center py-4">Memuat data peserta...</p>
+        </div>
+      </div>
+
+      <!-- KANAN: PANEL ASSIGN -->
+      <div class="space-y-6">
+
+        <!-- PESERTA TERPILIH -->
+        <div id="selectedPanel" class="bg-slate-900 border-2 border-cyan-500/30 rounded-2xl p-6">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+            <h3 class="text-sm font-black text-cyan-400 uppercase tracking-wider">
+              <i class="fas fa-user-check"></i> Peserta Terpilih
+            </h3>
+          </div>
+
+          <div id="selectedEmpty" class="text-center py-6 text-slate-500 text-xs">
+            <i class="fas fa-hand-pointer text-2xl mb-2 opacity-30"></i>
+            <p>Klik peserta di sebelah kiri untuk memilih.</p>
+          </div>
+
+          <div id="selectedContent" class="hidden space-y-4">
+            <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl">
+              <img id="selAvatar" src="" class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700" />
+              <div class="overflow-hidden">
+                <div id="selName" class="font-bold text-white truncate">-</div>
+                <div id="selSchool" class="text-xs text-slate-400 truncate">-</div>
+                <div id="selId" class="text-[10px] text-slate-500 font-mono truncate">-</div>
+              </div>
+            </div>
+
+            <div id="selCurrentTeam" class="bg-slate-950 border border-slate-800 p-3 rounded-xl text-center">
+              <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Tim Saat Ini</div>
+              <div id="selCurrentTeamText" class="text-lg font-black text-slate-400">Tanpa Tim</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PILIH TIM -->
+        <div id="teamSelectPanel" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 hidden">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+            <h3 class="text-sm font-black text-cyan-400 uppercase tracking-wider">
+              <i class="fas fa-layer-group"></i> Pilih Tim
+            </h3>
+            <span class="text-[10px] text-slate-500">1 - 10</span>
+          </div>
+
+          <div id="teamGrid" class="grid grid-cols-2 gap-2 mb-4">
+            <!-- Diisi JS -->
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="cancelSelection()" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+              <i class="fas fa-times"></i> Batal
+            </button>
+            <button id="btnUnassign" onclick="unassignSelected()" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 transition">
+              <i class="fas fa-user-minus"></i> Hapus dari Tim
+            </button>
+          </div>
+        </div>
+
+        <!-- INFO PANEL -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <h3 class="text-sm font-black text-amber-400 uppercase tracking-wider mb-3">
+            <i class="fas fa-info-circle"></i> Panduan
+          </h3>
+          <ol class="text-xs text-slate-400 space-y-2 list-decimal list-inside">
+            <li>Pilih <b class="text-white">sekolah</b> atau ketik nama untuk filter.</li>
+            <li>Klik nama peserta untuk memilih.</li>
+            <li>Pilih tim (1-10) untuk assign.</li>
+            <li>Data langsung tersinkron ke <b class="text-cyan-400">semua panitia & layout</b>.</li>
+            <li>Klik "Hapus dari Tim" kalau salah assign.</li>
+          </ol>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const GAME_NAME = 'Cataclysm Memory';
+    const TEAM_COUNT = 10;
+
+    const TEAM_COLORS = {
+      1: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+      2: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+      3: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+      4: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+      5: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+      6: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+      7: 'text-lime-400 bg-lime-500/10 border-lime-500/30',
+      8: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+      9: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+      10: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30'
+    };
+
+    const TEAM_NAMES = {
+      1: 'Tim Merah', 2: 'Tim Biru', 3: 'Tim Hijau', 4: 'Tim Kuning', 5: 'Tim Ungu',
+      6: 'Tim Pink', 7: 'Tim Lime', 8: 'Tim Langit', 9: 'Tim Oranye', 10: 'Tim Fuchsia'
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    let allUsers = [];          // semua peserta
+    let teamMapping = {};       // { unique_id: teamNumber }
+    let teamCounts = {};        // { teamNumber: count }
+    let schools = [];
+
+    let filterSchool = '';
+    let filterName = '';
+    let filterStatus = 'all';   // 'all' | 'assigned' | 'unassigned'
+
+    let selectedUser = null;
+    let selectedTeam = null;
+    let currentPanitia = null;
+
+    // ═══════════════════════════════════════════════════════════
+    // LOAD USER PANITIA dari localStorage('userSession')
+    // ═══════════════════════════════════════════════════════════
+    function loadPanitia() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) {
+        console.log('[TEAM] Tidak ada userSession, redirect ke login...');
+        document.getElementById('noUserOverlay').classList.remove('hidden');
+        document.getElementById('noUserOverlay').classList.add('flex');
+        return false;
+      }
+
+      try {
+        const parsed = JSON.parse(sess);
+        if (!parsed || !parsed.unique_id) {
+          document.getElementById('noUserOverlay').classList.remove('hidden');
+          document.getElementById('noUserOverlay').classList.add('flex');
+          return false;
+        }
+        currentPanitia = parsed;
+        document.getElementById('panitiaName').textContent = parsed.full_name || parsed.unique_id;
+        console.log('[TEAM] Panitia:', parsed.unique_id);
+        return true;
+      } catch (e) {
+        document.getElementById('noUserOverlay').classList.remove('hidden');
+        document.getElementById('noUserOverlay').classList.add('flex');
+        return false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FETCH DATA
+    // ═══════════════════════════════════════════════════════════
+    async function fetchAllData() {
+      // Fetch semua peserta
+      const { data: users, error: uErr } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, school_name')
+        .eq('role', 'peserta')
+        .order('school_name', { ascending: true })
+        .order('full_name', { ascending: true });
+
+      if (uErr) {
+        console.error('[TEAM] Error fetch users:', uErr);
+        return;
+      }
+      allUsers = users || [];
+
+      // Fetch team mapping
+      const { data: teams, error: tErr } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('unique_id, team');
+
+      if (tErr) {
+        console.error('[TEAM] Error fetch teams:', tErr);
+      }
+
+      teamMapping = {};
+      teamCounts = {};
+      (teams || []).forEach(t => {
+        teamMapping[t.unique_id] = t.team;
+        teamCounts[t.team] = (teamCounts[t.team] || 0) + 1;
+      });
+
+      // Extract schools
+      schools = [...new Set(allUsers.map(u => u.school_name).filter(Boolean))].sort();
+
+      console.log(`[TEAM] Loaded ${allUsers.length} users, ${Object.keys(teamMapping).length} assigned`);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════
+    function renderSchoolFilter() {
+      const sel = document.getElementById('schoolFilter');
+      const current = sel.value;
+      sel.innerHTML = '<option value="">-- Semua Sekolah --</option>';
+      schools.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        sel.appendChild(opt);
+      });
+      sel.value = current;
+    }
+
+    function getFilteredUsers() {
+      return allUsers.filter(u => {
+        // Filter sekolah
+        if (filterSchool && u.school_name !== filterSchool) return false;
+
+        // Filter nama
+        if (filterName) {
+          const q = filterName.toLowerCase();
+          const nameMatch = (u.full_name || '').toLowerCase().includes(q);
+          const idMatch = (u.unique_id || '').toLowerCase().includes(q);
+          if (!nameMatch && !idMatch) return false;
+        }
+
+        // Filter status
+        const isAssigned = teamMapping[u.unique_id] !== undefined;
+        if (filterStatus === 'assigned' && !isAssigned) return false;
+        if (filterStatus === 'unassigned' && isAssigned) return false;
+
+        return true;
+      });
+    }
+
+    function renderParticipants() {
+      const list = document.getElementById('participantList');
+      const filtered = getFilteredUsers();
+
+      document.getElementById('filteredCount').textContent = `${filtered.length} hasil`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Tidak ada peserta yang cocok.</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+      filtered.forEach(u => {
+        const team = teamMapping[u.unique_id];
+        const isSelected = selectedUser && selectedUser.unique_id === u.unique_id;
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+          isSelected
+            ? 'bg-cyan-500/20 border-cyan-500/50 ring-2 ring-cyan-500/30'
+            : 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600'
+        }`;
+        card.onclick = () => selectUser(u);
+
+        const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.unique_id)}`;
+
+        const teamBadge = team !== undefined
+          ? `<span class="team-badge ${TEAM_COLORS[team]}">${TEAM_NAMES[team]}</span>`
+          : `<span class="team-badge text-slate-500 bg-slate-800 border-slate-700 border">Tanpa Tim</span>`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden flex-1">
+            <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex-shrink-0" />
+            <div class="overflow-hidden">
+              <div class="font-bold text-sm text-white truncate">${u.full_name || u.unique_id}</div>
+              <div class="text-[10px] text-slate-500 truncate">${u.school_name || '-'}</div>
+            </div>
+          </div>
+          <div class="flex-shrink-0">
+            ${teamBadge}
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function renderTeamGrid() {
+      const grid = document.getElementById('teamGrid');
+      grid.innerHTML = '';
+
+      for (let t = 1; t <= TEAM_COUNT; t++) {
+        const count = teamCounts[t] || 0;
+        const isSelected = selectedTeam === t;
+        const colorClass = TEAM_COLORS[t];
+
+        const btn = document.createElement('button');
+        btn.className = `p-3 rounded-xl border-2 transition-all text-left ${
+          isSelected
+            ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 ' + colorClass
+            : colorClass + ' hover:scale-105'
+        }`;
+        btn.onclick = () => selectTeam(t);
+        btn.innerHTML = `
+          <div class="font-black text-sm">${TEAM_NAMES[t]}</div>
+          <div class="text-[10px] opacity-70 mt-1">${count} anggota</div>
+        `;
+        grid.appendChild(btn);
+      }
+    }
+
+    function renderStats() {
+      const total = allUsers.length;
+      const assigned = Object.keys(teamMapping).length;
+      const unassigned = total - assigned;
+      const teamsFormed = Object.keys(teamCounts).filter(t => teamCounts[t] > 0).length;
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statAssigned').textContent = assigned;
+      document.getElementById('statUnassigned').textContent = unassigned;
+      document.getElementById('statTeams').textContent = `${teamsFormed} / ${TEAM_COUNT}`;
+    }
+
+    function renderSelectedPanel() {
+      const emptyPanel = document.getElementById('selectedEmpty');
+      const contentPanel = document.getElementById('selectedContent');
+      const teamPanel = document.getElementById('teamSelectPanel');
+
+      if (!selectedUser) {
+        emptyPanel.classList.remove('hidden');
+        contentPanel.classList.add('hidden');
+        teamPanel.classList.add('hidden');
+        return;
+      }
+
+      emptyPanel.classList.add('hidden');
+      contentPanel.classList.remove('hidden');
+      teamPanel.classList.remove('hidden');
+
+      const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(selectedUser.unique_id)}`;
+      document.getElementById('selAvatar').src = avatar;
+      document.getElementById('selName').textContent = selectedUser.full_name || selectedUser.unique_id;
+      document.getElementById('selSchool').textContent = selectedUser.school_name || '-';
+      document.getElementById('selId').textContent = selectedUser.unique_id;
+
+      const currentTeam = teamMapping[selectedUser.unique_id];
+      const teamText = document.getElementById('selCurrentTeamText');
+      if (currentTeam !== undefined) {
+        teamText.textContent = TEAM_NAMES[currentTeam];
+        teamText.className = `text-lg font-black ${TEAM_COLORS[currentTeam].split(' ')[0]}`;
+      } else {
+        teamText.textContent = 'Tanpa Tim';
+        teamText.className = 'text-lg font-black text-slate-500';
+      }
+
+      renderTeamGrid();
+    }
+
+    function renderAll() {
+      renderSchoolFilter();
+      renderParticipants();
+      renderStats();
+      renderSelectedPanel();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════
+    function selectUser(user) {
+      selectedUser = user;
+      selectedTeam = null;
+      renderAll();
+    }
+
+    async function selectTeam(teamNum) {
+      if (!selectedUser) return;
+
+      selectedTeam = teamNum;
+
+      // Upsert ke Supabase
+      const { error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .upsert({
+          unique_id: selectedUser.unique_id,
+          full_name: selectedUser.full_name || selectedUser.unique_id,
+          team: teamNum,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'unique_id' });
+
+      if (error) {
+        alert('Gagal assign tim: ' + error.message);
+        console.error(error);
+        return;
+      }
+
+      console.log(`[TEAM] Assigned ${selectedUser.unique_id} → Team ${teamNum}`);
+
+      // Update local state
+      teamMapping[selectedUser.unique_id] = teamNum;
+
+      // Recompute team counts
+      teamCounts = {};
+      Object.values(teamMapping).forEach(t => {
+        teamCounts[t] = (teamCounts[t] || 0) + 1;
+      });
+
+      // Flash feedback
+      const flash = document.createElement('div');
+      flash.className = 'fixed top-4 right-4 z-50 bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl font-bold flex items-center gap-3 flash-in';
+      flash.innerHTML = `<i class="fas fa-check-circle"></i> ${selectedUser.full_name} → ${TEAM_NAMES[teamNum]}`;
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 2000);
+
+      // Re-render
+      selectedTeam = null;
+      renderAll();
+    }
+
+    async function unassignSelected() {
+      if (!selectedUser) return;
+      const currentTeam = teamMapping[selectedUser.unique_id];
+      if (currentTeam === undefined) {
+        alert('Peserta ini belum punya tim.');
+        return;
+      }
+
+      if (!confirm(`Hapus ${selectedUser.full_name} dari ${TEAM_NAMES[currentTeam]}?`)) return;
+
+      const { error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .delete()
+        .eq('unique_id', selectedUser.unique_id);
+
+      if (error) {
+        alert('Gagal hapus: ' + error.message);
+        return;
+      }
+
+      console.log(`[TEAM] Unassigned ${selectedUser.unique_id}`);
+
+      // Update local
+      delete teamMapping[selectedUser.unique_id];
+      teamCounts = {};
+      Object.values(teamMapping).forEach(t => {
+        teamCounts[t] = (teamCounts[t] || 0) + 1;
+      });
+
+      // Flash
+      const flash = document.createElement('div');
+      flash.className = 'fixed top-4 right-4 z-50 bg-rose-600 text-white px-6 py-3 rounded-2xl shadow-2xl font-bold flex items-center gap-3 flash-in';
+      flash.innerHTML = `<i class="fas fa-user-minus"></i> ${selectedUser.full_name} dihapus dari tim`;
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 2000);
+
+      renderAll();
+    }
+
+    function cancelSelection() {
+      selectedUser = null;
+      selectedTeam = null;
+      renderAll();
+    }
+
+    function setStatusFilter(status) {
+      filterStatus = status;
+      document.getElementById('btnFilterAll').className = `flex-1 py-2 rounded-xl text-xs font-bold transition ${status === 'all' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+      document.getElementById('btnFilterUnassigned').className = `flex-1 py-2 rounded-xl text-xs font-bold transition ${status === 'unassigned' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+      document.getElementById('btnFilterAssigned').className = `flex-1 py-2 rounded-xl text-xs font-bold transition ${status === 'assigned' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+      renderParticipants();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EVENT LISTENERS
+    // ═══════════════════════════════════════════════════════════
+    document.getElementById('schoolFilter').addEventListener('change', (e) => {
+      filterSchool = e.target.value;
+      renderParticipants();
+    });
+
+    document.getElementById('nameSearch').addEventListener('input', (e) => {
+      filterName = e.target.value;
+      renderParticipants();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME SYNC — sinkron antar panitia
+    // ═══════════════════════════════════════════════════════════
+    function subscribeRealtime() {
+      supabaseClient
+        .channel('team_panitia_channel')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'cataclysm_memory_teams'
+        }, (payload) => {
+          console.log('[TEAM] Realtime event:', payload.eventType);
+
+          const { eventType, new: newRow, old: oldRow } = payload;
+
+          if (eventType === 'INSERT' || eventType === 'UPDATE') {
+            if (newRow && newRow.unique_id) {
+              teamMapping[newRow.unique_id] = newRow.team;
+            }
+          } else if (eventType === 'DELETE') {
+            if (oldRow && oldRow.unique_id) {
+              delete teamMapping[oldRow.unique_id];
+            }
+          }
+
+          // Recompute counts
+          teamCounts = {};
+          Object.values(teamMapping).forEach(t => {
+            teamCounts[t] = (teamCounts[t] || 0) + 1;
+          });
+
+          renderAll();
+        })
+        .subscribe((status) => {
+          console.log('[TEAM] Realtime status:', status);
+          const el = document.getElementById('realtimeStatus');
+          if (status === 'SUBSCRIBED') {
+            el.textContent = 'Connected';
+            el.className = 'text-sm font-bold text-emerald-400';
+          } else {
+            el.textContent = status;
+            el.className = 'text-sm font-bold text-amber-400';
+          }
+        });
+
+      // Polling fallback
+      setInterval(async () => {
+        const { data: teams } = await supabaseClient
+          .from('cataclysm_memory_teams')
+          .select('unique_id, team');
+
+        if (!teams) return;
+
+        const newMapping = {};
+        const newCounts = {};
+        teams.forEach(t => {
+          newMapping[t.unique_id] = t.team;
+          newCounts[t.team] = (newCounts[t.team] || 0) + 1;
+        });
+
+        // Cek perubahan
+        const oldSig = JSON.stringify(teamMapping);
+        const newSig = JSON.stringify(newMapping);
+        if (oldSig !== newSig) {
+          teamMapping = newMapping;
+          teamCounts = newCounts;
+          renderAll();
+        }
+      }, 3000);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      if (!loadPanitia()) return;
+
+      await fetchAllData();
+      renderAll();
+      subscribeRealtime();
+
+      console.log('[TEAM] Panel ready');
+    }
+
+    init();
+  </script>
+</body>
+</html>

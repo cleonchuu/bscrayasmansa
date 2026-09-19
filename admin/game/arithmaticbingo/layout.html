@@ -166,15 +166,40 @@
     }
 
     function subscribeQuestionState() {
+      // Realtime listener
       supabaseClient
         .channel('layout_question_channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'system_arithmatic_bingo' }, (payload) => {
           if (payload.new) updateQuestionDisplay(payload.new);
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[LAYOUT] Realtime question status:', status);
+        });
+
+      // ═══════════════════════════════════════════════════════════
+      // POLLING FALLBACK — cek setiap 1 detik
+      // ═══════════════════════════════════════════════════════════
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from('system_arithmatic_bingo')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+        
+        if (data) updateQuestionDisplay(data);
+      }, 1000);
     }
 
+    let lastLayoutSignature = '';
+
     function handleViewSwitch(viewName, revealedRank) {
+      // Signature check — skip kalau tidak ada perubahan
+      const sig = `${viewName}|${revealedRank}`;
+      if (sig === lastLayoutSignature) return;
+      lastLayoutSignature = sig;
+
+      console.log('[LAYOUT] View switch:', viewName, 'rank:', revealedRank);
+
       const qView = document.getElementById('viewQuestion');
       const lbView = document.getElementById('viewLeaderboard');
       const allView = document.getElementById('viewAllPlayers');
@@ -191,21 +216,19 @@
         lbView.classList.remove('hidden-view');
         lbView.classList.add('active-view');
         
-        // Hanya re-render kartu JIKA rank nya berubah dari sebelumnya
-        if (newRank !== lastRevealedRank) {
+        if (newRank !== currentRevealedRank) {
           currentRevealedRank = newRank;
-          lastRevealedRank = newRank;
           fetchAndRenderStageScores(false);
         }
       } else if (viewName === 'all_players') {
         allView.classList.remove('hidden-view');
         allView.classList.add('active-view');
-        lastRevealedRank = -1; // Reset tracker
+        currentRevealedRank = -1;
         fetchAndRenderStageScores(true);
       } else {
         qView.classList.remove('hidden-view');
         qView.classList.add('active-view');
-        lastRevealedRank = -1; // Reset tracker
+        currentRevealedRank = -1;
       }
     }
 
@@ -388,14 +411,32 @@
     }
 
     async function initStage() {
-      const { data: layoutData } = await supabaseClient.from('admin_layout_arithmatic_bingo').select('*').eq('id', 1).maybeSingle();
-      if (layoutData) handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
+      // Fetch layout awal
+      const { data: layoutData } = await supabaseClient
+        .from('admin_layout_arithmatic_bingo')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
 
-      const { data: sysData } = await supabaseClient.from('system_arithmatic_bingo').select('*').eq('id', 1).maybeSingle();
+      if (layoutData) {
+        // Set signature SEBELUM handleViewSwitch
+        lastLayoutSignature = `${layoutData.current_view}|${layoutData.revealed_rank || 0}`;
+        handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
+      }
+
+      // Fetch soal awal
+      const { data: sysData } = await supabaseClient
+        .from('system_arithmatic_bingo')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
       if (sysData) updateQuestionDisplay(sysData);
 
+      // Subscribe
       subscribeAdminLayoutRemote();
       subscribeQuestionState();
+
+      console.log('[LAYOUT] Init complete');
     }
 
     initStage();
