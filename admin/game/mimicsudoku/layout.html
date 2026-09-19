@@ -88,6 +88,15 @@
     #debugPanel .dbg-btn:hover { background: #475569; color: #fff; }
     #debugPanel .dbg-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
     #debugPanel .dbg-btn.success { background: #065f46; border-color: #047857; color: #a7f3d0; }
+
+    @keyframes balloonPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.animate-balloon {
+  animation: balloonPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
   </style>
 </head>
 <body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
@@ -240,880 +249,654 @@
     </div>
   </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // SAFE HELPERS — Anti-crash null reference
-    // ═══════════════════════════════════════════════════════════
-    function safeSetText(id, text) {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text;
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // SAFE HELPERS
+  // ═══════════════════════════════════════════════════════════
+  function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+  function safeSetClass(id, className) {
+    const el = document.getElementById(id);
+    if (el) el.className = className;
+  }
+  function safeReplaceClass(id, from, to) {
+    const el = document.getElementById(id);
+    if (el) el.classList.replace(from, to);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LOGGER
+  // ═══════════════════════════════════════════════════════════
+  const DEBUG = true;
+  const LOG = {
+    ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+    info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+    warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+    error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+    step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+  const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
+
+  let audioUnlocked = false;
+
+  // ═══════════════════════════════════════════════════════════
+  // AUDIO ENGINE
+  // ═══════════════════════════════════════════════════════════
+  class WebAudioEngine {
+    constructor() {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.cache = new Map();
     }
-    function safeSetClass(id, className) {
-      const el = document.getElementById(id);
-      if (el) el.className = className;
-    }
-    function safeToggle(id, removeCls, addCls) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.remove(removeCls);
-      el.classList.add(addCls);
-    }
-    function safeReplace(id, from, to) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.classList.replace(from, to);
-    }
-    function safeSetHTML(id, html) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // LOGGER
-    // ═══════════════════════════════════════════════════════════
-    const DEBUG = true;
-    const LOG = {
-      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
-      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
-      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
-      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
-      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
-    };
-
-    // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI
-    // ═══════════════════════════════════════════════════════════
-    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-    const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
-    const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
-    const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
-
-    let audioUnlocked = false;
-
-    // ═══════════════════════════════════════════════════════════
-    // LEVEL CONFIG
-    // ═══════════════════════════════════════════════════════════
-    const LEVEL_CONFIG = {
-      level_1: { cells: 1, durationSec: 120, label: 'LEVEL 1 (1 Sel, 2 Menit)' },
-      level_2: { cells: 2, durationSec: 240, label: 'LEVEL 2 (2 Sel, 4 Menit)' },
-      level_3: { cells: 3, durationSec: 300, label: 'LEVEL 3 (3 Sel, 5 Menit)' }
-    };
-
-    // ═══════════════════════════════════════════════════════════
-    // DEBUG PANEL
-    // ═══════════════════════════════════════════════════════════
-    const DBG = {
-      set: (id, text, cls = '') => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.textContent = text;
-          el.className = 'dbg-val ' + cls;
-        }
-      },
-      realtime: (t, c) => DBG.set('dbgRealtime', t, c),
-      action: (t, c) => DBG.set('dbgAction', t, c),
-      level: (t, c) => DBG.set('dbgLevel', t, c),
-      engine: (t, c) => DBG.set('dbgEngine', t, c),
-      lastEvent: (t, c) => DBG.set('dbgLastEvent', t, c)
-    };
-
-    // ═══════════════════════════════════════════════════════════
-    // AUDIO ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class WebAudioEngine {
-      constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.cache = new Map();
-      }
-      async fetchAndCache(url) {
-        if (this.cache.has(url)) return this.cache.get(url);
-        try {
-          const res = await fetch(url);
-          const buf = await res.arrayBuffer();
-          const audio = await this.ctx.decodeAudioData(buf);
-          this.cache.set(url, audio);
-          return audio;
-        } catch (e) {
-          LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`, e.message);
-          return null;
-        }
-      }
-      async play(url) {
-        const buf = await this.fetchAndCache(url);
-        if (!buf) return;
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
-        const src = this.ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(this.ctx.destination);
-        src.start(0);
-        LOG.info('AUDIO', `🔊 Playing: ${url.split('/').pop()}`);
+    async fetchAndCache(url) {
+      if (this.cache.has(url)) return this.cache.get(url);
+      try {
+        const res = await fetch(url);
+        const buf = await res.arrayBuffer();
+        const audio = await this.ctx.decodeAudioData(buf);
+        this.cache.set(url, audio);
+        return audio;
+      } catch (e) {
+        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`, e.message);
+        return null;
       }
     }
-    const audioEngine = new WebAudioEngine();
+    async play(url) {
+      const buf = await this.fetchAndCache(url);
+      if (!buf) return;
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+      LOG.info('AUDIO', `🔊 ${url.split('/').pop()}`);
+    }
+  }
+  const audioEngine = new WebAudioEngine();
 
-    // ═══════════════════════════════════════════════════════════
-    // SUDOKU GENERATOR
-    // ═══════════════════════════════════════════════════════════
-    class SudokuGenerator {
-      static generate() {
-        const board = Array.from({ length: 9 }, () => Array(9).fill(0));
-        this._solve(board);
-        return board;
-      }
-      static _solve(b) {
-        for (let r = 0; r < 9; r++) {
-          for (let c = 0; c < 9; c++) {
-            if (b[r][c] === 0) {
-              const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
-              for (const n of nums) {
-                if (this._isValid(b, r, c, n)) {
-                  b[r][c] = n;
-                  if (this._solve(b)) return true;
-                  b[r][c] = 0;
-                }
-              }
-              return false;
-            }
-          }
-        }
-        return true;
-      }
-      static _isValid(b, r, c, val) {
-        for (let i = 0; i < 9; i++) if (b[r][i] === val || b[i][c] === val) return false;
-        const sr = Math.floor(r/3)*3, sc = Math.floor(c/3)*3;
-        for (let i = 0; i < 3; i++)
-          for (let j = 0; j < 3; j++)
-            if (b[sr+i][sc+j] === val) return false;
-        return true;
+  // ═══════════════════════════════════════════════════════════
+  // MIMIC LAYOUT — Pure Display
+  // ═══════════════════════════════════════════════════════════
+  class MimicLayout {
+    constructor() {
+      this.isPlaying = false;
+      this.currentLevel = null;
+      this.masterGrid = [];
+      this.questionGrid = [];
+      this.targetCells = [];
+      this.answerValue = 0;
+
+      this.lastQuestionSig = '';
+      this.lastStatusSig = '';
+      this.firstRenderDone = false;
+
+      this.sessionTick = null;
+    }
+
+    subscribe() {
+      LOG.ok('SUB', 'Subscribe ke system_mimic_sudoku...');
+
+      supabaseClient
+        .channel('stage_mimic_all')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_mimic_sudoku' }, (payload) => {
+          if (!payload.new) return;
+          const id = payload.new.id;
+          if (id === 5) this.onStatusUpdate(payload.new);
+          else if (id === 4) this.onQuestionUpdate(payload.new);
+          else if (id === 1 || id === 2 || id === 3) this.refreshMasterData();
+        })
+        .subscribe((status) => {
+          LOG.info('SUB', `Channel: ${status}`);
+          if (status === 'SUBSCRIBED') this.fetchAll();
+        });
+
+      setInterval(() => this.fetchAll(), 3000);
+    }
+
+    async fetchAll() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data, updated_at');
+      if (!data) return;
+
+      const statusRow = data.find(r => r.id === 5);
+      if (statusRow) this.onStatusUpdate(statusRow);
+
+      const questionRow = data.find(r => r.id === 4);
+      if (questionRow) this.onQuestionUpdate(questionRow);
+
+      this.onMasterDataUpdate(data);
+    }
+
+    onStatusUpdate(row) {
+      if (!row || !row.grid_data) return;
+      const data = row.grid_data;
+      const sig = `${data.action}|${data.current_level}|${data.session_start_time}`;
+      if (sig === this.lastStatusSig) return;
+      this.lastStatusSig = sig;
+
+      LOG.info('STATUS', `Action: ${data.action}, Level: ${data.current_level}`);
+
+      if (data.action === 'START_GAME' && data.current_level) {
+        this.onStartGame(data);
+      } else if (data.action === 'RESET') {
+        this.onReset();
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // CELL MEMORY
-    // ═══════════════════════════════════════════════════════════
-    class CellMemory {
-      constructor() { this.reset(); }
-      reset() {
-        this.memory = Array.from({ length: 9 }, () =>
-          Array.from({ length: 9 }, () => [])
+    async onStartGame(status) {
+      LOG.ok('STAGE', `▶ START (${status.current_level})`);
+      this.isPlaying = true;
+      this.currentLevel = status.current_level;
+      this.firstRenderDone = false;
+
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data')
+        .in('id', [1, 2, 3]);
+      if (data) this.onMasterDataUpdate(data);
+
+      safeSetText('stageStatus', `GAME BERJALAN — ${status.label || ''}`);
+      safeSetText('levelText', status.label || status.current_level);
+      const lvl = document.getElementById('levelIndicator');
+      if (lvl) { lvl.classList.remove('hidden'); lvl.classList.add('flex'); }
+
+      safeSetText('statusBadge', 'ACTIVE');
+      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
+      safeReplaceClass('repeatIndicator', 'hidden', 'flex');
+
+      this.startLocalTimer(status.session_start_time, status.duration);
+    }
+
+    onReset() {
+      LOG.warn('STAGE', '🔄 RESET');
+      this.isPlaying = false;
+      this.currentLevel = null;
+      this.masterGrid = [];
+      this.questionGrid = [];
+      this.targetCells = [];
+      this.answerValue = 0;
+      this.firstRenderDone = false;
+
+      if (this.sessionTick) { clearInterval(this.sessionTick); this.sessionTick = null; }
+
+      safeSetText('stageStatus', 'STAGE READY');
+      safeSetText('statusBadge', 'Ready');
+      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5');
+      safeReplaceClass('repeatIndicator', 'flex', 'hidden');
+      const lvl = document.getElementById('levelIndicator');
+      if (lvl) { lvl.classList.remove('flex'); lvl.classList.add('hidden'); }
+      safeSetText('timerDisplay', '--:--');
+      safeSetText('targetCellDisplay', '--');
+
+      this.renderBlankBoard();
+    }
+
+    onMasterDataUpdate(data) {
+      if (!Array.isArray(data)) return;
+
+      const row1 = data.find(r => r.id === 1);
+      const row2 = data.find(r => r.id === 2);
+      const row3 = data.find(r => r.id === 3);
+
+      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+          row1.grid_data.slice(r * 9, r * 9 + 9)
         );
       }
-      nextFor(r, c) {
-        if (this.memory[r][c].length === 0) {
-          this.memory[r][c] = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
-        }
-        return this.memory[r][c].pop();
-      }
-      generateBoard() {
-        const g = Array.from({ length: 9 }, () => Array(9).fill(0));
-        for (let r = 0; r < 9; r++)
-          for (let c = 0; c < 9; c++)
-            g[r][c] = this.nextFor(r, c);
-        return g;
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // STAGE ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class StageEngine {
-      constructor() {
-        this.isPlaying = false;
-        this.currentLevel = null;
-        this.masterGrid = [];
-        this.questionGrid = [];
-        this.targetCells = [];
-        this.answerValue = 0;
-        this.remainingSeconds = 0;
-        this.timerInterval = null;
-        this.loopInterval = null;
-        this.loopTimerInterval = null;
-        this.loopTimeLeft = 5;
-        this.cellMemory = new CellMemory();
-      }
-
-      async start(level) {
-        LOG.ok('ENGINE', `🚀 START dipanggil (level=${level})`);
-        DBG.engine(`starting ${level}`, 'dbg-warn');
-
-        if (this.isPlaying) {
-          LOG.warn('ENGINE', 'Sudah playing, reset dulu...');
-          this.reset();
-          await new Promise(r => setTimeout(r, 300));
-        }
-
-        const config = LEVEL_CONFIG[level];
-        if (!config) {
-          LOG.error('ENGINE', `❌ Level tidak dikenal: ${level}`);
-          DBG.engine(`error: unknown level`, 'dbg-err');
-          return;
-        }
-
-        this.isPlaying = true;
-        this.currentLevel = level;
-
-        this.updateStatus(`GAME BERJALAN — ${config.label}`, 'active');
-        this.showLevelIndicator(config.label);
-
-        // 1. Generate master grid
-        LOG.step('ENGINE', 'Generate master grid...');
-        this.masterGrid = SudokuGenerator.generate();
-        LOG.ok('ENGINE', `Grid dibuat. Baris 1: [${this.masterGrid[0].join(',')}]`);
-
-        // 2. Pilih target cells
-        LOG.step('ENGINE', `Pilih ${config.cells} cell random...`);
-        this.targetCells = this.pickRandomCells(config.cells);
-        this.targetCells.forEach(t => {
-          LOG.info('ENGINE', `  Target: ${COL_LETTERS[t.c]}${t.r + 1} = ${this.masterGrid[t.r][t.c]}`);
+      if (row2 && Array.isArray(row2.grid_data)) {
+        this.targetCells = row2.grid_data.map(idx => {
+          const i = idx - 1;
+          return { r: Math.floor(i / 9), c: i % 9 };
         });
-
-        // 3. Hitung jawaban
-        this.answerValue = this.targetCells.reduce((s, t) => s + this.masterGrid[t.r][t.c], 0);
-        LOG.ok('ENGINE', `Jawaban = ${this.answerValue}`);
-
-        // 4. Update display target
         const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
         safeSetText('targetCellDisplay', expr);
-
-        // 5. Set durasi
-        this.remainingSeconds = config.durationSec;
-        this.updateTimerUI();
-
-        // 6. Publish ke Supabase
-        await this.publishToSupabase();
-
-        // 7. Render + loop
-        this.cellMemory.reset();
-        this.simulateParticipantBoard();
-        this.startBoardLoop();
-        this.startSessionTimer();
-
-        DBG.engine(`running ${level}`, 'dbg-ok');
-        LOG.ok('ENGINE', '✅ ENGINE SIAP');
       }
-
-      reset() {
-        LOG.warn('ENGINE', '🔄 RESET');
-        this.isPlaying = false;
-        this.currentLevel = null;
-        clearInterval(this.timerInterval);
-        clearInterval(this.loopInterval);
-        clearInterval(this.loopTimerInterval);
-
-        this.remainingSeconds = 0;
-        this.updateTimerUI();
-        this.updateStatus('STAGE READY', 'ready');
-        this.hideLevelIndicator();
-        safeSetText('targetCellDisplay', '--');
-        this.renderBlankBoard();
-        DBG.engine('idle', '');
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+        this.answerValue = row3.grid_data;
       }
+    }
 
-      pickRandomCells(count) {
-        const all = [];
-        for (let r = 0; r < 9; r++)
-          for (let c = 0; c < 9; c++)
-            all.push({ r, c });
-        for (let i = all.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [all[i], all[j]] = [all[j], all[i]];
-        }
-        return all.slice(0, count);
+    onQuestionUpdate(row) {
+      if (!row || !Array.isArray(row.grid_data) || row.grid_data.length !== 81) return;
+
+      const sig = `${row.updated_at}`;
+      if (sig === this.lastQuestionSig) return;
+      this.lastQuestionSig = sig;
+
+      this.questionGrid = Array.from({ length: 9 }, (_, r) =>
+        row.grid_data.slice(r * 9, r * 9 + 9)
+      );
+      this.renderQuestionBoard();
+
+      if (this.isPlaying && this.firstRenderDone) {
+        audioEngine.play(SOUND_BELL);
       }
+      this.firstRenderDone = true;
+    }
 
-      simulateParticipantBoard() {
-        if (!this.masterGrid.length) return;
-        this.questionGrid = this.cellMemory.generateBoard();
-        this.renderQuestionBoard();
-      }
+    startLocalTimer(startTime, durationSec) {
+      if (this.sessionTick) clearInterval(this.sessionTick);
 
-      async publishToSupabase() {
-        try {
-          LOG.step('SUPA', 'Publish master grid (id=1)...');
-          const { error: e1 } = await supabaseClient.from('system_mimic_sudoku').upsert(
-            { id: 1, grid_data: this.masterGrid.flat(), updated_at: new Date().toISOString() },
-            { onConflict: 'id' }
-          );
-          if (e1) { LOG.error('SUPA', 'Gagal simpan id=1', e1); return; }
-
-          LOG.step('SUPA', 'Publish target cells (id=2)...');
-          const targetIndices = this.targetCells.map(t => (t.r * 9) + t.c + 1);
-          const { error: e2 } = await supabaseClient.from('system_mimic_sudoku').upsert(
-            { id: 2, grid_data: targetIndices, updated_at: new Date().toISOString() },
-            { onConflict: 'id' }
-          );
-          if (e2) { LOG.error('SUPA', 'Gagal simpan id=2', e2); return; }
-
-          LOG.step('SUPA', 'Publish jawaban (id=3)...');
-          const { error: e3 } = await supabaseClient.from('system_mimic_sudoku').upsert(
-            { id: 3, grid_data: this.answerValue, updated_at: new Date().toISOString() },
-            { onConflict: 'id' }
-          );
-          if (e3) { LOG.error('SUPA', 'Gagal simpan id=3', e3); return; }
-
-          LOG.ok('SUPA', '✅ Semua data tersimpan.');
-        } catch (e) {
-          LOG.error('SUPA', 'Exception', e);
-        }
-      }
-
-      startBoardLoop() {
-        this.resetLoopTimerUI();
-        this.loopInterval = setInterval(async () => {
-          if (!this.isPlaying) return;
-          LOG.step('LOOP', 'Ganti papan...');
-          this.simulateParticipantBoard();
-          this.resetLoopTimerUI();
-          audioEngine.play(SOUND_BELL);
-        }, 5000);
-      }
-
-      resetLoopTimerUI() {
-        clearInterval(this.loopTimerInterval);
-        this.loopTimeLeft = 5;
-        this.updateLoopTimerUI(this.loopTimeLeft);
-        this.loopTimerInterval = setInterval(() => {
-          this.loopTimeLeft--;
-          this.updateLoopTimerUI(this.loopTimeLeft);
-          if (this.loopTimeLeft <= 0) clearInterval(this.loopTimerInterval);
-        }, 1000);
-      }
-
-      startSessionTimer() {
-        clearInterval(this.timerInterval);
-        this.updateTimerUI();
-        this.timerInterval = setInterval(() => {
-          if (!this.isPlaying) return;
-          this.remainingSeconds--;
-          this.updateTimerUI();
-          if (this.remainingSeconds <= 0) {
-            LOG.warn('TIMER', '⏰ Waktu habis!');
-            this.handleTimeout();
-          }
-        }, 1000);
-      }
-
-      async handleTimeout() {
-        clearInterval(this.timerInterval);
-        clearInterval(this.loopInterval);
-        clearInterval(this.loopTimerInterval);
-        this.isPlaying = false;
-
-        LOG.warn('ENGINE', '⏰ TIMEOUT — beep + freeze');
-        audioEngine.play(SOUND_BEEP);
-
-        this.updateStatus('WAKTU HABIS!', 'timeout');
-        this.renderBlankBoard();
-        DBG.engine('timeout', 'dbg-err');
-      }
-
-      updateStatus(text, state) {
-        // Guarded — semua null-safe
-        safeSetText('stageStatus', text);
-
-        const badge = document.getElementById('statusBadge');
-        const repeat = document.getElementById('repeatIndicator');
-
-        if (state === 'active') {
-          if (badge) {
-            badge.textContent = 'ACTIVE';
-            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-          }
-          if (repeat) repeat.classList.replace('hidden', 'flex');
-        } else if (state === 'timeout') {
-          if (badge) {
-            badge.textContent = 'TIMEOUT';
-            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20';
-          }
-          if (repeat) repeat.classList.replace('flex', 'hidden');
-        } else {
-          if (badge) {
-            badge.textContent = 'Ready';
-            badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5';
-          }
-          if (repeat) repeat.classList.replace('flex', 'hidden');
-        }
-      }
-
-      showLevelIndicator(label) {
-        safeSetText('levelText', label);
-        const el = document.getElementById('levelIndicator');
-        if (el) {
-          el.classList.remove('hidden');
-          el.classList.add('flex');
-        }
-      }
-      hideLevelIndicator() {
-        const el = document.getElementById('levelIndicator');
-        if (el) {
-          el.classList.remove('flex');
-          el.classList.add('hidden');
-        }
-      }
-
-      updateTimerUI() {
-        const m = Math.floor(Math.max(0, this.remainingSeconds) / 60);
-        const s = Math.max(0, this.remainingSeconds) % 60;
+      const compute = () => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, durationSec - elapsed);
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
         safeSetText('timerDisplay', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
-      }
+        if (remaining <= 0) { clearInterval(this.sessionTick); this.sessionTick = null; }
+      };
+      compute();
+      this.sessionTick = setInterval(compute, 500);
+    }
 
-      updateLoopTimerUI(sec) {
-        const el = document.getElementById('loopTimerDisplay');
-        if (!el) return;
-        if (sec > 0) {
-          el.classList.remove('hidden');
-          el.classList.add('flex');
-          el.innerHTML = `<i class="fas fa-sync-alt fa-spin mr-1"></i>${sec}s`;
-        } else {
-          el.classList.add('hidden');
-          el.classList.remove('flex');
-        }
-      }
+    // ═══════════════════════════════════════════════════════
+    // RENDER — pakai logika dari tes.html
+    // Hijau + balon untuk baris/kolom sempurna
+    // Merah + kuning untuk 1/3 sel salah
+    // ═══════════════════════════════════════════════════════
+    _computeCellSize() {
+      const sidebar = document.querySelector('aside');
+      const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+      const availW = window.innerWidth - sidebarW - 60;
+      const availH = window.innerHeight - 100;
+      return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
+    }
 
-      // ═══════════════════════════════════════════════════════
-      // RENDER GRID
-      // ═══════════════════════════════════════════════════════
-      _computeCellSize() {
-        const sidebar = document.querySelector('aside');
-        const sidebarW = sidebar ? sidebar.offsetWidth : 320;
-        const availW = window.innerWidth - sidebarW - 60;
-        const availH = window.innerHeight - 100;
-        return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
-      }
+    renderQuestionBoard() {
+      if (!this.questionGrid.length) return;
+      const container = document.getElementById('gridQuestionArea');
+      const colHeaders = document.getElementById('columnHeaders');
+      const colClues = document.getElementById('columnClues');
+      if (!container) return;
 
-      renderQuestionBoard() {
-        const container = document.getElementById('gridQuestionArea');
-        const colHeaders = document.getElementById('columnHeaders');
-        const colClues = document.getElementById('columnClues');
-        if (!container) return;
+      const cellSize = this._computeCellSize();
+      const fontSize = Math.max(12, Math.floor(cellSize * 0.5));
+      const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
 
-        const cellSize = this._computeCellSize();
-        const fontSize = Math.max(12, Math.floor(cellSize * 0.5));
-        const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
+      container.style.gridTemplateColumns = gridCols;
+      if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
+      if (colClues) colClues.style.gridTemplateColumns = gridCols;
 
-        container.style.gridTemplateColumns = gridCols;
-        if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
-        if (colClues) colClues.style.gridTemplateColumns = gridCols;
-
-        // Header kolom A-I
-        if (colHeaders) {
-          colHeaders.innerHTML = '<div></div>';
-          for (let c = 0; c < 9; c++) {
-            const h = document.createElement('div');
-            h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-            h.textContent = COL_LETTERS[c];
-            colHeaders.appendChild(h);
-          }
-          colHeaders.appendChild(document.createElement('div'));
-        }
-
-        // Grid cell
-        container.innerHTML = '';
-        const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
-
-        for (let r = 0; r < 9; r++) {
-          const rowHeader = document.createElement('div');
-          rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-          rowHeader.textContent = r + 1;
-          container.appendChild(rowHeader);
-
-          for (let c = 0; c < 9; c++) {
-            const val = this.questionGrid[r][c];
-            const isTarget = targetSet.has(`${r},${c}`);
-            const cell = document.createElement('div');
-            let subgrid = '';
-            if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
-            if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
-
-            const style = isTarget
-              ? 'bg-amber-500/30 border-4 border-amber-400 animate-pulse z-20 shadow-2xl shadow-amber-500/50'
-              : 'bg-slate-800/80 border border-slate-700/60';
-            const textColor = isTarget ? 'text-white' : 'text-amber-400';
-
-            cell.style.width = cellSize + 'px';
-            cell.style.height = cellSize + 'px';
-            cell.style.fontSize = fontSize + 'px';
-            cell.className = `${style} rounded-lg flex items-center justify-center font-black ${textColor} transition-all ${subgrid}`;
-            cell.textContent = val || '';
-            container.appendChild(cell);
-          }
-
-          const rowClue = document.createElement('div');
-          rowClue.id = `rowClueQ-${r}`;
-          rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-          rowClue.style.minHeight = cellSize + 'px';
-          container.appendChild(rowClue);
-        }
-
-        // Column clues
-        if (colClues) {
-          colClues.innerHTML = '<div></div>';
-          for (let c = 0; c < 9; c++) {
-            const cc = document.createElement('div');
-            cc.id = `colClueQ-${c}`;
-            cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-            colClues.appendChild(cc);
-          }
-          colClues.appendChild(document.createElement('div'));
-        }
-
-        this.renderClues();
-      }
-
-      renderClues() {
-        const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
-        for (let r = 0; r < 9; r++) {
-          let green = 0;
-          for (let c = 0; c < 9; c++) {
-            if (targetSet.has(`${r},${c}`)) continue;
-            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
-          }
-          const el = document.getElementById(`rowClueQ-${r}`);
-          if (el) el.innerHTML = this.renderDots(green, 9 - green);
-        }
+      if (colHeaders) {
+        colHeaders.innerHTML = '<div></div>';
         for (let c = 0; c < 9; c++) {
-          let green = 0;
-          for (let r = 0; r < 9; r++) {
-            if (targetSet.has(`${r},${c}`)) continue;
-            if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
-          }
-          const el = document.getElementById(`colClueQ-${c}`);
-          if (el) el.innerHTML = this.renderDots(green, 9 - green);
+          const h = document.createElement('div');
+          h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          h.textContent = COL_LETTERS[c];
+          colHeaders.appendChild(h);
         }
+        colHeaders.appendChild(document.createElement('div'));
       }
 
-      renderDots(green, red) {
-        let html = '';
-        for (let i = 0; i < green; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
-        for (let i = 0; i < red; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
-        return html;
+      // ═══════════════════════════════════════════════════════
+      // Identifikasi baris/kolom sempurna
+      // ═══════════════════════════════════════════════════════
+      const perfectRows = new Set();
+      const perfectCols = new Set();
+
+      for (let r = 0; r < 9; r++) {
+        let isPerfect = true;
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] !== this.masterGrid[r][c]) { isPerfect = false; break; }
+        }
+        if (isPerfect) perfectRows.add(r);
       }
 
-      renderBlankBoard() {
-        const container = document.getElementById('gridQuestionArea');
-        const colHeaders = document.getElementById('columnHeaders');
-        const colClues = document.getElementById('columnClues');
-        if (!container) return;
-
-        const cellSize = this._computeCellSize();
-        const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
-
-        container.innerHTML = '';
-        if (colHeaders) colHeaders.innerHTML = '';
-        if (colClues) colClues.innerHTML = '';
-
-        container.style.gridTemplateColumns = gridCols;
-        if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
-        if (colClues) colClues.style.gridTemplateColumns = gridCols;
-
-        if (colHeaders) {
-          colHeaders.innerHTML = '<div></div>';
-          for (let c = 0; c < 9; c++) {
-            const h = document.createElement('div');
-            h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-            h.textContent = COL_LETTERS[c];
-            colHeaders.appendChild(h);
-          }
-          colHeaders.appendChild(document.createElement('div'));
-        }
-
+      for (let c = 0; c < 9; c++) {
+        let isPerfect = true;
         for (let r = 0; r < 9; r++) {
-          const rowHeader = document.createElement('div');
-          rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-          rowHeader.textContent = r + 1;
-          container.appendChild(rowHeader);
+          if (this.questionGrid[r][c] !== this.masterGrid[r][c]) { isPerfect = false; break; }
+        }
+        if (isPerfect) perfectCols.add(c);
+      }
 
-          for (let c = 0; c < 9; c++) {
-            const cell = document.createElement('div');
-            let subgrid = '';
-            if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
-            if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
-            cell.style.width = cellSize + 'px';
-            cell.style.height = cellSize + 'px';
-            cell.className = `bg-slate-800/80 border border-slate-700/60 rounded-lg ${subgrid}`;
-            container.appendChild(cell);
+      // ═══════════════════════════════════════════════════════
+      // Identifikasi 1/3 sel salah untuk hint merah-kuning
+      // Deterministic per questionGrid (pakai seed dari updated_at
+      // supaya semua layout sama)
+      // ═══════════════════════════════════════════════════════
+      const wrongCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] && this.questionGrid[r][c] !== this.masterGrid[r][c]) {
+            wrongCells.push({ r, c });
           }
+        }
+      }
 
-          const rowClue = document.createElement('div');
-          rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
-          rowClue.style.minHeight = cellSize + 'px';
-          container.appendChild(rowClue);
+      // Seed deterministic berdasarkan grid content
+      let seed = 0;
+      for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++)
+          seed = (seed * 31 + this.questionGrid[r][c]) >>> 0;
+
+      // Simple PRNG deterministic
+      const prng = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+
+      // Fisher-Yates dengan PRNG
+      for (let i = wrongCells.length - 1; i > 0; i--) {
+        const j = Math.floor(prng() * (i + 1));
+        [wrongCells[i], wrongCells[j]] = [wrongCells[j], wrongCells[i]];
+      }
+
+      const countToShowRed = Math.ceil(wrongCells.length / 3);
+      const highlightedWrongCells = new Set(
+        wrongCells.slice(0, countToShowRed).map(cell => `${cell.r},${cell.c}`)
+      );
+
+      // ═══════════════════════════════════════════════════════
+      // Render cells
+      // ═══════════════════════════════════════════════════════
+      container.innerHTML = '';
+      const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+
+      for (let r = 0; r < 9; r++) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowHeader.textContent = r + 1;
+        container.appendChild(rowHeader);
+
+        for (let c = 0; c < 9; c++) {
+          const val = this.questionGrid[r][c];
+          const cell = document.createElement('div');
+          let subgrid = '';
+          if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+          if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+
+          const isTargetCell = targetSet.has(`${r},${c}`);
+          const isRowPerfect = perfectRows.has(r);
+          const isColPerfect = perfectCols.has(c);
+          const isHighlightedWrong = highlightedWrongCells.has(`${r},${c}`);
+
+          let cellStyle = 'bg-slate-800/80 border border-slate-700/60 text-amber-400';
+let animClass = '';
+
+// PRIORITAS 1: TARGET CELL — selalu terlihat
+if (isTargetCell) {
+  cellStyle = 'bg-amber-500/40 border-4 border-amber-400 text-white font-black shadow-2xl shadow-amber-500/60 animate-pulse z-30 scale-110';
+  animClass = '';  // jangan pakai balloon animation biar gak bentrok dengan pulse
+}
+// PRIORITAS 2: Baris/Kolom Sempurna
+else if (isRowPerfect || isColPerfect) {
+  cellStyle = 'bg-emerald-600/80 border-2 border-emerald-400 text-white font-black shadow-lg shadow-emerald-500/30';
+  animClass = 'animate-balloon';
+}
+// PRIORITAS 3: Hint Merah-Kuning
+else if (isHighlightedWrong) {
+  cellStyle = 'bg-rose-600/90 border border-rose-400 text-yellow-300 font-black';
+}
+// PRIORITAS 4: Normal
+
+          cell.style.width = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+          cell.style.fontSize = fontSize + 'px';
+          cell.className = `${cellStyle} ${animClass} rounded-lg flex items-center justify-center transition-all ${subgrid}`;
+          cell.textContent = val || '';
+          container.appendChild(cell);
         }
 
-        if (colClues) {
-          colClues.innerHTML = '<div></div>';
-          for (let c = 0; c < 9; c++) {
-            const cc = document.createElement('div');
-            cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
-            colClues.appendChild(cc);
-          }
-          colClues.appendChild(document.createElement('div'));
+        const rowClue = document.createElement('div');
+        rowClue.id = `rowClueQ-${r}`;
+        rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowClue.style.minHeight = cellSize + 'px';
+        container.appendChild(rowClue);
+      }
+
+      if (colClues) {
+        colClues.innerHTML = '<div></div>';
+        for (let c = 0; c < 9; c++) {
+          const cc = document.createElement('div');
+          cc.id = `colClueQ-${c}`;
+          cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          colClues.appendChild(cc);
         }
+        colClues.appendChild(document.createElement('div'));
+      }
+
+      this.renderClues();
+    }
+
+    renderClues() {
+      for (let r = 0; r < 9; r++) {
+        let green = 0;
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+        }
+        const el = document.getElementById(`rowClueQ-${r}`);
+        if (el) el.innerHTML = this.renderDots(green, 9 - green);
+      }
+      for (let c = 0; c < 9; c++) {
+        let green = 0;
+        for (let r = 0; r < 9; r++) {
+          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+        }
+        const el = document.getElementById(`colClueQ-${c}`);
+        if (el) el.innerHTML = this.renderDots(green, 9 - green);
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // VIEW SWITCHER
-    // ═══════════════════════════════════════════════════════════
-    let cachedScores = [];
-    let currentRevealedRank = -1;
-    let lastRevealedRank = -1;
-    let autoScrollInterval = null;
+    renderDots(green, red) {
+      let html = '';
+      for (let i = 0; i < green; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
+      for (let i = 0; i < red; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
+      return html;
+    }
 
-    function handleViewSwitch(viewName, revealedRank) {
-      const gView = document.getElementById('viewGame');
-      const lbView = document.getElementById('viewLeaderboard');
-      const allView = document.getElementById('viewAllPlayers');
-      if (!gView || !lbView || !allView) return;
+    renderBlankBoard() {
+      const container = document.getElementById('gridQuestionArea');
+      const colHeaders = document.getElementById('columnHeaders');
+      const colClues = document.getElementById('columnClues');
+      if (!container) return;
 
-      stopAutoScroll();
-      gView.classList.add('hidden-view'); gView.classList.remove('active-view');
-      lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
-      allView.classList.add('hidden-view'); allView.classList.remove('active-view');
+      const cellSize = this._computeCellSize();
+      const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
 
-      const newRank = revealedRank || 0;
-      if (viewName === 'leaderboard') {
-        lbView.classList.remove('hidden-view'); lbView.classList.add('active-view');
-        if (newRank !== lastRevealedRank) {
-          currentRevealedRank = newRank; lastRevealedRank = newRank;
-          fetchAndRenderStageScores(false);
+      container.innerHTML = '';
+      if (colHeaders) colHeaders.innerHTML = '';
+      if (colClues) colClues.innerHTML = '';
+
+      container.style.gridTemplateColumns = gridCols;
+      if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
+      if (colClues) colClues.style.gridTemplateColumns = gridCols;
+
+      if (colHeaders) {
+        colHeaders.innerHTML = '<div></div>';
+        for (let c = 0; c < 9; c++) {
+          const h = document.createElement('div');
+          h.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          h.textContent = COL_LETTERS[c];
+          colHeaders.appendChild(h);
         }
-      } else if (viewName === 'all_players') {
-        allView.classList.remove('hidden-view'); allView.classList.add('active-view');
-        lastRevealedRank = -1;
-        fetchAndRenderStageScores(true);
-      } else {
-        gView.classList.remove('hidden-view'); gView.classList.add('active-view');
-        lastRevealedRank = -1;
+        colHeaders.appendChild(document.createElement('div'));
       }
-      LOG.info('VIEW', `View switched → ${viewName} (rank=${newRank})`);
-    }
 
-    async function fetchAndRenderStageScores(isAll) {
-      const { data, error } = await supabaseClient.from('game_scores')
-        .select('user_unique_id, score_obtained, game_name')
-        .eq('game_name', 'Mimic Sudoku');
-      if (error || !data) return;
-      let map = {};
-      data.forEach(r => {
-        const uid = r.user_unique_id || 'Tanpa Nama';
-        map[uid] = (map[uid] || 0) + (r.score_obtained || 0);
-      });
-      cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a,b) => b.total - a.total);
-      if (isAll) renderAllPlayersList(); else renderStageLeaderboard();
-    }
+      for (let r = 0; r < 9; r++) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = `flex items-center justify-center font-bold text-indigo-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowHeader.textContent = r + 1;
+        container.appendChild(rowHeader);
 
-    function renderStageLeaderboard() {
-      const c = document.getElementById('stageLeaderboardGrid');
-      if (!c) return;
-      if (currentRevealedRank === 0 || cachedScores.length === 0) {
-        c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`; return;
-      }
-      const p = cachedScores[currentRevealedRank - 1];
-      if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada data #${currentRevealedRank}</p>`; return; }
-      const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
-      c.innerHTML = `
-        <div class="animate-card-pop bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
-          <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${currentRevealedRank}</div>
-          <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${avatar}" class="w-full h-full object-contain"/></div>
-          <h3 class="text-3xl font-black">${p.uid}</h3>
-          <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${p.total} PTS</div>
-        </div>`;
-    }
-
-    function renderAllPlayersList() {
-      const c = document.getElementById('allPlayersGrid');
-      if (!c) return;
-      c.innerHTML = '';
-      cachedScores.forEach((it, idx) => {
-        const div = document.createElement('div');
-        div.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between';
-        div.innerHTML = `
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900 rounded-lg text-slate-400">#${idx+1}</span>
-            <span class="text-sm font-semibold text-slate-200">${it.uid}</span>
-          </div>
-          <span class="text-sm font-mono font-bold text-indigo-400">+${it.total} PTS</span>`;
-        c.appendChild(div);
-      });
-    }
-
-    function startAutoScroll() {
-      stopAutoScroll();
-      const el = document.getElementById('scrollContainer');
-      if (!el) return;
-      let waiting = false;
-      autoScrollInterval = setInterval(() => {
-        if (waiting) return;
-        el.scrollTop += 1.5;
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
-          waiting = true;
-          setTimeout(() => { el.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => waiting = false, 1200); }, 2000);
+        for (let c = 0; c < 9; c++) {
+          const cell = document.createElement('div');
+          let subgrid = '';
+          if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+          if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+          cell.style.width = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+          cell.className = `bg-slate-800/80 border border-slate-700/60 rounded-lg ${subgrid}`;
+          container.appendChild(cell);
         }
-      }, 30);
-    }
-    function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
 
-    // ═══════════════════════════════════════════════════════════
-    // UNLOCK AUDIO
-    // ═══════════════════════════════════════════════════════════
-    function unlockAudio() {
-      audioUnlocked = true;
-      const overlay = document.getElementById('audioUnlockOverlay');
-      if (overlay) overlay.classList.add('hidden');
-      safeSetText('stageStatus', "STAGE READY");
-      LOG.ok('AUDIO', '✅ Unlocked. Stage siap.');
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // DEBUG TOOLS
-    // ═══════════════════════════════════════════════════════════
-    async function debugReadAll() {
-      LOG.step('DEBUG', '🔍 Baca semua tabel...');
-      const { data: control, error: e1 } = await supabaseClient.from('system_mimic_sudoku_control').select('*');
-      if (e1) LOG.error('DEBUG', 'Control error', e1);
-      else {
-        console.log('%c📋 system_mimic_sudoku_control:', 'color:#10b981;font-weight:bold');
-        console.table(control);
-        if (control && control[0]) {
-          DBG.action(control[0].action || '-');
-          DBG.level(control[0].current_level || '-');
-        }
+        const rowClue = document.createElement('div');
+        rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowClue.style.minHeight = cellSize + 'px';
+        container.appendChild(rowClue);
       }
-      const { data: sudoku, error: e2 } = await supabaseClient.from('system_mimic_sudoku').select('id, grid_data, updated_at');
-      if (e2) LOG.error('DEBUG', 'Sudoku error', e2);
-      else {
-        console.log('%c📋 system_mimic_sudoku:', 'color:#10b981;font-weight:bold');
-        sudoku.forEach(r => {
-          const preview = Array.isArray(r.grid_data)
-            ? `[${r.grid_data.slice(0,9).join(',')}...] len=${r.grid_data.length}`
-            : String(r.grid_data).substring(0, 60);
-          console.log(`  id=${r.id} | ${preview}`);
-        });
+
+      if (colClues) {
+        colClues.innerHTML = '<div></div>';
+        for (let c = 0; c < 9; c++) {
+          const cc = document.createElement('div');
+          cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          colClues.appendChild(cc);
+        }
+        colClues.appendChild(document.createElement('div'));
       }
     }
-    window.debugReadAll = debugReadAll;
+  }
 
-    async function debugTrigger(action, level) {
-      LOG.step('DEBUG', `🧪 Trigger: ${action} / ${level}`);
-      const { error } = await supabaseClient
-        .from('system_mimic_sudoku_control')
-        .update({ action, current_level: level, updated_at: new Date().toISOString() })
-        .eq('id', 1);
-      if (error) LOG.error('DEBUG', 'Gagal trigger', error);
-      else LOG.ok('DEBUG', 'Trigger terkirim.');
+  // ═══════════════════════════════════════════════════════════
+  // VIEW SWITCHER
+  // ═══════════════════════════════════════════════════════════
+  let cachedScores = [];
+  let currentRevealedRank = -1;
+  let lastRevealedRank = -1;
+  let autoScrollInterval = null;
+
+  function handleViewSwitch(viewName, revealedRank) {
+    const gView = document.getElementById('viewGame');
+    const lbView = document.getElementById('viewLeaderboard');
+    const allView = document.getElementById('viewAllPlayers');
+    if (!gView || !lbView || !allView) return;
+
+    stopAutoScroll();
+    gView.classList.add('hidden-view'); gView.classList.remove('active-view');
+    lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
+    allView.classList.add('hidden-view'); allView.classList.remove('active-view');
+
+    const newRank = revealedRank || 0;
+    if (viewName === 'leaderboard') {
+      lbView.classList.remove('hidden-view'); lbView.classList.add('active-view');
+      if (newRank !== lastRevealedRank) {
+        currentRevealedRank = newRank; lastRevealedRank = newRank;
+        fetchAndRenderStageScores(false);
+      }
+    } else if (viewName === 'all_players') {
+      allView.classList.remove('hidden-view'); allView.classList.add('active-view');
+      lastRevealedRank = -1;
+      fetchAndRenderStageScores(true);
+    } else {
+      gView.classList.remove('hidden-view'); gView.classList.add('active-view');
+      lastRevealedRank = -1;
     }
-    window.debugTrigger = debugTrigger;
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME LISTENER: system_mimic_sudoku_control
-    // ═══════════════════════════════════════════════════════════
-    const engine = new StageEngine();
-    let lastControlSignature = '';
-    let eventCount = 0;
-
-    LOG.ok('INIT', '🎧 Mendaftarkan listener...');
-    DBG.realtime('subscribing...', 'dbg-warn');
-
-    supabaseClient.channel('stage_mimic_control')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'system_mimic_sudoku_control'
-      }, (payload) => {
-        eventCount++;
-        const now = new Date().toLocaleTimeString();
-        console.log(`%c📡 [EVENT #${eventCount}] UPDATE @ ${now}`, 'color:#10b981;font-weight:bold;font-size:15px');
-        console.log('  payload.new:', payload.new);
-
-        if (!payload.new) return;
-        const data = payload.new;
-        DBG.lastEvent(`#${eventCount} ${data.action}`, 'dbg-ok');
-        DBG.action(data.action || '-');
-        DBG.level(data.current_level || '-');
-
-        const sig = `${data.action}|${data.current_level}|${data.updated_at}`;
-        if (sig === lastControlSignature) {
-          LOG.warn('EVENT', '⚠️ Signature sama, SKIP');
-          return;
-        }
-        lastControlSignature = sig;
-
-        if (data.action === 'START_GAME') {
-          LOG.ok('EVENT', `→ engine.start("${data.current_level}")`);
-          if (!audioUnlocked) unlockAudio();
-          engine.start(data.current_level);
-        } else if (data.action === 'RESET') {
-          LOG.ok('EVENT', '→ engine.reset()');
-          engine.reset();
-        }
-      })
-      .subscribe((status) => {
-        LOG.info('INIT', `Channel status: ${status}`);
-        if (status === 'SUBSCRIBED') {
-          DBG.realtime('✓ subscribed', 'dbg-ok');
-          LOG.ok('INIT', '✅ Listener siap.');
-          setTimeout(() => debugReadAll(), 500);
-        } else if (status === 'CHANNEL_ERROR') {
-          DBG.realtime('✗ error', 'dbg-err');
-          LOG.error('INIT', '❌ Gagal subscribe!');
-        } else if (status === 'TIMED_OUT') {
-          DBG.realtime('✗ timeout', 'dbg-err');
-        } else if (status === 'CLOSED') {
-          DBG.realtime('✗ closed', 'dbg-warn');
-        } else {
-          DBG.realtime(status, 'dbg-warn');
-        }
-      });
-
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME: admin_layout_mimic_sudoku
-    // ═══════════════════════════════════════════════════════════
-    supabaseClient.channel('stage_layout_remote')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'admin_layout_mimic_sudoku'
-      }, (payload) => {
-        if (payload.new) {
-          LOG.info('VIEW', `Layout update: ${payload.new.current_view}`);
-          handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
-        }
-      })
-      .subscribe();
-
-    // ═══════════════════════════════════════════════════════════
-    // RESIZE HANDLER
-    // ═══════════════════════════════════════════════════════════
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (engine.isPlaying) engine.renderQuestionBoard();
-        else engine.renderBlankBoard();
-      }, 200);
+  async function fetchAndRenderStageScores(isAll) {
+    const { data, error } = await supabaseClient.from('game_scores')
+      .select('user_unique_id, score_obtained, game_name')
+      .eq('game_name', 'Mimic Sudoku');
+    if (error || !data) return;
+    let map = {};
+    data.forEach(r => {
+      const uid = r.user_unique_id || 'Tanpa Nama';
+      map[uid] = (map[uid] || 0) + (r.score_obtained || 0);
     });
+    cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a,b) => b.total - a.total);
+    if (isAll) renderAllPlayersList(); else renderStageLeaderboard();
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════
-    async function initStage() {
-      LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
-      engine.renderBlankBoard();
-
-      const { data, error } = await supabaseClient
-        .from('admin_layout_mimic_sudoku').select('*').eq('id', 1).maybeSingle();
-      if (error) LOG.error('INIT', 'Layout fetch error', error);
-      if (data) handleViewSwitch(data.current_view, data.revealed_rank);
-
-      LOG.ok('INIT', 'Stage siap. Menunggu sinyal admin...');
+  function renderStageLeaderboard() {
+    const c = document.getElementById('stageLeaderboardGrid');
+    if (!c) return;
+    if (currentRevealedRank === 0 || cachedScores.length === 0) {
+      c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`; return;
     }
+    const p = cachedScores[currentRevealedRank - 1];
+    if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`; return; }
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    c.innerHTML = `
+      <div class="animate-card-pop bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
+        <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${currentRevealedRank}</div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${avatar}" class="w-full h-full object-contain"/></div>
+        <h3 class="text-3xl font-black">${p.uid}</h3>
+        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${p.total} PTS</div>
+      </div>`;
+  }
 
-    initStage();
-  </script>
+  function renderAllPlayersList() {
+    const c = document.getElementById('allPlayersGrid');
+    if (!c) return;
+    c.innerHTML = '';
+    cachedScores.forEach((it, idx) => {
+      const div = document.createElement('div');
+      div.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between';
+      div.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900 rounded-lg text-slate-400">#${idx+1}</span>
+          <span class="text-sm font-semibold text-slate-200">${it.uid}</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-indigo-400">+${it.total} PTS</span>`;
+      c.appendChild(div);
+    });
+  }
+
+  function startAutoScroll() {
+    stopAutoScroll();
+    const el = document.getElementById('scrollContainer');
+    if (!el) return;
+    let waiting = false;
+    autoScrollInterval = setInterval(() => {
+      if (waiting) return;
+      el.scrollTop += 1.5;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+        waiting = true;
+        setTimeout(() => { el.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => waiting = false, 1200); }, 2000);
+      }
+    }, 30);
+  }
+  function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
+
+  function unlockAudio() {
+    audioUnlocked = true;
+    const overlay = document.getElementById('audioUnlockOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    safeSetText('stageStatus', "STAGE READY");
+    LOG.ok('AUDIO', '✅ Unlocked.');
+  }
+
+  const layout = new MimicLayout();
+  layout.subscribe();
+
+  supabaseClient.channel('stage_layout_remote')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
+      if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+    })
+    .subscribe();
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (layout.isPlaying) layout.renderQuestionBoard();
+      else layout.renderBlankBoard();
+    }, 200);
+  });
+
+  layout.renderBlankBoard();
+
+  (async () => {
+    const { data } = await supabaseClient
+      .from('admin_layout_mimic_sudoku').select('*').eq('id', 1).maybeSingle();
+    if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+  })();
+
+  LOG.ok('INIT', '══════════ STAGE READY ══════════');
+</script>
 </body>
 </html>

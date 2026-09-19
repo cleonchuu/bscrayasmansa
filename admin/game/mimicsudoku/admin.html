@@ -238,13 +238,12 @@
 
 <script>
   // ═══════════════════════════════════════════════════════════
-  // KONEKSI SUPABASE
+  // SAFE HELPERS
   // ═══════════════════════════════════════════════════════════
-  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-  const supabaseClient = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
+  function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
 
   // ═══════════════════════════════════════════════════════════
   // LOGGER
@@ -259,6 +258,24 @@
   };
 
   // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+  const supabaseClient = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
+  const LOOP_INTERVAL_MS = 5000;
+
+  const LEVEL_CONFIG = {
+    level_1: { cells: 1, durationSec: 120, label: 'LEVEL 1 (1 Sel, 2 Menit)' },
+    level_2: { cells: 2, durationSec: 240, label: 'LEVEL 2 (2 Sel, 4 Menit)' },
+    level_3: { cells: 3, durationSec: 300, label: 'LEVEL 3 (3 Sel, 5 Menit)' }
+  };
+
+  // ═══════════════════════════════════════════════════════════
   // STATE
   // ═══════════════════════════════════════════════════════════
   let selectedLevel = 'level_1';
@@ -266,7 +283,332 @@
   let userToDelete = null;
 
   // ═══════════════════════════════════════════════════════════
-  // RENDER TOMBOL PERINGKAT
+  // SUDOKU GENERATOR
+  // ═══════════════════════════════════════════════════════════
+  class SudokuGenerator {
+    static generate() {
+      const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+      this._solve(board);
+      return board;
+    }
+    static _solve(b) {
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (b[r][c] === 0) {
+            const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+            for (const n of nums) {
+              if (this._isValid(b, r, c, n)) {
+                b[r][c] = n;
+                if (this._solve(b)) return true;
+                b[r][c] = 0;
+              }
+            }
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    static _isValid(b, r, c, val) {
+      for (let i = 0; i < 9; i++) if (b[r][i] === val || b[i][c] === val) return false;
+      const sr = Math.floor(r/3)*3, sc = Math.floor(c/3)*3;
+      for (let i = 0; i < 3; i++)
+        for (let j = 0; j < 3; j++)
+          if (b[sr+i][sc+j] === val) return false;
+      return true;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CELL MEMORY — unique 1-9 per cell per siklus
+  // ═══════════════════════════════════════════════════════════
+  class CellMemory {
+    constructor() { this.reset(); }
+    reset() {
+      this.memory = Array.from({ length: 9 }, () =>
+        Array.from({ length: 9 }, () => [])
+      );
+    }
+    nextFor(r, c) {
+      if (this.memory[r][c].length === 0) {
+        this.memory[r][c] = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+      }
+      return this.memory[r][c].pop();
+    }
+    generateBoard() {
+      const g = Array.from({ length: 9 }, () => Array(9).fill(0));
+      for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++)
+          g[r][c] = this.nextFor(r, c);
+      return g;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // MIMIC ADMIN
+  // Generate master + target + jawaban + loop question
+  // ═══════════════════════════════════════════════════════════
+  class MimicAdmin {
+    constructor() {
+      this.currentLevel = null;
+      this.masterGrid = [];
+      this.targetCells = [];
+      this.answerValue = 0;
+      this.cellMemory = new CellMemory();
+      this.isRunning = false;
+
+      this.sessionTimer = null;
+      this.loopTimer = null;
+      this.countdownTick = null;
+    }
+
+    async start(level) {
+      LOG.ok('GAME', `══════════ START GAME (${level}) ══════════`);
+
+      const config = LEVEL_CONFIG[level];
+      if (!config) { LOG.error('GAME', `Level tidak dikenal: ${level}`); return false; }
+
+      if (this.isRunning) { this.stop(); await new Promise(r => setTimeout(r, 300)); }
+
+      this.isRunning = true;
+      this.currentLevel = level;
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 1: Generate master + target + jawaban
+      // ═══════════════════════════════════════════════════════
+      LOG.step('GEN', 'Generate master grid...');
+      this.masterGrid = SudokuGenerator.generate();
+
+      LOG.step('GEN', `Pilih ${config.cells} target cell...`);
+      this.targetCells = this.pickRandomCells(config.cells);
+      this.targetCells.forEach(t => {
+        LOG.info('GEN', `  → ${COL_LETTERS[t.c]}${t.r + 1} = ${this.masterGrid[t.r][t.c]}`);
+      });
+
+      this.answerValue = this.targetCells.reduce((s, t) => s + this.masterGrid[t.r][t.c], 0);
+      LOG.ok('GEN', `Jawaban = ${this.answerValue}`);
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 2: Publish master data
+      // ═══════════════════════════════════════════════════════
+      await this.publishMasterData(config);
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 3: Publish question board pertama (dengan paksa 1 baris/kolom)
+      // ═══════════════════════════════════════════════════════
+      this.cellMemory.reset();
+      await this.publishQuestionBoard();
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 4: Start loop 5 detik
+      // ═══════════════════════════════════════════════════════
+      this.startQuestionLoop();
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 5: Start timer
+      // ═══════════════════════════════════════════════════════
+      this.startSessionTimer(config.durationSec);
+
+      LOG.ok('GAME', `✅ Sesi berjalan. Durasi ${config.durationSec}s`);
+      return true;
+    }
+
+    stop() {
+      LOG.warn('GAME', 'Stop game');
+      this.isRunning = false;
+      if (this.sessionTimer) { clearTimeout(this.sessionTimer); this.sessionTimer = null; }
+      if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null; }
+      if (this.countdownTick) { clearInterval(this.countdownTick); this.countdownTick = null; }
+    }
+
+    pickRandomCells(count) {
+      const all = [];
+      for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++)
+          all.push({ r, c });
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      return all.slice(0, count);
+    }
+
+    async publishMasterData(config) {
+      try {
+        LOG.step('SUPA', 'Publish master grid (id=1)...');
+        await supabaseClient.from('system_mimic_sudoku').upsert({
+          id: 1,
+          grid_data: this.masterGrid.flat(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        LOG.step('SUPA', 'Publish target cells (id=2)...');
+        const targetIndices = this.targetCells.map(t => (t.r * 9) + t.c + 1);
+        await supabaseClient.from('system_mimic_sudoku').upsert({
+          id: 2,
+          grid_data: targetIndices,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        LOG.step('SUPA', 'Publish jawaban (id=3)...');
+        await supabaseClient.from('system_mimic_sudoku').upsert({
+          id: 3,
+          grid_data: this.answerValue,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        LOG.step('SUPA', 'Publish status (id=5)...');
+        await supabaseClient.from('system_mimic_sudoku').upsert({
+          id: 5,
+          grid_data: {
+            action: 'START_GAME',
+            current_level: this.currentLevel,
+            session_start_time: Date.now(),
+            duration: config.durationSec,
+            label: config.label
+          },
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        LOG.ok('SUPA', '✅ Master data tersimpan (id=1, 2, 3, 5).');
+        return true;
+      } catch (e) {
+        LOG.error('SUPA', 'Exception', e);
+        return false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+// Generate question grid dengan PAKSA 2 baris ATAU 2 kolom sempurna
+// ═══════════════════════════════════════════════════════
+generateQuestionGrid() {
+  // 1. Generate board biasa (unique 1-9 per cell)
+  const nextGrid = this.cellMemory.generateBoard();
+
+  // 2. Pilih mode: 2 baris atau 2 kolom
+  const isRowTarget = Math.random() < 0.5;
+
+  if (isRowTarget) {
+    // Pilih 2 indeks baris unik (0-8)
+    const indices = this.pickUniqueIndices(2, 9);
+    indices.forEach(rowIdx => {
+      for (let c = 0; c < 9; c++) {
+        nextGrid[rowIdx][c] = this.masterGrid[rowIdx][c];
+      }
+    });
+    LOG.info('GEN', `Force 2 ROWS to perfect: ${indices.map(i => i + 1).join(', ')}`);
+  } else {
+    const indices = this.pickUniqueIndices(2, 9);
+    indices.forEach(colIdx => {
+      for (let r = 0; r < 9; r++) {
+        nextGrid[r][colIdx] = this.masterGrid[r][colIdx];
+      }
+    });
+    LOG.info('GEN', `Force 2 COLS to perfect: ${indices.map(i => COL_LETTERS[i]).join(', ')}`);
+  }
+
+  return nextGrid;
+}
+
+// Helper: pilih N indeks unik dari 0..max-1
+pickUniqueIndices(n, max) {
+  const pool = Array.from({ length: max }, (_, i) => i);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, n);
+}
+
+    async publishQuestionBoard() {
+      const questionGrid = this.generateQuestionGrid();
+
+      const { error } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .upsert({
+          id: 4,
+          grid_data: questionGrid.flat(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+      if (error) { LOG.error('SUPA', 'Publish id=4 gagal', error); return false; }
+      LOG.ok('SUPA', '✓ Question board (id=4) updated');
+      return true;
+    }
+
+    startQuestionLoop() {
+      if (this.loopTimer) clearInterval(this.loopTimer);
+      this.loopTimer = setInterval(async () => {
+        if (!this.isRunning) return;
+        LOG.step('LOOP', 'Ganti papan (force row/col perfect)...');
+        await this.publishQuestionBoard();
+      }, LOOP_INTERVAL_MS);
+    }
+
+    startSessionTimer(durationSec) {
+      if (this.sessionTimer) clearTimeout(this.sessionTimer);
+      if (this.countdownTick) clearInterval(this.countdownTick);
+
+      const container = document.getElementById('countdownContainer');
+      const countText = document.getElementById('countText');
+      const progressBar = document.getElementById('progressBar');
+
+      if (container) container.classList.remove('hidden');
+      let remaining = durationSec;
+      if (countText) countText.textContent = `${remaining}s`;
+      if (progressBar) progressBar.style.width = '100%';
+
+      this.countdownTick = setInterval(() => {
+        remaining--;
+        if (countText) countText.textContent = `${remaining}s`;
+        if (progressBar) progressBar.style.width = `${(remaining / durationSec) * 100}%`;
+        if (remaining <= 0) { clearInterval(this.countdownTick); this.countdownTick = null; }
+      }, 1000);
+
+      this.sessionTimer = setTimeout(() => {
+        LOG.ok('GAME', '⏰ Waktu sesi habis');
+        this.onSessionEnd();
+      }, durationSec * 1000);
+    }
+
+    async onSessionEnd() {
+      LOG.ok('GAME', 'Session end → publish RESET');
+      this.isRunning = false;
+
+      if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null; }
+      if (this.countdownTick) { clearInterval(this.countdownTick); this.countdownTick = null; }
+
+      await supabaseClient.from('system_mimic_sudoku').upsert({
+        id: 5,
+        grid_data: {
+          action: 'RESET',
+          current_level: null,
+          session_start_time: null,
+          duration: null,
+          label: null
+        },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      await supabaseClient.from('system_mimic_sudoku').upsert({
+        id: 4,
+        grid_data: Array(81).fill(0),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      const container = document.getElementById('countdownContainer');
+      if (container) container.classList.add('hidden');
+      const btnStart = document.getElementById('btnStartGame');
+      if (btnStart) btnStart.disabled = false;
+
+      LOG.ok('GAME', '✅ Reset selesai.');
+    }
+  }
+
+  window._mimicAdmin = new MimicAdmin();
+
+  // ═══════════════════════════════════════════════════════════
+  // RANK BUTTONS
   // ═══════════════════════════════════════════════════════════
   function renderRankButtons() {
     const container = document.getElementById('rankButtonsContainer');
@@ -282,13 +624,13 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SWITCH VIEW PANGGUNG
+  // SWITCH VIEW
   // ═══════════════════════════════════════════════════════════
   async function switchStageView(viewName, revealedRank = 0) {
     if (!supabaseClient) return;
     updateActiveViewUI(viewName, revealedRank);
 
-    LOG.step('VIEW', `Switch → ${viewName} (rank=${revealedRank})`);
+    LOG.step('VIEW', `Switch → ${viewName}`);
     const { error } = await supabaseClient
       .from('admin_layout_mimic_sudoku')
       .update({
@@ -298,12 +640,8 @@
       })
       .eq('id', 1);
 
-    if (error) {
-      LOG.error('VIEW', 'Gagal switch view', error);
-      alert("Gagal mengubah view: " + error.message);
-    } else {
-      LOG.ok('VIEW', `View switched → ${viewName}`);
-    }
+    if (error) LOG.error('VIEW', 'Gagal', error);
+    else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
   function updateActiveViewUI(viewName, rank = 0) {
@@ -330,83 +668,33 @@
   // ═══════════════════════════════════════════════════════════
   function selectLevel(lvl) {
     selectedLevel = lvl;
-    LOG.info('LEVEL', `User pilih level: ${lvl}`);
+    LOG.info('LEVEL', `Pilih: ${lvl}`);
 
     document.querySelectorAll('.level-btn').forEach(btn => {
       btn.className = "level-btn bg-slate-900 border border-slate-700 text-slate-400 py-3 rounded-2xl text-xs font-bold hover:bg-slate-700 transition";
     });
 
-    const activeBtnMap = {
-      'level_1': 'btnLvl1',
-      'level_2': 'btnLvl2',
-      'level_3': 'btnLvl3'
-    };
-
-    if (document.getElementById(activeBtnMap[lvl])) {
-      document.getElementById(activeBtnMap[lvl]).className =
+    const map = { level_1: 'btnLvl1', level_2: 'btnLvl2', level_3: 'btnLvl3' };
+    if (document.getElementById(map[lvl])) {
+      document.getElementById(map[lvl]).className =
         "level-btn bg-slate-900 border border-purple-500 text-purple-300 py-3 rounded-2xl text-xs font-bold hover:bg-purple-900/40 transition";
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // EXECUTE GAME START — HANYA KIRIM LEVEL
+  // EXECUTE GAME START
   // ═══════════════════════════════════════════════════════════
   async function executeGameStart() {
     if (!supabaseClient) return;
-
     const btnStart = document.getElementById('btnStartGame');
     btnStart.disabled = true;
 
-    LOG.ok('EXEC', `========== JALANKAN PERMAINAN (${selectedLevel}) ==========`);
+    LOG.ok('EXEC', `JALANKAN PERMAINAN (${selectedLevel})`);
 
-    const { error } = await supabaseClient
-      .from('system_mimic_sudoku_control')
-      .update({
-        action: 'START_GAME',
-        current_level: selectedLevel,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
+    const ok = await window._mimicAdmin.start(selectedLevel);
+    if (!ok) { btnStart.disabled = false; return; }
 
-    if (error) {
-      LOG.error('EXEC', 'Gagal update control', error);
-      alert('Gagal mengirim perintah: ' + error.message);
-      btnStart.disabled = false;
-      return;
-    }
-
-    LOG.ok('EXEC', `Action START_GAME (${selectedLevel}) terkirim ke Supabase.`);
-    startCountdownUI();
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // UI COUNTDOWN 10 DETIK
-  // ═══════════════════════════════════════════════════════════
-  function startCountdownUI() {
-    if (countdownInterval) clearInterval(countdownInterval);
-
-    const container = document.getElementById('countdownContainer');
-    const countText = document.getElementById('countText');
-    const progressBar = document.getElementById('progressBar');
-    const btnStart = document.getElementById('btnStartGame');
-
-    container.classList.remove('hidden');
-    let secondsLeft = 10;
-    countText.textContent = `${secondsLeft}s`;
-    progressBar.style.width = '100%';
-
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      countText.textContent = `${secondsLeft}s`;
-      progressBar.style.width = `${(secondsLeft / 10) * 100}%`;
-
-      if (secondsLeft <= 0) {
-        clearInterval(countdownInterval);
-        container.classList.add('hidden');
-        btnStart.disabled = false;
-        LOG.info('EXEC', 'Countdown selesai. Tombol siap lagi.');
-      }
-    }, 1000);
+    LOG.ok('EXEC', `Sesi berjalan untuk ${selectedLevel}`);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -414,66 +702,53 @@
   // ═══════════════════════════════════════════════════════════
   async function manualResetControl() {
     if (!supabaseClient) return;
+    LOG.warn('RESET', 'Manual reset');
 
-    LOG.warn('RESET', 'Manual reset dipanggil.');
-
-    const { error } = await supabaseClient
-      .from('system_mimic_sudoku_control')
-      .update({
-        action: 'RESET',
-        current_level: 'none',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
-
-    if (error) {
-      LOG.error('RESET', 'Gagal reset', error);
-      alert('Gagal reset: ' + error.message);
+    if (window._mimicAdmin.isRunning) {
+      await window._mimicAdmin.onSessionEnd();
     } else {
-      LOG.ok('RESET', 'Reset terkirim.');
+      await supabaseClient.from('system_mimic_sudoku').upsert({
+        id: 5,
+        grid_data: { action: 'RESET', current_level: null, session_start_time: null, duration: null, label: null },
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+
+      await supabaseClient.from('system_mimic_sudoku').upsert({
+        id: 4,
+        grid_data: Array(81).fill(0),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+    }
+
+    const btnStart = document.getElementById('btnStartGame');
+    if (btnStart) btnStart.disabled = false;
+    LOG.ok('RESET', 'Reset selesai.');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // UPDATE DB UI (id=5)
+  // ═══════════════════════════════════════════════════════════
+  function updateDatabaseUI(statusRow) {
+    if (!statusRow || !statusRow.grid_data) return;
+    const data = statusRow.grid_data;
+    safeSetText('dbAction', data.action || '-');
+    safeSetText('dbCurrentLevel', data.current_level || 'none');
+    if (statusRow.updated_at) {
+      safeSetText('dbUpdatedAt', new Date(statusRow.updated_at).toLocaleTimeString('id-ID'));
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // UPDATE DATABASE UI (control table)
-  // ═══════════════════════════════════════════════════════════
-  function updateDatabaseUI(data) {
-    if (!data) return;
-
-    const setTxt = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = val;
-    };
-
-    setTxt('dbAction', data.action || '-');
-    setTxt('dbCurrentLevel', data.current_level || 'none');
-
-    if (data.updated_at) {
-      setTxt('dbUpdatedAt', new Date(data.updated_at).toLocaleTimeString('id-ID'));
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // LIVE KUNCI JAWABAN — Baca dari system_mimic_sudoku
-  // id=2 → target cells (array index 1-81)
-  // id=3 → jawaban (angka)
+  // LIVE KUNCI JAWABAN (id=2, id=3)
   // ═══════════════════════════════════════════════════════════
   async function fetchLiveAnswer() {
     try {
-      LOG.step('ANSWER', 'Fetching kunci jawaban...');
-
       const { data, error } = await supabaseClient
         .from('system_mimic_sudoku')
         .select('id, grid_data, updated_at')
         .in('id', [2, 3]);
 
-      if (error) {
-        LOG.error('ANSWER', 'Fetch error', error);
-        return;
-      }
-
-      LOG.info('ANSWER', `Dapat ${data ? data.length : 0} baris dari Supabase`);
-      if (data) console.log('  Raw data:', data);
+      if (error) { LOG.error('ANSWER', 'Fetch error', error); return; }
 
       const rowAnswer = data ? data.find(r => r.id === 3) : null;
       const rowTargets = data ? data.find(r => r.id === 2) : null;
@@ -482,9 +757,7 @@
       const questionEl = document.getElementById('liveQuestion');
       const statusEl = document.getElementById('answerStatus');
 
-      // Kalau jawaban kosong → tampil MENUNGGU
       if (!rowAnswer || rowAnswer.grid_data === null || rowAnswer.grid_data === undefined) {
-        LOG.warn('ANSWER', 'rowAnswer kosong / null. Status: MENUNGGU');
         if (answerEl) answerEl.textContent = '--';
         if (questionEl) questionEl.textContent = '--';
         if (statusEl) {
@@ -494,19 +767,16 @@
         return;
       }
 
-      // Format target cells → "C3 + F7"
       let questionText = '--';
       if (rowTargets && Array.isArray(rowTargets.grid_data)) {
-        const letters = ['A','B','C','D','E','F','G','H','I'];
         questionText = rowTargets.grid_data.map(idx => {
           const i = idx - 1;
           const r = Math.floor(i / 9);
           const c = i % 9;
-          return `${letters[c]}${r + 1}`;
+          return `${COL_LETTERS[c]}${r + 1}`;
         }).join(' + ');
       }
 
-      // Set UI
       if (answerEl) answerEl.textContent = rowAnswer.grid_data;
       if (questionEl) questionEl.textContent = questionText;
       if (statusEl) {
@@ -521,16 +791,17 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES (Leaderboard & All Players)
+  // FETCH SCORES
   // ═══════════════════════════════════════════════════════════
   async function fetchScores() {
     const tbody = document.getElementById('adminScoreTableBody');
+    if (!tbody) return;
 
     const { data, error } = await supabaseClient
       .from('game_scores')
       .select('user_unique_id, score_obtained, game_name')
-      .eq('game_name', 'Mimic Sudoku');   // ← FILTER TEPAT
-      
+      .eq('game_name', 'Mimic Sudoku');
+
     if (error) {
       tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-400">Gagal: ${error.message}</td></tr>`;
       return;
@@ -575,40 +846,25 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // RESET KUOTA
-  // ═══════════════════════════════════════════════════════════
   async function resetUserLimit(userUniqueId) {
     const { error } = await supabaseClient
       .from('system_input_max_mimic_sudoku')
       .update({ input_left: 2 })
       .eq('user_unique_id', userUniqueId);
-
-    if (error) {
-      alert("Gagal reset kuota " + userUniqueId + ": " + error.message);
-    } else {
-      alert("Kuota " + userUniqueId + " dikembalikan ke 2!");
-    }
+    if (error) alert("Gagal: " + error.message);
+    else alert("Kuota " + userUniqueId + " → 2");
   }
 
   async function resetAllLimits() {
     if (!confirm("Reset kuota SEMUA peserta ke 2?")) return;
-
     const { error } = await supabaseClient
       .from('system_input_max_mimic_sudoku')
       .update({ input_left: 2 })
       .neq('user_unique_id', '');
-
-    if (error) {
-      alert("Gagal: " + error.message);
-    } else {
-      alert("Berhasil! Kuota semua peserta dikembalikan ke 2.");
-    }
+    if (error) alert("Gagal: " + error.message);
+    else alert("Berhasil!");
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // MODAL HAPUS POIN
-  // ═══════════════════════════════════════════════════════════
   function openDeleteModal(userUniqueId) {
     userToDelete = userUniqueId;
     document.getElementById('targetDeleteUser').textContent = userUniqueId;
@@ -622,7 +878,6 @@
 
   async function executeDeleteScore() {
     if (!userToDelete) return;
-
     const btn = document.getElementById('confirmDeleteBtn');
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghapus...`;
@@ -635,35 +890,28 @@
     btn.disabled = false;
     btn.innerHTML = `Ya, Hapus Poin`;
     closeDeleteModal();
-
-    if (error) {
-      alert("Gagal: " + error.message);
-    } else {
-      fetchScores();
-    }
+    if (error) alert("Gagal: " + error.message);
+    else fetchScores();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // REALTIME SUBSCRIPTIONS — Semua channel dalam 1 fungsi
-  // ═══════════════════════════════════════════════════════════
   function setupAllRealtimeChannels() {
     if (!supabaseClient) return;
+    LOG.ok('REALTIME', 'Setup channels...');
 
-    LOG.ok('REALTIME', 'Setting up all channels...');
-
-    // ── CHANNEL 1: Control table (action admin → status panel) ──
     supabaseClient
-      .channel('admin_control_channel')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'system_mimic_sudoku_control'
-      }, (payload) => {
-        LOG.step('REALTIME', 'Control table UPDATE', payload.new);
-        if (payload.new) updateDatabaseUI(payload.new);
+      .channel('admin_mimic_all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_mimic_sudoku' }, (payload) => {
+        if (!payload.new) return;
+        const id = payload.new.id;
+        if (id === 2 || id === 3) fetchLiveAnswer();
+        if (id === 5) updateDatabaseUI(payload.new);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_scores' }, () => fetchScores())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
+        if (payload.new) updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
       })
       .subscribe((status) => {
-        LOG.info('REALTIME', `Control channel: ${status}`);
+        LOG.info('REALTIME', `Channel: ${status}`);
         const conn = document.getElementById('dbConnStatus');
         if (conn) {
           if (status === 'SUBSCRIBED') {
@@ -676,110 +924,29 @@
         }
       });
 
-    // ── CHANNEL 2: system_mimic_sudoku (jawaban + grid + target) ──
-    supabaseClient
-      .channel('admin_sudoku_channel')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'system_mimic_sudoku'
-      }, (payload) => {
-        LOG.step('REALTIME', `system_mimic_sudoku event: id=${payload.new ? payload.new.id : '?'}`);
-        if (payload.new && (payload.new.id === 2 || payload.new.id === 3)) {
-          LOG.ok('REALTIME', `Kunci jawaban update (id=${payload.new.id}). Fetching...`);
-          fetchLiveAnswer();
-        }
-      })
-      .subscribe((status) => {
-        LOG.info('REALTIME', `Sudoku channel: ${status}`);
-      });
-
-    // ── CHANNEL 3: game_scores + layout (leaderboard & view switcher) ──
-    supabaseClient
-      .channel('admin_misc_channel')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'game_scores'
-      }, () => {
-        LOG.step('REALTIME', 'game_scores updated');
-        fetchScores();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'admin_layout_mimic_sudoku'
-      }, (payload) => {
-        LOG.step('REALTIME', 'layout updated');
-        if (payload.new) {
-          updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
-        }
-      })
-      .subscribe((status) => {
-        LOG.info('REALTIME', `Misc channel: ${status}`);
-      });
-
-    // ── POLLING FALLBACK ──
-    // Kalau realtime lambat / tidak jalan, polling tiap 3 detik untuk jawaban
-    setInterval(() => {
-      fetchLiveAnswer();
-    }, 3000);
+    setInterval(fetchLiveAnswer, 3000);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // INIT — HANYA 1 LISTENER DOMContentLoaded
-  // ═══════════════════════════════════════════════════════════
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
-    // 1. Setup UI
     selectLevel('level_1');
     renderRankButtons();
 
-    // 2. Fetch data awal
-    LOG.step('INIT', 'Initial fetch...');
-    const { data: controlData, error: controlErr } = await supabaseClient
-      .from('system_mimic_sudoku_control')
+    const { data: statusRow } = await supabaseClient
+      .from('system_mimic_sudoku')
       .select('*')
-      .eq('id', 1)
-      .single();
+      .eq('id', 5)
+      .maybeSingle();
+    if (statusRow) updateDatabaseUI(statusRow);
 
-    if (controlErr) LOG.error('INIT', 'Control fetch error', controlErr);
-    if (controlData) updateDatabaseUI(controlData);
-
-    // Fetch jawaban pertama kali
     await fetchLiveAnswer();
-
-    // Fetch skor
     await fetchScores();
-
-    // 3. Setup semua realtime channel
     setupAllRealtimeChannels();
 
     LOG.ok('INIT', '══════════ ADMIN READY ══════════');
   });
-
-  // ═══════════════════════════════════════════════════════════
-  // DEBUG TOOLS (bisa dipanggil dari konsol)
-  // ═══════════════════════════════════════════════════════════
-  window.debugAnswer = async () => {
-    console.log('=== DEBUG: Fetch jawaban ===');
-    const { data, error } = await supabaseClient
-      .from('system_mimic_sudoku')
-      .select('*')
-      .in('id', [2, 3]);
-    console.log('Data:', data);
-    console.log('Error:', error);
-    await fetchLiveAnswer();
-  };
-
-  window.debugChannels = () => {
-    const channels = supabaseClient.getChannels();
-    console.log('=== Active channels ===');
-    channels.forEach(c => {
-      console.log(`  ${c.topic} → ${c.state}`);
-    });
-  };
+</script>
 </script>
 </body>
 </html>

@@ -3,44 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kiosk - Frenzy Cross Math</title>
+  <title>Kiosk - Frenzy Cross Maze</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     body { background: #0f172a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
-    .flash-screen { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: white; }
+
+    .flash-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 3rem; font-weight: 900; color: white;
+      animation: fadeIn 0.2s ease-in-out;
+    }
     .flash-correct { background: #16a34a; }
     .flash-wrong { background: #dc2626; }
-    .freeze-screen { position: fixed; inset: 0; z-index: 9000; background: rgba(15,23,42,0.95); backdrop-filter: blur(12px); display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .calc-btn { background: #334155; color: #fff; font-size: 1.8rem; font-weight: bold; border-radius: 1rem; padding: 1.25rem; transition: all 0.1s; }
+
+    .freeze-screen {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .calc-btn {
+      background: #334155; color: #fff;
+      font-size: 1.8rem; font-weight: bold;
+      border-radius: 1rem; padding: 1.25rem;
+      transition: all 0.1s;
+    }
     .calc-btn:active:not(:disabled) { transform: scale(0.95); background: #475569; }
-    .calc-btn:disabled { opacity: 0.4; }
+    .calc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .pulse-soft { animation: pulseSoft 2s ease-in-out infinite; }
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
+  <!-- FREEZE OVERLAY -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
-    <i class="fas fa-lock text-5xl text-rose-500 mb-4"></i>
-    <h2 id="freezeTitle" class="text-3xl font-black text-rose-500 uppercase mb-2">SESI DIBEKUKAN</h2>
-    <p id="freezeMessage" class="text-slate-400 text-sm">Menunggu admin...</p>
+    <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 pulse-soft">
+      <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
+    </div>
+    <h2 id="freezeTitle" class="text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2">
+      SESI DIBEKUKAN
+    </h2>
+    <p id="freezeMessage" class="text-slate-400 text-sm md:text-base max-w-md mb-6">
+      Menunggu admin memulai sesi...
+    </p>
+    <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs font-mono text-slate-400">
+      <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+      Status: <span id="freezeStatusText" class="text-rose-400 font-bold uppercase">WAITING</span>
+    </div>
   </div>
 
+  <!-- FLASH OVERLAY -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
   </div>
 
+  <!-- MAIN CARD -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
 
+    <!-- HEADER -->
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
       <div>
-        <h1 class="text-xl font-black text-rose-400">🧮 KIOSK PESERTA</h1>
-        <p class="text-xs text-slate-400 mt-0.5">Frenzy Cross Math</p>
+        <h1 class="text-xl font-black text-rose-400 tracking-wide">🧮 FRENZY CROSS MAZE</h1>
+        <p id="userGreeting" class="text-xs text-slate-400 mt-0.5">Memuat data peserta...</p>
       </div>
       <div class="flex items-center gap-3">
         <div id="sessionBadge" class="bg-rose-500/20 border border-rose-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-300 hidden">
-          Sesi <span id="sessionNum">1</span>/5
+          Sesi <span id="sessionNum">1</span>/<span id="sessionTotal">5</span>
         </div>
         <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
           <i class="fas fa-stopwatch text-amber-400 text-sm"></i>
@@ -49,409 +92,578 @@
       </div>
     </div>
 
-    <!-- STEP 1 -->
-    <div id="stepSchool" class="space-y-4">
-      <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah:</label>
-      <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto"></div>
-    </div>
-
-    <!-- STEP 2 -->
-    <div id="stepStudent" class="space-y-4 hidden">
-      <div class="flex justify-between">
-        <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
-        <button id="btnBackToSchool" class="text-xs text-amber-400 hover:underline">← Ganti</button>
-      </div>
-      <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto"></div>
-    </div>
-
-    <!-- STEP 3 -->
-    <div id="stepCalculator" class="space-y-4 hidden">
-      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
-        <div>
-          <div id="selectedStudentName" class="font-bold text-lg">Nama</div>
-          <div id="selectedStudentSchool" class="text-xs text-slate-400">Sekolah</div>
+    <!-- INFO PESERTA + KUOTA -->
+    <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3 overflow-hidden">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 flex-shrink-0">
+          <i class="fas fa-user"></i>
         </div>
-        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg">Batal</button>
+        <div class="overflow-hidden">
+          <div id="selectedStudentName" class="font-bold text-lg truncate">-</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400 truncate">-</div>
+        </div>
       </div>
-
-      <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
-        <div id="calcDisplay" class="text-4xl font-mono font-bold text-amber-400 min-h-[48px] break-all">0</div>
+      <div class="text-right flex-shrink-0">
+        <div class="text-[10px] text-slate-500 uppercase font-bold">Kuota Sesi Ini</div>
+        <div class="flex items-center gap-1.5">
+          <span id="quotaDisplay" class="font-mono font-bold text-emerald-400 text-2xl">-</span>
+          <span class="text-slate-500 text-sm">/ <span id="quotaMax">-</span></span>
+        </div>
       </div>
+    </div>
 
-      <div class="grid grid-cols-3 gap-3">
-        <button class="calc-btn" onclick="appendCalc('7')">7</button>
-        <button class="calc-btn" onclick="appendCalc('8')">8</button>
-        <button class="calc-btn" onclick="appendCalc('9')">9</button>
-        <button class="calc-btn" onclick="appendCalc('4')">4</button>
-        <button class="calc-btn" onclick="appendCalc('5')">5</button>
-        <button class="calc-btn" onclick="appendCalc('6')">6</button>
-        <button class="calc-btn" onclick="appendCalc('1')">1</button>
-        <button class="calc-btn" onclick="appendCalc('2')">2</button>
-        <button class="calc-btn" onclick="appendCalc('3')">3</button>
-        <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
-        <button class="calc-btn" onclick="appendCalc('0')">0</button>
-        <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
-      </div>
+    <!-- DISPLAY -->
+    <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right mb-4">
+      <div id="calcDisplay" class="text-4xl font-mono font-bold text-amber-400 min-h-[48px] break-all">0</div>
+    </div>
 
-      <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 mt-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-black text-xl rounded-2xl shadow-lg active:scale-95">
-        <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
-      </button>
+    <!-- KEYPAD -->
+    <div id="keypadSection" class="grid grid-cols-3 gap-3 mb-4">
+      <button class="calc-btn" onclick="appendCalc('7')">7</button>
+      <button class="calc-btn" onclick="appendCalc('8')">8</button>
+      <button class="calc-btn" onclick="appendCalc('9')">9</button>
+
+      <button class="calc-btn" onclick="appendCalc('4')">4</button>
+      <button class="calc-btn" onclick="appendCalc('5')">5</button>
+      <button class="calc-btn" onclick="appendCalc('6')">6</button>
+
+      <button class="calc-btn" onclick="appendCalc('1')">1</button>
+      <button class="calc-btn" onclick="appendCalc('2')">2</button>
+      <button class="calc-btn" onclick="appendCalc('3')">3</button>
+
+      <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
+      <button class="calc-btn" onclick="appendCalc('0')">0</button>
+      <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
+    </div>
+
+    <!-- SUBMIT -->
+    <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center">
+      <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
+    </button>
+
+    <!-- LOCKED MESSAGE (muncul kalau kuota habis / sudah benar) -->
+    <div id="lockedMessage" class="hidden mt-4 bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-center">
+      <i class="fas fa-lock text-amber-400 text-2xl mb-2"></i>
+      <p class="text-amber-400 font-bold text-sm" id="lockedReason">Menunggu sesi berikutnya...</p>
+    </div>
+
+    <!-- HINT -->
+    <div class="text-center text-[11px] text-slate-500 mt-3">
+      <i class="fas fa-info-circle"></i> Kuota <span id="hintQuota">2</span>x per sesi. Jawaban salah kurangi <span id="hintPenalty">2</span> poin.
     </div>
 
   </main>
 
   <script>
-  // ═══════════════════════════════════════════════════════════
-  // KONFIGURASI
-  // ═══════════════════════════════════════════════════════════
-  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-  const supabaseClient = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI PERMAINAN — UBAH DI SINI KALAU MAU
+    // ═══════════════════════════════════════════════════════════
+    const GAME_CONFIG = {
+      MAX_POINT: 10,           // poin max kalau jawab cepat
+      MIN_POINT: 5,            // poin min untuk jawaban benar
+      WRONG_PENALTY: 2,        // poin minus kalau jawaban salah (UBAH DI SINI)
+      ATTEMPTS_PER_SESSION: 2  // jumlah attempt per sesi (UBAH DI SINI)
+    };
 
-  const CURRENT_GAME_NAME = "Frenzy Cross Math";
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI SUPABASE
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+      : null;
 
-  // ═══════════════════════════════════════════════════════════
-  // SESSION CONFIG — HARUS SAMA dengan layoutfrenzy.html
-  // ═══════════════════════════════════════════════════════════
-  const SESSION_CONFIG = {
-    DURATION_PER_SESSION: 30,
-    TOTAL_SESSIONS: 5,
-    MAX_POINT: 10,
-    MIN_POINT: 5
-  };
+    const CURRENT_GAME_NAME = "Frenzy Cross Maze";
 
-  // ═══════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════
-  let allUsers = [];
-  let selectedSchool = '';
-  let selectedStudent = null;
-  let currentInput = '';
-  let isSubmitting = false;
-  let isFrozen = false;
+    // ═══════════════════════════════════════════════════════════
+    // LOGGER
+    // ═══════════════════════════════════════════════════════════
+    const DEBUG = true;
+    const LOG = {
+      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+    };
 
-  let sessionStartTime = null;
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    let currentUser = null;
+    let currentInput = '';
+    let isSubmitting = false;
+    let isSessionFrozen = false;   // freeze dari admin (sesi belum mulai / selesai)
+    let isSelfLocked = false;      // lock dari diri sendiri (kuota habis / sudah benar)
+    let lockReason = '';
 
-  // ═══════════════════════════════════════════════════════════
-  // DOM
-  // ═══════════════════════════════════════════════════════════
-  const stepSchool = document.getElementById('stepSchool');
-  const stepStudent = document.getElementById('stepStudent');
-  const stepCalculator = document.getElementById('stepCalculator');
-  const schoolList = document.getElementById('schoolList');
-  const studentList = document.getElementById('studentList');
-  const calcDisplay = document.getElementById('calcDisplay');
-  const freezeOverlay = document.getElementById('freezeOverlay');
-  const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
+    // Session state
+    let sessionIndex = 0;
+    let totalSessions = 5;
+    let sessionStartTime = null;
+    let sessionDuration = 30;
+    let currentPuzzleAnswer = null;
+    let lastQuestionSig = '';
 
-  // ═══════════════════════════════════════════════════════════
-  // HITUNG SKOR — Linear decay
-  // ═══════════════════════════════════════════════════════════
-  function calculateScore() {
-    if (!sessionStartTime) return SESSION_CONFIG.MIN_POINT;
+    // Per-session state (kuota + lock)
+    let sessionState = {
+      sessionIndex: 0,
+      attemptsUsed: 0,
+      isLocked: false,
+      lockReason: null
+    };
 
-    const elapsedInCycle = ((Date.now() - sessionStartTime) / 1000) % SESSION_CONFIG.DURATION_PER_SESSION;
-    const remainingSec = Math.max(0, SESSION_CONFIG.DURATION_PER_SESSION - elapsedInCycle);
-    const range = SESSION_CONFIG.MAX_POINT - SESSION_CONFIG.MIN_POINT;
-    const score = SESSION_CONFIG.MIN_POINT + (remainingSec / SESSION_CONFIG.DURATION_PER_SESSION) * range;
-    return parseFloat(score.toFixed(2));
-  }
+    // ═══════════════════════════════════════════════════════════
+    // DOM
+    // ═══════════════════════════════════════════════════════════
+    const freezeOverlay = document.getElementById('freezeOverlay');
+    const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
+    const calcDisplay = document.getElementById('calcDisplay');
 
-  // ═══════════════════════════════════════════════════════════
-  // POLLING STATUS
-  // ═══════════════════════════════════════════════════════════
-  function listenToGameStatus() {
-    setInterval(async () => {
+    // Setup hint text
+    document.getElementById('hintQuota').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
+    document.getElementById('hintPenalty').textContent = GAME_CONFIG.WRONG_PENALTY;
+    document.getElementById('quotaMax').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
+
+    // ═══════════════════════════════════════════════════════════
+    // LOAD USER
+    // ═══════════════════════════════════════════════════════════
+    function loadUserFromStorage() {
+      const sess = localStorage.getItem('userSession');
+
+      if (!sess) {
+        LOG.error('USER', '❌ Tidak ada userSession. Redirect ke login...');
+        window.location.href = '/login.html';
+        return null;
+      }
+
+      let userSession;
+      try {
+        userSession = JSON.parse(sess);
+      } catch (e) {
+        LOG.error('USER', '❌ Gagal parse userSession', e);
+        window.location.href = '/login.html';
+        return null;
+      }
+
+      if (!userSession || !userSession.unique_id) {
+        LOG.error('USER', '❌ userSession tanpa unique_id');
+        window.location.href = '/login.html';
+        return null;
+      }
+
+      LOG.ok('USER', `✅ Session: ${userSession.unique_id} (${userSession.full_name || '-'})`);
+      return userSession;
+    }
+
+    async function fetchUserData(uid) {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, school_name, role')
+        .eq('unique_id', uid)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return data;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SESSION STATE — Per user per sesi
+    // ═══════════════════════════════════════════════════════════
+    async function fetchSessionState(uid, sIndex) {
+      if (!sIndex) return { sessionIndex: 0, attemptsUsed: 0, isLocked: false, lockReason: null };
+
+      const { data, error } = await supabaseClient
+        .from('system_frenzy_cross_maze_session_state')
+        .select('*')
+        .eq('user_unique_id', uid)
+        .eq('session_index', sIndex)
+        .maybeSingle();
+
+      if (error || !data) {
+        // Belum ada row untuk sesi ini → state awal
+        return {
+          sessionIndex: sIndex,
+          attemptsUsed: 0,
+          isLocked: false,
+          lockReason: null
+        };
+      }
+
+      return {
+        sessionIndex: data.session_index,
+        attemptsUsed: data.attempts_used || 0,
+        isLocked: data.is_locked || false,
+        lockReason: data.lock_reason || null
+      };
+    }
+
+    async function saveSessionState(uid, sIndex, state) {
+      const payload = {
+        user_unique_id: uid,
+        session_index: sIndex,
+        attempts_used: state.attemptsUsed,
+        is_locked: state.isLocked,
+        lock_reason: state.lockReason,
+        updated_at: new Date().toISOString()
+      };
+
+      // Upsert berdasarkan unique constraint
+      const { error } = await supabaseClient
+        .from('system_frenzy_cross_maze_session_state')
+        .upsert(payload, { onConflict: 'user_unique_id,session_index' });
+
+      if (error) LOG.error('STATE', 'Gagal simpan state', error);
+      else LOG.ok('STATE', `State saved: attempts=${state.attemptsUsed}, locked=${state.isLocked}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBSCRIBE KE QUESTION TABLE
+    // ═══════════════════════════════════════════════════════════
+    function subscribeToQuestion() {
+      LOG.ok('SUB', 'Subscribe ke system_frenzy_cross_math_question...');
+
+      supabaseClient
+        .channel('kiosk_frenzy_question')
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'system_frenzy_cross_math_question'
+        }, (payload) => {
+          if (payload.new) onQuestionUpdate(payload.new);
+        })
+        .subscribe(async (status) => {
+          LOG.info('SUB', `Channel: ${status}`);
+          if (status === 'SUBSCRIBED') {
+            await fetchInitialQuestion();
+          }
+        });
+
+      // Polling fallback
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from('system_frenzy_cross_math_question')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+        if (data) onQuestionUpdate(data);
+      }, 3000);
+    }
+
+    async function fetchInitialQuestion() {
       const { data } = await supabaseClient
-        .from('frenzy_cross_math_control')
-        .select('action, updated_at')
+        .from('system_frenzy_cross_math_question')
+        .select('*')
         .eq('id', 1)
         .maybeSingle();
-      if (!data) return;
+      if (data) onQuestionUpdate(data);
+    }
 
-      if (data.action === 'START_GAME') {
-        const newStart = new Date(data.updated_at).getTime();
-        if (newStart !== sessionStartTime) {
-          sessionStartTime = newStart;
-          console.log(`[KIOSK] Sesi dimulai @ ${new Date(newStart).toLocaleTimeString()}`);
-        }
-        unfreezeKiosk();
-        updateKioskTimer();
-      } else if (data.action === 'RESET') {
-        sessionStartTime = null;
-        freezeKiosk('Sesi belum dimulai / selesai');
+    async function onQuestionUpdate(row) {
+      const sig = `${row.session_index}|${row.updated_at}`;
+      if (sig === lastQuestionSig) return;
+      lastQuestionSig = sig;
+
+      const prevSession = sessionIndex;
+      LOG.info('Q', `Sesi ${row.session_index}/${row.total_sessions}, jawaban: ${row.target_answer}`);
+
+      // Update state
+      sessionIndex = row.session_index || 0;
+      totalSessions = row.total_sessions || 5;
+      sessionStartTime = row.session_start_time;
+      sessionDuration = row.session_duration || 30;
+      currentPuzzleAnswer = row.target_answer;
+
+      if (sessionIndex === 0) {
+        // Idle
+        freezeSession('Menunggu admin memulai sesi...', 'WAITING');
         kioskTimerDisplay.textContent = '--:--';
+        const badge = document.getElementById('sessionBadge');
+        if (badge) badge.classList.add('hidden');
+        return;
       }
-    }, 1500);
 
-    setInterval(() => {
-      if (sessionStartTime && !isFrozen) updateKioskTimer();
-    }, 1000);
-  }
-
-  function updateKioskTimer() {
-    if (!sessionStartTime) return;
-    const elapsedTotal = Math.floor((Date.now() - sessionStartTime) / 1000);
-    const cycleIndex = Math.floor(elapsedTotal / SESSION_CONFIG.DURATION_PER_SESSION) + 1;
-
-    if (cycleIndex > SESSION_CONFIG.TOTAL_SESSIONS) {
-      kioskTimerDisplay.textContent = '00:00';
-      return;
-    }
-
-    const elapsedInCycle = elapsedTotal % SESSION_CONFIG.DURATION_PER_SESSION;
-    const remaining = Math.max(0, SESSION_CONFIG.DURATION_PER_SESSION - elapsedInCycle);
-
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    kioskTimerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-    const badge = document.getElementById('sessionBadge');
-    if (badge) badge.classList.remove('hidden');
-    const num = document.getElementById('sessionNum');
-    if (num) num.textContent = cycleIndex;
-  }
-
-  function freezeKiosk(msg) {
-    if (isFrozen) return;
-    isFrozen = true;
-    document.getElementById('freezeMessage').textContent = msg || 'Menunggu admin...';
-    freezeOverlay.classList.remove('hidden');
-    document.querySelectorAll('button').forEach(b => b.disabled = true);
-  }
-
-  function unfreezeKiosk() {
-    if (!isFrozen) return;
-    isFrozen = false;
-    freezeOverlay.classList.add('hidden');
-    document.querySelectorAll('button').forEach(b => b.disabled = false);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // LOAD PESERTA
-  // ═══════════════════════════════════════════════════════════
-  async function loadParticipants() {
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('*')
-      .eq('role', 'peserta');
-
-    if (error) { alert('Gagal ambil data peserta: ' + error.message); return; }
-    allUsers = data || [];
-    renderSchools();
-  }
-
-  function renderSchools() {
-    const schools = [...new Set(allUsers.map(u => u.school_name))].filter(Boolean);
-    schoolList.innerHTML = '';
-    if (schools.length === 0) {
-      schoolList.innerHTML = '<p class="text-slate-500 text-center py-8">Belum ada peserta.</p>';
-      return;
-    }
-    schools.forEach(s => {
-      const b = document.createElement('button');
-      b.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex justify-between transition';
-      b.innerHTML = `<span>🏫 ${s}</span><span class="text-amber-400 text-xs">Pilih →</span>`;
-      b.onclick = () => selectSchool(s);
-      schoolList.appendChild(b);
-    });
-  }
-
-  function selectSchool(s) {
-    selectedSchool = s;
-    stepSchool.classList.add('hidden');
-    stepStudent.classList.remove('hidden');
-
-    const filtered = allUsers.filter(u => u.school_name === s);
-    studentList.innerHTML = '';
-    filtered.forEach(st => {
-      const b = document.createElement('button');
-      b.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex justify-between transition';
-      b.innerHTML = `<span>👤 ${st.full_name}</span><span class="text-amber-400 text-xs">Jawab →</span>`;
-      b.onclick = () => openCalculator(st);
-      studentList.appendChild(b);
-    });
-  }
-
-  document.getElementById('btnBackToSchool').onclick = () => {
-    stepStudent.classList.add('hidden');
-    stepSchool.classList.remove('hidden');
-  };
-  document.getElementById('btnCancelCalc').onclick = resetToStart;
-
-  function openCalculator(st) {
-    selectedStudent = st;
-    currentInput = '';
-    updateDisplay();
-    document.getElementById('selectedStudentName').textContent = st.full_name;
-    document.getElementById('selectedStudentSchool').textContent = st.school_name;
-    stepStudent.classList.add('hidden');
-    stepCalculator.classList.remove('hidden');
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // KALKULATOR
-  // ═══════════════════════════════════════════════════════════
-  function appendCalc(v) {
-    if (isFrozen) return;
-    if (currentInput.length < 10) { currentInput += v; updateDisplay(); }
-  }
-  function clearCalc() { if (isFrozen) return; currentInput = ''; updateDisplay(); }
-  function deleteCalc() { if (isFrozen) return; currentInput = currentInput.slice(0, -1); updateDisplay(); }
-  function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
-
-  // ═══════════════════════════════════════════════════════════
-  // AMBIL JAWABAN dari system_frenzy_cross_math (id=1)
-  // ═══════════════════════════════════════════════════════════
-  async function getCorrectAnswer() {
-    try {
-      const { data, error } = await supabaseClient
-        .from('system_frenzy_cross_math')
-        .select('target_answer')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[ANSWER] Error:', error);
-        return null;
+      // Cek apakah sesi berubah → reset local state
+      if (prevSession !== sessionIndex) {
+        LOG.ok('SESSION', `Sesi baru terdeteksi: ${sessionIndex}`);
+        // Fetch state sesi baru dari DB
+        sessionState = await fetchSessionState(currentUser.unique_id, sessionIndex);
+        LOG.info('SESSION', `State: attempts=${sessionState.attemptsUsed}, locked=${sessionState.isLocked}`);
       }
-      if (!data || data.target_answer == null) {
-        console.warn('[ANSWER] Belum tersedia');
-        return null;
-      }
-      console.log('[ANSWER] Jawaban:', data.target_answer);
-      return String(data.target_answer);
-    } catch (err) {
-      console.error('[ANSWER] Exception:', err);
-      return null;
+
+      // Unfreeze session
+      unfreezeSession();
+
+      // Update UI berdasarkan state
+      updateSessionBadge();
+      updateKioskTimer();
+      updateQuotaDisplay();
+      applySelfLockIfNeeded();
     }
-  }
 
-  // ═══════════════════════════════════════════════════════════
-  // KUOTA
-  // ═══════════════════════════════════════════════════════════
-  async function getQuota(uid) {
-    try {
-      const { data, error } = await supabaseClient
-        .from('system_input_max_frenzy_cross_math')
-        .select('input_left')
-        .eq('user_unique_id', uid)
-        .maybeSingle();
-
-      if (error) { console.warn('[QUOTA] Error:', error); return 999; }
-      if (!data) return 2;
-      return data.input_left ?? 0;
-    } catch (err) {
-      console.error('[QUOTA] Exception:', err);
-      return 999;
+    function updateSessionBadge() {
+      const badge = document.getElementById('sessionBadge');
+      const num = document.getElementById('sessionNum');
+      const total = document.getElementById('sessionTotal');
+      if (badge) badge.classList.remove('hidden');
+      if (num) num.textContent = sessionIndex;
+      if (total) total.textContent = totalSessions;
     }
-  }
 
-  async function decrementQuota(uid, cur) {
-    try {
-      const { data } = await supabaseClient
-        .from('system_input_max_frenzy_cross_math')
-        .select('id')
-        .eq('user_unique_id', uid)
-        .maybeSingle();
+    function updateKioskTimer() {
+      if (!sessionStartTime || sessionIndex === 0) return;
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const remaining = Math.max(0, sessionDuration - elapsed);
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      kioskTimerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
 
-      if (!data) {
-        await supabaseClient
-          .from('system_input_max_frenzy_cross_math')
-          .insert([{ user_unique_id: uid, input_left: 1 }]);
+    setInterval(updateKioskTimer, 500);
+
+    // ═══════════════════════════════════════════════════════════
+    // QUOTA & LOCK UI
+    // ═══════════════════════════════════════════════════════════
+    function updateQuotaDisplay() {
+      const remaining = Math.max(0, GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed);
+      document.getElementById('quotaDisplay').textContent = remaining;
+    }
+
+    function applySelfLockIfNeeded() {
+      if (sessionState.isLocked) {
+        showSelfLock(sessionState.lockReason || 'Terkunci');
       } else {
-        await supabaseClient
-          .from('system_input_max_frenzy_cross_math')
-          .update({ input_left: Math.max(0, cur - 1), updated_at: new Date().toISOString() })
-          .eq('user_unique_id', uid);
+        hideSelfLock();
       }
-    } catch (err) {
-      console.error('[QUOTA] Gagal kurangi:', err);
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // SUBMIT
-  // ═══════════════════════════════════════════════════════════
-  async function submitAnswer() {
-    if (!currentInput || isSubmitting || isFrozen) return;
-    if (!sessionStartTime) { alert('Sesi belum dimulai!'); return; }
-
-    isSubmitting = true;
-    document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
-
-    const quota = await getQuota(selectedStudent.unique_id);
-    if (quota <= 0) {
-      alert('Kuota jawaban Anda sudah habis!');
-      isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      return;
     }
 
-    const correct = await getCorrectAnswer();
-    if (correct === null) {
-      alert('Kunci jawaban belum tersedia. Tunggu sesi dimulai.');
-      isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      return;
+    function showSelfLock(reason) {
+      isSelfLocked = true;
+      lockReason = reason;
+      document.getElementById('lockedMessage').classList.remove('hidden');
+      document.getElementById('lockedReason').textContent = reason;
+      document.getElementById('keypadSection').classList.add('opacity-30', 'pointer-events-none');
+      document.getElementById('btnSubmitAnswer').classList.add('opacity-30', 'pointer-events-none');
+      LOG.warn('LOCK', `Kiosk terkunci: ${reason}`);
     }
 
-    const isCorrect = currentInput.trim() === correct.trim();
-    const points = isCorrect ? calculateScore() : 0;
-    console.log(`[SUBMIT] Input="${currentInput}" | Correct="${correct}" | Match=${isCorrect} | Points=${points}`);
+    function hideSelfLock() {
+      isSelfLocked = false;
+      lockReason = '';
+      document.getElementById('lockedMessage').classList.add('hidden');
+      document.getElementById('keypadSection').classList.remove('opacity-30', 'pointer-events-none');
+      document.getElementById('btnSubmitAnswer').classList.remove('opacity-30', 'pointer-events-none');
+    }
 
-    const { error: scoreErr } = await supabaseClient
-      .from('game_scores')
-      .insert([{
-        user_unique_id: selectedStudent.unique_id,
-        game_name: CURRENT_GAME_NAME,
-        score_obtained: points
-      }]);
+    // ═══════════════════════════════════════════════════════════
+    // FREEZE / UNFREEZE SESSION (dari admin)
+    // ═══════════════════════════════════════════════════════════
+    function freezeSession(msg, status) {
+      if (isSessionFrozen) return;
+      isSessionFrozen = true;
+      const msgEl = document.getElementById('freezeMessage');
+      if (msgEl) msgEl.textContent = msg || 'Menunggu admin...';
+      const statusEl = document.getElementById('freezeStatusText');
+      if (statusEl) statusEl.textContent = status || 'WAITING';
+      if (freezeOverlay) freezeOverlay.classList.remove('hidden');
+      document.querySelectorAll('button').forEach(b => b.disabled = true);
+    }
 
-    if (scoreErr) console.error('[SCORE] Gagal simpan:', scoreErr);
+    function unfreezeSession() {
+      if (!isSessionFrozen) return;
+      isSessionFrozen = false;
+      if (freezeOverlay) freezeOverlay.classList.add('hidden');
+      document.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
 
-    await decrementQuota(selectedStudent.unique_id, quota);
+    // ═══════════════════════════════════════════════════════════
+    // HITUNG SKOR
+    // ═══════════════════════════════════════════════════════════
+    function calculateCorrectScore() {
+      if (!sessionStartTime) return GAME_CONFIG.MIN_POINT;
 
-    triggerFlash(isCorrect, points, correct);
-  }
+      const totalElapsed = (Date.now() - sessionStartTime) / 1000;
+      const elapsedInSession = totalElapsed % sessionDuration;
+      const remaining = Math.max(0, sessionDuration - elapsedInSession);
 
-  function triggerFlash(isCorrect, points, correct) {
-    const ov = document.getElementById('flashOverlay');
-    const ic = document.getElementById('flashIcon');
-    const tx = document.getElementById('flashText');
-    ov.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
-    ic.textContent = isCorrect ? '✅' : '❌';
-    tx.innerHTML = isCorrect
-      ? `<div>BENAR!</div><div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${points.toFixed(2)} PTS</div>`
-      : `<div>SALAH!</div><div class="text-2xl mt-4 opacity-80">Jawaban benar: ${correct}</div>`;
-    ov.classList.remove('hidden');
+      const score = GAME_CONFIG.MIN_POINT
+        + (remaining / sessionDuration) * (GAME_CONFIG.MAX_POINT - GAME_CONFIG.MIN_POINT);
+      return parseFloat(score.toFixed(2));
+    }
 
-    setTimeout(() => {
-      ov.classList.add('hidden');
-      isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      resetToStart();
-    }, 3000);
-  }
+    // ═══════════════════════════════════════════════════════════
+    // KALKULATOR
+    // ═══════════════════════════════════════════════════════════
+    function appendCalc(v) {
+      if (isSessionFrozen || isSelfLocked) return;
+      if (currentInput.length < 10) {
+        currentInput += v;
+        updateDisplay();
+      }
+    }
+    function clearCalc() {
+      if (isSessionFrozen || isSelfLocked) return;
+      currentInput = '';
+      updateDisplay();
+    }
+    function deleteCalc() {
+      if (isSessionFrozen || isSelfLocked) return;
+      currentInput = currentInput.slice(0, -1);
+      updateDisplay();
+    }
+    function updateDisplay() {
+      calcDisplay.textContent = currentInput || '0';
+    }
 
-  function resetToStart() {
-    currentInput = '';
-    selectedStudent = null;
-    selectedSchool = '';
-    updateDisplay();
-    stepCalculator.classList.add('hidden');
-    stepStudent.classList.add('hidden');
-    stepSchool.classList.remove('hidden');
-  }
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT JAWABAN
+    // ═══════════════════════════════════════════════════════════
+    async function submitAnswer() {
+      if (!currentInput || isSubmitting) return;
+      if (isSessionFrozen) { alert('Sesi belum dimulai!'); return; }
+      if (isSelfLocked) { alert(lockReason || 'Terkunci'); return; }
+      if (!currentUser) { alert('Anda belum login!'); return; }
+      if (sessionIndex === 0) { alert('Sesi belum dimulai!'); return; }
+      if (currentPuzzleAnswer == null) { alert('Puzzle belum tersedia.'); return; }
 
-  // ═══════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════
-  loadParticipants();
-  listenToGameStatus();
-  freezeKiosk('Menunggu admin memulai sesi...');
-</script>
+      const remaining = GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed;
+      if (remaining <= 0) {
+        alert('Kuota sesi ini sudah habis!');
+        return;
+      }
+
+      isSubmitting = true;
+      const btn = document.getElementById('btnSubmitText');
+      btn.textContent = 'MEMPROSES...';
+
+      const correct = String(currentPuzzleAnswer).trim();
+      const input = currentInput.trim();
+      const isCorrect = input === correct;
+
+      let points = 0;
+      if (isCorrect) {
+        points = calculateCorrectScore();
+      } else {
+        points = -GAME_CONFIG.WRONG_PENALTY;  // minus poin
+      }
+
+      LOG.info('SUBMIT', `Input="${input}" | Correct="${correct}" | Match=${isCorrect} | Pts=${points}`);
+
+      // Insert skor
+      const { error: scoreErr } = await supabaseClient
+        .from('game_scores')
+        .insert([{
+          user_unique_id: currentUser.unique_id,
+          game_name: CURRENT_GAME_NAME,
+          score_obtained: points
+        }]);
+
+      if (scoreErr) LOG.error('SCORE', 'Gagal simpan', scoreErr);
+
+      // Update state
+      sessionState.attemptsUsed++;
+
+      if (isCorrect) {
+        // Sudah benar → lock sampai sesi berikutnya
+        sessionState.isLocked = true;
+        sessionState.lockReason = 'Sudah benar! Menunggu sesi berikutnya...';
+      } else if (sessionState.attemptsUsed >= GAME_CONFIG.ATTEMPTS_PER_SESSION) {
+        // Kuota habis → lock sampai sesi berikutnya
+        sessionState.isLocked = true;
+        sessionState.lockReason = 'Kuota habis! Menunggu sesi berikutnya...';
+      }
+
+      // Save ke DB
+      await saveSessionState(currentUser.unique_id, sessionIndex, sessionState);
+
+      // Update UI
+      updateQuotaDisplay();
+      applySelfLockIfNeeded();
+
+      // Flash feedback
+      triggerFlash(isCorrect, points, correct);
+    }
+
+    function triggerFlash(isCorrect, points, correct) {
+      const ov = document.getElementById('flashOverlay');
+      const ic = document.getElementById('flashIcon');
+      const tx = document.getElementById('flashText');
+
+      ov.className = `flash-screen ${isCorrect ? 'flash-correct' : 'flash-wrong'}`;
+      ic.textContent = isCorrect ? '✅' : '❌';
+
+      if (isCorrect) {
+        tx.innerHTML = `
+          <div>BENAR!</div>
+          <div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">
+            +${points.toFixed(2)} PTS
+          </div>
+          <div class="text-lg mt-3 opacity-80">Kunci sampai sesi berikutnya</div>
+        `;
+      } else {
+        tx.innerHTML = `
+          <div>SALAH!</div>
+          <div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block text-rose-200">
+            ${points} PTS
+          </div>
+          <div class="text-lg mt-3 opacity-80">Sisa kuota: ${GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed}</div>
+        `;
+      }
+
+      ov.classList.remove('hidden');
+
+      setTimeout(() => {
+        ov.classList.add('hidden');
+        isSubmitting = false;
+        currentInput = '';
+        updateDisplay();
+        document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      }, 2500);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      LOG.ok('INIT', '══════════ KIOSK BOOT ══════════');
+      LOG.info('INIT', `Config: ${GAME_CONFIG.ATTEMPTS_PER_SESSION}x attempt, wrong penalty: -${GAME_CONFIG.WRONG_PENALTY}`);
+
+      // 1. Load user
+      const userSession = loadUserFromStorage();
+      if (!userSession) return;
+
+      const userData = await fetchUserData(userSession.unique_id);
+      currentUser = userData || userSession;
+
+      // 2. Update UI
+      const name = currentUser.full_name || currentUser.unique_id || '-';
+      const school = currentUser.school_name || 'Peserta';
+      document.getElementById('selectedStudentName').textContent = name;
+      document.getElementById('selectedStudentSchool').textContent = school;
+      document.getElementById('userGreeting').textContent = `Halo, ${name}!`;
+
+      // 3. Init state
+      updateQuotaDisplay();
+
+      // 4. Freeze dulu
+      freezeSession('Menunggu admin memulai sesi...', 'WAITING');
+
+      // 5. Subscribe
+      subscribeToQuestion();
+
+      LOG.ok('INIT', '══════════ KIOSK READY ══════════');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // EXPOSE
+    // ═══════════════════════════════════════════════════════════
+    window.appendCalc = appendCalc;
+    window.clearCalc = clearCalc;
+    window.deleteCalc = deleteCalc;
+    window.submitAnswer = submitAnswer;
+
+    init();
+  </script>
 </body>
 </html>

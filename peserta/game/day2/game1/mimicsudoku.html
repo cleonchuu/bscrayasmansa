@@ -112,13 +112,13 @@
       </div>
     </div>
 
-    <!-- STEP 1: PILIH SEKOLAH -->
+    <!-- STEP 1 -->
     <div id="stepSchool" class="space-y-4">
       <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
       <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- STEP 2: PILIH PESERTA -->
+    <!-- STEP 2 -->
     <div id="stepStudent" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
@@ -127,7 +127,7 @@
       <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- STEP 3: KALKULATOR -->
+    <!-- STEP 3 -->
     <div id="stepCalculator" class="space-y-4 hidden">
       <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
         <div>
@@ -179,9 +179,9 @@
   // LEVEL POINT CONFIG
   // ═══════════════════════════════════════════════════════════
   const LEVEL_CONFIG = {
-    level_1: { durationSec: 120, maxPoint: 20, minPoint: 10 },  // 2 menit
-    level_2: { durationSec: 240, maxPoint: 40, minPoint: 20 },  // 4 menit
-    level_3: { durationSec: 300, maxPoint: 60, minPoint: 30 }   // 5 menit
+    level_1: { durationSec: 120, maxPoint: 20, minPoint: 10 },
+    level_2: { durationSec: 240, maxPoint: 40, minPoint: 20 },
+    level_3: { durationSec: 300, maxPoint: 60, minPoint: 30 }
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -194,14 +194,15 @@
   let isSubmitting = false;
   let isFrozen = false;
 
-  // Session timing
-  let sessionStartTime = null;      // timestamp START_GAME
-  let sessionLevel = null;          // level_1 | level_2 | level_3
+  // Session timing (dari id=5)
+  let sessionStartTime = null;
+  let sessionLevel = null;
   let sessionDurationSec = 0;
   let kioskTimerInterval = null;
+  let lastStatusSig = '';
 
   // ═══════════════════════════════════════════════════════════
-  // DOM ELEMENTS
+  // DOM
   // ═══════════════════════════════════════════════════════════
   const stepSchool = document.getElementById('stepSchool');
   const stepStudent = document.getElementById('stepStudent');
@@ -213,64 +214,59 @@
   const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
 
   // ═══════════════════════════════════════════════════════════
-  // HITUNG POIN BERDASARKAN WAKTU — Rumus Linear Decay
+  // HITUNG POIN — linear decay
   // ═══════════════════════════════════════════════════════════
   function calculateScore() {
-    if (!sessionStartTime || !sessionLevel) {
-      console.warn('[SCORE] Sesi belum dimulai, pakai min point');
-      return 0;
-    }
+    if (!sessionStartTime || !sessionLevel) return 0;
 
     const cfg = LEVEL_CONFIG[sessionLevel];
     if (!cfg) return 0;
 
     const elapsedSec = (Date.now() - sessionStartTime) / 1000;
     const remainingSec = Math.max(0, cfg.durationSec - elapsedSec);
-
-    // Linear decay: min + (remaining/duration) × (max - min)
     const range = cfg.maxPoint - cfg.minPoint;
     const rawScore = cfg.minPoint + (remainingSec / cfg.durationSec) * range;
-
-    // Clamp antara min dan max
     const finalScore = Math.max(cfg.minPoint, Math.min(cfg.maxPoint, rawScore));
 
-    console.log(`[SCORE] Level: ${sessionLevel} | Elapsed: ${elapsedSec.toFixed(1)}s | Remaining: ${remainingSec.toFixed(1)}s | Score: ${finalScore.toFixed(2)}`);
-
+    console.log(`[SCORE] ${sessionLevel} | sisa ${remainingSec.toFixed(1)}s | poin ${finalScore.toFixed(2)}`);
     return parseFloat(finalScore.toFixed(2));
   }
 
   // ═══════════════════════════════════════════════════════════
-  // POLLING GAME STATUS
+  // POLLING STATUS — Baca dari id=5 (system_mimic_sudoku)
+  // id=5 → { action, current_level, session_start_time, duration, label }
   // ═══════════════════════════════════════════════════════════
   function listenToGameStatus() {
     setInterval(async () => {
       try {
         const { data, error } = await supabaseClient
-          .from('system_mimic_sudoku_control')
-          .select('action, current_level, updated_at')
-          .eq('id', 1)
+          .from('system_mimic_sudoku')
+          .select('id, grid_data, updated_at')
+          .eq('id', 5)
           .maybeSingle();
 
-        if (error || !data) return;
+        if (error || !data || !data.grid_data) return;
 
-        const { action, current_level, updated_at } = data;
+        const status = data.grid_data;
+        const sig = `${status.action}|${status.current_level}|${status.session_start_time}`;
+        if (sig === lastStatusSig) return;
+        lastStatusSig = sig;
 
-        if (action === 'START_GAME') {
-          const newStart = new Date(updated_at).getTime();
+        console.log(`[STATUS] ${status.action} / ${status.current_level}`);
 
-          // Sesi baru?
-          if (newStart !== sessionStartTime) {
-            sessionStartTime = newStart;
-            sessionLevel = current_level;
-            sessionDurationSec = LEVEL_CONFIG[current_level]?.durationSec || 300;
-            console.log(`[SESSION] Sesi baru: ${current_level} (${sessionDurationSec}s)`);
-          }
+        if (status.action === 'START_GAME' && status.current_level) {
+          // Sesi baru
+          sessionStartTime = status.session_start_time || Date.now();
+          sessionLevel = status.current_level;
+          sessionDurationSec = status.duration || LEVEL_CONFIG[status.current_level]?.durationSec || 300;
 
+          console.log(`[SESSION] Start ${sessionLevel} (${sessionDurationSec}s)`);
           unfreezeKiosk();
           updateKioskTimer();
-        } else if (action === 'RESET') {
+        } else if (status.action === 'RESET') {
           sessionStartTime = null;
           sessionLevel = null;
+          sessionDurationSec = 0;
           freezeKiosk('stopped', 'Sesi belum dimulai / sudah selesai.');
           kioskTimerDisplay.textContent = '--:--';
         }
@@ -284,7 +280,7 @@
       if (sessionStartTime && !isFrozen) {
         updateKioskTimer();
       }
-    }, 1000);
+    }, 500);
   }
 
   function updateKioskTimer() {
@@ -403,12 +399,15 @@
   function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
 
   // ═══════════════════════════════════════════════════════════
-  // AMBIL JAWABAN DARI DB (id=3)
+  // AMBIL JAWABAN dari id=3
   // ═══════════════════════════════════════════════════════════
   async function getCorrectAnswerFromDB() {
     try {
       const { data, error } = await supabaseClient
-        .from('system_mimic_sudoku').select('grid_data').eq('id', 3).maybeSingle();
+        .from('system_mimic_sudoku')
+        .select('grid_data')
+        .eq('id', 3)
+        .maybeSingle();
 
       if (error || !data || data.grid_data === null || data.grid_data === undefined) {
         console.warn("[ANSWER] Tidak tersedia");
@@ -422,7 +421,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // CEK & KURANGI KUOTA
+  // KUOTA
   // ═══════════════════════════════════════════════════════════
   async function getQuota(userUniqueId) {
     try {
@@ -433,7 +432,7 @@
         .maybeSingle();
 
       if (error) { console.warn("[QUOTA] Error:", error); return 999; }
-      if (!data) return 2;  // default kalau belum ada row
+      if (!data) return 2;
       return data.input_left ?? 0;
     } catch (err) {
       console.error("[QUOTA] Exception:", err);
@@ -443,7 +442,6 @@
 
   async function decrementQuota(userUniqueId, currentQuota) {
     try {
-      // Cek apakah row ada
       const { data } = await supabaseClient
         .from('system_input_max_mimic_sudoku')
         .select('id')
@@ -451,12 +449,10 @@
         .maybeSingle();
 
       if (!data) {
-        // Belum ada row → insert dengan input_left = 1 (sudah dipakai 1x)
         await supabaseClient
           .from('system_input_max_mimic_sudoku')
           .insert([{ user_unique_id: userUniqueId, input_left: 1 }]);
       } else {
-        // Update
         await supabaseClient
           .from('system_input_max_mimic_sudoku')
           .update({ input_left: Math.max(0, currentQuota - 1) })
@@ -468,7 +464,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SUBMIT JAWABAN — dengan skor berbasis waktu
+  // SUBMIT JAWABAN
   // ═══════════════════════════════════════════════════════════
   async function submitAnswer() {
     if (!currentInput || isSubmitting || isFrozen) return;
@@ -497,7 +493,7 @@
     // 3. Evaluasi
     const isCorrect = (currentInput.trim() === correctAnswer.trim());
 
-    // 4. Hitung poin (hanya kalau benar)
+    // 4. Hitung poin
     let pointsEarned = 0;
     if (isCorrect) {
       pointsEarned = calculateScore();
@@ -506,7 +502,7 @@
       console.log(`[SUBMIT] SALAH. Input="${currentInput}", Correct="${correctAnswer}"`);
     }
 
-    // 5. Simpan ke game_scores
+    // 5. Simpan skor
     const { error: scoreErr } = await supabaseClient
       .from('game_scores')
       .insert([{
@@ -520,7 +516,7 @@
     // 6. Kurangi kuota
     await decrementQuota(selectedStudent.unique_id, quota);
 
-    // 7. Flash feedback
+    // 7. Flash
     triggerFlashEffect(isCorrect, pointsEarned, correctAnswer);
   }
 
@@ -564,6 +560,14 @@
     stepStudent.classList.add('hidden');
     stepSchool.classList.remove('hidden');
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSE
+  // ═══════════════════════════════════════════════════════════
+  window.appendCalc = appendCalc;
+  window.clearCalc = clearCalc;
+  window.deleteCalc = deleteCalc;
+  window.submitAnswer = submitAnswer;
 
   // ═══════════════════════════════════════════════════════════
   // INIT

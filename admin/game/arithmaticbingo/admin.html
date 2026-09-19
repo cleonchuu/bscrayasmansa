@@ -34,6 +34,9 @@
           </div>
 
           <div class="flex items-center gap-3">
+            <button id="btnClearGame" onclick="clearGameState()" class="px-4 py-3 rounded-xl font-black text-sm transition-all bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 active:scale-95 flex items-center gap-2">
+              <i class="fas fa-broom"></i> Clear Soal
+            </button>
             <button id="btnStartGame" onclick="toggleAutoRun()" class="px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2">
               <i class="fas fa-play"></i> Mulai Game (Auto Loop 20s)
             </button>
@@ -312,6 +315,65 @@
       btn.innerHTML = `<i class="fas fa-play"></i> Lanjutkan Game (Auto Loop 20s)`;
     }
 
+    // FUNGSI CLEAR GAME STATE (RESET SOAL DI SUPABASE)
+    async function clearGameState() {
+      const confirmClear = confirm(
+        "Yakin ingin CLEAR semua soal?\n\n" +
+        "Ini akan:\n" +
+        "• Menghentikan auto loop jika sedang jalan\n" +
+        "• Reset nomor soal ke 0\n" +
+        "• Hapus soal yang tampil di layout\n" +
+        "• Reset counter soal di admin\n\n" +
+        "Catatan: Poin peserta TIDAK dihapus."
+      );
+      if (!confirmClear) return;
+
+      // 1. Stop auto loop kalau sedang jalan
+      if (isAutoRunning) {
+        stopAutoRun();
+      }
+
+// 2. Reset state di Supabase
+const { error } = await supabaseClient
+  .from('system_arithmatic_bingo')
+  .update({
+    question_text: '',
+    correct_answer: 0,
+    question_number: 0,
+    start_time: new Date().toISOString(), // <-- GANTI DARI null MENJADI Tanggal Sekarang
+    is_active: false
+  })
+  .eq('id', 1);
+
+      if (error) {
+        alert("Gagal clear soal: " + error.message);
+        console.error(error);
+        return;
+      }
+
+      // 3. Reset counter lokal admin
+      usedAnswers.clear();
+      qCount = 0;
+
+      // 4. Reset UI admin
+      document.getElementById('qNumDisplay').textContent = "Soal #0 / 99";
+      document.getElementById('currentQuestion').textContent = "Siap Memulai?";
+      document.getElementById('currentAnswer').textContent = "??";
+      document.getElementById('timerAdmin').innerHTML = `<i class="fas fa-clock mr-1"></i>20`;
+
+      // Reset tombol play
+      const btn = document.getElementById('btnStartGame');
+      btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2";
+      btn.innerHTML = `<i class="fas fa-play"></i> Mulai Game (Auto Loop 20s)`;
+
+      // Reset answer visibility
+      isAnswerVisible = false;
+      document.getElementById('currentAnswer').classList.add('blur-sm');
+      document.getElementById('eyeIcon').className = 'fas fa-eye';
+
+      alert("✅ Soal berhasil di-clear. Layout sekarang menampilkan 'Menunggu Admin Memulai Permainan...'");
+    }
+
     function toggleAnswerVisibility() {
       isAnswerVisible = !isAnswerVisible;
       const ansElem = document.getElementById('currentAnswer');
@@ -459,6 +521,49 @@
         })
         .subscribe();
     }
+
+    // ═══════════════════════════════════════════════════════════
+// AUTO-CLEAR SAAT ADMIN PERTAMA BUKA (opsional)
+// Comment kalau tidak mau auto-clear
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  try {
+    const { data } = await supabaseClient
+      .from('system_arithmatic_bingo')
+      .select('is_active, question_number')
+      .eq('id', 1)
+      .maybeSingle();
+
+if (data && (data.is_active || data.question_number > 0)) {
+  console.log("[ADMIN] Sesi lama terdeteksi. Reset ke state awal...");
+  await supabaseClient
+    .from('system_arithmatic_bingo')
+    .update({
+      question_text: '',
+      correct_answer: 0,
+      question_number: 0,
+      start_time: new Date().toISOString(), // <-- GANTI DARI null MENJADI Tanggal Sekarang
+      is_active: false
+    })
+    .eq('id', 1);
+
+  // ... sisa kode di bawahnya tetap sama
+
+
+      // Reset counter lokal
+      usedAnswers.clear();
+      qCount = 0;
+
+      // Reset UI
+      document.getElementById('qNumDisplay').textContent = "Soal #0 / 99";
+      document.getElementById('currentQuestion').textContent = "Siap Memulai?";
+      document.getElementById('currentAnswer').textContent = "??";
+      document.getElementById('timerAdmin').innerHTML = `<i class="fas fa-clock mr-1"></i>20`;
+    }
+  } catch (err) {
+    console.error("[ADMIN] Auto-clear error:", err);
+  }
+})();
 
     // Init Data awal
     loadScoresData();

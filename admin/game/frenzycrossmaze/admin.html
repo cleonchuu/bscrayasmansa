@@ -49,7 +49,7 @@
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div class="bg-slate-900 p-2 rounded-lg">
                 <div class="text-slate-500 text-[10px] uppercase">Durasi/Sesi</div>
-                <div class="font-bold text-white">60 detik</div>
+                <div class="font-bold text-white">30 detik</div>
               </div>
               <div class="bg-slate-900 p-2 rounded-lg">
                 <div class="text-slate-500 text-[10px] uppercase">Total Sesi</div>
@@ -61,7 +61,7 @@
               </div>
               <div class="bg-slate-900 p-2 rounded-lg">
                 <div class="text-slate-500 text-[10px] uppercase">Poin/Sesi</div>
-                <div class="font-bold text-amber-400">20 - 40</div>
+                <div class="font-bold text-amber-400">5 - 10</div>
               </div>
             </div>
           </div>
@@ -75,7 +75,7 @@
 
           <div id="countdownContainer" class="hidden bg-rose-950/60 border border-rose-500/40 p-3 rounded-xl text-center">
             <p class="text-xs text-rose-300 font-semibold mb-1">
-              ⚡ Sesi berjalan! Auto reset dalam: <span id="countText" class="font-bold text-amber-400">60s</span>
+              ⚡ Sesi <span id="currentSessionLabel">-</span> berjalan! Auto lanjut dalam: <span id="countText" class="font-bold text-amber-400">30s</span>
             </p>
             <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
               <div id="progressBar" class="bg-rose-500 h-full w-full transition-all duration-1000 ease-linear"></div>
@@ -97,15 +97,15 @@
           </div>
           <div class="flex justify-between border-b border-slate-800 pb-2">
             <span class="text-slate-400">Sesi Ke-:</span>
-            <span id="dbSession" class="font-mono font-bold text-rose-400">-</span>
+            <span id="dbSession" class="font-mono font-bold text-rose-400">0 / 5</span>
           </div>
           <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Jawaban (Biru):</span>
-            <span id="dbAnswerB" class="font-mono font-bold text-blue-400">--</span>
+            <span class="text-slate-400">Jawaban:</span>
+            <span id="dbAnswer" class="font-mono font-bold text-amber-400">--</span>
           </div>
           <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Jawaban (Merah):</span>
-            <span id="dbAnswerR" class="font-mono font-bold text-rose-400">--</span>
+            <span class="text-slate-400">Puzzle Blocks:</span>
+            <span id="dbBlocks" class="font-mono font-bold text-indigo-400">0</span>
           </div>
           <div class="flex justify-between">
             <span class="text-slate-400">Status Koneksi:</span>
@@ -146,13 +146,21 @@
 
   <script>
   // ═══════════════════════════════════════════════════════════
-  // KONFIGURASI SUPABASE
+  // KONFIGURASI
   // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
   const supabaseClient = window.supabase
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
+
+  const SESSION_CONFIG = {
+    DURATION_PER_SESSION: 30,   // detik per sesi
+    TOTAL_SESSIONS: 5,          // total sesi
+    GRID_SIZE: 15,              // 15 × 15
+    MAX_POINT: 10,              // poin max per sesi
+    MIN_POINT: 5                // poin min (½ max)
+  };
 
   // ═══════════════════════════════════════════════════════════
   // LOGGER
@@ -172,6 +180,528 @@
   let countdownInterval = null;
 
   // ═══════════════════════════════════════════════════════════
+  // MATH CORE — engine matematika
+  // ═══════════════════════════════════════════════════════════
+  class MathCore {
+    static OPERATORS = ['+', '-', '×', '÷'];
+
+    static eval(a, op, b) {
+      switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '×': return a * b;
+        case '÷': return (b !== 0 && a % b === 0) ? a / b : null;
+        default: return null;
+      }
+    }
+
+    static generateValidTripletDual(valA, valC, maxVal = 99) {
+      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+      for (let op of shuffledOps) {
+        let b = null;
+        if (op === '+') b = valC - valA;
+        else if (op === '-') b = valA - valC;
+        else if (op === '×') { if (valA !== 0 && valC % valA === 0) b = valC / valA; }
+        else if (op === '÷') { if (valC !== 0 && valA % valC === 0) b = valA / valC; }
+        if (b !== null && Number.isInteger(b) && b > 0 && b <= maxVal) {
+          return { a: valA, op, b, c: valC };
+        }
+      }
+      return null;
+    }
+
+    static generateValidTriplet(fixedValue = null, position = 'A', maxVal = 99) {
+      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
+      for (let op of shuffledOps) {
+        let a, b, c;
+        if (fixedValue !== null) {
+          if (position === 'A') {
+            a = fixedValue;
+            if (op === '+') { b = Math.floor(Math.random() * 20) + 1; c = a + b; }
+            else if (op === '-') { if (a > 1) { b = Math.floor(Math.random() * (a - 1)) + 1; c = a - b; } else continue; }
+            else if (op === '×') { b = Math.floor(Math.random() * 8) + 2; c = a * b; }
+            else if (op === '÷') {
+              let factors = [];
+              for (let i = 1; i <= a; i++) if (a % i === 0) factors.push(i);
+              b = factors[Math.floor(Math.random() * factors.length)];
+              c = a / b;
+            }
+          } else if (position === 'C') {
+            c = fixedValue;
+            if (op === '+') { if (c > 1) { a = Math.floor(Math.random() * (c - 1)) + 1; b = c - a; } else continue; }
+            else if (op === '-') { b = Math.floor(Math.random() * 25) + 1; a = c + b; }
+            else if (op === '×') {
+              let factors = [];
+              for (let i = 1; i <= c; i++) if (c % i === 0) factors.push(i);
+              a = factors[Math.floor(Math.random() * factors.length)];
+              b = c / a;
+            }
+            else if (op === '÷') { b = Math.floor(Math.random() * 6) + 2; a = c * b; }
+          }
+        } else {
+          a = Math.floor(Math.random() * 15) + 2;
+          b = Math.floor(Math.random() * 10) + 1;
+          c = this.eval(a, op, b);
+        }
+        if (a !== undefined && b !== undefined && c !== undefined && c !== null &&
+            a >= 0 && b >= 0 && c >= 0 && a <= maxVal && b <= maxVal && c <= maxVal) {
+          return { a, op, b, c };
+        }
+      }
+      return { a: 10, op: '+', b: 5, c: 15 };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // GRID NODE
+  // ═══════════════════════════════════════════════════════════
+  class GridNode {
+    constructor(r, c) {
+      this.r = r; this.c = c;
+      this.id = `node_${r}_${c}`;
+      this.type = 'void';
+      this.val = null;
+      this.isHidden = true;
+      this.isTarget = false;
+      this.connectedBlocks = [];
+    }
+    reset() {
+      this.type = 'void'; this.val = null;
+      this.isHidden = true; this.isTarget = false;
+      this.connectedBlocks = [];
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EQUATION BLOCK
+  // ═══════════════════════════════════════════════════════════
+  class EquationBlock {
+    constructor(id, r, c, dir, triplet, nodes) {
+      this.id = id; this.r = r; this.c = c;
+      this.dir = dir; this.triplet = triplet; this.nodes = nodes;
+    }
+    getInputs() { return [this.nodes[0], this.nodes[2], this.nodes[4]]; }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DOMINO MAZE ENGINE
+  // ═══════════════════════════════════════════════════════════
+  class DominoMazeEngine {
+    constructor(size = 15) {
+      this.size = size;
+      this.grid = Array.from({ length: size }, (_, r) =>
+        Array.from({ length: size }, (_, c) => new GridNode(r, c))
+      );
+      this.blocks = [];
+      this.numberNodes = [];
+      this.goalNode = null;
+      this.maxChainDepth = 0;
+    }
+
+    resetGrid() {
+      for (let r = 0; r < this.size; r++)
+        for (let c = 0; c < this.size; c++)
+          this.grid[r][c].reset();
+      this.blocks = []; this.numberNodes = [];
+      this.goalNode = null; this.maxChainDepth = 0;
+    }
+
+    getNode(r, c) {
+      if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
+      return this.grid[r][c];
+    }
+
+    canPlaceBlock(r, c, dir) {
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      for (let i = 0; i < 5; i++) if (!this.getNode(r + dr * i, c + dc * i)) return false;
+      const prev = this.getNode(r - dr, c - dc);
+      if (prev && prev.type !== 'void') return false;
+      const next = this.getNode(r + dr * 5, c + dc * 5);
+      if (next && next.type !== 'void') return false;
+      const pattern = ['number', 'operator', 'number', 'operator', 'number'];
+      for (let i = 0; i < 5; i++) {
+        const node = this.getNode(r + dr * i, c + dc * i);
+        if (node.type !== 'void') {
+          if (node.type !== pattern[i]) return false;
+          if (pattern[i] === 'operator') return false;
+        }
+      }
+      return true;
+    }
+
+    insertBlock(r, c, dir, fixedVal = null, pos = 'A') {
+      if (!this.canPlaceBlock(r, c, dir)) return null;
+      const triplet = MathCore.generateValidTriplet(fixedVal, pos);
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      const layout = [
+        { r, c, type: 'number', val: triplet.a },
+        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+      ];
+      for (let idx of [0, 2, 4]) {
+        const node = this.getNode(layout[idx].r, layout[idx].c);
+        if (node.type === 'number' && node.val !== layout[idx].val) return null;
+      }
+      const blockNodes = [];
+      layout.forEach(spec => {
+        const node = this.getNode(spec.r, spec.c);
+        node.type = spec.type; node.val = spec.val;
+        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
+        blockNodes.push(node);
+      });
+      const block = new EquationBlock(`blk_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
+      blockNodes.forEach(n => n.connectedBlocks.push(block));
+      this.blocks.push(block);
+      return block;
+    }
+
+    insertJunctionBlock(r, c, dir, valA, valC) {
+      if (!this.canPlaceBlock(r, c, dir)) return null;
+      const triplet = MathCore.generateValidTripletDual(valA, valC);
+      if (!triplet) return null;
+      const dr = dir === 'V' ? 1 : 0;
+      const dc = dir === 'H' ? 1 : 0;
+      const layout = [
+        { r, c, type: 'number', val: triplet.a },
+        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
+        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
+        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
+        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
+      ];
+      const blockNodes = [];
+      layout.forEach(spec => {
+        const node = this.getNode(spec.r, spec.c);
+        node.type = spec.type; node.val = spec.val;
+        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
+        blockNodes.push(node);
+      });
+      const block = new EquationBlock(`blk_junc_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
+      blockNodes.forEach(n => n.connectedBlocks.push(block));
+      this.blocks.push(block);
+      return block;
+    }
+
+    generateOrganicLayout() {
+      let curR = Math.floor(this.size / 3);
+      let curC = Math.floor(this.size / 3);
+      let seedVal = Math.floor(Math.random() * 10) + 2;
+      let chainLen = 0;
+      let lastDir = null;
+      const targetBlocks = Math.floor(this.size * 1.2);
+
+      while (chainLen < targetBlocks) {
+        const nextDir = (lastDir === 'H') ? 'V' : (lastDir === 'V' ? 'H' : (Math.random() > 0.5 ? 'H' : 'V'));
+        const options = [];
+        if (nextDir === 'H') {
+          options.push({ dir: 'H', r: curR, c: curC, nextR: curR, nextC: curC + 4, pos: 'A' });
+          options.push({ dir: 'H', r: curR, c: curC - 4, nextR: curR, nextC: curC - 4, pos: 'C' });
+        } else {
+          options.push({ dir: 'V', r: curR, c: curC, nextR: curR + 4, nextC: curC, pos: 'A' });
+          options.push({ dir: 'V', r: curR - 4, c: curC, nextR: curR - 4, nextC: curC, pos: 'C' });
+        }
+        options.sort(() => Math.random() - 0.5);
+        let inserted = false;
+        for (let opt of options) {
+          const block = this.insertBlock(opt.r, opt.c, opt.dir, seedVal, opt.pos);
+          if (block) {
+            curR = opt.nextR; curC = opt.nextC;
+            seedVal = this.getNode(curR, curC).val;
+            lastDir = opt.dir; chainLen++; inserted = true; break;
+          }
+        }
+        if (!inserted) break;
+      }
+
+      let queue = [...this.numberNodes].sort(() => Math.random() - 0.5);
+      let attempts = 0;
+      while (queue.length > 0 && attempts < 1000) {
+        attempts++;
+        const node = queue.shift();
+        if (!node) continue;
+        let paired = false;
+        for (let otherNode of this.numberNodes) {
+          if (otherNode !== node && (otherNode.r === node.r || otherNode.c === node.c)) {
+            if (Math.abs(otherNode.r - node.r) === 4 && otherNode.c === node.c) {
+              const minR = Math.min(node.r, otherNode.r);
+              const valA = node.r === minR ? node.val : otherNode.val;
+              const valC = node.r === minR ? otherNode.val : node.val;
+              if (this.insertJunctionBlock(minR, node.c, 'V', valA, valC)) { paired = true; break; }
+            } else if (Math.abs(otherNode.c - node.c) === 4 && otherNode.r === node.r) {
+              const minC = Math.min(node.c, otherNode.c);
+              const valA = node.c === minC ? node.val : otherNode.val;
+              const valC = node.c === minC ? otherNode.val : node.val;
+              if (this.insertJunctionBlock(node.r, minC, 'H', valA, valC)) { paired = true; break; }
+            }
+          }
+        }
+        if (paired) continue;
+        const branchOpts = [
+          { dir: 'H', r: node.r, c: node.c, pos: 'A' },
+          { dir: 'V', r: node.r, c: node.c, pos: 'A' },
+          { dir: 'H', r: node.r, c: node.c - 4, pos: 'C' },
+          { dir: 'V', r: node.r - 4, c: node.c, pos: 'C' }
+        ].sort(() => Math.random() - 0.5);
+        for (let opt of branchOpts) {
+          const block = this.insertBlock(opt.r, opt.c, opt.dir, node.val, opt.pos);
+          if (block) {
+            block.nodes.forEach(n => { if (n.type === 'number' && !queue.includes(n)) queue.push(n); });
+            break;
+          }
+        }
+      }
+    }
+
+    solveLongestPathAndSetGoal() {
+      this.numberNodes.forEach(n => { n.isHidden = true; n.isTarget = false; });
+      if (this.blocks.length === 0) return;
+      let leafBlocks = this.blocks.filter(b => b.getInputs().some(n => n.connectedBlocks.length === 1));
+      if (leafBlocks.length < 2) leafBlocks = this.blocks.slice(0, 3);
+      let knownNodes = new Set();
+      leafBlocks.forEach(b => {
+        let inputs = b.getInputs();
+        inputs[0].isHidden = false; inputs[1].isHidden = false;
+        knownNodes.add(inputs[0]); knownNodes.add(inputs[1]);
+      });
+      let solvedBlocks = new Set();
+      let stepCount = 1;
+      let progress = true;
+      let lastSolvedNode = null;
+      let maxStepRecorded = 0;
+      while (progress) {
+        progress = false;
+        for (let block of this.blocks) {
+          if (solvedBlocks.has(block)) continue;
+          const inputs = block.getInputs();
+          const knownInputs = inputs.filter(n => knownNodes.has(n));
+          if (knownInputs.length >= 2) {
+            const unknownInputs = inputs.filter(n => !knownNodes.has(n));
+            if (unknownInputs.length === 1) {
+              const targetNode = unknownInputs[0];
+              knownNodes.add(targetNode);
+              lastSolvedNode = targetNode;
+              maxStepRecorded = stepCount;
+            }
+            solvedBlocks.add(block);
+            stepCount++;
+            progress = true;
+          }
+        }
+      }
+      this.goalNode = lastSolvedNode;
+      if (this.goalNode) {
+        this.goalNode.isTarget = true;
+        this.maxChainDepth = maxStepRecorded;
+      }
+    }
+
+    generate() {
+      const minTargetBlocks = Math.floor(this.size * 0.8);
+      let maxRetries = 20;
+      let attempt = 0;
+      while (attempt < maxRetries) {
+        attempt++;
+        this.resetGrid();
+        this.generateOrganicLayout();
+        if (this.blocks.length >= minTargetBlocks) {
+          this.solveLongestPathAndSetGoal();
+          if (this.maxChainDepth >= 5) break;
+        }
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FRENZY ADMIN — session loop controller
+  // ═══════════════════════════════════════════════════════════
+  class FrenzyAdmin {
+    constructor() {
+      this.currentSession = 0;
+      this.sessionTimer = null;
+      this.countdownTick = null;
+      this.isRunning = false;
+    }
+
+    async startGame() {
+      LOG.ok('GAME', '========== START GAME ==========');
+
+      // Update control → START_GAME
+      const { error } = await supabaseClient
+        .from('frenzy_cross_math_control')
+        .update({ action: 'START_GAME', updated_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      if (error) {
+        LOG.error('GAME', 'Gagal update control', error);
+        return false;
+      }
+
+      this.isRunning = true;
+      this.currentSession = 0;
+      await this.runSession();
+      return true;
+    }
+
+    async runSession() {
+      this.currentSession++;
+      const sessionNum = this.currentSession;
+      const totalSessions = SESSION_CONFIG.TOTAL_SESSIONS;
+
+      LOG.ok('SESSION', `▶ Sesi ${sessionNum}/${totalSessions} dimulai`);
+
+      // 1. Generate puzzle
+      const engine = new DominoMazeEngine(SESSION_CONFIG.GRID_SIZE);
+      engine.generate();
+
+      const answer = engine.goalNode ? engine.goalNode.val : null;
+      LOG.ok('SESSION', `Puzzle selesai. Blocks: ${engine.blocks.length}, Depth: ${engine.maxChainDepth}, Jawaban: ${answer}`);
+
+      // Update UI
+      document.getElementById('dbSession').textContent = `${sessionNum} / ${totalSessions}`;
+      document.getElementById('dbAnswer').textContent = answer ?? '--';
+      document.getElementById('dbBlocks').textContent = engine.blocks.length;
+
+      // 2. Publish ke Supabase
+      await this.publishPuzzle(engine, answer, sessionNum);
+
+      // 3. Mulai timer countdown UI
+      this.startCountdownUI(sessionNum, totalSessions);
+    }
+
+    async publishPuzzle(engine, answer, sessionNum) {
+      try {
+        const { error } = await supabaseClient
+          .from('system_frenzy_cross_math_question')
+          .update({
+            session_index: sessionNum,
+            total_sessions: SESSION_CONFIG.TOTAL_SESSIONS,
+            target_answer: answer,
+            puzzle_json: {
+              size: engine.size,
+              grid: engine.grid.map(row => row.map(n => ({
+                type: n.type,
+                val: n.val,
+                isHidden: n.isHidden,
+                isTarget: n.isTarget
+              }))),
+              goalNode: engine.goalNode ? { r: engine.goalNode.r, c: engine.goalNode.c } : null
+            },
+            session_start_time: Date.now(),
+            session_duration: SESSION_CONFIG.DURATION_PER_SESSION,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 1);
+
+        if (error) {
+          LOG.error('SUPA', 'Gagal publish puzzle', error);
+          return;
+        }
+        LOG.ok('SUPA', `Sesi ${sessionNum} published.`);
+      } catch (err) {
+        LOG.error('SUPA', 'Exception', err);
+      }
+    }
+
+    startCountdownUI(sessionNum, totalSessions) {
+      // Clear timer lama
+      if (this.sessionTimer) clearTimeout(this.sessionTimer);
+      if (this.countdownTick) clearInterval(this.countdownTick);
+
+      const container = document.getElementById('countdownContainer');
+      const countText = document.getElementById('countText');
+      const progressBar = document.getElementById('progressBar');
+      const label = document.getElementById('currentSessionLabel');
+
+      container.classList.remove('hidden');
+      label.textContent = `${sessionNum}/${totalSessions}`;
+
+      let remaining = SESSION_CONFIG.DURATION_PER_SESSION;
+      countText.textContent = `${remaining}s`;
+      progressBar.style.width = '100%';
+
+      this.countdownTick = setInterval(() => {
+        remaining--;
+        countText.textContent = `${remaining}s`;
+        progressBar.style.width = `${(remaining / SESSION_CONFIG.DURATION_PER_SESSION) * 100}%`;
+        if (remaining <= 0) clearInterval(this.countdownTick);
+      }, 1000);
+
+      // Timer untuk lanjut ke sesi berikutnya
+      this.sessionTimer = setTimeout(() => {
+        if (this.currentSession < SESSION_CONFIG.TOTAL_SESSIONS) {
+          this.runSession();
+        } else {
+          this.endGame();
+        }
+      }, SESSION_CONFIG.DURATION_PER_SESSION * 1000);
+    }
+
+    async endGame() {
+      LOG.ok('GAME', '========== SEMUA SESI SELESAI ==========');
+
+      // Reset question table
+      await supabaseClient
+        .from('system_frenzy_cross_math_question')
+        .update({
+          session_index: 0,
+          target_answer: null,
+          puzzle_json: null,
+          session_start_time: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      // Reset control
+      await supabaseClient
+        .from('frenzy_cross_math_control')
+        .update({ action: 'RESET', updated_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      this.isRunning = false;
+      this.currentSession = 0;
+      this.resetUI();
+      LOG.ok('GAME', 'Game selesai. Semua reset.');
+    }
+
+    async stopGame() {
+      LOG.warn('GAME', 'Game dihentikan manual.');
+      if (this.sessionTimer) clearTimeout(this.sessionTimer);
+      if (this.countdownTick) clearInterval(this.countdownTick);
+
+      await supabaseClient
+        .from('system_frenzy_cross_math_question')
+        .update({
+          session_index: 0,
+          target_answer: null,
+          puzzle_json: null,
+          session_start_time: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      await supabaseClient
+        .from('frenzy_cross_math_control')
+        .update({ action: 'RESET', updated_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      this.isRunning = false;
+      this.currentSession = 0;
+      this.resetUI();
+    }
+
+    resetUI() {
+      const c = document.getElementById('countdownContainer');
+      if (c) c.classList.add('hidden');
+      document.getElementById('dbSession').textContent = `0 / ${SESSION_CONFIG.TOTAL_SESSIONS}`;
+      document.getElementById('dbAnswer').textContent = '--';
+      document.getElementById('dbBlocks').textContent = '0';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // RENDER TOMBOL PERINGKAT
   // ═══════════════════════════════════════════════════════════
   function renderRankButtons() {
@@ -188,13 +718,13 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SWITCH VIEW PANGGUNG
+  // SWITCH VIEW
   // ═══════════════════════════════════════════════════════════
   async function switchStageView(viewName, revealedRank = 0) {
     if (!supabaseClient) return;
     updateActiveViewUI(viewName, revealedRank);
 
-    LOG.step('VIEW', `Switch → ${viewName} (rank=${revealedRank})`);
+    LOG.step('VIEW', `Switch → ${viewName}`);
     const { error } = await supabaseClient
       .from('admin_layout_frenzy_cross_math')
       .update({
@@ -205,17 +735,16 @@
       .eq('id', 1);
 
     if (error) {
-      LOG.error('VIEW', 'Gagal switch view', error);
-      alert("Gagal mengubah view: " + error.message);
+      LOG.error('VIEW', 'Gagal switch', error);
     } else {
-      LOG.ok('VIEW', `View switched → ${viewName}`);
+      LOG.ok('VIEW', `Switched → ${viewName}`);
     }
   }
 
-  function updateActiveViewUI(viewName, rank = 0) {
-    const btns = document.querySelectorAll('.view-btn');
-    btns.forEach(b => b.classList.remove('border-purple-500', 'bg-purple-900/40'));
-
+  function updateActiveViewUI(viewName) {
+    document.querySelectorAll('.view-btn').forEach(b => {
+      b.classList.remove('border-purple-500', 'bg-purple-900/40');
+    });
     const map = { game: 'btnViewGame', leaderboard: 'btnViewLeaderboard', all_players: 'btnViewAll' };
     const btn = document.getElementById(map[viewName]);
     if (btn) btn.classList.add('border-purple-500', 'bg-purple-900/40');
@@ -232,53 +761,19 @@
 
     LOG.ok('EXEC', '========== JALANKAN PERMAINAN ==========');
 
-    const { error } = await supabaseClient
-      .from('frenzy_cross_math_control')
-      .update({
-        action: 'START_GAME',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
+    if (!window._frenzyAdmin) {
+      window._frenzyAdmin = new FrenzyAdmin();
+    }
 
-    if (error) {
-      LOG.error('EXEC', 'Gagal update control', error);
-      alert('Gagal mengirim perintah: ' + error.message);
+    const success = await window._frenzyAdmin.startGame();
+
+    if (!success) {
       btn.disabled = false;
       return;
     }
 
-    LOG.ok('EXEC', 'Action START_GAME terkirim.');
-    startCountdownUI();
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // UI COUNTDOWN 10 DETIK
-  // ═══════════════════════════════════════════════════════════
-  function startCountdownUI() {
-    if (countdownInterval) clearInterval(countdownInterval);
-
-    const container = document.getElementById('countdownContainer');
-    const countText = document.getElementById('countText');
-    const progressBar = document.getElementById('progressBar');
-    const btn = document.getElementById('btnStartGame');
-
-    container.classList.remove('hidden');
-    let secondsLeft = 10;
-    countText.textContent = `${secondsLeft}s`;
-    progressBar.style.width = '100%';
-
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      countText.textContent = `${secondsLeft}s`;
-      progressBar.style.width = `${(secondsLeft / 10) * 100}%`;
-
-      if (secondsLeft <= 0) {
-        clearInterval(countdownInterval);
-        container.classList.add('hidden');
-        btn.disabled = false;
-        LOG.info('EXEC', 'Countdown selesai.');
-      }
-    }, 1000);
+    // Tombol aktif kembali setelah 3 detik
+    setTimeout(() => { btn.disabled = false; }, 3000);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -289,79 +784,60 @@
 
     LOG.warn('RESET', 'Manual reset dipanggil.');
 
-    const { error } = await supabaseClient
-      .from('frenzy_cross_math_control')
-      .update({
-        action: 'RESET',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
-
-    if (error) {
-      LOG.error('RESET', 'Gagal reset', error);
-      alert('Gagal reset: ' + error.message);
+    if (window._frenzyAdmin) {
+      await window._frenzyAdmin.stopGame();
     } else {
-      LOG.ok('RESET', 'Reset terkirim.');
+      await supabaseClient
+        .from('frenzy_cross_math_control')
+        .update({ action: 'RESET', updated_at: new Date().toISOString() })
+        .eq('id', 1);
     }
+
+    LOG.ok('RESET', 'Reset terkirim.');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // UPDATE DATABASE UI (control table)
-  // ═══════════════════════════════════════════════════════════
-  function updateControlUI(data) {
-    if (!data) return;
-    const setTxt = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = val;
-    };
-    setTxt('dbAction', data.action || '-');
-    if (data.updated_at) {
-      setTxt('dbUpdatedAt', new Date(data.updated_at).toLocaleTimeString('id-ID'));
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // LIVE DATA (jawaban biru & merah + sesi ke-)
+  // LIVE DATA UI
   // ═══════════════════════════════════════════════════════════
   async function fetchLiveData() {
     try {
-      const { data, error } = await supabaseClient
-        .from('system_frenzy_cross_math')
-        .select('id, team_gender, target_answer, current_puzzle_json, updated_at');
+      // Baca question table
+      const { data: q, error: eq } = await supabaseClient
+        .from('system_frenzy_cross_math_question')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
 
-      if (error) {
-        LOG.error('LIVE', 'Fetch error', error);
-        return;
+      if (!eq && q) {
+        const sessionEl = document.getElementById('dbSession');
+        const answerEl = document.getElementById('dbAnswer');
+        if (sessionEl) sessionEl.textContent = `${q.session_index} / ${q.total_sessions}`;
+        if (answerEl) answerEl.textContent = q.target_answer ?? '--';
       }
 
-      if (!data || data.length === 0) {
-        document.getElementById('dbAnswerB').textContent = '--';
-        document.getElementById('dbAnswerR').textContent = '--';
-        return;
+      // Baca control table
+      const { data: c, error: ec } = await supabaseClient
+        .from('frenzy_cross_math_control')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (!ec && c) {
+        document.getElementById('dbAction').textContent = c.action || '-';
       }
-
-      data.forEach(row => {
-        const el = row.team_gender === 'female'
-          ? document.getElementById('dbAnswerB')
-          : document.getElementById('dbAnswerR');
-        if (el) el.textContent = row.target_answer ?? '--';
-      });
-
-      LOG.info('LIVE', `Data updated: ${data.length} rows`);
     } catch (err) {
       LOG.error('LIVE', 'Exception', err);
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // REALTIME SUBSCRIPTIONS
+  // REALTIME
   // ═══════════════════════════════════════════════════════════
   function setupAllRealtimeChannels() {
     if (!supabaseClient) return;
-
     LOG.ok('REALTIME', 'Setting up channels...');
 
-    // Channel 1: Control table
+    // Control
     supabaseClient
       .channel('admin_frenzy_control')
       .on('postgres_changes', {
@@ -369,11 +845,12 @@
         schema: 'public',
         table: 'frenzy_cross_math_control'
       }, (payload) => {
-        LOG.step('REALTIME', 'Control table UPDATE', payload.new);
-        if (payload.new) updateControlUI(payload.new);
+        if (payload.new) {
+          document.getElementById('dbAction').textContent = payload.new.action || '-';
+        }
       })
       .subscribe((status) => {
-        LOG.info('REALTIME', `Control channel: ${status}`);
+        LOG.info('REALTIME', `Control: ${status}`);
         const conn = document.getElementById('dbConnStatus');
         if (conn) {
           if (status === 'SUBSCRIBED') {
@@ -386,20 +863,7 @@
         }
       });
 
-    // Channel 2: Live data
-    supabaseClient
-      .channel('admin_frenzy_data')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'system_frenzy_cross_math'
-      }, (payload) => {
-        LOG.step('REALTIME', 'system_frenzy_cross_math updated');
-        fetchLiveData();
-      })
-      .subscribe();
-
-    // Channel 3: Layout
+    // Layout
     supabaseClient
       .channel('admin_frenzy_layout')
       .on('postgres_changes', {
@@ -407,10 +871,7 @@
         schema: 'public',
         table: 'admin_layout_frenzy_cross_math'
       }, (payload) => {
-        if (payload.new) {
-          LOG.info('REALTIME', `Layout: ${payload.new.current_view}`);
-          updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
-        }
+        if (payload.new) updateActiveViewUI(payload.new.current_view);
       })
       .subscribe();
 
@@ -425,23 +886,14 @@
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
     renderRankButtons();
-
-    // Fetch awal
-    const { data: control } = await supabaseClient
-      .from('frenzy_cross_math_control')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
-    if (control) updateControlUI(control);
+    await fetchLiveData();
 
     const { data: layout } = await supabaseClient
       .from('admin_layout_frenzy_cross_math')
       .select('*')
       .eq('id', 1)
       .maybeSingle();
-    if (layout) updateActiveViewUI(layout.current_view, layout.revealed_rank);
-
-    await fetchLiveData();
+    if (layout) updateActiveViewUI(layout.current_view);
 
     setupAllRealtimeChannels();
 

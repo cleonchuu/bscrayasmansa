@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frenzy Cross Math - Stage Display</title>
+  <title>Frenzy Cross Maze - Stage Display</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -222,7 +222,7 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
-    // SAFE HELPERS — Anti-crash null reference
+    // SAFE HELPERS
     // ═══════════════════════════════════════════════════════════
     function safeSetText(id, text) {
       const el = document.getElementById(id);
@@ -261,17 +261,6 @@
     const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
 
     // ═══════════════════════════════════════════════════════════
-    // SESSION CONFIG
-    // ═══════════════════════════════════════════════════════════
-    const SESSION_CONFIG = {
-      DURATION_PER_SESSION: 30,   // detik per sesi
-      TOTAL_SESSIONS: 5,          // total sesi
-      GRID_SIZE: 15,              // 15 × 15
-      MAX_POINT: 10,              // poin max per sesi
-      MIN_POINT: 5                // poin min (½ max)
-    };
-
-    // ═══════════════════════════════════════════════════════════
     // AUDIO ENGINE
     // ═══════════════════════════════════════════════════════════
     class WebAudioEngine {
@@ -306,537 +295,223 @@
     const audioEngine = new WebAudioEngine();
 
     // ═══════════════════════════════════════════════════════════
-    // MATH CORE
+    // FRENZY LAYOUT — Pure Display
+    // Hanya baca dari Supabase dan render. TIDAK generate puzzle.
     // ═══════════════════════════════════════════════════════════
-    class MathCore {
-      static OPERATORS = ['+', '-', '×', '÷'];
-
-      static eval(a, op, b) {
-        switch (op) {
-          case '+': return a + b;
-          case '-': return a - b;
-          case '×': return a * b;
-          case '÷': return (b !== 0 && a % b === 0) ? a / b : null;
-          default: return null;
-        }
+    class FrenzyLayout {
+      constructor() {
+        this.currentSession = 0;
+        this.totalSessions = 5;
+        this.sessionStartTime = null;
+        this.sessionDuration = 30;
+        this.currentPuzzle = null;
+        this.localTimer = null;
+        this.lastPuzzleSignature = '';
       }
 
-      static generateValidTripletDual(valA, valC, maxVal = 99) {
-        const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
-        for (let op of shuffledOps) {
-          let b = null;
-          if (op === '+') b = valC - valA;
-          else if (op === '-') b = valA - valC;
-          else if (op === '×') { if (valA !== 0 && valC % valA === 0) b = valC / valA; }
-          else if (op === '÷') { if (valC !== 0 && valA % valC === 0) b = valA / valC; }
-          if (b !== null && Number.isInteger(b) && b > 0 && b <= maxVal) {
-            return { a: valA, op, b, c: valC };
-          }
-        }
-        return null;
-      }
+      // ═══════════════════════════════════════════════════════
+      // SUBSCRIBE
+      // ═══════════════════════════════════════════════════════
+      subscribe() {
+        LOG.ok('INIT', '🎧 Subscribing ke system_frenzy_cross_math_question...');
 
-      static generateValidTriplet(fixedValue = null, position = 'A', maxVal = 99) {
-        const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
-        for (let op of shuffledOps) {
-          let a, b, c;
-          if (fixedValue !== null) {
-            if (position === 'A') {
-              a = fixedValue;
-              if (op === '+') { b = Math.floor(Math.random() * 20) + 1; c = a + b; }
-              else if (op === '-') { if (a > 1) { b = Math.floor(Math.random() * (a - 1)) + 1; c = a - b; } else continue; }
-              else if (op === '×') { b = Math.floor(Math.random() * 8) + 2; c = a * b; }
-              else if (op === '÷') {
-                let factors = [];
-                for (let i = 1; i <= a; i++) if (a % i === 0) factors.push(i);
-                b = factors[Math.floor(Math.random() * factors.length)];
-                c = a / b;
-              }
-            } else if (position === 'C') {
-              c = fixedValue;
-              if (op === '+') { if (c > 1) { a = Math.floor(Math.random() * (c - 1)) + 1; b = c - a; } else continue; }
-              else if (op === '-') { b = Math.floor(Math.random() * 25) + 1; a = c + b; }
-              else if (op === '×') {
-                let factors = [];
-                for (let i = 1; i <= c; i++) if (c % i === 0) factors.push(i);
-                a = factors[Math.floor(Math.random() * factors.length)];
-                b = c / a;
-              }
-              else if (op === '÷') { b = Math.floor(Math.random() * 6) + 2; a = c * b; }
-            }
-          } else {
-            a = Math.floor(Math.random() * 15) + 2;
-            b = Math.floor(Math.random() * 10) + 1;
-            c = this.eval(a, op, b);
-          }
-          if (a !== undefined && b !== undefined && c !== undefined && c !== null &&
-              a >= 0 && b >= 0 && c >= 0 && a <= maxVal && b <= maxVal && c <= maxVal) {
-            return { a, op, b, c };
-          }
-        }
-        return { a: 10, op: '+', b: 5, c: 15 };
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // GRID NODE
-    // ═══════════════════════════════════════════════════════════
-    class GridNode {
-      constructor(r, c) {
-        this.r = r; this.c = c;
-        this.id = `node_${r}_${c}`;
-        this.type = 'void';
-        this.val = null;
-        this.isHidden = true;
-        this.isTarget = false;
-        this.connectedBlocks = [];
-      }
-      reset() {
-        this.type = 'void'; this.val = null;
-        this.isHidden = true; this.isTarget = false;
-        this.connectedBlocks = [];
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // EQUATION BLOCK
-    // ═══════════════════════════════════════════════════════════
-    class EquationBlock {
-      constructor(id, r, c, dir, triplet, nodes) {
-        this.id = id; this.r = r; this.c = c;
-        this.dir = dir; this.triplet = triplet; this.nodes = nodes;
-      }
-      getInputs() { return [this.nodes[0], this.nodes[2], this.nodes[4]]; }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // DOMINO MAZE ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class DominoMazeEngine {
-      constructor(size = 15) {
-        this.size = size;
-        this.grid = Array.from({ length: size }, (_, r) =>
-          Array.from({ length: size }, (_, c) => new GridNode(r, c))
-        );
-        this.blocks = [];
-        this.numberNodes = [];
-        this.goalNode = null;
-        this.maxChainDepth = 0;
-      }
-
-      resetGrid() {
-        for (let r = 0; r < this.size; r++)
-          for (let c = 0; c < this.size; c++)
-            this.grid[r][c].reset();
-        this.blocks = []; this.numberNodes = [];
-        this.goalNode = null; this.maxChainDepth = 0;
-      }
-
-      getNode(r, c) {
-        if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
-        return this.grid[r][c];
-      }
-
-      canPlaceBlock(r, c, dir) {
-        const dr = dir === 'V' ? 1 : 0;
-        const dc = dir === 'H' ? 1 : 0;
-        for (let i = 0; i < 5; i++) if (!this.getNode(r + dr * i, c + dc * i)) return false;
-        const prev = this.getNode(r - dr, c - dc);
-        if (prev && prev.type !== 'void') return false;
-        const next = this.getNode(r + dr * 5, c + dc * 5);
-        if (next && next.type !== 'void') return false;
-        const pattern = ['number', 'operator', 'number', 'operator', 'number'];
-        for (let i = 0; i < 5; i++) {
-          const node = this.getNode(r + dr * i, c + dc * i);
-          if (node.type !== 'void') {
-            if (node.type !== pattern[i]) return false;
-            if (pattern[i] === 'operator') return false;
-          }
-        }
-        return true;
-      }
-
-      insertBlock(r, c, dir, fixedVal = null, pos = 'A') {
-        if (!this.canPlaceBlock(r, c, dir)) return null;
-        const triplet = MathCore.generateValidTriplet(fixedVal, pos);
-        const dr = dir === 'V' ? 1 : 0;
-        const dc = dir === 'H' ? 1 : 0;
-        const layout = [
-          { r, c, type: 'number', val: triplet.a },
-          { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
-          { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
-          { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
-          { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
-        ];
-        for (let idx of [0, 2, 4]) {
-          const node = this.getNode(layout[idx].r, layout[idx].c);
-          if (node.type === 'number' && node.val !== layout[idx].val) return null;
-        }
-        const blockNodes = [];
-        layout.forEach(spec => {
-          const node = this.getNode(spec.r, spec.c);
-          node.type = spec.type; node.val = spec.val;
-          if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
-          blockNodes.push(node);
-        });
-        const block = new EquationBlock(`blk_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
-        blockNodes.forEach(n => n.connectedBlocks.push(block));
-        this.blocks.push(block);
-        return block;
-      }
-
-      insertJunctionBlock(r, c, dir, valA, valC) {
-        if (!this.canPlaceBlock(r, c, dir)) return null;
-        const triplet = MathCore.generateValidTripletDual(valA, valC);
-        if (!triplet) return null;
-        const dr = dir === 'V' ? 1 : 0;
-        const dc = dir === 'H' ? 1 : 0;
-        const layout = [
-          { r, c, type: 'number', val: triplet.a },
-          { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
-          { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
-          { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
-          { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
-        ];
-        const blockNodes = [];
-        layout.forEach(spec => {
-          const node = this.getNode(spec.r, spec.c);
-          node.type = spec.type; node.val = spec.val;
-          if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
-          blockNodes.push(node);
-        });
-        const block = new EquationBlock(`blk_junc_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
-        blockNodes.forEach(n => n.connectedBlocks.push(block));
-        this.blocks.push(block);
-        return block;
-      }
-
-      generateOrganicLayout() {
-        let curR = Math.floor(this.size / 3);
-        let curC = Math.floor(this.size / 3);
-        let seedVal = Math.floor(Math.random() * 10) + 2;
-        let chainLen = 0;
-        let lastDir = null;
-        const targetBlocks = Math.floor(this.size * 1.2);
-
-        while (chainLen < targetBlocks) {
-          const nextDir = (lastDir === 'H') ? 'V' : (lastDir === 'V' ? 'H' : (Math.random() > 0.5 ? 'H' : 'V'));
-          const options = [];
-          if (nextDir === 'H') {
-            options.push({ dir: 'H', r: curR, c: curC, nextR: curR, nextC: curC + 4, pos: 'A' });
-            options.push({ dir: 'H', r: curR, c: curC - 4, nextR: curR, nextC: curC - 4, pos: 'C' });
-          } else {
-            options.push({ dir: 'V', r: curR, c: curC, nextR: curR + 4, nextC: curC, pos: 'A' });
-            options.push({ dir: 'V', r: curR - 4, c: curC, nextR: curR - 4, nextC: curC, pos: 'C' });
-          }
-          options.sort(() => Math.random() - 0.5);
-          let inserted = false;
-          for (let opt of options) {
-            const block = this.insertBlock(opt.r, opt.c, opt.dir, seedVal, opt.pos);
-            if (block) {
-              curR = opt.nextR; curC = opt.nextC;
-              seedVal = this.getNode(curR, curC).val;
-              lastDir = opt.dir; chainLen++; inserted = true; break;
-            }
-          }
-          if (!inserted) break;
-        }
-
-        let queue = [...this.numberNodes].sort(() => Math.random() - 0.5);
-        let attempts = 0;
-        while (queue.length > 0 && attempts < 1000) {
-          attempts++;
-          const node = queue.shift();
-          if (!node) continue;
-          let paired = false;
-          for (let otherNode of this.numberNodes) {
-            if (otherNode !== node && (otherNode.r === node.r || otherNode.c === node.c)) {
-              if (Math.abs(otherNode.r - node.r) === 4 && otherNode.c === node.c) {
-                const minR = Math.min(node.r, otherNode.r);
-                const valA = node.r === minR ? node.val : otherNode.val;
-                const valC = node.r === minR ? otherNode.val : node.val;
-                if (this.insertJunctionBlock(minR, node.c, 'V', valA, valC)) { paired = true; break; }
-              } else if (Math.abs(otherNode.c - node.c) === 4 && otherNode.r === node.r) {
-                const minC = Math.min(node.c, otherNode.c);
-                const valA = node.c === minC ? node.val : otherNode.val;
-                const valC = node.c === minC ? otherNode.val : node.val;
-                if (this.insertJunctionBlock(node.r, minC, 'H', valA, valC)) { paired = true; break; }
-              }
-            }
-          }
-          if (paired) continue;
-          const branchOpts = [
-            { dir: 'H', r: node.r, c: node.c, pos: 'A' },
-            { dir: 'V', r: node.r, c: node.c, pos: 'A' },
-            { dir: 'H', r: node.r, c: node.c - 4, pos: 'C' },
-            { dir: 'V', r: node.r - 4, c: node.c, pos: 'C' }
-          ].sort(() => Math.random() - 0.5);
-          for (let opt of branchOpts) {
-            const block = this.insertBlock(opt.r, opt.c, opt.dir, node.val, opt.pos);
-            if (block) {
-              block.nodes.forEach(n => { if (n.type === 'number' && !queue.includes(n)) queue.push(n); });
-              break;
-            }
-          }
-        }
-      }
-
-      solveLongestPathAndSetGoal() {
-        this.numberNodes.forEach(n => { n.isHidden = true; n.isTarget = false; });
-        if (this.blocks.length === 0) return;
-        let leafBlocks = this.blocks.filter(b => b.getInputs().some(n => n.connectedBlocks.length === 1));
-        if (leafBlocks.length < 2) leafBlocks = this.blocks.slice(0, 3);
-        let knownNodes = new Set();
-        leafBlocks.forEach(b => {
-          let inputs = b.getInputs();
-          inputs[0].isHidden = false; inputs[1].isHidden = false;
-          knownNodes.add(inputs[0]); knownNodes.add(inputs[1]);
-        });
-        let solvedBlocks = new Set();
-        let stepCount = 1;
-        let progress = true;
-        let lastSolvedNode = null;
-        let maxStepRecorded = 0;
-        while (progress) {
-          progress = false;
-          for (let block of this.blocks) {
-            if (solvedBlocks.has(block)) continue;
-            const inputs = block.getInputs();
-            const knownInputs = inputs.filter(n => knownNodes.has(n));
-            if (knownInputs.length >= 2) {
-              const unknownInputs = inputs.filter(n => !knownNodes.has(n));
-              if (unknownInputs.length === 1) {
-                const targetNode = unknownInputs[0];
-                knownNodes.add(targetNode);
-                lastSolvedNode = targetNode;
-                maxStepRecorded = stepCount;
-              }
-              solvedBlocks.add(block);
-              stepCount++;
-              progress = true;
-            }
-          }
-        }
-        this.goalNode = lastSolvedNode;
-        if (this.goalNode) {
-          this.goalNode.isTarget = true;
-          this.maxChainDepth = maxStepRecorded;
-        }
-      }
-
-      generate() {
-        const minTargetBlocks = Math.floor(this.size * 0.8);
-        let maxRetries = 20;
-        let attempt = 0;
-        while (attempt < maxRetries) {
-          attempt++;
-          this.resetGrid();
-          this.generateOrganicLayout();
-          if (this.blocks.length >= minTargetBlocks) {
-            this.solveLongestPathAndSetGoal();
-            if (this.maxChainDepth >= 5) break;
-          }
-        }
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════
-    let currentEngine = null;
-    let currentSessionIndex = 0;
-    let isPlaying = false;
-    let sessionTimer = null;
-    let sessionTimeLeft = 0;
-    let lastControlSig = '';
-
-    // ═══════════════════════════════════════════════════════════
-    // SESSION DOTS
-    // ═══════════════════════════════════════════════════════════
-    function updateSessionDots() {
-      const dots = document.querySelectorAll('.session-dot');
-      dots.forEach((dot, idx) => {
-        dot.classList.remove('active', 'done');
-        if (idx < currentSessionIndex - 1) dot.classList.add('done');
-        else if (idx === currentSessionIndex - 1) dot.classList.add('active');
-      });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // SESSION ENGINE
-    // ═══════════════════════════════════════════════════════════
-    async function startSession() {
-      console.log(`[SESSION] ▶ Memulai sesi ${currentSessionIndex + 1}/${SESSION_CONFIG.TOTAL_SESSIONS}`);
-      isPlaying = true;
-
-      safeSetText('sessionText', `SESI ${currentSessionIndex + 1} / ${SESSION_CONFIG.TOTAL_SESSIONS}`);
-      safeReplaceClass('sessionIndicator', 'hidden', 'flex');
-      safeReplaceClass('repeatIndicator', 'hidden', 'flex');
-      safeSetText('stageStatus', `SESI ${currentSessionIndex + 1} BERJALAN`);
-      safeSetText('statusBadge', 'ACTIVE');
-      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
-      updateSessionDots();
-
-      console.log('[SESSION] Generating puzzle...');
-      currentEngine = new DominoMazeEngine(SESSION_CONFIG.GRID_SIZE);
-      currentEngine.generate();
-      console.log(`[SESSION] Puzzle selesai. Blocks: ${currentEngine.blocks.length}, Depth: ${currentEngine.maxChainDepth}`);
-      renderGrid();
-
-      const answer = currentEngine.goalNode ? currentEngine.goalNode.val : null;
-      console.log(`[SESSION] Jawaban: ${answer}`);
-
-      await publishPuzzle(answer);
-      startSessionTimer();
-    }
-
-    async function publishPuzzle(answer) {
-      try {
-        await supabaseClient
-          .from('system_frenzy_cross_math')
-          .update({
-            target_answer: answer,
-            current_puzzle_json: {
-              size: currentEngine.size,
-              grid: currentEngine.grid.map(row => row.map(n => ({
-                type: n.type, val: n.val, isHidden: n.isHidden, isTarget: n.isTarget
-              }))),
-              goalNode: currentEngine.goalNode ? { r: currentEngine.goalNode.r, c: currentEngine.goalNode.c } : null
-            },
-            updated_at: new Date().toISOString()
+        supabaseClient
+          .channel('layout_frenzy_puzzle')
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'system_frenzy_cross_math_question'
+          }, (payload) => {
+            LOG.ok('RECV', '📡 Update dari admin');
+            if (payload.new) this.onPuzzleUpdate(payload.new);
           })
-          .in('id', [1, 2]);
-        console.log('[SUPA] ✅ Puzzle & jawaban tersimpan.');
-      } catch (err) {
-        console.error('[SUPA] ❌ Gagal publish:', err);
+          .subscribe(async (status) => {
+            LOG.info('INIT', `Channel status: ${status}`);
+            if (status === 'SUBSCRIBED') {
+              LOG.ok('INIT', '✅ Subscribed. Fetch initial state...');
+              await this.fetchInitialState();
+            } else if (status === 'CHANNEL_ERROR') {
+              LOG.error('INIT', '❌ Gagal subscribe! Cek Realtime di Supabase.');
+            }
+          });
       }
-    }
 
-    function startSessionTimer() {
-      if (sessionTimer) clearInterval(sessionTimer);
-      sessionTimeLeft = SESSION_CONFIG.DURATION_PER_SESSION;
-      updateTimerUI();
+      async fetchInitialState() {
+        const { data, error } = await supabaseClient
+          .from('system_frenzy_cross_math_question')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
 
-      sessionTimer = setInterval(() => {
-        sessionTimeLeft--;
-        updateTimerUI();
-        if (sessionTimeLeft <= 0) {
-          clearInterval(sessionTimer);
-          endSession();
+        if (error) { LOG.error('INIT', 'Fetch error', error); return; }
+        if (data) {
+          LOG.ok('INIT', `Initial state: sesi ${data.session_index}/${data.total_sessions}`);
+          this.onPuzzleUpdate(data);
         }
-      }, 1000);
-    }
+      }
 
-    function updateTimerUI() {
-      const m = Math.floor(sessionTimeLeft / 60);
-      const s = sessionTimeLeft % 60;
-      safeSetText('timerDisplay', `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-    }
+      // ═══════════════════════════════════════════════════════
+      // ON PUZZLE UPDATE
+      // ═══════════════════════════════════════════════════════
+      onPuzzleUpdate(row) {
+        // Skip kalau sesi 0 (idle) → reset display
+        if (!row.session_index || row.session_index === 0) {
+          LOG.info('LAYOUT', 'Idle state (sesi 0). Reset display.');
+          this.resetDisplay();
+          return;
+        }
 
-    async function endSession() {
-      currentSessionIndex++;
-      const isLastSession = currentSessionIndex >= SESSION_CONFIG.TOTAL_SESSIONS;
+        // Buat signature unik untuk deteksi perubahan
+        const sig = `${row.session_index}|${row.updated_at}`;
+        if (sig === this.lastPuzzleSignature) {
+          LOG.info('LAYOUT', 'Signature sama, skip re-render.');
+          return;
+        }
 
-      if (!isLastSession) {
-        console.log(`[SESSION] ✅ Sesi ${currentSessionIndex} selesai. Lanjut ke sesi ${currentSessionIndex + 1}`);
-        console.log('[AUDIO] 🔔 Bell (masa loop)');
-        audioEngine.play(SOUND_BELL);
+        const isNewSession = row.session_index !== this.currentSession;
+        this.lastPuzzleSignature = sig;
+        this.currentSession = row.session_index;
+        this.totalSessions = row.total_sessions || 5;
+        this.sessionStartTime = row.session_start_time;
+        this.sessionDuration = row.session_duration || 30;
+        this.currentPuzzle = row.puzzle_json;
 
-        safeSetText('stageStatus', `TRANSISI KE SESI ${currentSessionIndex + 1}...`);
-        await new Promise(r => setTimeout(r, 2000));
-        startSession();
-      } else {
-        console.log(`[SESSION] ✅ Semua ${SESSION_CONFIG.TOTAL_SESSIONS} sesi selesai.`);
-        console.log('[AUDIO] 🔕 Beep (loop habis)');
-        audioEngine.play(SOUND_BEEP);
+        LOG.ok('LAYOUT', `🎬 Sesi ${this.currentSession}/${this.totalSessions} diterima`);
+        LOG.info('LAYOUT', `Jawaban: ${row.target_answer}, Duration: ${this.sessionDuration}s`);
 
-        isPlaying = false;
-        safeSetText('stageStatus', 'SEMUA SESI SELESAI');
-        safeSetText('statusBadge', 'DONE');
-        safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20');
-        safeReplaceClass('repeatIndicator', 'flex', 'hidden');
+        // Sound: bell saat sesi baru (kecuali sesi 1), beep saat sesi terakhir
+        if (isNewSession) {
+          if (row.session_index === row.total_sessions) {
+            LOG.info('AUDIO', '🔕 Beep (sesi terakhir)');
+            audioEngine.play(SOUND_BEEP);
+          } else if (row.session_index > 1) {
+            LOG.info('AUDIO', '🔔 Bell (sesi baru)');
+            audioEngine.play(SOUND_BELL);
+          } else {
+            // Sesi 1 → bell juga (mulai game)
+            LOG.info('AUDIO', '🔔 Bell (sesi 1 dimulai)');
+            audioEngine.play(SOUND_BELL);
+          }
+        }
+
+        // Render grid
+        if (row.puzzle_json && row.puzzle_json.grid) {
+          this.renderGrid(row.puzzle_json.grid);
+        }
+
+        // Update UI
+        this.updateSessionUI();
+        this.startLocalTimer();
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // UPDATE UI
+      // ═══════════════════════════════════════════════════════
+      updateSessionUI() {
+        safeSetText('sessionText', `SESI ${this.currentSession} / ${this.totalSessions}`);
+        safeReplaceClass('sessionIndicator', 'hidden', 'flex');
+        safeReplaceClass('repeatIndicator', 'hidden', 'flex');
+        safeSetText('stageStatus', `SESI ${this.currentSession} BERJALAN`);
+        safeSetText('statusBadge', 'ACTIVE');
+        safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
+
+        // Session dots
+        document.querySelectorAll('.session-dot').forEach((dot, idx) => {
+          dot.classList.remove('active', 'done');
+          const sessionNum = idx + 1;
+          if (sessionNum < this.currentSession) dot.classList.add('done');
+          else if (sessionNum === this.currentSession) dot.classList.add('active');
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // LOCAL TIMER (dihitung dari sessionStartTime)
+      // ═══════════════════════════════════════════════════════
+      startLocalTimer() {
+        if (this.localTimer) clearInterval(this.localTimer);
+
+        const tick = () => {
+          if (!this.sessionStartTime) return;
+          const elapsed = (Date.now() - this.sessionStartTime) / 1000;
+          const remaining = Math.max(0, this.sessionDuration - elapsed);
+          const m = Math.floor(remaining / 60);
+          const s = Math.floor(remaining) % 60;
+          safeSetText('timerDisplay', `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+          if (remaining <= 0) clearInterval(this.localTimer);
+        };
+
+        tick();
+        this.localTimer = setInterval(tick, 100);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // RENDER GRID
+      // ═══════════════════════════════════════════════════════
+      renderGrid(grid) {
+        if (!grid || !grid.length) return;
+        const container = document.getElementById('gridContainer');
+        if (!container) return;
+
+        const size = grid.length;
+
+        // Auto cell size
+        const sidebar = document.querySelector('aside');
+        const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+        const availW = window.innerWidth - sidebarW - 48;
+        const availH = window.innerHeight - 48;
+        const cellSize = Math.max(12, Math.floor(Math.min(availW, availH) / size) - 2);
+
+        container.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
+        container.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
+        container.style.gap = '2px';
+        container.innerHTML = '';
+
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const node = grid[r][c];
+            const div = document.createElement('div');
+            div.style.width = cellSize + 'px';
+            div.style.height = cellSize + 'px';
+            div.style.fontSize = Math.max(8, Math.floor(cellSize * 0.55)) + 'px';
+            div.className = "transition-all select-none";
+
+            if (node.type === 'void') div.className += " cell-void";
+            else if (node.type === 'operator') { div.className += " cell-op"; div.textContent = node.val; }
+            else if (node.type === 'number') {
+              if (node.isTarget) { div.className += " cell-goal"; div.textContent = "GOAL"; }
+              else if (node.isHidden) { div.className += " cell-num-hidden"; div.textContent = "?"; }
+              else { div.className += " cell-num-open"; div.textContent = node.val; }
+            }
+            container.appendChild(div);
+          }
+        }
+        LOG.ok('RENDER', `Grid ${size}×${size} dirender (cell=${cellSize}px)`);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // RESET DISPLAY
+      // ═══════════════════════════════════════════════════════
+      resetDisplay() {
+        LOG.warn('LAYOUT', 'Reset display');
+        this.currentSession = 0;
+        this.currentPuzzle = null;
+        this.sessionStartTime = null;
+        this.lastPuzzleSignature = '';
+        if (this.localTimer) clearInterval(this.localTimer);
+
         safeReplaceClass('sessionIndicator', 'flex', 'hidden');
+        safeReplaceClass('repeatIndicator', 'flex', 'hidden');
+        safeSetText('stageStatus', 'MENUNGGU SINYAL ADMIN...');
+        safeSetText('statusBadge', 'Ready');
+        safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5');
         safeSetText('timerDisplay', '--:--');
 
-        await supabaseClient
-          .from('frenzy_cross_math_control')
-          .update({ action: 'RESET', updated_at: new Date().toISOString() })
-          .eq('id', 1);
+        const container = document.getElementById('gridContainer');
+        if (container) container.innerHTML = '';
 
-        console.log('[SESSION] Control direset.');
+        document.querySelectorAll('.session-dot').forEach(d => d.classList.remove('active', 'done'));
       }
     }
-
-    function resetStage() {
-      console.log('[STAGE] Reset');
-      isPlaying = false;
-      currentSessionIndex = 0;
-      if (sessionTimer) clearInterval(sessionTimer);
-
-      safeReplaceClass('sessionIndicator', 'flex', 'hidden');
-      safeReplaceClass('repeatIndicator', 'flex', 'hidden');
-      safeSetText('stageStatus', 'STAGE READY');
-      safeSetText('statusBadge', 'Ready');
-      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5');
-      safeSetText('timerDisplay', '--:--');
-
-      const container = document.getElementById('gridContainer');
-      if (container) container.innerHTML = '';
-
-      document.querySelectorAll('.session-dot').forEach(d => d.classList.remove('active', 'done'));
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // RENDER GRID — auto-scale
-    // ═══════════════════════════════════════════════════════════
-    function renderGrid() {
-      if (!currentEngine) return;
-      const container = document.getElementById('gridContainer');
-      if (!container) return;
-
-      const size = currentEngine.size;
-
-      // Hitung cell size optimal
-      const sidebar = document.querySelector('aside');
-      const sidebarW = sidebar ? sidebar.offsetWidth : 320;
-      const availW = window.innerWidth - sidebarW - 48;
-      const availH = window.innerHeight - 48;
-      const cellSize = Math.max(12, Math.floor(Math.min(availW, availH) / size) - 2);
-
-      container.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
-      container.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
-      container.style.gap = '2px';
-      container.innerHTML = '';
-
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          const node = currentEngine.grid[r][c];
-          const div = document.createElement('div');
-          div.style.width = cellSize + 'px';
-          div.style.height = cellSize + 'px';
-          div.style.fontSize = Math.max(8, Math.floor(cellSize * 0.55)) + 'px';
-          div.className = "transition-all select-none";
-
-          if (node.type === 'void') div.className += " cell-void";
-          else if (node.type === 'operator') { div.className += " cell-op"; div.textContent = node.val; }
-          else if (node.type === 'number') {
-            if (node.isTarget) { div.className += " cell-goal"; div.textContent = "GOAL"; }
-            else if (node.isHidden) { div.className += " cell-num-hidden"; div.textContent = "?"; }
-            else { div.className += " cell-num-open"; div.textContent = node.val; }
-          }
-          container.appendChild(div);
-        }
-      }
-    }
-
-    // Resize handler
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (currentEngine && isPlaying) renderGrid();
-      }, 200);
-    });
 
     // ═══════════════════════════════════════════════════════════
     // VIEW SWITCHER
@@ -871,7 +546,7 @@
     async function fetchAndRenderScores(isAll, rank) {
       const { data } = await supabaseClient.from('game_scores')
         .select('user_unique_id, score_obtained, game_name')
-        .eq('game_name', 'Frenzy Cross Math');
+        .eq('game_name', 'Frenzy Cross Maze');
       if (!data) return;
       let map = {};
       data.forEach(r => {
@@ -913,49 +588,35 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME LISTENERS
+    // INIT
     // ═══════════════════════════════════════════════════════════
-    supabaseClient.channel('stage_frenzy')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'frenzy_cross_math_control' }, (p) => {
-        if (!p.new) return;
-        const sig = `${p.new.action}|${p.new.updated_at}`;
-        if (sig === lastControlSig) return;
-        lastControlSig = sig;
+    const layout = new FrenzyLayout();
+    layout.subscribe();
 
-        const { action } = p.new;
-        console.log('[EVENT] Control action:', action);
+    // Resize handler
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (layout.currentPuzzle && layout.currentPuzzle.grid) {
+          layout.renderGrid(layout.currentPuzzle.grid);
+        }
+      }, 200);
+    });
 
-        if (action === 'START_GAME' && !isPlaying) {
-          currentSessionIndex = 0;
-          startSession();
-        } else if (action === 'RESET') {
-          resetStage();
+    // Subscribe ke layout control (view switcher)
+    supabaseClient.channel('stage_layout_remote')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_layout_frenzy_cross_math'
+      }, (p) => {
+        if (p.new) {
+          LOG.info('VIEW', `Layout: ${p.new.current_view}`);
+          handleViewSwitch(p.new.current_view, p.new.revealed_rank);
         }
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_frenzy_cross_math' }, (p) => {
-        if (p.new) handleViewSwitch(p.new.current_view, p.new.revealed_rank);
-      })
-      .subscribe((status) => {
-        console.log('[REALTIME] Channel status:', status);
-      });
-
-    // Polling fallback
-    setInterval(async () => {
-      const { data } = await supabaseClient
-        .from('frenzy_cross_math_control').select('action, updated_at').eq('id', 1).maybeSingle();
-      if (data) {
-        const sig = `${data.action}|${data.updated_at}`;
-        if (sig !== lastControlSig) {
-          lastControlSig = sig;
-          if (data.action === 'START_GAME' && !isPlaying) {
-            currentSessionIndex = 0;
-            startSession();
-          } else if (data.action === 'RESET') {
-            resetStage();
-          }
-        }
-      }
-    }, 3000);
+      .subscribe();
 
     // Initial layout
     (async () => {
@@ -963,6 +624,8 @@
         .from('admin_layout_frenzy_cross_math').select('*').eq('id', 1).maybeSingle();
       if (data) handleViewSwitch(data.current_view, data.revealed_rank);
     })();
+
+    LOG.ok('INIT', '══════════ LAYOUT READY ══════════');
   </script>
 </body>
 </html>
