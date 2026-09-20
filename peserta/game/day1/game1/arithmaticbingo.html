@@ -66,15 +66,23 @@
   </div>
 
   <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
     const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+    const QUESTION_DURATION = 20; // detik
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
     let currentBoardIndex = 0;
-    let boards = []; // 5 Board x 25 Angka = 125 Angka
-    let boardStates = []; // Status per sel: { val, status: 'default'|'correct'|'wrong', row, col }
-    let lineBonusClaimed = [ [], [], [], [], [] ]; // Track baris/kolom yang sudah dapat bonus 5 poin
-    
+    let boards = [];              // 5 Board x 25 Angka = 125 Angka
+    let boardStates = [];         // Status per sel
+    let lineBonusClaimed = [[], [], [], [], []];
+
     let activeAnswer = null;
     let activeQuestionNum = 0;
     let timerInterval = null;
@@ -82,33 +90,41 @@
     let userSession = null;
     let isQuestionActive = false;
 
-    // FUNGSI BUNYI BEL
+    // Guard spam
+    let isProcessing = false;
+
+    // Debounce poin ke DB
+    let pendingPoints = 0;
+    let flushTimer = null;
+
+    // Tracking soal
+    let lastQuestionNum = -1;
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════
     function playBell() {
       const bell = document.getElementById('bellSound');
       if (bell) {
         bell.currentTime = 0;
         bell.play().catch(() => {
-          console.log("Autoplay audio diblokir browser sebelum ada interaksi pengguna.");
+          console.log("[KIOSK] Autoplay audio diblokir browser.");
         });
       }
     }
 
-    // Generasi 125 angka (Rentang 1-99 dengan 26 angka berulang acak)
+    // ═══════════════════════════════════════════════════════════
+    // GENERATE BINGO BOARDS (125 angka: 99 unik + 26 duplikat)
+    // ═══════════════════════════════════════════════════════════
     function generateBingoBoards() {
       boards = [];
       boardStates = [];
-      lineBonusClaimed = [ [], [], [], [], [] ];
+      lineBonusClaimed = [[], [], [], [], []];
 
-      // 1. Buat pool angka utama 1 sampai 99
-      let primaryPool = Array.from({length: 99}, (_, i) => i + 1);
-      
-      // 2. Ambil 26 angka acak dari pool untuk diulang (total = 99 + 26 = 125 angka)
+      let primaryPool = Array.from({ length: 99 }, (_, i) => i + 1);
       let duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
-      
-      // 3. Gabungkan dan acak total 125 angka
       let finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
 
-      // 4. Distribusikan ke 5 Papan Bingo (masing-masing 25 angka)
       for (let b = 0; b < 5; b++) {
         let board = [];
         let stateBoard = [];
@@ -124,14 +140,23 @@
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // INIT USER
+    // ═══════════════════════════════════════════════════════════
     function initUser() {
       const sess = localStorage.getItem('userSession');
-      if (!sess) { window.location.href = '/login.html'; return; }
+      if (!sess) {
+        window.location.href = '/login.html';
+        return;
+      }
       userSession = JSON.parse(sess);
       document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
+      console.log('[KIOSK] User:', userSession.unique_id);
     }
 
-    // Render angka di tombol bingo dengan format 2 digit (01 - 99)
+    // ═══════════════════════════════════════════════════════════
+    // RENDER BOARD
+    // ═══════════════════════════════════════════════════════════
     function renderBoard(boardIdx) {
       const container = document.getElementById('gridContainer');
       container.innerHTML = '';
@@ -140,7 +165,7 @@
       state.forEach((cell, idx) => {
         const btn = document.createElement('button');
         btn.className = `bingo-cell text-sm transition-all duration-200 `;
-        
+
         if (cell.status === 'default') {
           btn.className += 'bg-slate-700 text-white hover:bg-slate-600 active:scale-95';
         } else if (cell.status === 'correct') {
@@ -151,7 +176,7 @@
 
         const formattedVal = String(cell.val).padStart(2, '0');
         btn.textContent = formattedVal;
-        
+
         btn.onclick = () => handleCellClick(boardIdx, idx);
         container.appendChild(btn);
       });
@@ -169,32 +194,39 @@
       renderBoard(idx);
     }
 
-async function handleCellClick(boardIdx, cellIdx) {
-  // Hanya proses jika soal masih aktif dan ada kunci jawaban
-  if (!isQuestionActive || activeAnswer === null) return;
-  
-  const cell = boardStates[boardIdx][cellIdx];
-  
-  // Jika sel ini sudah pernah ditekan (baik benar maupun salah), abaikan
-  if (cell.status !== 'default') return;
+    // ═══════════════════════════════════════════════════════════
+    // HANDLE CLICK — dengan guard spam
+    // ═══════════════════════════════════════════════════════════
+    async function handleCellClick(boardIdx, cellIdx) {
+      // Guard: soal harus aktif & ada kunci jawaban
+      if (!isQuestionActive || activeAnswer === null) return;
 
-  if (cell.val === activeAnswer) {
-    cell.status = 'correct';
-    await addPoints(1, 'Jawaban Benar (+1)');
-    
-    // BARIS 'isQuestionActive = false;' DIHAPUS DI SINI
-    // Supaya angka duplikat di papan lain tetap bisa ditekan!
+      // Guard: cegah spam klik
+      if (isProcessing) return;
 
-    checkBingoBonus(boardIdx);
-  } else {
-    cell.status = 'wrong';
-    await addPoints(-1, 'Salah Tekan (-1)');
-  }
-  
-  renderBoard(currentBoardIndex);
-}
+      const cell = boardStates[boardIdx][cellIdx];
 
-    // Deteksi Baris atau Kolom Penuh untuk Bonus 5 Poin
+      // Guard: sel sudah pernah ditekan
+      if (cell.status !== 'default') return;
+
+      isProcessing = true;
+
+      if (cell.val === activeAnswer) {
+        cell.status = 'correct';
+        await addPoints(1, 'Jawaban Benar (+1)');
+        checkBingoBonus(boardIdx);
+      } else {
+        cell.status = 'wrong';
+        await addPoints(-1, 'Salah Tekan (-1)');
+      }
+
+      renderBoard(currentBoardIndex);
+      isProcessing = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // BINGO BONUS (baris/kolom penuh = +5)
+    // ═══════════════════════════════════════════════════════════
     function checkBingoBonus(boardIdx) {
       const state = boardStates[boardIdx];
 
@@ -205,7 +237,7 @@ async function handleCellClick(boardIdx, cellIdx) {
           const rowCells = state.filter(c => c.row === r);
           if (rowCells.every(c => c.status === 'correct')) {
             lineBonusClaimed[boardIdx].push(rowTag);
-            addPoints(5, `BINGO Baris ${r+1} (+5)`);
+            addPoints(5, `BINGO Baris ${r + 1} (+5)`);
           }
         }
       }
@@ -217,39 +249,149 @@ async function handleCellClick(boardIdx, cellIdx) {
           const colCells = state.filter(cell => cell.col === c);
           if (colCells.every(cell => cell.status === 'correct')) {
             lineBonusClaimed[boardIdx].push(colTag);
-            addPoints(5, `BINGO Kolom ${c+1} (+5)`);
+            addPoints(5, `BINGO Kolom ${c + 1} (+5)`);
           }
         }
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // ADD POINTS — debounced insert ke DB
+    // ═══════════════════════════════════════════════════════════
     async function addPoints(pts, reason) {
       scoreAccumulated += pts;
+      pendingPoints += pts;
+
       document.getElementById('totalScoreText').textContent = scoreAccumulated;
       document.getElementById('statusMsg').textContent = reason;
 
-      // Simpan Poin Langsung ke Database game_scores (log)
-      await supabaseClient.from('game_scores').insert({
-        user_unique_id: userSession.unique_id,
-        game_name: 'Bingo Math',
-        score_obtained: pts
-      });
+      // Debounce: kumpulkan poin, flush setiap 500ms
+      if (!flushTimer) {
+        flushTimer = setTimeout(async () => {
+          const pointsToSend = pendingPoints;
+          pendingPoints = 0;
+          flushTimer = null;
+
+          if (pointsToSend === 0) return;
+
+          try {
+            const { error } = await supabaseClient.from('game_scores').insert({
+              user_unique_id: userSession.unique_id,
+              game_name: 'Bingo Math',
+              score_obtained: pointsToSend
+            });
+            if (error) console.error('[KIOSK] Insert score error:', error);
+            else console.log(`[KIOSK] Score flushed: ${pointsToSend} pts`);
+          } catch (err) {
+            console.error('[KIOSK] Insert score exception:', err);
+          }
+        }, 500);
+      }
     }
 
-    // Sinkronisasi Realtime dengan Admin
+    // ═══════════════════════════════════════════════════════════
+    // FLUSH PENDING POINTS (dipanggil saat soal berakhir)
+    // ═══════════════════════════════════════════════════════════
+    async function flushPendingPoints() {
+      if (pendingPoints === 0) return;
+
+      const pointsToSend = pendingPoints;
+      pendingPoints = 0;
+
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+
+      try {
+        await supabaseClient.from('game_scores').insert({
+          user_unique_id: userSession.unique_id,
+          game_name: 'Bingo Math',
+          score_obtained: pointsToSend
+        });
+        console.log(`[KIOSK] Final flush: ${pointsToSend} pts`);
+      } catch (err) {
+        console.error('[KIOSK] Final flush error:', err);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LISTEN TO ADMIN — Realtime + Polling Fallback
+    // ═══════════════════════════════════════════════════════════
     function listenToAdmin() {
+      console.log('[KIOSK] Setup listener...');
+
+      // 1. Realtime Listener
       supabaseClient
         .channel('realtime_bingo')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_arithmatic_bingo' }, payload => {
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'system_arithmatic_bingo'
+        }, payload => {
           const data = payload.new;
-          if (data && data.is_active) {
-            setupNewQuestion(data);
-          }
+          if (data) handleIncomingQuestion(data);
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[KIOSK] Realtime status:', status);
+        });
+
+      // 2. ✅ POLLING FALLBACK — setiap 1 detik
+      setInterval(async () => {
+        try {
+          const { data, error } = await supabaseClient
+            .from('system_arithmatic_bingo')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+
+          if (!error && data) handleIncomingQuestion(data);
+        } catch (err) {
+          console.error('[KIOSK] Polling error:', err);
+        }
+      }, 1000);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // HANDLE INCOMING QUESTION — Hindari duplikat
+    // ═══════════════════════════════════════════════════════════
+    function handleIncomingQuestion(data) {
+      // ─── KONDISI 1: Admin clear / belum mulai ───
+      if (!data.is_active || data.question_number === 0) {
+        if (isQuestionActive || lastQuestionNum !== -1) {
+          console.log('[KIOSK] Admin clear/reset. Kembali ke waiting state.');
+
+          isQuestionActive = false;
+          activeAnswer = null;
+          activeQuestionNum = 0;
+          lastQuestionNum = -1;
+
+          clearInterval(timerInterval);
+          timerInterval = null;
+
+          document.getElementById('questionNum').textContent = 'Soal #-';
+          document.getElementById('questionText').textContent = 'Menunggu Admin...';
+          document.getElementById('statusMsg').textContent = 'Jawab sebelum waktu habis!';
+          document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:20`;
+        }
+        return;
+      }
+
+      // ─── KONDISI 2: Soal baru (nomor beda) ───
+      if (data.question_number !== lastQuestionNum) {
+        console.log(`[KIOSK] Soal baru #${data.question_number}`);
+        lastQuestionNum = data.question_number;
+        setupNewQuestion(data);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SETUP NEW QUESTION — Timer dari start_time DB
+    // ═══════════════════════════════════════════════════════════
     function setupNewQuestion(data) {
+      // Flush poin soal sebelumnya (kalau ada)
+      flushPendingPoints();
+
       activeAnswer = data.correct_answer;
       activeQuestionNum = data.question_number;
       isQuestionActive = true;
@@ -258,18 +400,42 @@ async function handleCellClick(boardIdx, cellIdx) {
       document.getElementById('questionText').textContent = data.question_text;
       document.getElementById('statusMsg').textContent = 'Cari jawaban di 5 papanmu!';
 
-      // Putar Bunyi Bel saat Soal Baru Muncul
+      // Putar Bunyi Bel
       playBell();
 
-      // Jalankan hitung mundur 20 detik versi waktu lokal browser/HP
-      startTimer(20);
+      // ✅ HITUNG TIMER DARI start_time (authoritative source)
+      let remaining = QUESTION_DURATION;
+      if (data.start_time) {
+        const startMs = new Date(data.start_time).getTime();
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        remaining = Math.max(0, QUESTION_DURATION - elapsed);
+        console.log(`[KIOSK] Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
+      } else {
+        console.warn('[KIOSK] start_time tidak ada, pakai default 20s');
+      }
+
+      startTimer(remaining);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // START TIMER — handle jika soal masuk telat
+    // ═══════════════════════════════════════════════════════════
     function startTimer(secondsLeft) {
       clearInterval(timerInterval);
+      timerInterval = null;
 
-      let timeLeft = secondsLeft;
+      let timeLeft = Math.max(0, secondsLeft);
       updateTimerDisplay(timeLeft);
+
+      // Kalau soal masuk telat & waktu sudah habis
+      if (timeLeft <= 0) {
+        console.warn('[KIOSK] Soal masuk setelah waktu habis!');
+        isQuestionActive = false;
+        document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
+        document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
+        flushPendingPoints();
+        return;
+      }
 
       timerInterval = setInterval(() => {
         timeLeft--;
@@ -277,23 +443,70 @@ async function handleCellClick(boardIdx, cellIdx) {
 
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
+          timerInterval = null;
           isQuestionActive = false;
           document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
           document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
+
+          // Flush poin terakhir
+          flushPendingPoints();
         }
       }, 1000);
     }
 
     function updateTimerDisplay(seconds) {
       const secFormatted = seconds < 10 ? `0${seconds}` : seconds;
-      document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:${secFormatted}`;
+      document.getElementById('timerDisplay').innerHTML =
+        `<i class="fas fa-clock mr-1"></i>00:${secFormatted}`;
     }
 
-    // Init
-    initUser();
-    generateBingoBoards();
-    renderBoard(0);
-    listenToAdmin();
+    // ═══════════════════════════════════════════════════════════
+    // FLUSH POIN SEBELUM TAB CLOSE (safety)
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('beforeunload', () => {
+      if (pendingPoints !== 0 && userSession) {
+        // Pakai sendBeacon kalau memungkinkan (fire-and-forget)
+        const payload = JSON.stringify({
+          user_unique_id: userSession.unique_id,
+          game_name: 'Bingo Math',
+          score_obtained: pendingPoints
+        });
+        // Fallback: sync insert (bisa di-skip browser, tapi coba)
+        navigator.sendBeacon?.(
+          `${supabaseUrl}/rest/v1/game_scores?apikey=${supabaseKey}`,
+          new Blob([payload], { type: 'application/json' })
+        );
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      console.log('[KIOSK] Booting...');
+
+      initUser();
+      generateBingoBoards();
+      renderBoard(0);
+      listenToAdmin();
+
+      // Fetch state awal (kalau soal sudah aktif saat kiosk dibuka)
+      const { data } = await supabaseClient
+        .from('system_arithmatic_bingo')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (data) handleIncomingQuestion(data);
+
+      console.log('[KIOSK] Ready');
+    }
+
+    init();
+
+    // Expose untuk onclick
+    window.switchBoard = switchBoard;
+    window.handleCellClick = handleCellClick;
   </script>
 </body>
 </html>
