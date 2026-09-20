@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kios Peserta - Cataclysm Memory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #030712;
+      color: #fff;
+      user-select: none;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.5); border-radius: 10px; }
+    .team-badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+    .option-btn { transition: all 0.2s ease; }
+    .option-btn.selected {
+      background: rgba(168, 85, 247, 0.3);
+      border-color: #a855f7;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+    }
+    @keyframes pulseTimer {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-timer-pulse { animation: pulseTimer 1s ease-in-out infinite; }
+    .frozen-overlay {
+      backdrop-filter: blur(10px);
+      background: rgba(3, 7, 18, 0.9);
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-6">
+
+  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: PILIH TIM -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayTeamSelect" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md">
+    <div class="bg-slate-900 border border-purple-500/30 rounded-3xl p-8 max-w-2xl w-full shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="bg-purple-500/10 text-purple-400 border border-purple-500/30 text-xs px-4 py-1.5 rounded-full font-bold">
+          <i class="fas fa-users"></i> PILIH KELOMPOK
+        </span>
+        <h1 class="text-3xl font-black text-white mt-3">Cataclysm Memory</h1>
+        <p class="text-sm text-slate-400 mt-1">Pilih tim kamu sebelum memulai</p>
+      </div>
+
+      <div id="teamSelectGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+        <!-- Diisi JS -->
+      </div>
+
+      <div class="text-center">
+        <p id="teamSelectStatus" class="text-xs text-slate-500">Pilih salah satu tim di atas</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: MENUNGGU ADMIN -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayFrozen" class="fixed inset-0 z-40 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6">
+      <div class="w-24 h-24 bg-amber-500/10 border-2 border-amber-500/30 rounded-full flex items-center justify-center mx-auto animate-pulse">
+        <i class="fas fa-hourglass-half text-5xl text-amber-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">MENUNGGU ADMIN</h2>
+      <p class="text-slate-400 max-w-md mx-auto">
+        Kamu sudah terdaftar di <span id="frozenTeamName" class="font-bold text-cyan-400">Tim</span>.
+        Tunggu admin memulai sesi mengerjakan.
+      </p>
+      <div class="flex items-center justify-center gap-2 text-xs text-slate-500">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span>Menunggu perintah mulai...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: HASIL -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayResult" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-6 bg-slate-950/98 backdrop-blur-lg">
+    <div class="text-center space-y-6 max-w-lg">
+      <div class="w-28 h-28 bg-purple-500/10 border-2 border-purple-500/30 rounded-full flex items-center justify-center mx-auto">
+        <i class="fas fa-trophy text-6xl text-purple-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">SELESAI!</h2>
+      <p class="text-slate-400">Tim kamu telah menyelesaikan semua soal.</p>
+      <div class="bg-slate-900 border border-purple-500/30 rounded-3xl p-8">
+        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Poin Tim</div>
+        <div id="resultScore" class="text-6xl font-black font-mono text-purple-400">0</div>
+        <div class="text-xs text-slate-500 mt-2">dari 25 soal</div>
+        <div id="resultDetail" class="text-xs text-slate-400 mt-4 space-y-1"></div>
+      </div>
+      <p class="text-xs text-slate-600">Layar terkunci. Hubungi panitia jika perlu bantuan.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- MAIN EXAM -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="mainExam" class="hidden max-w-5xl mx-auto space-y-4">
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 text-xl">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-black text-white">CATACLYSM MEMORY</h1>
+          <p id="examTeamLabel" class="text-xs text-slate-400">Tim: -</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-center">
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Soal</div>
+          <div id="examProgress" class="text-lg font-black font-mono text-cyan-400">1 / 25</div>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-center">
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Waktu</div>
+          <div id="examTimer" class="text-lg font-black font-mono text-emerald-400">05:00</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="questionCard" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5"></div>
+
+    <div class="flex items-center justify-between gap-3">
+      <button id="btnPrev" onclick="prevQuestion()" class="px-5 py-3 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+        <i class="fas fa-arrow-left"></i> Sebelumnya
+      </button>
+      <div id="questionNav" class="flex flex-wrap gap-1.5 justify-center max-w-md"></div>
+      <button id="btnNext" onclick="nextQuestion()" class="px-5 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+        Selanjutnya <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <div class="text-center">
+      <button id="btnSubmit" onclick="submitExam()" class="px-8 py-4 rounded-2xl font-black text-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition active:scale-95">
+        <i class="fas fa-paper-plane"></i> SUBMIT JAWABAN
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const GAME_NAME = 'Cataclysm Memory';
+    const TEAM_COUNT = 10;
+    const TOTAL_QUESTIONS = 25;
+    const SESSION_DURATION = 300;
+
+    const POINT_CORRECT = 10;
+    const POINT_WRONG = -5;
+    const POINT_UNANSWERED = -2;
+
+    const TEAM_NAMES = {
+      1: 'Tim Merah', 2: 'Tim Biru', 3: 'Tim Hijau', 4: 'Tim Kuning', 5: 'Tim Ungu',
+      6: 'Tim Pink', 7: 'Tim Lime', 8: 'Tim Langit', 9: 'Tim Oranye', 10: 'Tim Fuchsia'
+    };
+
+    const TEAM_COLORS = {
+      1: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+      2: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+      3: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+      4: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+      5: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+      6: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+      7: 'text-lime-400 bg-lime-500/10 border-lime-500/30',
+      8: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+      9: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+      10: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30'
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // DATA SOAL
+    // ═══════════════════════════════════════════════════════════
+    const QUESTIONS = [
+      { no:1, question:"Jika tanggal terjadinya Gempa Bumi Shaanxi dikurangkan dengan tanggal puncak Letusan Gunung Tambora, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Haiti","Letusan Gunung Pelée","Badai Nina","Gempa Bumi Tangshan"], correct:0, image:null },
+      { no:2, question:"Jika tanggal awal Letusan Gunung Tambora ditambah dengan tanggal terjadinya Gempa Bumi Messina, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Samudra Hindia","Badai Mitch","Gempa Bumi Haiyuan","Banjir Sungai Yangtze"], correct:2, image:null },
+      { no:3, question:"Jika tanggal terjadinya Tsunami Aceh (Gempa Bumi Samudra Hindia) dikurangkan dengan tanggal dimulainya Badai Haiyan, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Letusan Gunung Pelée","Gempa Bumi Bam","Longsor Vargas","Gempa Bumi Haiti"], correct:0, image:null },
+      { no:4, question:"Jika tanggal puncak Letusan Gunung Tambora ditambah dengan tanggal terjadinya Gempa Bumi Haiti, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Valdivia","Gempa Bumi Kanto","Letusan Gunung Krakatau","Badai Nina"], correct:0, image:null },
+      { no:5, question:"Jika tanggal terjadinya Gempa Bumi Kanto dikurangkan dengan tanggal dimulainya Badai Mitch, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Siklon Coringa","Banjir Sungai Kuning","Gempa Bumi Bam","Letusan Gunung Nevado del Ruiz"], correct:2, image:null },
+      { no:6, question:"Jika tanggal puncak Letusan Gunung Tambora ditambah dengan tanggal terjadinya Siklon Coringa, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Tangshan","Siklon Nargis","Gempa Bumi Jepang (Tohoku)","Badai Haiyan"], correct:1, image:null },
+      { no:7, question:"Jika tanggal terjadinya Gempa Bumi Bam dikurangkan dengan tanggal terjadinya Gempa Bumi Messina, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Topan Haiphong","Letusan Gunung Tambora","Gempa Bumi Shaanxi","Gelombang Panas Eropa"], correct:2, image:null },
+      { no:8, question:"Jika tanggal dimulainya Badai Haiyan ditambah dengan tanggal terjadinya Gempa Bumi Haiti, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Valdivia","Gempa Bumi Kanto","Gempa Bumi Samudra Hindia","Letusan Gunung Krakatau"], correct:2, image:null },
+      { no:9, question:"Berapakah angka yang bisa dibagi pada korban jiwa Gempa Bumi Shaanxi?", options:["2","7","9","0"], correct:0, image:null },
+      { no:10, question:"Dalam bencana Gempa Bumi Bam, bencana ini terjadi di suatu kota, dimanakah letak benua kota tersebut?", options:["Amerika","Australia","Asia","Timur Tengah"], correct:2, image:null },
+      { no:11, question:"Perhatikan bencana di bawah ini: (i) Letusan Gunung Tambora, (ii) Letusan Gunung Krakatau, (iii) Letusan Gunung Pelée, (iv) Letusan Gunung Nevado del Ruiz. Jika diurutkan berdasarkan tahun terjadinya dari yang paling awal, urutan yang benar adalah...", options:["1 → 2 → 3 → 4","2 → 1 → 3 → 4","1 → 3 → 2 → 4","2 → 3 → 1 → 4"], correct:0, image:null },
+      { no:12, question:"Gempa Bumi Kanto tahun 1923 memiliki magnitudo 7,9 Mw dan memicu tsunami serta kebakaran hebat. Faktor yang memperparah kebakaran tersebut adalah...", options:["Gempa terjadi saat tengah malam ketika semua orang tidur","Gempa terjadi saat banyak kompor sedang menyala dan api menyebar dengan cepat","Gempa menyebabkan letusan gunung api","Gempa terjadi bersamaan dengan tsunami setinggi 40 meter"], correct:1, image:null },
+      { no:13, question:"Sebuah bencana terjadi pada 13 November 1985. Letusan gunung tersebut mencarikan es dan salju di puncaknya sehingga menghasilkan aliran lahar yang menimbun Kota Armero. Bencana yang dimaksud adalah...", options:["Letusan Gunung Pelée","Letusan Gunung Krakatau","Letusan Gunung Nevado del Ruiz","Letusan Gunung Tambora"], correct:2, image:null },
+      { no:14, question:"Letusan Gunung Tambora terjadi sekitar tanggal ... hingga ...., berapakah selisih tanggal tersebut?", options:["9","10","11","12"], correct:1, image:null },
+      { no:15, question:"Bencana Siklon Bhola (1970) dan Badai Haiyan (2013) sama-sama dipicu oleh fenomena alam yang sama, yaitu...", options:["Gempa bumi megathrust","Angin topan / siklon tropis dahsyat","Erupsi gunung berapi","Hujan asam ekstrem"], correct:1, image:null },
+      { no:16, question:"Hal utama yang membuat Gempa Shaanxi (1556) menelan korban hingga 830.000 jiwa adalah...", options:["Terjadinya tsunami setinggi 30 meter","Runtuhnya rumah gua (Yaodong) tempat tinggal warga","Kebakaran hebat di seluruh kota","Letusan gunung berapi secara bersamaan"], correct:1, image:null },
+      { no:17, question:"Bencana Badai Nina (1975) di Henan, Tiongkok menjadi sangat mematikan karena memicu kejadian...", options:["Tsunami lintas pasifik","Jebolnya Bendungan Banqiao secara beruntun","Longsoran tanah loess","Badai api (firestorm)"], correct:1, image:null },
+      { no:18, question:"Erupsi gas beracun dan awan panas (nuée ardente) dari Gunung Pelée pada tahun 1902 terjadi di wilayah...", options:["Martinique, Kepulauan Karibia","Armero, Kolombia","Valdivia, Chile","Selat Sunda, Indonesia"], correct:0, image:null },
+      { no:19, question:"Gempa bumi paling mematikan di Iran yang menghancurkan situs bersejarah Arg-e Bam terjadi di Kota...", options:["Tehran","Bam","Kerman","Shirazi"], correct:1, image:null },
+      { no:20, question:"Letusan Gunung Tambora pada tahun 1815 memicu fenomena iklim global di Eropa dan Amerika Utara yang dikenal sebagai...", options:["Year Without a Summer (Tahun Tanpa Musim Panas)","Global Firestorm","The Great Frost","Dark Century"], correct:0, image:null },
+      { no:21, question:"Gempa mana yang melanda saat jam makan siang sehingga memicu badai api (firestorm) dari kompor warga yang menyala?", options:["Gempa Haiti (2010)","Gempa Kanto (1923) di Jepang","Gempa Tangshan (1976)","Gempa Messina (1908)"], correct:1, image:null },
+      { no:22, question:"Satu-satunya bencana dalam daftar yang disebabkan oleh suhu panas ekstrem dari Afrika Utara dan bukan karena badai/gempa adalah...", options:["Gelombang Panas Eropa (2003)","Badai Mitch (1998)","Longsor Vargas (1999)","Siklon Nargis (2008)"], correct:0, image:null },
+      { no:23, question:"Kejadian pada gambar di bawah ini terjadi pada tahun...", options:["2010","2011","2012","2013"], correct:1, image:"gempabumijepang.jpeg" },
+      { no:24, question:"Ingat kembali informasi dari bacaan. Bencana pada gambar tersebut terjadi pada 26 Desember. Negara yang menjadi wilayah terparah adalah...", options:["Jepang","Indonesia","Myanmar","Filipina"], correct:1, image:"gempabumidantsunamisamudrahindia.jpeg" },
+      { no:25, question:"Bencana pada gambar di bawah ini terjadi pada tahun...", options:["15","17","18","19"], correct:2, image:"longsorvargas.jpeg" }
+    ];
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    let currentUser = null;
+    let selectedTeam = null;
+    let teamMembers = [];        // daftar unique_id anggota tim
+    let answers = {};
+    let currentQuestionIndex = 0;
+    let sessionActive = false;
+    let sessionStartTime = null;
+    let sessionDuration = SESSION_DURATION;
+    let timerInterval = null;
+    let examSubmitted = false;
+    let score = 0;
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LOAD USER
+    // ═══════════════════════════════════════════════════════════
+    function loadUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) {
+        alert('Anda belum login. Silakan login terlebih dahulu.');
+        window.location.href = '/login.html';
+        return false;
+      }
+      try {
+        const parsed = JSON.parse(sess);
+        if (!parsed || !parsed.unique_id) {
+          alert('Session tidak valid. Silakan login ulang.');
+          window.location.href = '/login.html';
+          return false;
+        }
+        currentUser = parsed;
+        return true;
+      } catch (e) {
+        alert('Session error. Silakan login ulang.');
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CEK TIM USER
+    // ═══════════════════════════════════════════════════════════
+    async function checkUserTeam() {
+      const { data, error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('team')
+        .eq('unique_id', currentUser.unique_id)
+        .maybeSingle();
+
+      if (error) { console.error('Error cek tim:', error); return null; }
+      return data ? data.team : null;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AMBIL SEMUA ANGGOTA TIM
+    // ═══════════════════════════════════════════════════════════
+    async function fetchTeamMembers(teamNum) {
+      const { data, error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('unique_id, full_name')
+        .eq('team', teamNum);
+
+      if (error) {
+        console.error('Error fetch team members:', error);
+        return [];
+      }
+      return data || [];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER PILIHAN TIM
+    // ═══════════════════════════════════════════════════════════
+    function renderTeamSelect() {
+      const grid = document.getElementById('teamSelectGrid');
+      grid.innerHTML = '';
+
+      for (let t = 1; t <= TEAM_COUNT; t++) {
+        const btn = document.createElement('button');
+        btn.className = `p-4 rounded-2xl border-2 transition-all text-center ${TEAM_COLORS[t]} hover:scale-105 active:scale-95`;
+        btn.innerHTML = `
+          <div class="text-2xl font-black">${t}</div>
+          <div class="text-[10px] font-bold mt-1">${TEAM_NAMES[t]}</div>
+        `;
+        btn.onclick = () => selectTeam(t);
+        grid.appendChild(btn);
+      }
+    }
+
+    async function selectTeam(teamNum) {
+      // Kalau user sudah di tim lain, pindah
+      const { error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .upsert({
+          unique_id: currentUser.unique_id,
+          full_name: currentUser.full_name || currentUser.unique_id,
+          team: teamNum,
+          ready: true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'unique_id' });
+
+      if (error) {
+        alert('Gagal menyimpan tim: ' + error.message);
+        return;
+      }
+
+      selectedTeam = teamNum;
+      teamMembers = await fetchTeamMembers(teamNum);
+      playBell();
+
+      document.getElementById('overlayTeamSelect').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.remove('hidden');
+      document.getElementById('overlayFrozen').classList.add('flex');
+      document.getElementById('frozenTeamName').textContent = TEAM_NAMES[teamNum];
+
+      console.log(`[KIOS] User ${currentUser.unique_id} memilih Tim ${teamNum}. Anggota:`, teamMembers);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CEK SESSION
+    // ═══════════════════════════════════════════════════════════
+    async function checkSession() {
+      const { data } = await supabaseClient
+        .from('system_cataclysm_memory')
+        .select('is_active, session_start_time, session_duration')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (data && data.is_active && data.session_start_time) {
+        sessionActive = true;
+        sessionStartTime = data.session_start_time;
+        sessionDuration = data.session_duration || SESSION_DURATION;
+        startExam();
+      } else {
+        sessionActive = false;
+        if (selectedTeam) {
+          document.getElementById('overlayFrozen').classList.remove('hidden');
+          document.getElementById('overlayFrozen').classList.add('flex');
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MULAI UJIAN
+    // ═══════════════════════════════════════════════════════════
+    async function startExam() {
+      document.getElementById('overlayTeamSelect').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.remove('flex');
+      document.getElementById('overlayResult').classList.add('hidden');
+      document.getElementById('overlayResult').classList.remove('flex');
+
+      document.getElementById('mainExam').classList.remove('hidden');
+      document.getElementById('examTeamLabel').textContent = `Tim: ${TEAM_NAMES[selectedTeam]}`;
+
+      // Refresh daftar anggota tim (siapa tahu ada yang baru join)
+      teamMembers = await fetchTeamMembers(selectedTeam);
+
+      answers = {};
+      currentQuestionIndex = 0;
+      examSubmitted = false;
+      score = 0;
+
+      renderQuestionNav();
+      renderQuestion();
+      updateNavButtons();
+      startTimer();
+
+      playBell();
+      console.log('[KIOS] Exam started. Team members:', teamMembers.length);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TIMER
+    // ═══════════════════════════════════════════════════════════
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      const startMs = new Date(sessionStartTime).getTime();
+
+      const tick = () => {
+        if (examSubmitted) return;
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, sessionDuration - elapsed);
+
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        const timerEl = document.getElementById('examTimer');
+        if (timerEl) {
+          timerEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          if (remaining <= 30) {
+            timerEl.className = 'text-lg font-black font-mono text-rose-500 animate-timer-pulse';
+          } else if (remaining <= 60) {
+            timerEl.className = 'text-lg font-black font-mono text-amber-400 animate-timer-pulse';
+          } else {
+            timerEl.className = 'text-lg font-black font-mono text-emerald-400';
+          }
+        }
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          autoSubmit();
+        }
+      };
+
+      tick();
+      timerInterval = setInterval(tick, 500);
+    }
+
+    function stopTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER SOAL
+    // ═══════════════════════════════════════════════════════════
+    function renderQuestion() {
+      const q = QUESTIONS[currentQuestionIndex];
+      const card = document.getElementById('questionCard');
+
+      document.getElementById('examProgress').textContent = `${currentQuestionIndex + 1} / ${TOTAL_QUESTIONS}`;
+
+      let imageHtml = '';
+      if (q.image) {
+        const { data: urlData } = supabaseClient.storage.from('bencana').getPublicUrl(q.image);
+        imageHtml = `
+          <div class="flex justify-center">
+            <img src="${urlData.publicUrl}" alt="Gambar soal ${q.no}" class="max-h-64 rounded-xl border border-slate-700" onerror="this.style.display='none'">
+          </div>
+        `;
+      }
+
+      const optionsHtml = q.options.map((opt, idx) => {
+        const isSelected = answers[q.no] === idx;
+        const letter = String.fromCharCode(65 + idx);
+        return `
+          <button onclick="selectAnswer(${q.no}, ${idx})" class="option-btn w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected ? 'selected border-purple-500' : 'border-slate-700 hover:border-slate-500 bg-slate-800/50'}">
+            <span class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center font-black text-sm flex-shrink-0">${letter}</span>
+            <span class="text-sm font-semibold text-slate-200">${opt}</span>
+          </button>
+        `;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 font-black flex-shrink-0">${q.no}</div>
+          <p class="text-base font-semibold text-white leading-relaxed">${q.question}</p>
+        </div>
+        ${imageHtml}
+        <div class="space-y-2">${optionsHtml}</div>
+      `;
+    }
+
+    function renderQuestionNav() {
+      const nav = document.getElementById('questionNav');
+      nav.innerHTML = '';
+      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+        const qNo = i + 1;
+        const isAnswered = answers[qNo] !== undefined;
+        const isCurrent = i === currentQuestionIndex;
+        const btn = document.createElement('button');
+        btn.className = `w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+          isCurrent ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+          : isAnswered ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30'
+          : 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700'
+        }`;
+        btn.textContent = qNo;
+        btn.onclick = () => { currentQuestionIndex = i; renderQuestion(); renderQuestionNav(); updateNavButtons(); };
+        nav.appendChild(btn);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById('btnPrev').disabled = currentQuestionIndex === 0;
+      document.getElementById('btnNext').disabled = currentQuestionIndex === TOTAL_QUESTIONS - 1;
+    }
+
+    function selectAnswer(questionNo, optionIndex) {
+      if (examSubmitted) return;
+      answers[questionNo] = optionIndex;
+      renderQuestion();
+      renderQuestionNav();
+    }
+
+    function prevQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderQuestion(); renderQuestionNav(); updateNavButtons();
+      }
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < TOTAL_QUESTIONS - 1) {
+        currentQuestionIndex++;
+        renderQuestion(); renderQuestionNav(); updateNavButtons();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT
+    // ═══════════════════════════════════════════════════════════
+    async function submitExam() {
+      if (examSubmitted) return;
+      const unanswered = TOTAL_QUESTIONS - Object.keys(answers).length;
+      if (unanswered > 0) {
+        const confirmSubmit = confirm(`Masih ada ${unanswered} soal yang belum dijawab (akan dikenakan -2 per soal). Yakin ingin submit?`);
+        if (!confirmSubmit) return;
+      } else {
+        if (!confirm('Yakin ingin submit jawaban?')) return;
+      }
+      await finalizeExam();
+    }
+
+    async function autoSubmit() {
+      if (examSubmitted) return;
+      await finalizeExam();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FINALIZE: hitung poin tim & simpan ke SEMUA anggota
+    // ═══════════════════════════════════════════════════════════
+    async function finalizeExam() {
+      if (examSubmitted) return;
+      examSubmitted = true;
+      stopTimer();
+
+      // Hitung poin
+      let correctCount = 0, wrongCount = 0, unansweredCount = 0, totalScore = 0;
+
+      QUESTIONS.forEach(q => {
+        const userAnswer = answers[q.no];
+        if (userAnswer === undefined) {
+          unansweredCount++;
+          totalScore += POINT_UNANSWERED;
+        } else if (userAnswer === q.correct) {
+          correctCount++;
+          totalScore += POINT_CORRECT;
+        } else {
+          wrongCount++;
+          totalScore += POINT_WRONG;
+        }
+      });
+
+      score = totalScore;
+
+      console.log(`[KIOS] Benar: ${correctCount}, Salah: ${wrongCount}, Kosong: ${unansweredCount}, Total Poin Tim: ${totalScore}`);
+
+      // Refresh daftar anggota tim terbaru
+      teamMembers = await fetchTeamMembers(selectedTeam);
+
+      if (teamMembers.length === 0) {
+        alert('Tidak ada anggota tim yang ditemukan. Hubungi panitia.');
+        return;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // INSERT 1 baris game_scores UNTUK SETIAP anggota tim
+      // ═══════════════════════════════════════════════════════
+      const now = new Date().toISOString();
+      const rows = teamMembers.map(m => ({
+        user_unique_id: m.unique_id,
+        game_name: GAME_NAME,
+        score_obtained: score,
+        created_at: now
+      }));
+
+      const { error } = await supabaseClient
+        .from('game_scores')
+        .insert(rows);
+
+      if (error) {
+        console.error('Gagal simpan skor tim:', error);
+        alert('Gagal menyimpan skor. Hubungi panitia.');
+      }
+
+      // Update status tim
+      await supabaseClient
+        .from('cataclysm_memory_teams')
+        .update({
+          finished: true,
+          score: score,
+          updated_at: now
+        })
+        .eq('team', selectedTeam);
+
+      // Tampilkan overlay hasil
+      document.getElementById('mainExam').classList.add('hidden');
+      document.getElementById('overlayResult').classList.remove('hidden');
+      document.getElementById('overlayResult').classList.add('flex');
+      document.getElementById('resultScore').textContent = score;
+      document.getElementById('resultDetail').innerHTML = `
+        <div>✅ Benar: <b class="text-emerald-400">${correctCount}</b> × +10 = <b>${correctCount * POINT_CORRECT}</b></div>
+        <div>❌ Salah: <b class="text-rose-400">${wrongCount}</b> × -5 = <b>${wrongCount * POINT_WRONG}</b></div>
+        <div>⚪ Kosong: <b class="text-slate-400">${unansweredCount}</b> × -2 = <b>${unansweredCount * POINT_UNANSWERED}</b></div>
+        <div class="pt-2 border-t border-slate-700 mt-2">👥 Poin dibagikan ke <b>${teamMembers.length} anggota tim</b></div>
+      `;
+
+      playBell();
+      console.log(`[KIOS] Skor ${score} tersimpan untuk ${teamMembers.length} anggota tim ${TEAM_NAMES[selectedTeam]}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME SESSION
+    // ═══════════════════════════════════════════════════════════
+    function subscribeSession() {
+      supabaseClient
+        .channel('kios_session_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_cataclysm_memory' }, (payload) => {
+          if (payload.new) {
+            const isActive = payload.new.is_active;
+            if (isActive && !sessionActive && selectedTeam) {
+              sessionActive = true;
+              sessionStartTime = payload.new.session_start_time;
+              sessionDuration = payload.new.session_duration || SESSION_DURATION;
+              startExam();
+            } else if (!isActive && sessionActive) {
+              sessionActive = false;
+              if (!examSubmitted) autoSubmit();
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      if (!loadUser()) return;
+
+      renderTeamSelect();
+
+      const existingTeam = await checkUserTeam();
+
+      if (existingTeam) {
+        selectedTeam = existingTeam;
+        teamMembers = await fetchTeamMembers(existingTeam);
+        document.getElementById('overlayTeamSelect').classList.add('hidden');
+        document.getElementById('overlayFrozen').classList.remove('hidden');
+        document.getElementById('overlayFrozen').classList.add('flex');
+        document.getElementById('frozenTeamName').textContent = TEAM_NAMES[existingTeam];
+      } else {
+        document.getElementById('overlayTeamSelect').classList.remove('hidden');
+        document.getElementById('overlayFrozen').classList.add('hidden');
+        document.getElementById('overlayFrozen').classList.remove('flex');
+      }
+
+      await checkSession();
+      subscribeSession();
+
+      setInterval(async () => {
+        if (examSubmitted) return;
+        if (!sessionActive) await checkSession();
+      }, 3000);
+
+      console.log('[KIOS] Init complete');
+    }
+
+    init();
+  </script>
+</body>
+</html>
