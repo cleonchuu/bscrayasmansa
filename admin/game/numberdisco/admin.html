@@ -141,6 +141,9 @@
           <button onclick="resetAllLimits()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
             <i class="fas fa-rotate text-amber-400"></i> Reset Kuota Semua Peserta
           </button>
+          <button onclick="resetAllScores()" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-trash-can text-rose-400"></i> Reset Poin Game Ini
+          </button>
           <button onclick="fetchScores()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
             <i class="fas fa-sync-alt"></i> Refresh Poin
           </button>
@@ -194,6 +197,18 @@
 
   <script>
   // ═══════════════════════════════════════════════════════════
+  // LOGGER (Debug helper)
+  // ═══════════════════════════════════════════════════════════
+  const DEBUG = true;
+  const LOG = {
+    ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+    info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+    warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+    error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+    step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+  };
+
+  // ═══════════════════════════════════════════════════════════
   // KONFIGURASI
   // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
@@ -204,9 +219,10 @@
   const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
   const GENDER_BUCKET = { blue: 'voice_female', red: 'voice_male' };
 
-  // Config level (bisa diubah sesuai kebutuhan)
+  // Config level
   const INITIAL_RANGE = { min: 2, max: 50 };
   const TOTAL_STEPS = 7;  // 1 init + 6 operasi
+  const TOTAL_TIME_SECONDS = 300;  // 5 menit
 
   // ═══════════════════════════════════════════════════════════
   // MATH GENERATOR (dipindah dari layout ke admin)
@@ -361,6 +377,7 @@
   // ═══════════════════════════════════════════════════════════
   let userToDelete = null;
   let lastQuestion = null;
+  let isProcessingAction = false;  // Guard spam klik START
 
   // ═══════════════════════════════════════════════════════════
   // RENDER RANK BUTTONS
@@ -380,16 +397,20 @@
 
   // ═══════════════════════════════════════════════════════════
   // GENERATE + PUBLISH SOAL
+  // ✅ FIX: Gunakan updated_at yang sama untuk question & control
   // ═══════════════════════════════════════════════════════════
   async function generateAndPublishQuestion() {
-    console.log('[ADMIN] Generating question...');
+    LOG.step('ADMIN', 'Generating question...');
 
     // Generate untuk kedua tim
     const blueResult = MathGenerator.generateFullSteps();
     const redResult = MathGenerator.generateFullSteps();
 
-    console.log('[ADMIN] Blue steps:', blueResult.steps.length, 'Final:', blueResult.finalAnswer);
-    console.log('[ADMIN] Red steps:', redResult.steps.length, 'Final:', redResult.finalAnswer);
+    LOG.info('ADMIN', `Blue steps: ${blueResult.steps.length}, Final: ${blueResult.finalAnswer}`);
+    LOG.info('ADMIN', `Red steps: ${redResult.steps.length}, Final: ${redResult.finalAnswer}`);
+
+    // ✅ Satu timestamp untuk semua (biar konsisten)
+    const nowISO = new Date().toISOString();
 
     // Publish ke Supabase
     const { error } = await supabaseClient
@@ -400,17 +421,17 @@
         red_steps: redResult.steps,
         blue_answer: blueResult.finalAnswer,
         red_answer: redResult.finalAnswer,
-        generated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        generated_at: nowISO,
+        updated_at: nowISO
       }, { onConflict: 'id' });
 
     if (error) {
-      console.error('[ADMIN] Gagal publish soal:', error);
+      LOG.error('ADMIN', 'Gagal publish soal: ' + error.message);
       alert('Gagal generate soal: ' + error.message);
       return false;
     }
 
-    console.log('[ADMIN] Soal published');
+    LOG.ok('ADMIN', 'Soal published ke DB');
     lastQuestion = { blue: blueResult, red: redResult };
     updatePreview();
     return true;
@@ -429,29 +450,47 @@
 
   // ═══════════════════════════════════════════════════════════
   // TRIGGER ACTION
+  // ✅ FIX: Satu timestamp untuk question & control
   // ═══════════════════════════════════════════════════════════
   async function triggerAction(actionName) {
-    // Kalau START, generate soal dulu
-    if (actionName === 'START_GAME') {
-      const ok = await generateAndPublishQuestion();
-      if (!ok) return;
+    if (isProcessingAction) {
+      LOG.warn('ADMIN', 'Action masih diproses, tunggu...');
+      return;
     }
 
-    // Kirim sinyal control
-    const { error } = await supabaseClient
-      .from('system_number_disco_control')
-      .update({
-        action: actionName,
-        trigger_id: Date.now(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
+    isProcessingAction = true;
 
-    if (error) {
-      console.error('[ADMIN] Gagal update action:', error);
-      alert('Gagal kirim perintah: ' + error.message);
-    } else {
-      console.log(`[ADMIN] Action sent: ${actionName}`);
+    try {
+      // Kalau START, generate soal dulu
+      if (actionName === 'START_GAME') {
+        const ok = await generateAndPublishQuestion();
+        if (!ok) {
+          isProcessingAction = false;
+          return;
+        }
+      }
+
+      // ✅ Kirim sinyal control dengan trigger_id unik
+      const triggerId = Date.now();
+      const nowISO = new Date().toISOString();
+
+      const { error } = await supabaseClient
+        .from('system_number_disco_control')
+        .update({
+          action: actionName,
+          trigger_id: triggerId,
+          updated_at: nowISO
+        })
+        .eq('id', 1);
+
+      if (error) {
+        LOG.error('ADMIN', 'Gagal update action: ' + error.message);
+        alert('Gagal kirim perintah: ' + error.message);
+      } else {
+        LOG.ok('ADMIN', `Action sent: ${actionName} (trigger: ${triggerId})`);
+      }
+    } finally {
+      isProcessingAction = false;
     }
   }
 
@@ -470,7 +509,8 @@
       })
       .eq('id', 1);
 
-    if (error) console.error('[ADMIN] Switch view error:', error);
+    if (error) LOG.error('ADMIN', 'Switch view error: ' + error.message);
+    else LOG.info('ADMIN', `View switched: ${viewName} (rank ${revealedRank})`);
   }
 
   function updateActiveViewUI(viewName, rank = 0) {
@@ -579,7 +619,10 @@
       .eq('user_unique_id', userUniqueId);
 
     if (error) alert("Gagal: " + error.message);
-    else alert("Kuota " + userUniqueId + " → 2");
+    else {
+      LOG.ok('ADMIN', `Kuota ${userUniqueId} → 2`);
+      alert("Kuota " + userUniqueId + " → 2");
+    }
   }
 
   async function resetAllLimits() {
@@ -591,7 +634,10 @@
       .neq('user_unique_id', '');
 
     if (error) alert("Gagal: " + error.message);
-    else alert("Berhasil! Kuota semua peserta → 2");
+    else {
+      LOG.ok('ADMIN', 'Semua kuota di-reset ke 2');
+      alert("Berhasil! Kuota semua peserta → 2");
+    }
   }
 
   async function resetAllScores() {
@@ -605,11 +651,12 @@
     const { error } = await supabaseClient
       .from('game_scores')
       .delete()
-      .or('game_name.eq.Number Disco Blue,game_name.eq.Number Disco Red');
+      .or('game_name.ilike.%Number Disco Blue%,game_name.ilike.%Number Disco Red%');
 
     if (error) {
       alert("Gagal: " + error.message);
     } else {
+      LOG.ok('ADMIN', 'Poin Number Disco berhasil dihapus');
       alert("✅ Poin Number Disco berhasil dikosongkan.");
       fetchScores();
     }
@@ -646,7 +693,10 @@
     closeDeleteModal();
 
     if (error) alert("Gagal: " + error.message);
-    else fetchScores();
+    else {
+      LOG.ok('ADMIN', `Poin ${userToDelete} dihapus`);
+      fetchScores();
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -663,13 +713,17 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
         if (payload.new) updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
       })
-      .subscribe();
+      .subscribe((status) => {
+        LOG.info('REALTIME', 'Admin channel: ' + status);
+      });
   }
 
   // ═══════════════════════════════════════════════════════════
   // INIT
   // ═══════════════════════════════════════════════════════════
   async function initAdmin() {
+    LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
+
     renderRankButtons();
     fetchScores();
     fetchLiveAnswers();
@@ -682,6 +736,8 @@
     if (data) updateActiveViewUI(data.current_view, data.revealed_rank);
 
     subscribeRealtime();
+
+    LOG.ok('INIT', '══════════ ADMIN READY ══════════');
   }
 
   // Expose functions

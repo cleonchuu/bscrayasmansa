@@ -89,7 +89,7 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- FREEZE OVERLAY — tampil saat admin reset / waktu habis      -->
+  <!-- FREEZE OVERLAY                                               -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="freezeOverlay" class="freeze-screen hidden">
     <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 freeze-pulse">
@@ -206,6 +206,18 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
+    // LOGGER
+    // ═══════════════════════════════════════════════════════════
+    const DEBUG = true;
+    const LOG = {
+      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+    };
+
+    // ═══════════════════════════════════════════════════════════
     // KONFIGURASI
     // ═══════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
@@ -228,7 +240,7 @@
     let selectedStudent = null;
 
     // Freeze state
-    let isFrozen = true;         // default: kiosk freeze sampai admin START
+    let isFrozen = true;
     let frozenReason = '';
 
     // Submit state
@@ -236,7 +248,7 @@
 
     // Timer state
     let timerInterval = null;
-    let timerStartMs = null;     // dari DB (updated_at question)
+    let timerStartMs = null;
     let lastTimerSecond = -1;
 
     // Control state
@@ -250,6 +262,9 @@
     let inputLeftRed = 2;
     let targetAnswerBlue = null;
     let targetAnswerRed = null;
+
+    // Question signature (untuk deteksi soal baru)
+    let lastQuestionSig = '';
 
     // DOM
     const stepSchool = document.getElementById('stepSchool');
@@ -267,6 +282,11 @@
       isFrozen = true;
       frozenReason = reason || '';
 
+      // ✅ Reset timer state saat freeze
+      stopTimer();
+      timerStartMs = null;
+      lastTimerSecond = -1;
+
       const overlay = document.getElementById('freezeOverlay');
       const title = document.getElementById('freezeTitle');
       const msg = document.getElementById('freezeMessage');
@@ -274,7 +294,6 @@
       const icon = document.getElementById('freezeIcon');
       const badge = document.getElementById('statusText');
 
-      // Ubah ikon & warna sesuai reason
       if (reason === 'timeout') {
         title.textContent = "WAKTU HABIS!";
         title.className = "text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2";
@@ -298,14 +317,12 @@
       overlay.classList.remove('hidden');
 
       // Disable semua input & tombol
-      document.querySelectorAll('button').forEach(b => b.disabled = true);
-      document.querySelectorAll('input').forEach(i => i.disabled = true);
+      disableAllButtons();
 
-      // Stop timer
-      stopTimer();
+      // Hide timer
       timerDisplay.classList.add('hidden');
 
-      console.log('[KIOSK] Frozen:', reason);
+      LOG.warn('KIOSK', 'Frozen: ' + reason);
     }
 
     function unfreezeKiosk() {
@@ -315,15 +332,30 @@
       const overlay = document.getElementById('freezeOverlay');
       overlay.classList.add('hidden');
 
-      // Enable tombol
-      document.querySelectorAll('button').forEach(b => b.disabled = false);
-      document.querySelectorAll('input').forEach(i => i.disabled = false);
+      // ✅ Re-enable semua tombol (kecuali yang di-lock oleh kuota)
+      enableAllButtons();
+      updatePanelLocks();
 
       const badge = document.getElementById('statusText');
       badge.textContent = "READY";
       badge.className = "text-emerald-400 font-bold";
 
-      console.log('[KIOSK] Unfrozen');
+      LOG.ok('KIOSK', 'Unfrozen');
+    }
+
+    function disableAllButtons() {
+      document.querySelectorAll('button').forEach(b => {
+        // Skip tombol freeze overlay (kalau ada)
+        b.disabled = true;
+      });
+      document.querySelectorAll('input').forEach(i => i.disabled = true);
+    }
+
+    function enableAllButtons() {
+      document.querySelectorAll('button').forEach(b => {
+        b.disabled = false;
+      });
+      document.querySelectorAll('input').forEach(i => i.disabled = false);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -333,11 +365,12 @@
       stopTimer();
 
       if (!timerStartMs) {
-        console.warn('[KIOSK] timerStartMs belum di-set');
+        LOG.warn('TIMER', 'timerStartMs belum di-set');
         return;
       }
 
       timerDisplay.classList.remove('hidden');
+      lastTimerSecond = -1;  // ✅ Reset
 
       const tick = () => {
         const now = Date.now();
@@ -357,13 +390,11 @@
           timerText.parentElement.className = "bg-emerald-500/20 border border-emerald-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300";
         }
 
-        // ═══════════════════════════════════════════════════════
-        // WAKTU HABIS → FREEZE KIOSK
-        // ═══════════════════════════════════════════════════════
+        // ✅ Waktu habis → freeze kiosk (hanya sekali)
         if (remainingSeconds <= 0 && lastTimerSecond > 0) {
           clearInterval(timerInterval);
           timerInterval = null;
-          console.log('[KIOSK] ⏰ Timer habis, freeze kiosk');
+          LOG.warn('TIMER', '⏰ Timer habis, freeze kiosk');
           freezeKiosk('timeout', 'timeout');
         }
 
@@ -372,6 +403,8 @@
 
       tick();
       timerInterval = setInterval(tick, 500);
+
+      LOG.ok('TIMER', `Started. Remaining: ${SCORE_CONFIG.TOTAL_TIME_SECONDS - Math.floor((Date.now() - timerStartMs) / 1000)}s`);
     }
 
     function stopTimer() {
@@ -410,6 +443,7 @@
         .eq('role', 'peserta');
 
       if (error) {
+        LOG.error('KIOSK', 'Gagal ambil data peserta', error);
         alert('Gagal mengambil data peserta');
         return;
       }
@@ -432,6 +466,8 @@
         btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
         btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
         btn.onclick = () => selectSchool(school);
+        // ✅ Re-apply disabled state kalau sedang frozen
+        if (isFrozen) btn.disabled = true;
         schoolList.appendChild(btn);
       });
     }
@@ -449,6 +485,7 @@
         btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
         btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
         btn.onclick = () => openCalculator(student);
+        if (isFrozen) btn.disabled = true;
         studentList.appendChild(btn);
       });
     }
@@ -461,7 +498,6 @@
     document.getElementById('btnCancelCalc').onclick = resetToStart;
 
     async function openCalculator(student) {
-      // Cek frozen dulu
       if (isFrozen) {
         alert('Sesi belum dimulai atau sedang dibekukan.');
         return;
@@ -482,28 +518,35 @@
       await loadQuestionData();
       await checkInputLimits();
       startRealtimeTimer();
+
+      LOG.ok('KIOSK', `Calculator opened for ${student.full_name}`);
     }
 
     // ═══════════════════════════════════════════════════════════
     // LOAD DATA SOAL dari system_number_disco_question
+    // ✅ Pakai generated_at kalau ada, fallback ke updated_at
     // ═══════════════════════════════════════════════════════════
     async function loadQuestionData() {
       const { data, error } = await supabaseClient
         .from('system_number_disco_question')
-        .select('blue_answer, red_answer, updated_at')
+        .select('blue_answer, red_answer, generated_at, updated_at')
         .eq('id', 1)
         .maybeSingle();
 
       if (error || !data) {
-        console.warn('[KIOSK] Gagal load soal:', error);
+        LOG.error('KIOSK', 'Gagal load soal', error);
         return;
       }
 
       targetAnswerBlue = data.blue_answer;
       targetAnswerRed = data.red_answer;
-      timerStartMs = new Date(data.updated_at).getTime();
 
-      console.log('[KIOSK] Soal loaded:', targetAnswerBlue, targetAnswerRed, 'start:', data.updated_at);
+      // ✅ Prioritas: generated_at → updated_at
+      const timestamp = data.generated_at || data.updated_at;
+      timerStartMs = new Date(timestamp).getTime();
+
+      LOG.ok('KIOSK', `Soal loaded: Blue=${targetAnswerBlue}, Red=${targetAnswerRed}`);
+      LOG.info('KIOSK', `Timer start: ${timestamp}`);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -546,6 +589,13 @@
 
       badgeBlue.textContent = `(Tersisa ${Math.max(0, inputLeftBlue)}x)`;
       badgeRed.textContent = `(Tersisa ${Math.max(0, inputLeftRed)}x)`;
+
+      // ✅ Kalau frozen, jangan enable submit
+      if (isFrozen) {
+        btnSubmit.disabled = true;
+        document.getElementById('btnSubmitText').textContent = "MENUNGGU SESI...";
+        return;
+      }
 
       btnSubmit.disabled = false;
       document.getElementById('btnSubmitText').textContent = "SUBMIT JAWABAN 🚀";
@@ -650,10 +700,22 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SUBMIT
+    // SUBMIT — dengan validasi ulang
     // ═══════════════════════════════════════════════════════════
     async function submitAnswer() {
       if (isSubmitting || isFrozen || !selectedStudent) return;
+
+      // ✅ Re-check timer sebelum submit
+      if (timerStartMs) {
+        const elapsed = Math.floor((Date.now() - timerStartMs) / 1000);
+        const remaining = SCORE_CONFIG.TOTAL_TIME_SECONDS - elapsed;
+        if (remaining <= 0) {
+          LOG.warn('SUBMIT', 'Timer sudah habis, submit ditolak');
+          alert('Waktu sudah habis!');
+          freezeKiosk('timeout', 'timeout');
+          return;
+        }
+      }
 
       isSubmitting = true;
       stopTimer();
@@ -662,6 +724,9 @@
       const inserts = [];
       const results = [];
       const limitsToUpdate = [];
+
+      // ✅ Re-fetch soal terbaru (anti race condition kalau admin ganti soal mid-submit)
+      await loadQuestionData();
 
       // Evaluasi Biru
       if (valBlue !== "-" && valBlue !== "-0" && inputLeftBlue > 0) {
@@ -717,6 +782,7 @@
         .insert(inserts);
 
       if (scoreErr) {
+        LOG.error('SUBMIT', 'Gagal insert score', scoreErr);
         alert("Gagal mengirim jawaban: " + scoreErr.message);
         isSubmitting = false;
         document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
@@ -732,6 +798,8 @@
           .eq('user_unique_id', selectedStudent.unique_id)
           .eq('color', item.color);
       }
+
+      LOG.ok('SUBMIT', `Submitted: ${results.map(r => r.team + '=' + r.val).join(', ')}`);
 
       triggerFlashEffect(results);
     }
@@ -770,7 +838,10 @@
 
     function resetToStart() {
       stopTimer();
+      // ✅ Reset timer state
+      lastTimerSecond = -1;
       timerDisplay.classList.add('hidden');
+
       valBlue = "-";
       valRed = "-";
       selectedStudent = null;
@@ -783,7 +854,7 @@
 
     // ═══════════════════════════════════════════════════════════
     // LISTENER CONTROL dari system_number_disco_control
-    // Realtime + Polling fallback
+    // ✅ Realtime + Polling fallback
     // ═══════════════════════════════════════════════════════════
     async function checkControlState() {
       const { data, error } = await supabaseClient
@@ -798,12 +869,14 @@
       if (sig === lastControlSig) return;
       lastControlSig = sig;
 
-      console.log('[KIOSK] Control:', data.action);
+      LOG.step('KIOSK', `Control action: ${data.action}, trigger: ${data.trigger_id}`);
 
       if (data.action === 'START_GAME') {
-        // Admin mulai → unfreeze + refresh soal
+        // Admin mulai → unfreeze
         unfreezeKiosk();
+        // ✅ Load soal & restart timer
         await loadQuestionData();
+        startRealtimeTimer();
       } else if (data.action === 'RESET') {
         // Admin reset → freeze
         freezeKiosk('reset', 'waiting');
@@ -812,7 +885,7 @@
     }
 
     function subscribeControl() {
-      // Realtime listener
+      // Realtime
       supabaseClient.channel('kiosk_control_channel')
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -822,7 +895,7 @@
           checkControlState();
         })
         .subscribe((status) => {
-          console.log('[KIOSK] Realtime status:', status);
+          LOG.info('REALTIME', 'Kiosk control channel: ' + status);
         });
 
       // Polling fallback
@@ -830,10 +903,11 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME QUESTION UPDATE
+    // ✅ REALTIME QUESTION UPDATE + POLLING FALLBACK
     // Kalau admin generate soal baru (mid-session), update timer
     // ═══════════════════════════════════════════════════════════
     function subscribeQuestionUpdate() {
+      // Realtime
       supabaseClient.channel('kiosk_question_channel')
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -841,44 +915,62 @@
           table: 'system_number_disco_question'
         }, async (payload) => {
           if (!payload.new) return;
-
-          console.log('[KIOSK] Soal baru dari admin');
-          targetAnswerBlue = payload.new.blue_answer;
-          targetAnswerRed = payload.new.red_answer;
-          timerStartMs = new Date(payload.new.updated_at).getTime();
-          lastTimerSecond = -1;
-
-          // Kalau peserta sedang di kalkulator, restart timer
-          if (selectedStudent && !isFrozen) {
-            startRealtimeTimer();
-          }
+          handleQuestionUpdate(payload.new);
         })
-        .subscribe();
+        .subscribe((status) => {
+          LOG.info('REALTIME', 'Kiosk question channel: ' + status);
+        });
+
+      // ✅ Polling fallback
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from('system_number_disco_question')
+          .select('blue_answer, red_answer, generated_at, updated_at')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (data) handleQuestionUpdate(data);
+      }, 3000);
+    }
+
+    function handleQuestionUpdate(data) {
+      const timestamp = data.generated_at || data.updated_at;
+      const sig = `${data.blue_answer}|${data.red_answer}|${timestamp}`;
+
+      if (sig === lastQuestionSig) return;
+      lastQuestionSig = sig;
+
+      LOG.step('KIOSK', `Soal baru terdeteksi: Blue=${data.blue_answer}, Red=${data.red_answer}`);
+
+      targetAnswerBlue = data.blue_answer;
+      targetAnswerRed = data.red_answer;
+      timerStartMs = new Date(timestamp).getTime();
+      lastTimerSecond = -1;
+
+      // Kalau peserta sedang di kalkulator, restart timer
+      if (selectedStudent && !isFrozen) {
+        startRealtimeTimer();
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-      console.log('[KIOSK] Booting...');
+      LOG.ok('INIT', '══════════ KIOSK BOOT ══════════');
 
-      // Load peserta
       await loadAllParticipants();
-
-      // Cek state awal admin (kalau ternyata sudah START, langsung unfreeze)
       await checkControlState();
 
-      // Kalau belum pernah di-set (default), freeze
+      // Default: freeze sampai admin START
       if (lastControlSig === '') {
-        // Belum ada state dari DB → freeze
         freezeKiosk('initial', 'waiting');
       }
 
-      // Subscribe realtime
       subscribeControl();
       subscribeQuestionUpdate();
 
-      console.log('[KIOSK] Ready');
+      LOG.ok('INIT', '══════════ KIOSK READY ══════════');
     }
 
     // Expose untuk onclick

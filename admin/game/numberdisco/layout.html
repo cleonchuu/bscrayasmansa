@@ -184,12 +184,28 @@
   </div>
 
   <script>
+    // ═══════════════════════════════════════════════════════════
+    // LOGGER
+    // ═══════════════════════════════════════════════════════════
+    const DEBUG = true;
+    const LOG = {
+      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
     const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-    const SILENCE_OFFSET = 1; 
+    const SILENCE_OFFSET = 1;
+    const TOTAL_TIME_SECONDS = 300;  // 5 menit
 
     let audioUnlocked = false;
     let cachedScores = [];
@@ -197,6 +213,9 @@
     let lastRevealedRank = -1;
     let autoScrollInterval = null;
 
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO HELPERS
+    // ═══════════════════════════════════════════════════════════
     function getAudioUrl(gender, filename) {
       const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
       return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
@@ -209,21 +228,27 @@
     const SOUND_BELL = getSoundEffectUrl('bell.mp3');
     const SOUND_BEEP = getSoundEffectUrl('bell.mp3');
 
+    // ═══════════════════════════════════════════════════════════
+    // LAYOUT VIEW SWITCHER
+    // ═══════════════════════════════════════════════════════════
     function subscribeAdminLayoutRemote() {
       supabaseClient
         .channel('layout_remote_channel')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
           if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
         })
-        .subscribe();
+        .subscribe((status) => {
+          LOG.info('REALTIME', 'Layout remote channel: ' + status);
+        });
 
+      // Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('admin_layout_number_disco')
           .select('*')
           .eq('id', 1)
           .maybeSingle();
-        
+
         if (data) handleViewSwitch(data.current_view, data.revealed_rank);
       }, 1000);
     }
@@ -246,7 +271,7 @@
       if (viewName === 'leaderboard') {
         lbView.classList.remove('hidden-view');
         lbView.classList.add('active-view');
-        
+
         if (newRank !== lastRevealedRank) {
           currentRevealedRank = newRank;
           lastRevealedRank = newRank;
@@ -264,135 +289,9 @@
       }
     }
 
-// --- MATH GENERATOR ENGINE ---
-    class MathGenerator {
-      static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
-
-      static getRandomInt(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-
-      // Generate Angka Awal (Diatur rentang 2 - 50 agar seimbang)
-      static generateInitialNumber(genderFolder = 'female') {
-        const type = Math.random();
-        if (type < 0.4) {
-          const val = this.getRandomInt(2, 50);
-          return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
-        } else if (type < 0.7) {
-          const base = this.getRandomInt(2, 7); // max 49
-          const val = Math.pow(base, 2);
-          return { 
-            value: val, 
-            display: `${base}²`, 
-            audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] 
-          };
-        } else {
-          const sq = this.PERFECT_SQUARES[Math.floor(Math.random() * this.PERFECT_SQUARES.length)];
-          const val = Math.sqrt(sq);
-          return { 
-            value: val, 
-            display: `√${sq}`, 
-            audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] 
-          };
-        }
-      }
-
-      // Generate Operasi dengan Validasi Hasil Harus 2 Digit (10 - 99)
-      static generateOperation(currentValue, genderFolder = 'male') {
-        const ops = ['+', '-', '×', '÷'];
-        let op = '';
-        let operandObj = {};
-        let finalVal = 0;
-        let attempts = 0;
-
-        // Looping acak sampai menemukan hasil akhir 2 digit (10 <= finalVal <= 99)
-        do {
-          attempts++;
-          op = ops[Math.floor(Math.random() * ops.length)];
-
-          if (op === '+') {
-            operandObj = this.generateOperandValue(genderFolder);
-            finalVal = currentValue + operandObj.value;
-          } else if (op === '-') {
-            operandObj = this.generateOperandValue(genderFolder);
-            finalVal = currentValue - operandObj.value;
-          } else if (op === '×') {
-            const mult = this.getRandomInt(2, 4);
-            operandObj = { value: mult, display: `${mult}`, audioUrls: [getAudioUrl(genderFolder, `${mult}.mp3`)] };
-            finalVal = currentValue * mult;
-          } else if (op === '÷') {
-            const factors = [];
-            for (let i = 1; i <= Math.abs(currentValue); i++) {
-              if (currentValue % i === 0) factors.push(i);
-            }
-            // Hindari pembagian dengan 1 agar angka berubah
-            const validFactors = factors.filter(f => f !== 1);
-            const div = validFactors.length > 0 ? validFactors[Math.floor(Math.random() * validFactors.length)] : 1;
-            
-            operandObj = { value: div, display: `${div}`, audioUrls: [getAudioUrl(genderFolder, `${div}.mp3`)] };
-            finalVal = currentValue / div;
-          }
-
-          // Safety guard: Jika setelah 20x coba belum nemu (misal angka awal terlalu kecil/besar),
-          // paksa operasi tambah/kurang sederhana yang pasti menghasilkan 2 digit.
-          if (attempts > 20) {
-            const target = this.getRandomInt(10, 99);
-            const diff = target - currentValue;
-            if (diff >= 0) {
-              op = '+';
-              operandObj = { value: diff, display: `${diff}`, audioUrls: [getAudioUrl(genderFolder, `${diff}.mp3`)] };
-              finalVal = target;
-            } else {
-              op = '-';
-              const absDiff = Math.abs(diff);
-              op = '-';
-              operandObj = { value: absDiff, display: `${absDiff}`, audioUrls: [getAudioUrl(genderFolder, `${absDiff}.mp3`)] };
-              finalVal = target;
-            }
-            break;
-          }
-
-        } while (finalVal < 10 || finalVal > 99);
-
-        let opFileName = "";
-        if (op === '+') opFileName = "ditambah.mp3";
-        else if (op === '-') opFileName = "dikurangi.mp3";
-        else if (op === '×') opFileName = "dikali.mp3";
-        else if (op === '÷') opFileName = "dibagi.mp3";
-
-        return {
-          operator: op,
-          operand: operandObj,
-          newTotal: finalVal,
-          display: `${op} ${operandObj.display}`,
-          audioUrls: [getAudioUrl(genderFolder, opFileName), ...operandObj.audioUrls]
-        };
-      }
-
-      static generateOperandValue(genderFolder = 'female') {
-        const type = Math.random();
-        if (type < 0.5) {
-          const val = this.getRandomInt(1, 25);
-          return { value: val, display: `${val}`, audioUrls: [getAudioUrl(genderFolder, `${val}.mp3`)] };
-        } else if (type < 0.8) {
-          const base = this.getRandomInt(2, 5);
-          return { 
-            value: Math.pow(base, 2), 
-            display: `${base}²`, 
-            audioUrls: [getAudioUrl(genderFolder, `${base}.mp3`), getAudioUrl(genderFolder, `pangkat_dua.mp3`)] 
-          };
-        } else {
-          const sq = this.PERFECT_SQUARES[this.getRandomInt(0, 6)];
-          return { 
-            value: Math.sqrt(sq), 
-            display: `√${sq}`, 
-            audioUrls: [getAudioUrl(genderFolder, `akar_dari.mp3`), getAudioUrl(genderFolder, `${sq}.mp3`)] 
-          };
-        }
-      }
-    }
-    
-    // --- FAST AUDIO ENGINE (PRELOAD & MEMORY CACHING) ---
+    // ═══════════════════════════════════════════════════════════
+    // WEB AUDIO ENGINE (Preload & Memory Caching)
+    // ═══════════════════════════════════════════════════════════
     class WebAudioEngine {
       constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -409,7 +308,7 @@
           this.cache.set(url, audioBuffer);
           return audioBuffer;
         } catch (e) {
-          console.warn(`Gagal memuat audio: ${url}`, e);
+          LOG.warn('AUDIO', `Gagal memuat: ${url}`);
           return null;
         }
       }
@@ -429,7 +328,7 @@
           source.connect(this.ctx.destination);
           this.activeSource = source;
 
-          const isSFX = buffer.duration < 1.0; 
+          const isSFX = buffer.duration < 1.0;
           const playDuration = isSFX ? buffer.duration : Math.max(0.1, buffer.duration - offsetTrim);
 
           source.start(0);
@@ -452,7 +351,10 @@
       }
     }
 
-    // --- STAGE ENGINE ---
+    // ═══════════════════════════════════════════════════════════
+    // STAGE ENGINE
+    // ✅ FIXED: Baca soal dari DB (system_number_disco_question)
+    // ═══════════════════════════════════════════════════════════
     class StageEngine {
       constructor() {
         this.isPlaying = false;
@@ -460,28 +362,73 @@
         this.maleTotal = 0;
         this.historySteps = [];
         this.timerInterval = null;
-        this.remainingSeconds = 300;
+        this.remainingSeconds = TOTAL_TIME_SECONDS;
         this.audioEngine = new WebAudioEngine();
+        this.currentQuestionSig = '';
       }
 
       async start() {
-        if (this.isPlaying) return;
+        if (this.isPlaying) {
+          LOG.warn('GAME', 'Already playing, stop dulu...');
+          return;
+        }
+
         this.isPlaying = true;
         this.resetDisplay();
         this.historySteps = [];
 
-        document.getElementById('stageStatus').textContent = "MENGUNDUH FILE SUARA & GENERATE KUNCI...";
+        document.getElementById('stageStatus').textContent = "MEMBACA SOAL DARI DATABASE...";
+        LOG.step('GAME', 'Baca soal dari DB...');
 
-        const allAudioUrls = this.generateFullGameSteps();
+        // ═══════════════════════════════════════════════════════
+        // ✅ BACA SOAL DARI DATABASE (bukan generate lokal)
+        // ═══════════════════════════════════════════════════════
+        const { data, error } = await supabaseClient
+          .from('system_number_disco_question')
+          .select('blue_steps, red_steps, blue_answer, red_answer, updated_at')
+          .eq('id', 1)
+          .maybeSingle();
 
+        if (error || !data || !data.blue_steps || !data.red_steps) {
+          LOG.error('GAME', 'Gagal baca soal dari DB', error);
+          document.getElementById('stageStatus').textContent = "GAGAL BACA SOAL! Hubungi admin.";
+          this.isPlaying = false;
+          return;
+        }
+
+        LOG.ok('GAME', `Soal dari DB: Blue=${data.blue_answer}, Red=${data.red_answer}`);
+
+        // ✅ Convert steps dari DB → format dengan audioUrls
+        this.historySteps = this.buildHistoryStepsFromDB(data);
+        this.femaleTotal = data.blue_answer;
+        this.maleTotal = data.red_answer;
+
+        // Kumpulkan semua audio URLs
+        const allAudioUrls = [];
+        this.historySteps.forEach(step => allAudioUrls.push(...step.audioUrls));
+        allAudioUrls.push(SOUND_BELL, SOUND_BEEP);
+
+        document.getElementById('stageStatus').textContent = "MENGUNDUH FILE SUARA...";
+        LOG.step('GAME', `Download ${allAudioUrls.length} audio files...`);
         await this.audioEngine.downloadAllAudioFiles(allAudioUrls);
 
         await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
 
         document.getElementById('stageStatus').textContent = "GAME BERJALAN";
+        LOG.ok('GAME', 'Game started');
 
-        this.start5MinTimer();
+        // ═══════════════════════════════════════════════════════
+        // ✅ Hitung sisa waktu dari updated_at (sync dengan kiosk)
+        // ═══════════════════════════════════════════════════════
+        const startMs = new Date(data.updated_at).getTime();
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, TOTAL_TIME_SECONDS - elapsed);
 
+        LOG.info('GAME', `Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
+
+        this.start5MinTimer(remaining);
+
+        // Play sequence pertama
         for (const step of this.historySteps) {
           if (!this.isPlaying) return;
 
@@ -499,38 +446,49 @@
         await this.enterRepeatMode();
       }
 
-      generateFullGameSteps() {
-        const audioUrls = [];
+      // ═══════════════════════════════════════════════════════
+      // ✅ Convert steps dari DB → format internal
+      // Steps dari DB formatnya:
+      //   { type, value, display, audioFiles: ['file.mp3', ...] }
+      // Kita convert jadi:
+      //   { team, display, audioUrls: ['full-url', ...] }
+      // Dan interleave Blue/Red biar adil
+      // ═══════════════════════════════════════════════════════
+      buildHistoryStepsFromDB(data) {
+        const blueSteps = Array.isArray(data.blue_steps) ? data.blue_steps : [];
+        const redSteps = Array.isArray(data.red_steps) ? data.red_steps : [];
 
-        const initBlue = MathGenerator.generateInitialNumber('female');
-        this.femaleTotal = initBlue.value;
-        this.historySteps.push({ team: 'blue', display: initBlue.display, audioUrls: initBlue.audioUrls });
-        audioUrls.push(...initBlue.audioUrls);
+        const interleaved = [];
+        const maxLen = Math.max(blueSteps.length, redSteps.length);
 
-        const initRed = MathGenerator.generateInitialNumber('male');
-        this.maleTotal = initRed.value;
-        this.historySteps.push({ team: 'red', display: initRed.display, audioUrls: initRed.audioUrls });
-        audioUrls.push(...initRed.audioUrls);
-
-        for (let step = 2; step <= 7; step++) {
-          const blueOp = MathGenerator.generateOperation(this.femaleTotal, 'female');
-          this.femaleTotal = blueOp.newTotal;
-          this.historySteps.push({ team: 'blue', display: blueOp.display, audioUrls: blueOp.audioUrls });
-          audioUrls.push(...blueOp.audioUrls);
-
-          const redOp = MathGenerator.generateOperation(this.maleTotal, 'male');
-          this.maleTotal = redOp.newTotal;
-          this.historySteps.push({ team: 'red', display: redOp.display, audioUrls: redOp.audioUrls });
-          audioUrls.push(...redOp.audioUrls);
+        for (let i = 0; i < maxLen; i++) {
+          if (blueSteps[i]) {
+            const step = blueSteps[i];
+            interleaved.push({
+              team: 'blue',
+              display: step.display,
+              audioUrls: (step.audioFiles || []).map(f => getAudioUrl('female', f))
+            });
+          }
+          if (redSteps[i]) {
+            const step = redSteps[i];
+            interleaved.push({
+              team: 'red',
+              display: step.display,
+              audioUrls: (step.audioFiles || []).map(f => getAudioUrl('male', f))
+            });
+          }
         }
 
-        audioUrls.push(SOUND_BELL, SOUND_BEEP);
-        return audioUrls;
+        LOG.info('GAME', `Interleaved steps: ${interleaved.length} (Blue: ${blueSteps.length}, Red: ${redSteps.length})`);
+        return interleaved;
       }
 
       async enterRepeatMode() {
         const repeatIndicator = document.getElementById('repeatIndicator');
         if (repeatIndicator) repeatIndicator.classList.replace('hidden', 'flex');
+
+        LOG.info('GAME', 'Enter repeat mode');
 
         while (this.isPlaying && this.remainingSeconds > 0) {
           for (const step of this.historySteps) {
@@ -550,8 +508,11 @@
       }
 
       async updateLiveState(team, text, isSpeaking) {
-        const container = document.getElementById(team === 'blue' ? 'containerBlue' : 'containerRed');
-        const display = document.getElementById(team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted');
+        const containerId = team === 'blue' ? 'containerBlue' : 'containerRed';
+        const displayId = team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted';
+
+        const container = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
 
         if (display) display.textContent = text;
         if (container) {
@@ -569,14 +530,16 @@
             { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
             { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
           ]);
+          LOG.ok('GAME', `Target answers saved: Blue=${femaleAnswer}, Red=${maleAnswer}`);
         } catch (err) {
-          console.error('Error updating target answers:', err);
+          LOG.error('GAME', 'Error updating target answers', err);
         }
       }
 
-      start5MinTimer() {
+      // ✅ Parameter initialSeconds biar bisa sync dari DB
+      start5MinTimer(initialSeconds = TOTAL_TIME_SECONDS) {
         this.stopTimer();
-        this.remainingSeconds = 300;
+        this.remainingSeconds = initialSeconds;
         this.updateTimerUI();
 
         this.timerInterval = setInterval(() => {
@@ -606,13 +569,22 @@
       }
 
       resetDisplay() {
-        document.getElementById('displayBlueFormatted').textContent = "--";
-        document.getElementById('displayRedFormatted').textContent = "--";
+        const blueEl = document.getElementById('displayBlueFormatted');
+        const redEl = document.getElementById('displayRedFormatted');
+        if (blueEl) blueEl.textContent = "--";
+        if (redEl) redEl.textContent = "--";
+
         const repeatIndicator = document.getElementById('repeatIndicator');
         if (repeatIndicator) repeatIndicator.classList.replace('flex', 'hidden');
+
+        const blueContainer = document.getElementById('containerBlue');
+        const redContainer = document.getElementById('containerRed');
+        if (blueContainer) blueContainer.classList.remove('active-speaking-blue');
+        if (redContainer) redContainer.classList.remove('active-speaking-red');
       }
 
       async reset() {
+        LOG.warn('GAME', 'Reset stage');
         this.audioEngine.stop();
         this.stopTimer();
 
@@ -622,9 +594,11 @@
 
         this.isPlaying = false;
         this.resetDisplay();
-        this.remainingSeconds = 300;
+        this.remainingSeconds = TOTAL_TIME_SECONDS;
         this.updateTimerUI();
-        document.getElementById('stageStatus').textContent = "STAGE DISPLAY ENGINE (READY)";
+
+        const statusEl = document.getElementById('stageStatus');
+        if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
       }
 
       delay(ms) {
@@ -636,31 +610,70 @@
 
     function unlockAudio() {
       audioUnlocked = true;
-      document.getElementById('audioUnlockOverlay').classList.add('hidden');
-      document.getElementById('stageStatus').textContent = "STAGE DISPLAY ENGINE (READY)";
+      const overlay = document.getElementById('audioUnlockOverlay');
+      if (overlay) overlay.classList.add('hidden');
+      const statusEl = document.getElementById('stageStatus');
+      if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
+      LOG.ok('AUDIO', 'Audio unlocked');
     }
 
-    // Realtime Signal Listener dari Admin
-    supabaseClient.channel('stage_control_channel')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
-        if (payload.new && payload.new.action === 'START_GAME') {
-          if (!audioUnlocked) unlockAudio();
-          engine.start();
-        } else if (payload.new && payload.new.action === 'RESET') {
-          engine.reset();
-        }
-      })
-      .subscribe();
-    
+    // ═══════════════════════════════════════════════════════════
+    // ✅ REALTIME SIGNAL LISTENER DARI ADMIN
+    // Selalu reset dulu sebelum start baru
+    // ═══════════════════════════════════════════════════════════
+    let lastControlSig = '';
+
+    function listenToControl() {
+      // Realtime
+      supabaseClient.channel('stage_control_channel')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
+          if (payload.new) handleControlAction(payload.new);
+        })
+        .subscribe((status) => {
+          LOG.info('REALTIME', 'Stage control channel: ' + status);
+        });
+
+      // Polling fallback
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from('system_number_disco_control')
+          .select('action, trigger_id, updated_at')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (data) handleControlAction(data);
+      }, 1500);
+    }
+
+    async function handleControlAction(data) {
+      const sig = `${data.action}|${data.trigger_id}|${data.updated_at}`;
+      if (sig === lastControlSig) return;
+      lastControlSig = sig;
+
+      LOG.step('CONTROL', `Action: ${data.action}, trigger: ${data.trigger_id}`);
+
+      if (data.action === 'START_GAME') {
+        if (!audioUnlocked) unlockAudio();
+
+        // ✅ Selalu reset dulu, baru start (biar fresh & sync)
+        await engine.reset();
+        await engine.start();
+      } else if (data.action === 'RESET') {
+        await engine.reset();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FETCH SCORES (Leaderboard & All Players)
+    // ═══════════════════════════════════════════════════════════
     async function fetchAndRenderStageScores(isAllPlayersView) {
-      // Menggunakan .or dengan ilike supaya mencakup 'Number Disco Blue', 'Number Disco Red', dll.
       const { data, error } = await supabaseClient
         .from('game_scores')
         .select('user_unique_id, score_obtained, game_name')
         .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
 
       if (error || !data) {
-        console.error("Gagal mengambil skor stage:", error);
+        LOG.error('SCORES', 'Gagal fetch', error);
         return;
       }
 
@@ -684,7 +697,7 @@
 
     function renderStageLeaderboard() {
       const container = document.getElementById('stageLeaderboardGrid');
-      
+
       if (currentRevealedRank === 0 || cachedScores.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-lg py-12 font-medium">Siap-siap... Pengumuman Pemenang!</p>`;
         return;
@@ -776,6 +789,7 @@
     function startAutoScroll() {
       stopAutoScroll();
       const scrollElem = document.getElementById('scrollContainer');
+      if (!scrollElem) return;
       let isWaiting = false;
 
       autoScrollInterval = setInterval(() => {
@@ -796,11 +810,37 @@
       if (autoScrollInterval) clearInterval(autoScrollInterval);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
     async function initStage() {
-      const { data: layoutData } = await supabaseClient.from('admin_layout_number_disco').select('*').eq('id', 1).maybeSingle();
+      LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+
+      // Fetch layout awal
+      const { data: layoutData } = await supabaseClient
+        .from('admin_layout_number_disco')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
       if (layoutData) handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
 
+      // Fetch control state awal (biar kalau admin sudah START sebelum layout buka)
+      const { data: controlData } = await supabaseClient
+        .from('system_number_disco_control')
+        .select('action, trigger_id, updated_at')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (controlData) {
+        lastControlSig = `${controlData.action}|${controlData.trigger_id}|${controlData.updated_at}`;
+        // Jangan auto-start, biar user klik unlock dulu
+      }
+
       subscribeAdminLayoutRemote();
+      listenToControl();
+
+      LOG.ok('INIT', '══════════ STAGE READY ══════════');
     }
 
     initStage();
