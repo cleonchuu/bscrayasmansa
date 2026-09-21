@@ -401,12 +401,19 @@
       this.isPlaying = true;
       this.currentLevel = status.current_level;
       this.firstRenderDone = false;
-
+      
+      // ✅ Bersihkan dulu sebelum load data baru
+      this.targetCells = [];
+      this.answerValue = 0;
+      safeSetText('targetCellDisplay', '--');
+      safeSetText('timerDisplay', '--:--');
+      
       const { data } = await supabaseClient
         .from('system_mimic_sudoku')
         .select('id, grid_data')
         .in('id', [1, 2, 3]);
       if (data) this.onMasterDataUpdate(data);
+      // ...
 
       safeSetText('stageStatus', `GAME BERJALAN — ${status.label || ''}`);
       safeSetText('levelText', status.label || status.current_level);
@@ -443,31 +450,38 @@
 
       this.renderBlankBoard();
     }
-
+    
     onMasterDataUpdate(data) {
-      if (!Array.isArray(data)) return;
+  if (!Array.isArray(data)) return;
 
-      const row1 = data.find(r => r.id === 1);
-      const row2 = data.find(r => r.id === 2);
-      const row3 = data.find(r => r.id === 3);
+  const row1 = data.find(r => r.id === 1);
+  const row2 = data.find(r => r.id === 2);
+  const row3 = data.find(r => r.id === 3);
 
-      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
-        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
-          row1.grid_data.slice(r * 9, r * 9 + 9)
-        );
-      }
-      if (row2 && Array.isArray(row2.grid_data)) {
-        this.targetCells = row2.grid_data.map(idx => {
-          const i = idx - 1;
-          return { r: Math.floor(i / 9), c: i % 9 };
-        });
-        const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
-        safeSetText('targetCellDisplay', expr);
-      }
-      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
-        this.answerValue = row3.grid_data;
-      }
-    }
+  if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+    this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+      row1.grid_data.slice(r * 9, r * 9 + 9)
+    );
+  }
+
+  // ✅ GUARD: hanya update target cell jika game sedang berjalan
+  if (!this.isPlaying) {
+    safeSetText('targetCellDisplay', '--');
+    return;
+  }
+
+  if (row2 && Array.isArray(row2.grid_data)) {
+    this.targetCells = row2.grid_data.map(idx => {
+      const i = idx - 1;
+      return { r: Math.floor(i / 9), c: i % 9 };
+    });
+    const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
+    safeSetText('targetCellDisplay', expr);
+  }
+  if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+    this.answerValue = row3.grid_data;
+  }
+}
 
     onQuestionUpdate(row) {
       if (!row || !Array.isArray(row.grid_data) || row.grid_data.length !== 81) return;
