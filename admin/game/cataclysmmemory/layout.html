@@ -1049,20 +1049,15 @@ function handleViewSwitch(viewName, revealedRank) {
     }
 
     // ═══════════════════════════════════════════════════════════
-// SIGNATURE CACHE — cegah re-render berulang
-// ═══════════════════════════════════════════════════════════
-let lastLayoutSignature = '';
-
-// ═══════════════════════════════════════════════════════════
-// REALTIME — admin_layout
-// ═══════════════════════════════════════════════════════════
-
+    // SIGNATURE CACHE — cegah re-render berulang
+    // ═══════════════════════════════════════════════════════════
+    let lastLayoutSignature = '';
 
     // ═══════════════════════════════════════════════════════════
-       // ═══════════════════════════════════════════════════════════
-    // REALTIME — admin_layout
+    // REALTIME — admin_layout (HANYA SATU VERSI)
     // ═══════════════════════════════════════════════════════════
     function subscribeLayout() {
+      // Realtime listener
       supabaseClient
         .channel('stage_cataclysm_layout')
         .on('postgres_changes', {
@@ -1070,18 +1065,27 @@ let lastLayoutSignature = '';
           schema: 'public',
           table: 'admin_layout_cataclysm_memory'
         }, (payload) => {
-          if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+          if (payload.new) {
+            handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+          }
         })
         .subscribe();
 
-      // Polling
+      // Polling fallback dengan signature check
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('admin_layout_cataclysm_memory')
           .select('*')
           .eq('id', 1)
           .maybeSingle();
-        if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+
+        if (!data) return;
+
+        const sig = `${data.current_view}|${data.revealed_rank}|${data.updated_at}`;
+        if (sig === lastLayoutSignature) return;
+
+        lastLayoutSignature = sig;
+        handleViewSwitch(data.current_view, data.revealed_rank);
       }, 1500);
     }
     // ═══════════════════════════════════════════════════════════

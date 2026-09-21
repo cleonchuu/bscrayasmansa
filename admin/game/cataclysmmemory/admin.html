@@ -566,35 +566,58 @@ async function resetTeams() {
     // ═══════════════════════════════════════════════════════════
     // STAGE VIEW CONTROL
     // ═══════════════════════════════════════════════════════════
+    const LAYOUT_TABLE = 'admin_layout_cataclysm_memory';
+
     async function switchStageView(viewName) {
       const payload = {
         current_view: viewName,
         updated_at: new Date().toISOString()
       };
 
-      if (viewName === 'leaderboard') {
+      // Reset revealed_rank ke 0 untuk mode leaderboard/standings
+      if (viewName === 'leaderboard' || viewName === 'team_standings') {
         payload.revealed_rank = 0;
       }
 
-      await supabaseClient
-  .from('admin_layout_cataclysm_memory')
-  .update({
-    current_view: viewName,
-    revealed_rank: revealedRank,
-    updated_at: new Date().toISOString()  // ← WAJIB
-  })
-  .eq('id', 1);
+      const { data, error } = await supabaseClient
+        .from(LAYOUT_TABLE)
+        .update(payload)
+        .eq('id', 1)
+        .select();
+
+      if (error) {
+        console.error('[ADMIN] Gagal switch view:', error);
+        alert('Gagal ubah tampilan: ' + error.message);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        alert('⚠️ Baris id=1 di tabel admin_layout_cataclysm_memory tidak ada. Jalankan SQL insert dulu.');
+        return;
+      }
+
+      playBell();
+      console.log('[ADMIN] Switch view →', viewName, '| result:', data);
     }
 
     async function revealRankOnStage(rankNum) {
-      await supabaseClient
-  .from('admin_layout_cataclysm_memory')
-  .update({
-    current_view: viewName,
-    revealed_rank: revealedRank,
-    updated_at: new Date().toISOString()  // ← WAJIB
-  })
-  .eq('id', 1);
+      const { data, error } = await supabaseClient
+        .from(LAYOUT_TABLE)
+        .update({
+          revealed_rank: rankNum,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1)
+        .select();
+
+      if (error) {
+        console.error('[ADMIN] Gagal reveal rank:', error);
+        alert('Gagal reveal rank: ' + error.message);
+        return;
+      }
+
+      playBell();
+      console.log('[ADMIN] Reveal rank →', rankNum, '| result:', data);
     }
 
     // ═══════════════════════════════════════════════════════════
