@@ -2,16 +2,54 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Forsaken City Recall - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
-    body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; }
-    .img-aspect-16-9 { aspect-ratio: 16 / 9; object-fit: cover; }
 
+    * { -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      overscroll-behavior: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       FALLBACK ASPECT RATIO 16:9 — support iOS Safari lama
+       ═══════════════════════════════════════════════════════════ */
+    .aspect-16-9 {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%; /* 9 / 16 = 0.5625 */
+      height: 0;
+      overflow: hidden;
+    }
+    .aspect-16-9 > img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .aspect-16-9 > .overlay-content {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+    }
+
+    /* Custom scroll */
+    .custom-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
     .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
 
@@ -31,11 +69,22 @@
     /* Overlay frozen */
     .frozen-overlay {
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       background: rgba(3, 7, 18, 0.95);
     }
 
-    /* Lock state untuk semua elemen */
-    .locked * { pointer-events: none !important; }
+    /* Grid safety — jangan collapse */
+    .safe-grid {
+      display: grid;
+      grid-auto-rows: max-content;
+      align-content: start;
+    }
+
+    /* Tombol hapus (×) — pastikan bisa diklik di iOS */
+    .btn-remove {
+      touch-action: manipulation;
+      -webkit-appearance: none;
+    }
   </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen p-4 max-w-5xl mx-auto flex flex-col">
@@ -112,19 +161,19 @@
   <div id="mainGamePanel" class="hidden flex-col flex-1 space-y-4">
 
     <!-- HEADER -->
-    <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
-      <div class="overflow-hidden">
+    <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg gap-2">
+      <div class="overflow-hidden flex-1 min-w-0">
         <p id="playerName" class="text-xs text-gray-400 truncate">Loading...</p>
-        <h1 class="text-lg font-black text-amber-400">FORSAKEN CITY RECALL</h1>
+        <h1 class="text-base sm:text-lg font-black text-amber-400 truncate">FORSAKEN CITY RECALL</h1>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         <div class="text-right">
-          <p class="text-[10px] text-gray-400 uppercase tracking-widest">Akumulasi Poin</p>
-          <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
+          <p class="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-widest">Poin</p>
+          <p id="totalScoreText" class="text-xl sm:text-2xl font-black text-green-400">0</p>
         </div>
-        <div class="bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
-          <p class="text-[9px] text-slate-500 uppercase font-bold">Sisa Waktu</p>
-          <p id="answerCountdown" class="text-lg font-mono font-black text-emerald-400">15:00</p>
+        <div class="bg-slate-950 border border-amber-500/30 rounded-xl px-2 sm:px-3 py-2 text-center">
+          <p class="text-[8px] sm:text-[9px] text-slate-500 uppercase font-bold">Waktu</p>
+          <p id="answerCountdown" class="text-base sm:text-lg font-mono font-black text-emerald-400">15:00</p>
         </div>
       </div>
     </div>
@@ -140,18 +189,18 @@
     </div>
 
     <!-- PANEL SOAL -->
-    <div id="questionPanel" class="bg-slate-800/80 p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5">
+    <div id="questionPanel" class="bg-slate-800/80 p-4 sm:p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5">
 
-      <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
-        <div>
-          <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+      <div class="flex justify-between items-center border-b border-slate-700/60 pb-3 gap-2">
+        <div class="min-w-0 flex-1">
+          <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 inline-block">
             Sesi 1 dari 6
           </span>
           <p class="text-xs text-gray-400 mt-2" id="sessionSubText">
             Pilih 5 gambar sesuai urutan yang ditampilkan panitia (#1 - #5)
           </p>
         </div>
-        <div class="text-right">
+        <div class="text-right flex-shrink-0">
           <span class="text-xs font-bold text-slate-300">
             Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5
           </span>
@@ -161,24 +210,24 @@
       <!-- SLOT 5 GAMBAR TERPILIH -->
       <div>
         <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
-        <div id="selectedSlotsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+        <div id="selectedSlotsGrid" class="safe-grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
       </div>
 
       <!-- MATRIKS OPSI GAMBAR -->
       <div>
         <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
-        <div id="imageOptionsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
+        <div id="imageOptionsGrid" class="safe-grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
           <p class="col-span-full text-center text-gray-500 py-8 text-xs">Memuat opsi gambar...</p>
         </div>
       </div>
 
       <!-- NAVIGASI SESI -->
       <div class="flex justify-between items-center pt-3 border-t border-slate-700/60 gap-2">
-        <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all">
-          <i class="fas fa-arrow-left mr-1"></i> Sesi Sebelumnya
+        <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 sm:px-4 py-2 rounded-lg text-xs transition-all">
+          <i class="fas fa-arrow-left mr-1"></i> <span class="hidden sm:inline">Sesi</span> Sebelumnya
         </button>
         <div></div>
-        <button id="btnNextSession" onclick="nextSession()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all">
+        <button id="btnNextSession" onclick="nextSession()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all">
           Simpan Sesi 1 & Lanjut <i class="fas fa-arrow-right ml-1"></i>
         </button>
       </div>
@@ -233,6 +282,7 @@
     let currentPhase = 'IDLE';
     let answerTimerInt = null;
     let memorizeTimerInt = null;
+    let phaseApplied = false; // guard biar tidak re-apply phase yang sama
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
@@ -293,21 +343,6 @@
     // ═══════════════════════════════════════════════════════════
     // FASE CONTROL
     // ═══════════════════════════════════════════════════════════
-    function showOverlay(id) {
-      ['overlayWaiting', 'overlayMemorize', 'overlayLocked'].forEach(x => {
-        const el = document.getElementById(x);
-        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
-      });
-      const target = document.getElementById(id);
-      if (target) { target.classList.remove('hidden'); target.classList.add('flex'); }
-
-      // Sembunyikan main panel
-      if (id !== null) {
-        document.getElementById('mainGamePanel').classList.add('hidden');
-        document.getElementById('mainGamePanel').classList.remove('flex');
-      }
-    }
-
     function hideAllOverlays() {
       ['overlayWaiting', 'overlayMemorize', 'overlayLocked'].forEach(x => {
         const el = document.getElementById(x);
@@ -315,8 +350,22 @@
       });
     }
 
+    function showOverlay(id) {
+      hideAllOverlays();
+      const target = document.getElementById(id);
+      if (target) { target.classList.remove('hidden'); target.classList.add('flex'); }
+
+      // Sembunyikan main panel
+      const mgp = document.getElementById('mainGamePanel');
+      if (mgp) { mgp.classList.add('hidden'); mgp.classList.remove('flex'); }
+    }
+
     async function applyPhase(phase, sysData) {
+      if (currentPhase === phase && phaseApplied) return; // guard
       currentPhase = phase;
+      phaseApplied = true;
+
+      console.log('[KIOSK] Apply phase:', phase);
 
       if (phase === 'IDLE') {
         showOverlay('overlayWaiting');
@@ -336,8 +385,9 @@
 
       if (phase === 'ANSWER') {
         hideAllOverlays();
-        document.getElementById('mainGamePanel').classList.remove('hidden');
-        document.getElementById('mainGamePanel').classList.add('flex');
+        const mgp = document.getElementById('mainGamePanel');
+        mgp.classList.remove('hidden');
+        mgp.classList.add('flex');
         renderSession();
         if (sysData && sysData.answer_start_time) {
           startAnswerCountdown(sysData.answer_start_time, sysData.answer_duration || 900);
@@ -347,11 +397,11 @@
       }
 
       if (phase === 'LOCKED') {
-        // Auto-submit sesi yang belum disubmit
         await autoSubmitRemaining();
         stopAnswerTimer();
         stopMemorizeTimer();
         showFinalLockOverlay();
+        return;
       }
     }
 
@@ -391,16 +441,15 @@
         if (el) {
           el.textContent = formatTime(remaining);
           if (remaining <= 30) {
-            el.className = 'text-lg font-mono font-black text-rose-500 animate-timer-pulse';
+            el.className = 'text-base sm:text-lg font-mono font-black text-rose-500 animate-timer-pulse';
           } else if (remaining <= 120) {
-            el.className = 'text-lg font-mono font-black text-amber-400 animate-timer-pulse';
+            el.className = 'text-base sm:text-lg font-mono font-black text-amber-400 animate-timer-pulse';
           } else {
-            el.className = 'text-lg font-mono font-black text-emerald-400';
+            el.className = 'text-base sm:text-lg font-mono font-black text-emerald-400';
           }
         }
         if (remaining <= 0) {
           clearInterval(answerTimerInt);
-          // Waktu habis → auto submit semua
           handleTimeOut();
         }
       };
@@ -413,7 +462,6 @@
     }
 
     async function handleTimeOut() {
-      // Auto submit semua sesi yang belum disubmit
       await autoSubmitRemaining();
       showFinalLockOverlay();
     }
@@ -437,6 +485,9 @@
       updateSessionDots();
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // RENDER SLOTS (5 gambar terpilih)
+    // ═══════════════════════════════════════════════════════════
     function renderSlots(sessionAnswers, startIndex) {
       const container = document.getElementById('selectedSlotsGrid');
       container.innerHTML = '';
@@ -448,20 +499,30 @@
         const slot = document.createElement('div');
 
         if (filename) {
-          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 flex items-center justify-center overflow-hidden p-0.5 shadow-md";
+          slot.className = "aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 shadow-md";
           slot.innerHTML = `
-            <img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" onerror="this.style.opacity=0.3"/>
-            ${!isLocked ? `<button onclick="removeAnswer(${globalIdx})" class="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow z-10">×</button>` : ''}
-            <span class="absolute bottom-1 left-1 bg-slate-900/80 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded">#${globalIdx + 1}</span>
+            <img src="${IMAGE_BASE_PATH}${filename}" alt=""
+                 onerror="this.style.opacity=0.3"/>
+            <div class="overlay-content">
+              ${!isLocked ? `<button onclick="removeAnswer(${globalIdx})" class="btn-remove absolute top-1 right-1 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-lg z-20">×</button>` : ''}
+              <span class="absolute bottom-1 left-1 bg-slate-900/90 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded z-20">#${globalIdx + 1}</span>
+            </div>
           `;
         } else {
-          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden p-0.5";
-          slot.innerHTML = `<span class="text-slate-600 text-xs font-bold">#${globalIdx + 1}</span>`;
+          slot.className = "aspect-16-9 bg-slate-900 rounded-lg border-2 border-dashed border-slate-700";
+          slot.innerHTML = `
+            <div class="overlay-content flex items-center justify-center">
+              <span class="text-slate-600 text-xs font-bold">#${globalIdx + 1}</span>
+            </div>
+          `;
         }
         container.appendChild(slot);
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // RENDER OPTIONS (30 gambar pilihan)
+    // ═══════════════════════════════════════════════════════════
     function renderOptions() {
       const container = document.getElementById('imageOptionsGrid');
       container.innerHTML = '';
@@ -475,20 +536,24 @@
       availableFilenames.forEach(filename => {
         const isSelected = userAnswers.includes(filename);
         const card = document.createElement('div');
-        card.className = `relative img-aspect-16-9 bg-slate-800 rounded-lg overflow-hidden border p-0.5 transition-all ${
+        card.className = `aspect-16-9 bg-slate-800 rounded-lg overflow-hidden border transition-all ${
           isSelected || isLocked
             ? 'opacity-20 border-slate-700 cursor-not-allowed'
-            : 'border-slate-700 hover:border-amber-400 cursor-pointer active:scale-95 shadow-sm'
+            : 'border-slate-700 active:scale-95 shadow-sm'
         }`;
-        card.innerHTML = `<img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" onerror="this.style.opacity=0.3"/>`;
+        card.innerHTML = `<img src="${IMAGE_BASE_PATH}${filename}" alt="" onerror="this.style.opacity=0.3"/>`;
 
         if (!isSelected && !isLocked) {
           card.onclick = () => selectImage(filename);
+          card.style.cursor = 'pointer';
         }
         container.appendChild(card);
       });
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // SESSION DOTS
+    // ═══════════════════════════════════════════════════════════
     function updateSessionDots() {
       document.querySelectorAll('.ses-dot').forEach(dot => {
         const s = parseInt(dot.dataset.ses);
@@ -526,6 +591,9 @@
       renderSession();
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // BUTTONS
+    // ═══════════════════════════════════════════════════════════
     function updateButtons() {
       const btnPrev = document.getElementById('btnPrevSession');
       const btnNext = document.getElementById('btnNextSession');
@@ -534,24 +602,26 @@
       btnPrev.classList.toggle('hidden', currentSession === 1);
 
       if (isLocked) {
-        // Sesi sudah disubmit → tombol jadi navigasi saja
         if (currentSession < TOTAL_SESSIONS) {
           btnNext.innerHTML = `Lanjut ke Sesi ${currentSession + 1} <i class="fas fa-arrow-right ml-1"></i>`;
-          btnNext.className = "bg-slate-700 hover:bg-slate-600 text-white font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+          btnNext.className = "bg-slate-700 hover:bg-slate-600 text-white font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+          btnNext.disabled = false;
         } else {
           btnNext.innerHTML = `<i class="fas fa-lock mr-1"></i> Selesai`;
-          btnNext.className = "bg-slate-800 text-slate-500 font-extrabold px-5 py-2 rounded-lg text-xs cursor-not-allowed";
+          btnNext.className = "bg-slate-800 text-slate-500 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs cursor-not-allowed";
           btnNext.disabled = true;
         }
         return;
       }
 
+      btnNext.disabled = false;
+
       if (currentSession === TOTAL_SESSIONS) {
-        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir (Sesi 6)`;
-        btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir`;
+        btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
       } else {
-        btnNext.innerHTML = `Simpan Sesi ${currentSession} & Lanjut <i class="fas fa-arrow-right ml-1"></i>`;
-        btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+        btnNext.innerHTML = `Simpan Sesi ${currentSession} <i class="fas fa-arrow-right ml-1"></i>`;
+        btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
       }
     }
 
@@ -632,7 +702,6 @@
         const startIndex = (s - 1) * IMAGES_PER_SESSION;
         const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
 
-        // Hitung skor (kosong = 0)
         let sessionScore = 0;
         for (let i = 0; i < IMAGES_PER_SESSION; i++) {
           if (sessionAnswers[i] && sessionAnswers[i] === masterSequence[startIndex + i]) {
@@ -640,7 +709,6 @@
           }
         }
 
-        // Insert
         const { error } = await supabaseClient
           .from('game_scores')
           .insert({
@@ -656,7 +724,6 @@
         }
       }
 
-      // Simpan berkas lengkap + kirim notifikasi (sekali saja)
       await finalizeAllSubmissions(true);
     }
 
@@ -692,8 +759,9 @@
       document.getElementById('successScore').textContent = totalScoreAccumulated;
       document.getElementById('finalScore').textContent = totalScoreAccumulated;
 
-      document.getElementById('mainGamePanel').classList.add('hidden');
-      document.getElementById('mainGamePanel').classList.remove('flex');
+      const mgp = document.getElementById('mainGamePanel');
+      mgp.classList.add('hidden');
+      mgp.classList.remove('flex');
       document.getElementById('successPanel').classList.remove('hidden');
     }
 
@@ -719,7 +787,6 @@
             masterSequence = payload.new.sequence_filenames || masterSequence;
             availableFilenames = [...masterSequence].sort();
 
-            // Kalau phase berubah
             if (phase !== currentPhase) {
               console.log('[KIOSK] Phase change:', currentPhase, '→', phase);
               await applyPhase(phase, payload.new);
@@ -737,13 +804,14 @@
 
       await fetchMasterData();
 
-      // Apply phase awal
+      // Apply phase awal (tanpa guard supaya tetap di-apply pertama kali)
       const { data: sys } = await supabaseClient
         .from(SYS_TABLE)
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
+      phaseApplied = false;
       await applyPhase(currentPhase, sys);
 
       subscribeSystem();
