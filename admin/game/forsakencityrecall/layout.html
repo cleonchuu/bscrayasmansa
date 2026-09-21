@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stage Display - Forsaken City Recall</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
+
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden; margin: 0; padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #030712;
+      color: #fff;
+    }
+    .font-display { font-family: 'Orbitron', sans-serif; }
+
+    .stage-view { transition: opacity 0.5s ease, transform 0.5s ease; }
+    .stage-view.hidden-view {
+      opacity: 0; transform: scale(0.96);
+      pointer-events: none; visibility: hidden;
+      position: absolute; inset: 0;
+    }
+    .stage-view.active-view {
+      opacity: 1; transform: scale(1);
+      visibility: visible; position: relative;
+    }
+
+    .custom-scroll::-webkit-scrollbar { width: 8px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.5); border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up { animation: fadeInUp 0.5s ease-out forwards; }
+
+    @keyframes cardPop {
+      0% { opacity: 0; transform: scale(0.7) rotate(-3deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0); }
+    }
+    .animate-card-pop { animation: cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes pulseTimer {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-timer-pulse { animation: pulseTimer 1s ease-in-out infinite; }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(400px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .animate-slide-in-right { animation: slideInRight 0.5s ease-out forwards; }
+
+    @keyframes shimmerGlow {
+      0%, 100% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.4); }
+      50% { box-shadow: 0 0 80px rgba(245, 158, 11, 0.7); }
+    }
+    .animate-shimmer-glow { animation: shimmerGlow 2s ease-in-out infinite; }
+
+    .glow-emerald { box-shadow: 0 0 60px rgba(16, 185, 129, 0.4); }
+
+    /* Grid scroll container — disable interaksi mouse biar auto-scroll stabil */
+    #memorizeGridScroll {
+      pointer-events: none; /* biar mouse gak ganggu auto-scroll */
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+
+  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+
+  <div id="notifToastContainer" class="fixed top-6 right-6 z-50 space-y-3 max-w-sm"></div>
+
+  <div class="w-full h-full relative">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 1: IDLE                                              -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewIdle" class="stage-view active-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center space-y-8">
+        <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
+          <i class="fas fa-city text-6xl text-amber-400"></i>
+        </div>
+        <div>
+          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-5 py-2 rounded-full uppercase tracking-widest">
+            <i class="fas fa-hourglass-half mr-1"></i> SIAPKAN DIRI
+          </span>
+          <h1 class="text-6xl md:text-7xl font-black text-white mt-6 font-display tracking-wider">
+            FORSAKEN CITY
+          </h1>
+          <h2 class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 font-display tracking-widest">
+            RECALL
+          </h2>
+          <p class="text-slate-400 text-lg mt-6 max-w-2xl mx-auto">
+            Menunggu panitia memulai sesi menghafal. Siapkan fokusmu — 30 kota bersejarah akan muncul.
+          </p>
+        </div>
+        <div class="flex items-center justify-center gap-3 text-slate-500 text-sm">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span>Standby...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 2A: MEMORIZE SEQUENTIAL (5 per batch: 3 atas, 2 bawah) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewMemorizeSeq" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
+      <!-- HEADER -->
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <i class="fas fa-brain mr-1"></i> FASE MENGHAPAL
+          </span>
+          <span class="text-xs text-slate-400">Mode: 5 Gambar per Batch (3 + 2)</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Sisa Waktu</div>
+            <div id="memorizeSeqTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
+          </div>
+          <div class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-2.5 text-center">
+            <div class="text-[10px] text-slate-500 uppercase font-bold">Batch</div>
+            <div id="memorizeSeqBatch" class="text-3xl font-mono font-black text-white">
+              <span id="currentBatchNo">1</span><span class="text-slate-500">/6</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BATCH CONTAINER -->
+      <div class="flex-1 bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 overflow-hidden relative min-h-0">
+        <div id="seqBatchContainer" class="h-full w-full flex flex-col justify-center gap-4"></div>
+
+        <!-- Progress bar -->
+        <div class="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-amber-500/30 px-6 py-3 z-20">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+              Menampilkan Batch <span id="currentBatchLabel">1</span> / 6
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">
+              Gambar <span id="currentImgLabel">1-5</span> / 30
+            </span>
+          </div>
+          <div class="bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="memorizeSeqProgress" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 2B: MEMORIZE GRID (container 16:6, auto-scroll)      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewMemorizeGrid" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
+      <!-- HEADER -->
+      <div class="flex items-center justify-between mb-4 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <i class="fas fa-th mr-1"></i> FASE MENGHAPAL — GRID
+          </span>
+          <span class="text-xs text-slate-400">Semua 30 kota · auto-scroll</span>
+        </div>
+        <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Sisa Waktu</div>
+          <div id="memorizeGridTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
+        </div>
+      </div>
+
+      <!-- CONTAINER UTAMA: ASPECT 16:6 -->
+      <div class="flex-1 flex items-center justify-center min-h-0">
+        <div class="w-full max-w-[266.67vh] aspect-[16/6] bg-slate-900 border-2 border-amber-500/40 rounded-3xl overflow-hidden relative">
+
+          <!-- Scroll Area -->
+          <div id="memorizeGridScroll" class="absolute inset-0 overflow-y-auto custom-scroll p-4">
+            <div id="memorizeGridContainer" class="grid grid-cols-5 gap-3 w-full">
+              <!-- Diisi JS: 30 gambar landscape -->
+            </div>
+          </div>
+
+          <!-- Progress indikator -->
+          <div class="absolute top-3 right-3 bg-slate-950/90 border border-amber-500/30 rounded-2xl px-4 py-2 text-center z-20 pointer-events-none">
+            <div class="text-[9px] text-slate-500 uppercase font-bold">Total</div>
+            <div id="gridTotalCount" class="text-xl font-mono font-black text-amber-400">30</div>
+          </div>
+
+          <!-- Info bawah -->
+          <div class="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-amber-500/30 px-6 py-2 z-20 pointer-events-none">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                <i class="fas fa-arrows-up-down mr-1"></i> Auto-scroll aktif
+              </span>
+              <span id="gridScrollStatus" class="text-[10px] text-slate-500 font-mono">
+                ke bawah...
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 3: ANSWER PHASE                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewAnswerPhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center mb-8">
+        <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-pen-to-square mr-1"></i> WAKTU MENGERJAKAN
+        </span>
+        <h1 class="text-5xl md:text-6xl font-black text-white mt-4 font-display tracking-wider">
+          KERJAKAN SOAL!
+        </h1>
+        <p class="text-slate-400 text-lg mt-2">Ingat kembali urutan 30 kota yang tadi ditampilkan</p>
+      </div>
+
+      <div class="bg-slate-900 border-4 border-emerald-500/40 rounded-3xl p-16 glow-emerald">
+        <div id="answerPhaseTimer" class="text-[160px] md:text-[220px] font-black font-display text-emerald-400 leading-none animate-timer-pulse">
+          15:00
+        </div>
+      </div>
+
+      <p class="text-slate-400 text-xl mt-8">
+        <i class="fas fa-info-circle mr-2"></i>Selesaikan sebelum waktu habis
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 4: COMBO REVEAL                                      -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewComboReveal" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center mb-6">
+        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-award mr-1"></i> PESERTA COMBO PERFECT
+        </span>
+        <h1 id="comboRevealTitle" class="text-5xl font-black text-white mt-4 font-display tracking-wider">
+          SESI 1
+        </h1>
+      </div>
+      <div id="comboRevealContainer" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center">
+        <p class="text-slate-500 text-xl">Memuat data peserta...</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 5: ELIMINATION                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center space-y-6 max-w-3xl">
+        <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
+          <i class="fas fa-skull-crossbones text-6xl text-rose-400"></i>
+        </div>
+        <span class="bg-rose-500/10 border border-rose-500/30 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-hourglass-half mr-1"></i> TAHAP ELIMINASI
+        </span>
+        <h1 class="text-5xl font-black text-white font-display tracking-wider">
+          SISTEM ELIMINASI
+        </h1>
+        <p class="text-slate-400 text-lg leading-relaxed">
+          Menunggu panitia menentukan sistem eliminasi.<br>
+          Kontrol akan tersedia setelah konfigurasi selesai.
+        </p>
+        <div class="flex items-center justify-center gap-3 text-slate-500 text-sm">
+          <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+          <span>Placeholder — Coming Soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 6: LEADERBOARD                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center mb-6">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-trophy mr-1"></i> KLASEMEN AKHIR
+        </span>
+        <h1 class="text-5xl font-black text-white mt-4 font-display tracking-wider">
+          FORSAKEN CITY RECALL
+        </h1>
+        <p id="leaderboardSubtitle" class="text-slate-400 mt-2">Akumulasi seluruh sesi (Recall Type 1–6)</p>
+      </div>
+      <div id="leaderboardContainer" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
+        <p class="text-slate-500 text-xl">Memuat klasemen...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const IMAGE_BASE_PATH = `${SUPABASE_URL}/storage/v1/object/public/forsaken_city/`;
+
+    const SYS_TABLE = 'system_forsaken_city_recall';
+    const LAYOUT_TABLE = 'admin_layout_forsaken_city_recall';
+    const NOTIF_TABLE = 'recall_notifications';
+
+    // Mode A
+    const SEQ_BATCH_SIZE = 5;
+    const SEQ_BATCH_DURATION = 3000;
+
+// Kecepatan scroll dalam pixel per detik
+const GRID_SCROLL_SPEED_PPS = 42;   // <-- atur di sini (px/detik)
+
+// Jeda atas/bawah dalam ms
+const GRID_PAUSE_TOP = 1000;
+const GRID_PAUSE_BOTTOM = 1000;
+
+    // State
+    let currentView = 'idle';
+    let currentSequence = [];
+    let lastLayoutSignature = '';
+    let lastRank = -1;
+    let lastComboSession = -1;
+    let lastMemorizeMode = null;
+
+    let sequentialTimer = null;
+    let sequentialBatchIndex = 0;
+    let memorizeTimerInt = null;
+    let answerTimerInt = null;
+
+    let gridScrollInterval = null;
+    let gridScrollDirection = 1;
+    let gridScrollPaused = false;
+
+    let memorizeMode = 'sequential';
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // HELPER
+    // ═══════════════════════════════════════════════════════════
+    function filenameToCity(filename) {
+      if (!filename) return '—';
+      return filename
+        .replace(/\.(jpg|jpeg|png)$/i, '')
+        .replace(/_/g, ' ')
+        .toUpperCase();
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.max(0, seconds % 60);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MODE A: SEQUENTIAL — 5 per batch (3 atas, 2 bawah)
+    // ═══════════════════════════════════════════════════════════
+    function renderSeqBatch(batchIdx) {
+      const container = document.getElementById('seqBatchContainer');
+      if (!container) return;
+
+      if (currentSequence.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-8">Belum ada urutan gambar.</p>';
+        return;
+      }
+
+      const batchStart = batchIdx * SEQ_BATCH_SIZE;
+      const batchEnd = Math.min(batchStart + SEQ_BATCH_SIZE, currentSequence.length);
+
+      const batchItems = [];
+      for (let i = batchStart; i < batchEnd; i++) {
+        batchItems.push({ index: i, filename: currentSequence[i] });
+      }
+
+      const topRow = batchItems.slice(0, 3);
+      const bottomRow = batchItems.slice(3);
+
+      const makeCard = (item, animDelay) => `
+        <div class="relative aspect-video bg-slate-950 border-2 border-amber-500/30 rounded-2xl overflow-hidden animate-fade-up"
+             style="animation-delay: ${animDelay}ms">
+          <img src="${IMAGE_BASE_PATH}${item.filename}" alt="${filenameToCity(item.filename)}"
+               class="w-full h-full object-cover absolute inset-0"
+               onerror="this.style.opacity=0.15"/>
+          <div class="absolute top-2 left-2 bg-slate-950/90 border-2 border-amber-500/50 rounded-xl px-3 py-1 z-10">
+            <span class="text-amber-400 font-black text-base font-display">#${item.index + 1}</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent px-2 py-2 z-10">
+            <p class="text-white font-black text-xs text-center uppercase tracking-wider truncate">
+              ${filenameToCity(item.filename)}
+            </p>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = `
+        <div class="grid grid-cols-3 gap-4 flex-shrink-0">
+          ${topRow.map((item, i) => makeCard(item, i * 80)).join('')}
+        </div>
+        ${bottomRow.length > 0 ? `
+          <div class="grid grid-cols-3 gap-4 flex-shrink-0">
+            <div class="col-start-1">${makeCard(bottomRow[0], 240)}</div>
+            <div class="col-start-3">${makeCard(bottomRow[1], 320)}</div>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function updateSeqBatchIndicator(batchIdx) {
+      const totalBatch = Math.ceil(currentSequence.length / SEQ_BATCH_SIZE);
+      const startImg = batchIdx * SEQ_BATCH_SIZE + 1;
+      const endImg = Math.min((batchIdx + 1) * SEQ_BATCH_SIZE, currentSequence.length);
+
+      const bNo = document.getElementById('currentBatchNo');
+      const bLabel = document.getElementById('currentBatchLabel');
+      const imgLabel = document.getElementById('currentImgLabel');
+      const progress = document.getElementById('memorizeSeqProgress');
+
+      if (bNo) bNo.textContent = batchIdx + 1;
+      if (bLabel) bLabel.textContent = batchIdx + 1;
+      if (imgLabel) imgLabel.textContent = `${startImg}-${endImg}`;
+      if (progress) progress.style.width = `${((batchIdx + 1) / totalBatch) * 100}%`;
+    }
+
+    function startSequentialAutoScroll() {
+      stopSequential();
+
+      const totalBatch = Math.ceil(currentSequence.length / SEQ_BATCH_SIZE);
+      if (totalBatch === 0) return;
+
+      sequentialBatchIndex = 0;
+      renderSeqBatch(0);
+      updateSeqBatchIndicator(0);
+      playBell();
+
+      sequentialTimer = setInterval(() => {
+        sequentialBatchIndex++;
+        if (sequentialBatchIndex >= totalBatch) sequentialBatchIndex = 0;
+
+        renderSeqBatch(sequentialBatchIndex);
+        updateSeqBatchIndicator(sequentialBatchIndex);
+        playBell();
+      }, SEQ_BATCH_DURATION);
+    }
+
+    function stopSequential() {
+      if (sequentialTimer) { clearInterval(sequentialTimer); sequentialTimer = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MODE B: GRID — 30 gambar landscape, auto-scroll
+    // ═══════════════════════════════════════════════════════════
+    function renderMemorizeGrid() {
+      const container = document.getElementById('memorizeGridContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (currentSequence.length === 0) {
+        container.innerHTML = '<p class="col-span-5 text-center text-slate-500 py-8">Belum ada urutan gambar.</p>';
+        return;
+      }
+
+      currentSequence.forEach((filename, idx) => {
+        const card = document.createElement('div');
+        card.className = 'relative aspect-video bg-slate-950 border-2 border-amber-500/30 rounded-xl overflow-hidden animate-fade-up';
+        card.style.animationDelay = `${idx * 20}ms`;
+        card.innerHTML = `
+          <img src="${IMAGE_BASE_PATH}${filename}" alt="${filenameToCity(filename)}"
+               class="w-full h-full object-cover absolute inset-0"
+               onerror="this.style.opacity=0.15"/>
+          <div class="absolute top-1.5 left-1.5 bg-slate-950/90 border border-amber-500/50 rounded-lg px-2 py-0.5 z-10">
+            <span class="text-amber-400 font-black text-sm font-display">#${idx + 1}</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent px-2 py-1 z-10">
+            <p class="text-white font-bold text-[10px] text-center uppercase tracking-wider truncate">
+              ${filenameToCity(filename)}
+            </p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      const totalEl = document.getElementById('gridTotalCount');
+      if (totalEl) totalEl.textContent = currentSequence.length;
+
+      console.log('[STAGE] Rendered', currentSequence.length, 'grid images');
+    }
+
+        // ═══════════════════════════════════════════════════════════
+    // MODE B: GRID AUTO-SCROLL (pakai requestAnimationFrame)
+    // ═══════════════════════════════════════════════════════════
+    let gridScrollRAF = null;
+    let gridScrollLastTs = 0;
+    let gridScrollPauseUntil = 0;
+
+    function startGridAutoScroll() {
+      stopGridAutoScroll();
+
+      const scrollEl = document.getElementById('memorizeGridScroll');
+      if (!scrollEl) return;
+
+      gridScrollDirection = 1;
+      gridScrollPaused = false;
+      gridScrollLastTs = 0;
+      gridScrollPauseUntil = 0;
+      scrollEl.scrollTop = 0;
+      updateGridScrollStatus('ke bawah...');
+
+      const loop = (ts) => {
+        if (!gridScrollLastTs) gridScrollLastTs = ts;
+        const dt = ts - gridScrollLastTs;
+        gridScrollLastTs = ts;
+
+        // Kalau sedang pause (jeda atas/bawah)
+        if (gridScrollPaused) {
+          if (ts >= gridScrollPauseUntil) {
+            gridScrollPaused = false;
+            updateGridScrollStatus(gridScrollDirection === 1 ? 'ke bawah...' : 'ke atas...');
+          }
+          gridScrollRAF = requestAnimationFrame(loop);
+          return;
+        }
+
+        const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+        if (maxScroll <= 0) {
+          gridScrollRAF = requestAnimationFrame(loop);
+          return;
+        }
+
+        // Gerakkan berdasarkan delta waktu
+        const pixelsToMove = (GRID_SCROLL_SPEED_PPS * dt) / 1000;
+        scrollEl.scrollTop += pixelsToMove * gridScrollDirection;
+
+        const currentScroll = scrollEl.scrollTop;
+
+        // Sampai bawah
+        if (currentScroll >= maxScroll) {
+          scrollEl.scrollTop = maxScroll;
+          gridScrollPaused = true;
+          gridScrollDirection = -1;
+          gridScrollPauseUntil = ts + GRID_PAUSE_BOTTOM;
+          updateGridScrollStatus('tahan di bawah...');
+        }
+        // Sampai atas
+        else if (currentScroll <= 0) {
+          scrollEl.scrollTop = 0;
+          gridScrollPaused = true;
+          gridScrollDirection = 1;
+          gridScrollPauseUntil = ts + GRID_PAUSE_TOP;
+          updateGridScrollStatus('tahan di atas...');
+        }
+
+        gridScrollRAF = requestAnimationFrame(loop);
+      };
+
+      gridScrollRAF = requestAnimationFrame(loop);
+    }
+
+    function stopGridAutoScroll() {
+      if (gridScrollRAF) {
+        cancelAnimationFrame(gridScrollRAF);
+        gridScrollRAF = null;
+      }
+      gridScrollPaused = false;
+      gridScrollDirection = 1;
+      gridScrollLastTs = 0;
+    }
+
+    function updateGridScrollStatus(text) {
+      const el = document.getElementById('gridScrollStatus');
+      if (el) el.textContent = text;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TIMER: MEMORIZE
+    // ═══════════════════════════════════════════════════════════
+    function startMemorizeTimer(startTime, duration) {
+      if (memorizeTimerInt) clearInterval(memorizeTimerInt);
+      const startMs = new Date(startTime).getTime();
+
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const elId = (memorizeMode === 'grid') ? 'memorizeGridTimer' : 'memorizeSeqTimer';
+        const el = document.getElementById(elId);
+        if (el) {
+          el.textContent = formatTime(remaining);
+          el.className = remaining <= 60
+            ? 'text-3xl font-mono font-black text-rose-500 animate-timer-pulse'
+            : 'text-3xl font-mono font-black text-amber-400';
+        }
+        if (remaining <= 0) clearInterval(memorizeTimerInt);
+      };
+      tick();
+      memorizeTimerInt = setInterval(tick, 500);
+    }
+
+    function stopMemorizeTimer() {
+      if (memorizeTimerInt) { clearInterval(memorizeTimerInt); memorizeTimerInt = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TIMER: ANSWER
+    // ═══════════════════════════════════════════════════════════
+    function startAnswerTimer(startTime, duration) {
+      if (answerTimerInt) clearInterval(answerTimerInt);
+      const startMs = new Date(startTime).getTime();
+
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const el = document.getElementById('answerPhaseTimer');
+        if (el) {
+          el.textContent = formatTime(remaining);
+          if (remaining <= 30) {
+            el.className = 'text-[160px] md:text-[220px] font-black font-display text-rose-500 leading-none animate-timer-pulse';
+          } else if (remaining <= 120) {
+            el.className = 'text-[160px] md:text-[220px] font-black font-display text-amber-400 leading-none animate-timer-pulse';
+          } else {
+            el.className = 'text-[160px] md:text-[220px] font-black font-display text-emerald-400 leading-none animate-timer-pulse';
+          }
+        }
+        if (remaining <= 0) clearInterval(answerTimerInt);
+      };
+      tick();
+      answerTimerInt = setInterval(tick, 500);
+    }
+
+    function stopAnswerTimer() {
+      if (answerTimerInt) { clearInterval(answerTimerInt); answerTimerInt = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COMBO REVEAL
+    // ═══════════════════════════════════════════════════════════
+    async function fetchComboData(sessionNum) {
+      const { data: scores } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, game_name, score_obtained')
+        .like('game_name', 'Recall Type%');
+
+      if (!scores || scores.length === 0) return [];
+
+      const userScoresMap = {};
+      scores.forEach(row => {
+        if (!userScoresMap[row.user_unique_id]) userScoresMap[row.user_unique_id] = {};
+        userScoresMap[row.user_unique_id][row.game_name] = row.score_obtained;
+      });
+
+      const qualified = [];
+      Object.keys(userScoresMap).forEach(uid => {
+        let isPerfect = true;
+        for (let s = 1; s <= sessionNum; s++) {
+          if (userScoresMap[uid][`Recall Type ${s}`] !== 25) {
+            isPerfect = false;
+            break;
+          }
+        }
+        if (isPerfect) qualified.push(uid);
+      });
+
+      if (qualified.length === 0) return [];
+
+      const { data: users } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, avatar_url, school_name')
+        .in('unique_id', qualified);
+
+      const userMap = {};
+      (users || []).forEach(u => userMap[u.unique_id] = u);
+
+      return qualified.map(uid => ({
+        uid,
+        full_name: userMap[uid]?.full_name || uid,
+        avatar_url: userMap[uid]?.avatar_url,
+        school_name: userMap[uid]?.school_name
+      }));
+    }
+
+    async function renderComboReveal(sessionNum, revealedRank) {
+      const container = document.getElementById('comboRevealContainer');
+      const title = document.getElementById('comboRevealTitle');
+      container.innerHTML = `<p class="text-slate-500 text-xl">Memuat data peserta sesi ${sessionNum}...</p>`;
+      title.textContent = `SESI ${sessionNum} — Perfect (${sessionNum * 5} Poin)`;
+
+      const participants = await fetchComboData(sessionNum);
+
+      if (participants.length === 0) {
+        container.innerHTML = `
+          <div class="text-center space-y-4">
+            <div class="w-24 h-24 bg-slate-800 border-2 border-slate-700 rounded-3xl flex items-center justify-center mx-auto">
+              <i class="fas fa-user-slash text-4xl text-slate-600"></i>
+            </div>
+            <p class="text-slate-400 text-xl font-bold">Belum ada peserta perfect di Sesi 1–${sessionNum}</p>
+          </div>
+        `;
+        return;
+      }
+
+      let toShow = participants;
+      if (revealedRank > 0) {
+        const target = participants[revealedRank - 1];
+        toShow = target ? [target] : [];
+      }
+
+      if (toShow.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada peserta untuk peringkat #${revealedRank}</p>`;
+        return;
+      }
+
+      const isAll = revealedRank === -1;
+      const gridClass = isAll
+        ? 'grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4'
+        : 'flex items-center justify-center';
+
+      const cardsHtml = toShow.map((p, idx) => {
+        const rank = revealedRank > 0 ? revealedRank : idx + 1;
+        const avatar = p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+        const isTop3 = rank <= 3 && !isAll;
+
+        let badgeStyle = 'bg-slate-700 text-slate-200';
+        let badgeText = `#${rank}`;
+        if (isTop3) {
+          if (rank === 1) { badgeStyle = 'bg-amber-400 text-slate-950'; badgeText = '👑 JUARA 1'; }
+          else if (rank === 2) { badgeStyle = 'bg-slate-200 text-slate-950'; badgeText = '🥈 JUARA 2'; }
+          else if (rank === 3) { badgeStyle = 'bg-amber-600 text-white'; badgeText = '🥉 JUARA 3'; }
+        }
+
+        if (isAll) {
+          return `
+            <div class="animate-card-pop bg-gradient-to-b from-indigo-950 to-slate-900 border-2 border-indigo-500/40 rounded-2xl p-3 flex flex-col items-center gap-2" style="animation-delay: ${idx * 40}ms">
+              <img src="${avatar}" class="w-20 h-20 rounded-xl bg-slate-950 border border-indigo-500/30 object-cover"/>
+              <div class="text-[11px] font-bold text-white text-center leading-tight truncate w-full">${p.full_name}</div>
+              <span class="text-[9px] bg-indigo-500/30 text-indigo-300 font-black px-2 py-0.5 rounded border border-indigo-500/40">
+                PERFECT ${sessionNum * 5}
+              </span>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="animate-card-pop bg-gradient-to-b from-indigo-950 via-indigo-900 to-slate-900 border-4 border-indigo-500/50 rounded-3xl p-10 md:p-14 flex flex-col items-center gap-6 max-w-lg w-full">
+              <div class="px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest ${badgeStyle}">
+                ${badgeText}
+              </div>
+              <div class="w-52 h-52 md:w-64 md:h-64 rounded-3xl bg-slate-950 border-2 border-indigo-500/40 overflow-hidden flex items-center justify-center">
+                <img src="${avatar}" class="w-full h-full object-cover"/>
+              </div>
+              <div class="text-center space-y-3">
+                <h3 class="text-4xl md:text-5xl font-black text-white tracking-wide">${p.full_name}</h3>
+                ${p.school_name ? `<p class="text-slate-400 text-sm">${p.school_name}</p>` : ''}
+                <div class="inline-block text-2xl font-mono font-black text-indigo-300 bg-indigo-500/10 px-6 py-2 rounded-2xl border border-indigo-500/30">
+                  PERFECT ${sessionNum * 5} POIN
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Sesi 1 s.d. Sesi ${sessionNum} sempurna</p>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      container.innerHTML = `<div class="${gridClass} w-full">${cardsHtml}</div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LEADERBOARD
+    // ═══════════════════════════════════════════════════════════
+    async function fetchLeaderboardData() {
+      const { data: scores } = await supabaseClient
+        .from('game_scores')
+        .select('user_unique_id, score_obtained')
+        .like('game_name', 'Recall Type%');
+
+      if (!scores || scores.length === 0) return [];
+
+      const totals = {};
+      scores.forEach(row => {
+        totals[row.user_unique_id] = (totals[row.user_unique_id] || 0) + (row.score_obtained || 0);
+      });
+
+      const ranked = Object.keys(totals)
+        .map(uid => ({ uid, total: totals[uid] }))
+        .sort((a, b) => b.total - a.total);
+
+      if (ranked.length === 0) return [];
+
+      const uids = ranked.map(r => r.uid);
+      const { data: users } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, avatar_url, school_name')
+        .in('unique_id', uids);
+
+      const userMap = {};
+      (users || []).forEach(u => userMap[u.unique_id] = u);
+
+      return ranked.map(r => ({
+        uid: r.uid,
+        total: r.total,
+        full_name: userMap[r.uid]?.full_name || r.uid,
+        avatar_url: userMap[r.uid]?.avatar_url,
+        school_name: userMap[r.uid]?.school_name
+      }));
+    }
+
+    async function renderLeaderboard() {
+      const container = document.getElementById('leaderboardContainer');
+      container.innerHTML = `<p class="text-slate-500 text-xl">Menghitung total poin...</p>`;
+
+      const data = await fetchLeaderboardData();
+
+      if (data.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada data nilai.</p>`;
+        return;
+      }
+
+      const top = data.slice(0, 20);
+
+      const rowsHtml = top.map((p, idx) => {
+        const rank = idx + 1;
+        const avatar = p.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+        let rowClass = 'bg-slate-800/70 border-slate-700/50';
+        let rankStyle = 'bg-slate-700 text-slate-300';
+        let rankIcon = `#${rank}`;
+
+        if (rank === 1) { rowClass = 'bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-900 border-amber-500/50'; rankStyle = 'bg-amber-400 text-slate-950'; rankIcon = '👑'; }
+        else if (rank === 2) { rowClass = 'bg-gradient-to-r from-slate-800 via-slate-700/50 to-slate-900 border-slate-300/50'; rankStyle = 'bg-slate-200 text-slate-950'; rankIcon = '🥈'; }
+        else if (rank === 3) { rowClass = 'bg-gradient-to-r from-amber-900/60 via-amber-800/30 to-slate-900 border-amber-600/50'; rankStyle = 'bg-amber-600 text-white'; rankIcon = '🥉'; }
+
+        return `
+          <div class="animate-fade-up border-2 rounded-2xl p-3 flex items-center justify-between gap-4 ${rowClass}" style="animation-delay: ${idx * 30}ms">
+            <div class="flex items-center gap-3 overflow-hidden flex-1">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0 ${rankStyle}">
+                ${rankIcon}
+              </div>
+              <img src="${avatar}" class="w-12 h-12 rounded-xl bg-slate-950 border border-white/10 flex-shrink-0 object-cover"/>
+              <div class="overflow-hidden">
+                <p class="text-sm font-bold text-white truncate">${p.full_name}</p>
+                ${p.school_name ? `<p class="text-[10px] text-slate-400 truncate">${p.school_name}</p>` : ''}
+              </div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <div class="text-2xl font-mono font-black text-amber-400">${p.total}</div>
+              <div class="text-[9px] text-slate-500 uppercase font-bold">Poin</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `<div class="w-full space-y-2 max-h-[500px] overflow-y-auto custom-scroll pr-2">${rowsHtml}</div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // NOTIFIKASI TOAST
+    // ═══════════════════════════════════════════════════════════
+    async function showSubmitToast(userUniqueId, message) {
+      const container = document.getElementById('notifToastContainer');
+
+      let fullName = userUniqueId;
+      let avatarUrl = '';
+      try {
+        const { data: u } = await supabaseClient
+          .from('users')
+          .select('full_name, avatar_url')
+          .eq('unique_id', userUniqueId)
+          .maybeSingle();
+        if (u) {
+          fullName = u.full_name || userUniqueId;
+          avatarUrl = u.avatar_url || '';
+        }
+      } catch (e) { /* ignore */ }
+
+      if (!avatarUrl) {
+        avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(userUniqueId)}`;
+      }
+
+      const toast = document.createElement('div');
+      toast.className = 'animate-slide-in-right bg-gradient-to-r from-emerald-600 to-emerald-500 border-2 border-emerald-300 rounded-2xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px]';
+      toast.innerHTML = `
+        <img src="${avatarUrl}" class="w-14 h-14 rounded-xl border-2 border-white/40 object-cover flex-shrink-0"/>
+        <div class="overflow-hidden flex-1">
+          <p class="text-[10px] font-black uppercase tracking-wider text-emerald-100">✓ Selesai Menjawab</p>
+          <p class="text-base font-black text-white truncate">${fullName}</p>
+          ${message ? `<p class="text-[10px] text-emerald-50/80 truncate">${message}</p>` : ''}
+        </div>
+        <i class="fas fa-check-circle text-3xl text-white/80 flex-shrink-0"></i>
+      `;
+      container.appendChild(toast);
+
+      playBell();
+
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.5s, transform 0.5s';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(400px)';
+        setTimeout(() => toast.remove(), 500);
+      }, 8000);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // STOP ALL
+    // ═══════════════════════════════════════════════════════════
+    function stopAllRotations() {
+      stopSequential();
+      stopGridAutoScroll();
+      stopMemorizeTimer();
+      stopAnswerTimer();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // VIEW SWITCHER
+    // ═══════════════════════════════════════════════════════════
+    async function handleViewSwitch(viewName, revealedRank, comboSession) {
+      revealedRank = revealedRank ?? 0;
+      comboSession = comboSession ?? 1;
+
+      console.log('[STAGE] handleViewSwitch →', viewName, 'rank:', revealedRank, 'comboSes:', comboSession);
+
+      const isSameView = (currentView === viewName);
+      const isSameRank = (lastRank === revealedRank);
+      const isSameCombo = (lastComboSession === comboSession);
+
+      let isSameMemorizeMode = true;
+      if (viewName === 'memorize') {
+        const { data: sysData } = await supabaseClient
+          .from(SYS_TABLE)
+          .select('memorize_mode')
+          .eq('id', 1)
+          .maybeSingle();
+        const freshMode = sysData?.memorize_mode || 'sequential';
+        isSameMemorizeMode = (lastMemorizeMode === freshMode);
+      }
+
+      if (isSameView && isSameRank && isSameCombo && isSameMemorizeMode) return;
+
+      if (isSameView && viewName === 'combo_reveal' && (!isSameRank || !isSameCombo)) {
+        lastRank = revealedRank;
+        lastComboSession = comboSession;
+        await renderComboReveal(comboSession, revealedRank);
+        return;
+      }
+
+      ['viewIdle', 'viewMemorizeSeq', 'viewMemorizeGrid', 'viewAnswerPhase',
+       'viewComboReveal', 'viewElimination', 'viewLeaderboard'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
+      });
+
+      stopAllRotations();
+      currentView = viewName;
+      lastRank = revealedRank;
+      lastComboSession = comboSession;
+
+      if (viewName === 'memorize') {
+        const { data } = await supabaseClient
+          .from(SYS_TABLE)
+          .select('memorize_mode, memorize_start_time, memorize_duration')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (data) {
+          memorizeMode = data.memorize_mode || 'sequential';
+          lastMemorizeMode = memorizeMode;
+
+          if (memorizeMode === 'grid') {
+            document.getElementById('viewMemorizeGrid').classList.remove('hidden-view');
+            document.getElementById('viewMemorizeGrid').classList.add('active-view');
+            setTimeout(() => {
+              renderMemorizeGrid();
+              startGridAutoScroll();
+            }, 200);
+          } else {
+            document.getElementById('viewMemorizeSeq').classList.remove('hidden-view');
+            document.getElementById('viewMemorizeSeq').classList.add('active-view');
+            setTimeout(() => startSequentialAutoScroll(), 150);
+          }
+          if (data.memorize_start_time) {
+            startMemorizeTimer(data.memorize_start_time, data.memorize_duration || 1800);
+          }
+        }
+        return;
+      }
+
+      const views = {
+        idle: 'viewIdle',
+        answer_phase: 'viewAnswerPhase',
+        combo_reveal: 'viewComboReveal',
+        elimination: 'viewElimination',
+        leaderboard: 'viewLeaderboard'
+      };
+
+      const targetId = views[viewName] || views.idle;
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.classList.remove('hidden-view');
+        target.classList.add('active-view');
+      }
+
+      if (viewName === 'answer_phase') {
+        const { data } = await supabaseClient
+          .from(SYS_TABLE)
+          .select('answer_start_time, answer_duration')
+          .eq('id', 1)
+          .maybeSingle();
+        if (data && data.answer_start_time) {
+          startAnswerTimer(data.answer_start_time, data.answer_duration || 900);
+        } else {
+          document.getElementById('answerPhaseTimer').textContent = '--:--';
+        }
+      } else if (viewName === 'combo_reveal') {
+        await renderComboReveal(comboSession, revealedRank);
+      } else if (viewName === 'leaderboard') {
+        await renderLeaderboard();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME: LAYOUT
+    // ═══════════════════════════════════════════════════════════
+    function subscribeLayout() {
+      supabaseClient
+        .channel('stage_recall_layout')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: LAYOUT_TABLE }, (payload) => {
+          if (payload.new) {
+            handleViewSwitch(
+              payload.new.current_view,
+              payload.new.revealed_rank,
+              payload.new.combo_session
+            );
+          }
+        })
+        .subscribe();
+
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from(LAYOUT_TABLE)
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (!data) return;
+        const sig = `${data.current_view}|${data.revealed_rank}|${data.combo_session}|${data.updated_at}`;
+        if (sig === lastLayoutSignature) return;
+        lastLayoutSignature = sig;
+        handleViewSwitch(data.current_view, data.revealed_rank, data.combo_session);
+      }, 1500);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME: SYSTEM
+    // ═══════════════════════════════════════════════════════════
+    function subscribeSystem() {
+      supabaseClient
+        .channel('stage_recall_system')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: SYS_TABLE }, async (payload) => {
+          if (payload.new) {
+            currentSequence = payload.new.sequence_filenames || [];
+            const newMode = payload.new.memorize_mode || 'sequential';
+
+            if (currentView === 'memorize' && newMode !== lastMemorizeMode) {
+              lastMemorizeMode = null;
+              lastRank = -999;
+              memorizeMode = newMode;
+              await handleViewSwitch('memorize', 0, 1);
+              return;
+            }
+
+            if (payload.new.session_phase === 'MEMORIZE' && payload.new.memorize_start_time) {
+              if (memorizeTimerInt === null) {
+                startMemorizeTimer(payload.new.memorize_start_time, payload.new.memorize_duration || 1800);
+              }
+            } else if (payload.new.session_phase === 'ANSWER' && payload.new.answer_start_time) {
+              if (answerTimerInt === null) {
+                startAnswerTimer(payload.new.answer_start_time, payload.new.answer_duration || 900);
+              }
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME: NOTIFIKASI
+    // ═══════════════════════════════════════════════════════════
+    function subscribeNotifications() {
+      supabaseClient
+        .channel('stage_recall_notif')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: NOTIF_TABLE }, (payload) => {
+          if (payload.new) {
+            showSubmitToast(payload.new.user_unique_id, payload.new.message);
+          }
+        })
+        .subscribe();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      console.log('[STAGE] Forsaken City Recall init...');
+
+      const { data: sys } = await supabaseClient
+        .from(SYS_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (sys) {
+        currentSequence = sys.sequence_filenames || [];
+        memorizeMode = sys.memorize_mode || 'sequential';
+        console.log('[STAGE] Sequence:', currentSequence.length, 'items, mode:', memorizeMode);
+      }
+
+      const { data: layout } = await supabaseClient
+        .from(LAYOUT_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (layout) {
+        lastLayoutSignature = `${layout.current_view}|${layout.revealed_rank}|${layout.combo_session}|${layout.updated_at}`;
+        await handleViewSwitch(layout.current_view, layout.revealed_rank, layout.combo_session);
+      } else {
+        lastLayoutSignature = 'idle|0|1|';
+        await handleViewSwitch('idle', 0, 1);
+      }
+
+      subscribeLayout();
+      subscribeSystem();
+      subscribeNotifications();
+    }
+
+    init();
+  </script>
+</body>
+</html>

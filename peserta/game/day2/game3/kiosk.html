@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forsaken City Recall - Peserta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; user-select: none; }
+    .img-aspect-16-9 { aspect-ratio: 16 / 9; object-fit: cover; }
+
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
+
+    /* Animasi */
+    @keyframes pulseTimer {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-timer-pulse { animation: pulseTimer 1s ease-in-out infinite; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+    /* Overlay frozen */
+    .frozen-overlay {
+      backdrop-filter: blur(12px);
+      background: rgba(3, 7, 18, 0.95);
+    }
+
+    /* Lock state untuk semua elemen */
+    .locked * { pointer-events: none !important; }
+  </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen p-4 max-w-5xl mx-auto flex flex-col">
+
+  <!-- AUDIO -->
+  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 1: MENUNGGU PANITIA / IDLE                          -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayWaiting" class="fixed inset-0 z-40 flex flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="w-28 h-28 bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
+        <i class="fas fa-hourglass-half text-5xl text-amber-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">MENUNGGU PANITIA</h2>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Fase permainan belum dimulai. Panitia akan segera membuka sesi menghafal.
+        <br><br>
+        Layar ini terkunci sampai panitia memulai.
+      </p>
+      <div class="flex items-center justify-center gap-2 text-xs text-slate-500">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span>Standby...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 2: FASE MENGHAPAL — kios terkunci                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayMemorize" class="fixed inset-0 z-40 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="w-28 h-28 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
+        <i class="fas fa-eye text-5xl text-emerald-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">FASE MENGHAPAL</h2>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Silakan lihat layar utama dan hafalkan urutan 30 kota yang ditampilkan.
+        <br><br>
+        <b class="text-amber-400">Layar kios terkunci</b> selama fase menghafal berlangsung.
+      </p>
+      <div class="bg-slate-900/60 border border-emerald-500/30 rounded-2xl p-4 max-w-xs mx-auto">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Sisa Waktu Menghafal</div>
+        <div id="memorizeCountdown" class="text-4xl font-mono font-black text-emerald-400">30:00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 3: LOCKED / SELESAI                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayLocked" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-lg">
+      <div class="w-28 h-28 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto">
+        <i class="fas fa-lock text-5xl text-rose-400"></i>
+      </div>
+      <h2 id="lockedTitle" class="text-3xl font-black text-white">WAKTU HABIS</h2>
+      <p id="lockedSubtitle" class="text-slate-400 text-sm">
+        Jawabanmu sudah tersimpan otomatis. Layar ini terkunci.
+      </p>
+      <div class="bg-slate-900 border border-amber-500/30 rounded-3xl p-8">
+        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Total Poin Kamu</div>
+        <div id="finalScore" class="text-6xl font-mono font-black text-amber-400">0</div>
+        <div class="text-xs text-slate-500 mt-2">dari 6 sesi × 25 poin = 150</div>
+      </div>
+      <p class="text-xs text-slate-600">Hubungi panitia jika perlu bantuan.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN GAME PANEL (muncul saat fase ANSWER)                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="mainGamePanel" class="hidden flex-col flex-1 space-y-4">
+
+    <!-- HEADER -->
+    <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
+      <div class="overflow-hidden">
+        <p id="playerName" class="text-xs text-gray-400 truncate">Loading...</p>
+        <h1 class="text-lg font-black text-amber-400">FORSAKEN CITY RECALL</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <p class="text-[10px] text-gray-400 uppercase tracking-widest">Akumulasi Poin</p>
+          <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
+        </div>
+        <div class="bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-center">
+          <p class="text-[9px] text-slate-500 uppercase font-bold">Sisa Waktu</p>
+          <p id="answerCountdown" class="text-lg font-mono font-black text-emerald-400">15:00</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS SESI -->
+    <div class="flex gap-1.5 px-1">
+      <div data-ses="1" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="2" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="3" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="4" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="5" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="6" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+    </div>
+
+    <!-- PANEL SOAL -->
+    <div id="questionPanel" class="bg-slate-800/80 p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5">
+
+      <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+        <div>
+          <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
+            Sesi 1 dari 6
+          </span>
+          <p class="text-xs text-gray-400 mt-2" id="sessionSubText">
+            Pilih 5 gambar sesuai urutan yang ditampilkan panitia (#1 - #5)
+          </p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-bold text-slate-300">
+            Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5
+          </span>
+        </div>
+      </div>
+
+      <!-- SLOT 5 GAMBAR TERPILIH -->
+      <div>
+        <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
+        <div id="selectedSlotsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+      </div>
+
+      <!-- MATRIKS OPSI GAMBAR -->
+      <div>
+        <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
+        <div id="imageOptionsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
+          <p class="col-span-full text-center text-gray-500 py-8 text-xs">Memuat opsi gambar...</p>
+        </div>
+      </div>
+
+      <!-- NAVIGASI SESI -->
+      <div class="flex justify-between items-center pt-3 border-t border-slate-700/60 gap-2">
+        <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all">
+          <i class="fas fa-arrow-left mr-1"></i> Sesi Sebelumnya
+        </button>
+        <div></div>
+        <button id="btnNextSession" onclick="nextSession()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all">
+          Simpan Sesi 1 & Lanjut <i class="fas fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- PANEL SELESAI -->
+    <div id="successPanel" class="hidden bg-slate-800 p-8 rounded-2xl border border-green-500/30 text-center space-y-4 shadow-2xl my-auto">
+      <div class="w-16 h-16 bg-green-500/10 text-green-400 rounded-full flex items-center justify-center text-3xl mx-auto border border-green-500/20">
+        <i class="fas fa-check"></i>
+      </div>
+      <h2 class="text-xl font-black text-white">Seluruh Sesi Berhasil Diselesaikan!</h2>
+      <p class="text-xs text-gray-400 max-w-sm mx-auto">
+        Terima kasih <span id="successUserText" class="text-amber-400 font-bold"></span>.
+        Seluruh poin sudah dicatat dan notifikasi terkirim ke panitia.
+      </p>
+      <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-5 inline-block">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Poin</div>
+        <div id="successScore" class="text-4xl font-mono font-black text-amber-400">0</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const IMAGE_BASE_PATH = `${SUPABASE_URL}/storage/v1/object/public/forsaken_city/`;
+
+    const SYS_TABLE = 'system_forsaken_city_recall';
+    const NOTIF_TABLE = 'recall_notifications';
+    const SUBMISSIONS_TABLE = 'recall_submissions';
+
+    const TOTAL_SESSIONS = 6;
+    const IMAGES_PER_SESSION = 5;
+    const POINTS_PER_CORRECT = 5;
+
+    // State
+    let userSession = null;
+    let masterSequence = [];
+    let availableFilenames = [];
+    let userAnswers = new Array(30).fill(null);
+    let sessionSubmitted = [false, false, false, false, false, false];
+    let currentSession = 1;
+    let totalScoreAccumulated = 0;
+
+    let currentPhase = 'IDLE';
+    let answerTimerInt = null;
+    let memorizeTimerInt = null;
+
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.max(0, sec % 60);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // USER
+    // ═══════════════════════════════════════════════════════════
+    function initUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) { window.location.href = '/login.html'; return false; }
+      try {
+        userSession = JSON.parse(sess);
+        if (!userSession || !userSession.unique_id) {
+          window.location.href = '/login.html';
+          return false;
+        }
+        document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
+        return true;
+      } catch (e) {
+        window.location.href = '/login.html';
+        return false;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FETCH MASTER DATA
+    // ═══════════════════════════════════════════════════════════
+    async function fetchMasterData() {
+      const { data, error } = await supabaseClient
+        .from(SYS_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.warn('Gagal ambil master data');
+        return;
+      }
+
+      masterSequence = data.sequence_filenames || [];
+      availableFilenames = [...masterSequence].sort();
+      currentPhase = data.session_phase || 'IDLE';
+
+      console.log(`[KIOSK] Sequence: ${masterSequence.length} gambar, phase: ${currentPhase}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FASE CONTROL
+    // ═══════════════════════════════════════════════════════════
+    function showOverlay(id) {
+      ['overlayWaiting', 'overlayMemorize', 'overlayLocked'].forEach(x => {
+        const el = document.getElementById(x);
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+      });
+      const target = document.getElementById(id);
+      if (target) { target.classList.remove('hidden'); target.classList.add('flex'); }
+
+      // Sembunyikan main panel
+      if (id !== null) {
+        document.getElementById('mainGamePanel').classList.add('hidden');
+        document.getElementById('mainGamePanel').classList.remove('flex');
+      }
+    }
+
+    function hideAllOverlays() {
+      ['overlayWaiting', 'overlayMemorize', 'overlayLocked'].forEach(x => {
+        const el = document.getElementById(x);
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+      });
+    }
+
+    async function applyPhase(phase, sysData) {
+      currentPhase = phase;
+
+      if (phase === 'IDLE') {
+        showOverlay('overlayWaiting');
+        stopAnswerTimer();
+        stopMemorizeTimer();
+        return;
+      }
+
+      if (phase === 'MEMORIZE') {
+        showOverlay('overlayMemorize');
+        if (sysData && sysData.memorize_start_time) {
+          startMemorizeCountdown(sysData.memorize_start_time, sysData.memorize_duration || 1800);
+        }
+        stopAnswerTimer();
+        return;
+      }
+
+      if (phase === 'ANSWER') {
+        hideAllOverlays();
+        document.getElementById('mainGamePanel').classList.remove('hidden');
+        document.getElementById('mainGamePanel').classList.add('flex');
+        renderSession();
+        if (sysData && sysData.answer_start_time) {
+          startAnswerCountdown(sysData.answer_start_time, sysData.answer_duration || 900);
+        }
+        stopMemorizeTimer();
+        return;
+      }
+
+      if (phase === 'LOCKED') {
+        // Auto-submit sesi yang belum disubmit
+        await autoSubmitRemaining();
+        stopAnswerTimer();
+        stopMemorizeTimer();
+        showFinalLockOverlay();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COUNTDOWN: MEMORIZE
+    // ═══════════════════════════════════════════════════════════
+    function startMemorizeCountdown(startTime, duration) {
+      if (memorizeTimerInt) clearInterval(memorizeTimerInt);
+      const startMs = new Date(startTime).getTime();
+
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const el = document.getElementById('memorizeCountdown');
+        if (el) el.textContent = formatTime(remaining);
+        if (remaining <= 0) clearInterval(memorizeTimerInt);
+      };
+      tick();
+      memorizeTimerInt = setInterval(tick, 500);
+    }
+
+    function stopMemorizeTimer() {
+      if (memorizeTimerInt) { clearInterval(memorizeTimerInt); memorizeTimerInt = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // COUNTDOWN: ANSWER
+    // ═══════════════════════════════════════════════════════════
+    function startAnswerCountdown(startTime, duration) {
+      if (answerTimerInt) clearInterval(answerTimerInt);
+      const startMs = new Date(startTime).getTime();
+
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const el = document.getElementById('answerCountdown');
+        if (el) {
+          el.textContent = formatTime(remaining);
+          if (remaining <= 30) {
+            el.className = 'text-lg font-mono font-black text-rose-500 animate-timer-pulse';
+          } else if (remaining <= 120) {
+            el.className = 'text-lg font-mono font-black text-amber-400 animate-timer-pulse';
+          } else {
+            el.className = 'text-lg font-mono font-black text-emerald-400';
+          }
+        }
+        if (remaining <= 0) {
+          clearInterval(answerTimerInt);
+          // Waktu habis → auto submit semua
+          handleTimeOut();
+        }
+      };
+      tick();
+      answerTimerInt = setInterval(tick, 500);
+    }
+
+    function stopAnswerTimer() {
+      if (answerTimerInt) { clearInterval(answerTimerInt); answerTimerInt = null; }
+    }
+
+    async function handleTimeOut() {
+      // Auto submit semua sesi yang belum disubmit
+      await autoSubmitRemaining();
+      showFinalLockOverlay();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER SESI
+    // ═══════════════════════════════════════════════════════════
+    function renderSession() {
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+      const filledCount = sessionAnswers.filter(Boolean).length;
+
+      document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari ${TOTAL_SESSIONS}`;
+      document.getElementById('sessionSubText').textContent =
+        `Pilih 5 gambar sesuai urutan tayangan panitia (#${startIndex + 1} - #${startIndex + IMAGES_PER_SESSION})`;
+      document.getElementById('selectedCount').textContent = filledCount;
+
+      renderSlots(sessionAnswers, startIndex);
+      renderOptions();
+      updateButtons();
+      updateSessionDots();
+    }
+
+    function renderSlots(sessionAnswers, startIndex) {
+      const container = document.getElementById('selectedSlotsGrid');
+      container.innerHTML = '';
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        const globalIdx = startIndex + i;
+        const filename = sessionAnswers[i];
+        const slot = document.createElement('div');
+
+        if (filename) {
+          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 flex items-center justify-center overflow-hidden p-0.5 shadow-md";
+          slot.innerHTML = `
+            <img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" onerror="this.style.opacity=0.3"/>
+            ${!isLocked ? `<button onclick="removeAnswer(${globalIdx})" class="absolute top-1 right-1 bg-rose-600 hover:bg-rose-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow z-10">×</button>` : ''}
+            <span class="absolute bottom-1 left-1 bg-slate-900/80 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded">#${globalIdx + 1}</span>
+          `;
+        } else {
+          slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-dashed border-slate-700 flex items-center justify-center overflow-hidden p-0.5";
+          slot.innerHTML = `<span class="text-slate-600 text-xs font-bold">#${globalIdx + 1}</span>`;
+        }
+        container.appendChild(slot);
+      }
+    }
+
+    function renderOptions() {
+      const container = document.getElementById('imageOptionsGrid');
+      container.innerHTML = '';
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      if (availableFilenames.length === 0) {
+        container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8 text-xs">Belum ada opsi gambar.</p>';
+        return;
+      }
+
+      availableFilenames.forEach(filename => {
+        const isSelected = userAnswers.includes(filename);
+        const card = document.createElement('div');
+        card.className = `relative img-aspect-16-9 bg-slate-800 rounded-lg overflow-hidden border p-0.5 transition-all ${
+          isSelected || isLocked
+            ? 'opacity-20 border-slate-700 cursor-not-allowed'
+            : 'border-slate-700 hover:border-amber-400 cursor-pointer active:scale-95 shadow-sm'
+        }`;
+        card.innerHTML = `<img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-full object-cover rounded pointer-events-none" onerror="this.style.opacity=0.3"/>`;
+
+        if (!isSelected && !isLocked) {
+          card.onclick = () => selectImage(filename);
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function updateSessionDots() {
+      document.querySelectorAll('.ses-dot').forEach(dot => {
+        const s = parseInt(dot.dataset.ses);
+        if (sessionSubmitted[s - 1]) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-emerald-500 transition-all';
+        } else if (s === currentSession) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-amber-500 transition-all';
+        } else if (s < currentSession) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-slate-600 transition-all';
+        } else {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all';
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AKSI PILIH / HAPUS
+    // ═══════════════════════════════════════════════════════════
+    function selectImage(filename) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        if (!userAnswers[startIndex + i]) {
+          userAnswers[startIndex + i] = filename;
+          renderSession();
+          return;
+        }
+      }
+      alert(`Slot Sesi ${currentSession} sudah penuh!`);
+    }
+
+    function removeAnswer(globalIdx) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      userAnswers[globalIdx] = null;
+      renderSession();
+    }
+
+    function updateButtons() {
+      const btnPrev = document.getElementById('btnPrevSession');
+      const btnNext = document.getElementById('btnNextSession');
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      btnPrev.classList.toggle('hidden', currentSession === 1);
+
+      if (isLocked) {
+        // Sesi sudah disubmit → tombol jadi navigasi saja
+        if (currentSession < TOTAL_SESSIONS) {
+          btnNext.innerHTML = `Lanjut ke Sesi ${currentSession + 1} <i class="fas fa-arrow-right ml-1"></i>`;
+          btnNext.className = "bg-slate-700 hover:bg-slate-600 text-white font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+        } else {
+          btnNext.innerHTML = `<i class="fas fa-lock mr-1"></i> Selesai`;
+          btnNext.className = "bg-slate-800 text-slate-500 font-extrabold px-5 py-2 rounded-lg text-xs cursor-not-allowed";
+          btnNext.disabled = true;
+        }
+        return;
+      }
+
+      if (currentSession === TOTAL_SESSIONS) {
+        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir (Sesi 6)`;
+        btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      } else {
+        btnNext.innerHTML = `Simpan Sesi ${currentSession} & Lanjut <i class="fas fa-arrow-right ml-1"></i>`;
+        btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      }
+    }
+
+    function prevSession() {
+      if (currentSession > 1) {
+        currentSession--;
+        renderSession();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT SESI
+    // ═══════════════════════════════════════════════════════════
+    async function nextSession() {
+      if (currentPhase !== 'ANSWER') return;
+
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const currentAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+
+      // Kalau sesi sudah disubmit → navigasi saja
+      if (sessionSubmitted[currentSession - 1]) {
+        if (currentSession < TOTAL_SESSIONS) {
+          currentSession++;
+          renderSession();
+        }
+        return;
+      }
+
+      if (currentAnswers.some(ans => ans === null)) {
+        return alert(`Harap isi 5 gambar untuk Sesi ${currentSession} terlebih dahulu!`);
+      }
+
+      // Hitung skor sesi
+      let sessionScore = 0;
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        const globalIdx = startIndex + i;
+        if (currentAnswers[i] === masterSequence[globalIdx]) {
+          sessionScore += POINTS_PER_CORRECT;
+        }
+      }
+
+      // Simpan ke game_scores
+      const { error } = await supabaseClient
+        .from('game_scores')
+        .insert({
+          user_unique_id: userSession.unique_id,
+          game_name: `Recall Type ${currentSession}`,
+          score_obtained: sessionScore,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) {
+        alert(`Gagal simpan Sesi ${currentSession}: ` + error.message);
+        return;
+      }
+
+      sessionSubmitted[currentSession - 1] = true;
+      totalScoreAccumulated += sessionScore;
+      document.getElementById('totalScoreText').textContent = totalScoreAccumulated;
+      playBell();
+
+      // Navigasi
+      if (currentSession < TOTAL_SESSIONS) {
+        currentSession++;
+        renderSession();
+      } else {
+        await finalizeAllSubmissions();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AUTO SUBMIT SAAT WAKTU HABIS / LOCK
+    // ═══════════════════════════════════════════════════════════
+    async function autoSubmitRemaining() {
+      for (let s = 1; s <= TOTAL_SESSIONS; s++) {
+        if (sessionSubmitted[s - 1]) continue;
+
+        const startIndex = (s - 1) * IMAGES_PER_SESSION;
+        const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+
+        // Hitung skor (kosong = 0)
+        let sessionScore = 0;
+        for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+          if (sessionAnswers[i] && sessionAnswers[i] === masterSequence[startIndex + i]) {
+            sessionScore += POINTS_PER_CORRECT;
+          }
+        }
+
+        // Insert
+        const { error } = await supabaseClient
+          .from('game_scores')
+          .insert({
+            user_unique_id: userSession.unique_id,
+            game_name: `Recall Type ${s}`,
+            score_obtained: sessionScore,
+            created_at: new Date().toISOString()
+          });
+
+        if (!error) {
+          sessionSubmitted[s - 1] = true;
+          totalScoreAccumulated += sessionScore;
+        }
+      }
+
+      // Simpan berkas lengkap + kirim notifikasi (sekali saja)
+      await finalizeAllSubmissions(true);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FINAL SUBMIT
+    // ═══════════════════════════════════════════════════════════
+    async function finalizeAllSubmissions(silent = false) {
+      if (!silent) {
+        if (!confirm('Kirim lembar jawaban akhir dan beri tahu panitia?')) return;
+      }
+
+      // Simpan lembar jawaban
+      await supabaseClient
+        .from(SUBMISSIONS_TABLE)
+        .insert({
+          user_unique_id: userSession.unique_id,
+          answers: userAnswers,
+          submitted_at: new Date().toISOString()
+        });
+
+      // Kirim notifikasi ke panitia
+      await supabaseClient
+        .from(NOTIF_TABLE)
+        .insert({
+          user_unique_id: userSession.unique_id,
+          message: `${userSession.full_name || userSession.unique_id} telah selesai menjawab`,
+          status: 'unread',
+          created_at: new Date().toISOString()
+        });
+
+      // Update UI
+      document.getElementById('successUserText').textContent = userSession.full_name || userSession.unique_id;
+      document.getElementById('successScore').textContent = totalScoreAccumulated;
+      document.getElementById('finalScore').textContent = totalScoreAccumulated;
+
+      document.getElementById('mainGamePanel').classList.add('hidden');
+      document.getElementById('mainGamePanel').classList.remove('flex');
+      document.getElementById('successPanel').classList.remove('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LOCKED OVERLAY
+    // ═══════════════════════════════════════════════════════════
+    function showFinalLockOverlay() {
+      document.getElementById('finalScore').textContent = totalScoreAccumulated;
+      hideAllOverlays();
+      document.getElementById('overlayLocked').classList.remove('hidden');
+      document.getElementById('overlayLocked').classList.add('flex');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME SYSTEM LISTENER
+    // ═══════════════════════════════════════════════════════════
+    function subscribeSystem() {
+      supabaseClient
+        .channel('kiosk_recall_system')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: SYS_TABLE }, async (payload) => {
+          if (payload.new) {
+            const phase = payload.new.session_phase || 'IDLE';
+            masterSequence = payload.new.sequence_filenames || masterSequence;
+            availableFilenames = [...masterSequence].sort();
+
+            // Kalau phase berubah
+            if (phase !== currentPhase) {
+              console.log('[KIOSK] Phase change:', currentPhase, '→', phase);
+              await applyPhase(phase, payload.new);
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      if (!initUser()) return;
+
+      await fetchMasterData();
+
+      // Apply phase awal
+      const { data: sys } = await supabaseClient
+        .from(SYS_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      await applyPhase(currentPhase, sys);
+
+      subscribeSystem();
+
+      // Polling fallback
+      setInterval(async () => {
+        const { data } = await supabaseClient
+          .from(SYS_TABLE)
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (data) {
+          masterSequence = data.sequence_filenames || masterSequence;
+          availableFilenames = [...masterSequence].sort();
+          const phase = data.session_phase || 'IDLE';
+          if (phase !== currentPhase) {
+            await applyPhase(phase, data);
+          }
+        }
+      }, 3000);
+
+      console.log('[KIOSK] Forsaken City Recall ready');
+    }
+
+    init();
+  </script>
+</body>
+</html>
