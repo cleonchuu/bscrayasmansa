@@ -226,7 +226,7 @@
     }
 
     const SOUND_BELL = getSoundEffectUrl('bell.mp3');
-    const SOUND_BEEP = getSoundEffectUrl('bell.mp3');
+    const SOUND_BEEP = getSoundEffectUrl('beep.mp3');
 
     // ═══════════════════════════════════════════════════════════
     // LAYOUT VIEW SWITCHER
@@ -548,7 +548,8 @@
 
           if (this.remainingSeconds <= 0) {
             this.stopTimer();
-            this.reset();
+            // ⭐ TIMEUP: play beep dulu, baru reset
+            this.playTimeupBeep().then(() => this.reset());
           }
         }, 1000);
       }
@@ -559,6 +560,20 @@
           this.timerInterval = null;
         }
       }
+
+      // ⭐ BUNYI BEEP SAAT WAKTU HABIS
+async playTimeupBeep() {
+  LOG.warn('AUDIO', '⏰ Timeup! Play beep...');
+  try {
+    // Beep 3 kali biar jelas
+    for (let i = 0; i < 3; i++) {
+      await this.audioEngine.playSequence([SOUND_BEEP]);
+      await this.delay(200);
+    }
+  } catch (e) {
+    LOG.error('AUDIO', 'Beep error', e);
+  }
+}
 
       updateTimerUI() {
         const mins = Math.floor(this.remainingSeconds / 60);
@@ -588,9 +603,8 @@
         this.audioEngine.stop();
         this.stopTimer();
 
-        if (this.isPlaying) {
-          await this.audioEngine.playSequence([SOUND_BEEP]);
-        }
+        // Beep sudah di-handle di playTimeupBeep() saat timer habis.
+        // Reset manual (dari admin) tidak perlu bunyi beep.
 
         this.isPlaying = false;
         this.resetDisplay();
@@ -815,6 +829,14 @@
     // ═══════════════════════════════════════════════════════════
     async function initStage() {
       LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+
+      // ⭐ Preload beep & bell sejak awal biar timeup langsung bunyi
+      try {
+        await engine.audioEngine.downloadAllAudioFiles([SOUND_BEEP, SOUND_BELL]);
+        LOG.ok('AUDIO', 'Beep & bell preloaded');
+      } catch (e) {
+        LOG.warn('AUDIO', 'Preload gagal', e);
+      }
 
       // Fetch layout awal
       const { data: layoutData } = await supabaseClient

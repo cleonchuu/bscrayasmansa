@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Arithmatic Bingo - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -18,17 +17,18 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       BINGO GRID
+       BINGO GRID — pakai padding-bottom fallback untuk iOS lama
        ═══════════════════════════════════════════════════════════ */
     .bingo-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
     }
+
     .bingo-cell-wrap {
       position: relative;
       width: 100%;
-      padding-bottom: 100%;
+      padding-bottom: 100%; /* aspect 1:1 */
     }
     .bingo-cell {
       position: absolute;
@@ -44,268 +44,59 @@
       border: none;
       font-family: inherit;
       cursor: pointer;
-      transition: transform 0.15s, background 0.2s;
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — FASE SOAL
-       ═══════════════════════════════════════════════════════════ */
-
-    /* Soal muncul: zoom + shake */
-    @keyframes questionPop {
-      0% { opacity: 0; transform: scale(0.5) rotate(-5deg); }
-      60% { opacity: 1; transform: scale(1.08) rotate(2deg); }
-      100% { opacity: 1; transform: scale(1) rotate(0); }
+    @keyframes flashGreen {
+      0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+      50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.9); }
     }
-    .anim-question-pop {
-      animation: questionPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-
-    /* Background flash saat soal baru */
-    @keyframes bgFlash {
-      0% { background-color: rgba(245, 158, 11, 0.4); }
-      100% { background-color: rgba(30, 41, 59, 0); }
-    }
-    .anim-bg-flash {
-      animation: bgFlash 0.7s ease-out;
-    }
-
-    /* Waiting: badge pulse */
-    @keyframes waitingPulse {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.15); }
-    }
-    .anim-waiting-dot {
-      animation: waitingPulse 1s ease-in-out infinite;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — TIMER
-       ═══════════════════════════════════════════════════════════ */
-
-    /* Timer kritis (≤5s): shake + heartbeat */
-    @keyframes timerShake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-2px); }
-      75% { transform: translateX(2px); }
-    }
-    @keyframes timerHeartbeat {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-    }
-    .anim-timer-critical {
-      animation: timerShake 0.4s ease-in-out infinite,
-                 timerHeartbeat 0.6s ease-in-out infinite;
-      color: #f43f5e !important;
-      text-shadow: 0 0 12px rgba(244, 63, 94, 0.9);
-    }
-
-    /* Timer warning (≤10s): pulse lembut */
-    @keyframes timerWarning {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    .anim-timer-warning {
-      animation: timerWarning 0.8s ease-in-out infinite;
-      color: #f59e0b !important;
-      text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — KLIK BENAR / SALAH
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes correctPop {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.3); box-shadow: 0 0 30px rgba(16,185,129,1); }
-      100% { transform: scale(1); }
-    }
-    .anim-correct-pop {
-      animation: correctPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    @keyframes wrongShake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-6px); }
-      40%, 80% { transform: translateX(6px); }
-    }
-    .anim-wrong-shake {
-      animation: wrongShake 0.4s ease-in-out;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — BINGO BONUS
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes bingoBurst {
-      0% { opacity: 0; transform: scale(0.3) rotate(-15deg); }
-      50% { opacity: 1; transform: scale(1.15) rotate(5deg); }
-      100% { opacity: 0; transform: scale(2) rotate(-5deg); }
-    }
-    .anim-bingo-burst {
-      animation: bingoBurst 1.4s cubic-bezier(0.4, 0, 0.6, 1) forwards;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — TIMEUP
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes timeupFlash {
-      0% { opacity: 0; transform: scale(0.5); }
-      20% { opacity: 1; transform: scale(1.2); }
-      40% { transform: scale(1); }
-      100% { opacity: 1; transform: scale(1); }
-    }
-    .anim-timeup {
-      animation: timeupFlash 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — SKOR
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes scorePopUp {
-      0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-40px) scale(1.6); opacity: 0; }
-    }
-    .anim-score-popup {
-      animation: scorePopUp 0.9s ease-out forwards;
-      pointer-events: none;
-    }
-
-    @keyframes scoreFlashGreen {
-      0% { transform: scale(1); color: #22c55e; }
-      50% { transform: scale(1.3); color: #86efac; }
-      100% { transform: scale(1); color: #22c55e; }
-    }
-    @keyframes scoreFlashRed {
-      0% { transform: scale(1); color: #ef4444; }
-      50% { transform: scale(0.85); color: #fca5a5; }
-      100% { transform: scale(1); color: #ef4444; }
-    }
-    .anim-score-green { animation: scoreFlashGreen 0.5s ease-out; }
-    .anim-score-red   { animation: scoreFlashRed 0.5s ease-out; }
-
-    /* ═══════════════════════════════════════════════════════════
-       ANIMASI — CONFETTI MINI
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes confettiFall {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(80px) rotate(720deg); opacity: 0; }
-    }
-    .confetti-piece {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      border-radius: 2px;
-      pointer-events: none;
-      animation: confettiFall 1s ease-out forwards;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       PULSE GLOW — SOAL AKTIF
-       ═══════════════════════════════════════════════════════════ */
-
-    @keyframes questionGlow {
-      0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3), inset 0 0 0 rgba(245, 158, 11, 0); }
-      50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.7), inset 0 0 20px rgba(245, 158, 11, 0.1); }
-    }
-    .anim-question-glow {
-      animation: questionGlow 2s ease-in-out infinite;
-    }
-
-    /* Screen shake global saat timeup */
-    @keyframes screenShake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-4px); }
-      80% { transform: translateX(4px); }
-    }
-    .anim-screen-shake {
-      animation: screenShake 0.5s ease-in-out;
-    }
+    .flash-correct { animation: flashGreen 0.5s ease-in-out; }
   </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4 relative overflow-hidden">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4">
 
   <!-- AUDIO BELL -->
   <audio id="bellSound"
     src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"
     preload="auto"></audio>
 
-  <!-- AUDIO BINGO (opsional, fallback ke bell) -->
-  <audio id="bingoSound"
-    src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"
-    preload="auto"></audio>
-
-  <!-- ⭐ OVERLAY BINGO BURST -->
-  <div id="bingoBurst" class="fixed inset-0 z-50 hidden items-center justify-center pointer-events-none">
-    <div class="text-center">
-      <div class="text-[120px] font-black text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.9)] leading-none">
-        BINGO!
-      </div>
-      <div id="bingoBurstSub" class="text-2xl font-black text-emerald-400 mt-2">+5 POIN</div>
-    </div>
-  </div>
-
-  <!-- ⭐ OVERLAY TIMEUP -->
-  <div id="timeupOverlay" class="fixed inset-0 z-40 hidden items-center justify-center pointer-events-none bg-rose-950/60 backdrop-blur-sm">
-    <div class="text-center anim-timeup">
-      <div class="text-[100px] leading-none">⏰</div>
-      <div class="text-4xl font-black text-rose-400 mt-2 drop-shadow-[0_0_20px_rgba(244,63,94,0.9)]">
-        WAKTU HABIS
-      </div>
-    </div>
-  </div>
-
   <!-- DEBUG BADGE -->
   <div id="debugBadge"
        class="fixed top-2 right-2 text-[10px] font-mono bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-slate-400 z-50 pointer-events-none">
-    <span id="dbgState">booting</span> · <span id="dbgQ">#-</span> · <span id="dbgSync">--</span> · <span id="dbgClock">±0</span>
+    <span id="dbgState">booting</span> · <span id="dbgQ">#-</span> · <span id="dbgSync">--</span>
   </div>
 
   <!-- HEADER -->
-  <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg relative">
+  <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
     <div class="min-w-0 flex-1">
       <p id="playerName" class="text-xs text-gray-400 truncate">Loading...</p>
       <h1 class="text-lg font-black text-amber-400 truncate">ARITHMATIC BINGO</h1>
     </div>
-    <div class="text-right flex-shrink-0 relative">
+    <div class="text-right flex-shrink-0">
       <p class="text-[10px] text-gray-400 uppercase tracking-widest">Total Skor</p>
-      <p id="totalScoreText" class="text-2xl font-black text-green-400 transition-all">0</p>
-      <!-- Floating score popup container -->
-      <div id="scorePopupContainer" class="absolute -top-2 right-0 pointer-events-none"></div>
+      <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
     </div>
   </div>
 
   <!-- SOAL & TIMER -->
-  <div id="questionCard" class="my-4 bg-gradient-to-r from-amber-500/20 via-slate-800 to-indigo-500/20 p-4 rounded-xl border border-amber-500/30 text-center relative overflow-hidden">
+  <div class="my-4 bg-gradient-to-r from-amber-500/20 via-slate-800 to-indigo-500/20 p-4 rounded-xl border border-amber-500/30 text-center relative overflow-hidden">
     <div class="flex justify-between items-center mb-2">
       <span id="questionNum" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Soal #-</span>
-      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400 transition-all">
+      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400">
         <i class="fas fa-clock mr-1"></i>00:20
       </span>
     </div>
-    <h2 id="questionText" class="text-2xl font-extrabold text-white my-2 transition-all">Menunggu Admin...</h2>
+    <h2 id="questionText" class="text-2xl font-extrabold text-white my-2">Menunggu Admin...</h2>
     <p id="statusMsg" class="text-xs text-gray-400">Jawab sebelum waktu habis!</p>
-
-    <!-- Waiting dot indicator -->
-    <div id="waitingIndicator" class="flex items-center justify-center gap-1 mt-2">
-      <span class="anim-waiting-dot w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-      <span class="anim-waiting-dot w-1.5 h-1.5 rounded-full bg-amber-400" style="animation-delay: 0.2s"></span>
-      <span class="anim-waiting-dot w-1.5 h-1.5 rounded-full bg-amber-400" style="animation-delay: 0.4s"></span>
-    </div>
   </div>
 
   <!-- TAB SELECTOR -->
   <div class="flex justify-between gap-1 mb-2">
-    <button onclick="switchBoard(0)" id="tab-0" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900 transition-all">Papan 1</button>
-    <button onclick="switchBoard(1)" id="tab-1" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all">Papan 2</button>
-    <button onclick="switchBoard(2)" id="tab-2" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all">Papan 3</button>
-    <button onclick="switchBoard(3)" id="tab-3" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all">Papan 4</button>
-    <button onclick="switchBoard(4)" id="tab-4" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all">Papan 5</button>
+    <button onclick="switchBoard(0)" id="tab-0" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900">Papan 1</button>
+    <button onclick="switchBoard(1)" id="tab-1" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 2</button>
+    <button onclick="switchBoard(2)" id="tab-2" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 3</button>
+    <button onclick="switchBoard(3)" id="tab-3" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 4</button>
+    <button onclick="switchBoard(4)" id="tab-4" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 5</button>
   </div>
 
   <!-- GRID -->
@@ -323,12 +114,8 @@ const QUESTION_DURATION = 20;
 const POLL_INTERVAL_MS = 800;
 const TIMER_TICK_MS = 200;
 const FLUSH_DEBOUNCE_MS = 500;
-const CLOCK_RESYNC_MS = 60000;
 const TAG = '[KIOSK]';
 
-// ═══════════════════════════════════════════════════════════
-// LOGGER
-// ═══════════════════════════════════════════════════════════
 const LOG = {
   ok:   (m, d) => console.log(`%c${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
   info: (m, d) => console.log(`%c${TAG} ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
@@ -352,23 +139,20 @@ const STATE = {
 
   timerInterval: null,
   timerEndAt: 0,
-  lastTimerWarningState: '',  // '', 'warning', 'critical'
 
   scoreAccumulated: 0,
   pendingPoints: 0,
   flushTimer: null,
 
   isProcessing: false,
+
+  // Signature tracking
   lastSig: '',
   lastQuestionNum: 0,
-  realtimeConnected: false,
-  clockOffset: 0,
-  clockSynced: false
+
+  realtimeConnected: false
 };
 
-// ═══════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════
 const UI = {
   setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; },
   setHTML(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; },
@@ -376,18 +160,8 @@ const UI = {
     UI.setText('dbgState', state);
     UI.setText('dbgQ', `#${qNum}`);
     if (sync !== null) UI.setText('dbgSync', sync);
-    UI.setText('dbgClock', `±${Math.round(STATE.clockOffset)}ms`);
   }
 };
-
-// ═══════════════════════════════════════════════════════════
-// HAPTIC (getar HP)
-// ═══════════════════════════════════════════════════════════
-function vibrate(pattern) {
-  if ('vibrate' in navigator) {
-    try { navigator.vibrate(pattern); } catch (e) {}
-  }
-}
 
 // ═══════════════════════════════════════════════════════════
 // AUDIO
@@ -401,140 +175,22 @@ function playBell() {
   } catch (e) { LOG.warn('Bell error', e); }
 }
 
-function playBingo() {
-  const b = document.getElementById('bingoSound');
-  if (!b) return playBell();
-  try {
-    b.currentTime = 0;
-    b.play().catch(() => playBell());
-  } catch (e) { playBell(); }
-}
-
 // ═══════════════════════════════════════════════════════════
-// ⭐ ANIMASI HELPERS
-// ═══════════════════════════════════════════════════════════
-function animAdd(el, className, duration = 800) {
-  if (!el) return;
-  el.classList.remove(className);
-  void el.offsetWidth; // force reflow
-  el.classList.add(className);
-  setTimeout(() => el.classList.remove(className), duration);
-}
-
-function showBingoBurst(subText = '+5 POIN') {
-  const el = document.getElementById('bingoBurst');
-  if (!el) return;
-  document.getElementById('bingoBurstSub').textContent = subText;
-  el.classList.remove('hidden');
-  el.classList.add('flex');
-  animAdd(el.querySelector('div'), 'anim-bingo-burst', 1400);
-  setTimeout(() => {
-    el.classList.add('hidden');
-    el.classList.remove('flex');
-  }, 1400);
-  playBingo();
-  vibrate([50, 30, 50, 30, 100]);
-}
-
-function showTimeup() {
-  const el = document.getElementById('timeupOverlay');
-  if (!el) return;
-  el.classList.remove('hidden');
-  el.classList.add('flex');
-  setTimeout(() => {
-    el.classList.add('hidden');
-    el.classList.remove('flex');
-  }, 1800);
-  // Screen shake
-  animAdd(document.body, 'anim-screen-shake', 500);
-  vibrate([200, 100, 200]);
-}
-
-function showScorePopup(points) {
-  const container = document.getElementById('scorePopupContainer');
-  if (!container) return;
-  const el = document.createElement('div');
-  const isPositive = points > 0;
-  el.className = `absolute right-0 text-2xl font-black ${isPositive ? 'text-emerald-400' : 'text-rose-500'} anim-score-popup`;
-  el.textContent = isPositive ? `+${points}` : `${points}`;
-  container.appendChild(el);
-  setTimeout(() => el.remove(), 900);
-}
-
-function flashScore(isPositive) {
-  const el = document.getElementById('totalScoreText');
-  if (!el) return;
-  animAdd(el, isPositive ? 'anim-score-green' : 'anim-score-red', 500);
-}
-
-function spawnConfetti(anchorEl) {
-  if (!anchorEl) return;
-  const rect = anchorEl.getBoundingClientRect();
-  const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#a855f7'];
-  for (let i = 0; i < 8; i++) {
-    const piece = document.createElement('div');
-    piece.className = 'confetti-piece';
-    piece.style.left = `${rect.left + rect.width / 2}px`;
-    piece.style.top = `${rect.top + rect.height / 2}px`;
-    piece.style.backgroundColor = colors[i % colors.length];
-    piece.style.animationDelay = `${i * 40}ms`;
-    document.body.appendChild(piece);
-    setTimeout(() => piece.remove(), 1200);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// ⭐ CLOCK SYNC
-// ═══════════════════════════════════════════════════════════
-async function syncClockOffset() {
-  try {
-    const t0 = Date.now();
-    const { data, error } = await supabaseClient
-      .from('system_arithmatic_bingo')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
-    const t1 = Date.now();
-
-    if (error || !data) {
-      STATE.clockOffset = 0;
-      LOG.warn('Clock sync gagal, offset=0');
-      return;
-    }
-
-    let serverTs = null;
-    if (data.server_time) serverTs = new Date(data.server_time).getTime();
-    else if (data.updated_at) serverTs = new Date(data.updated_at).getTime();
-
-    if (!serverTs) {
-      STATE.clockOffset = 0;
-      return;
-    }
-
-    const rtt = t1 - t0;
-    const localEstimate = t0 + (rtt / 2);
-    STATE.clockOffset = serverTs - localEstimate;
-    STATE.clockSynced = true;
-    LOG.ok(`Clock offset: ${Math.round(STATE.clockOffset)}ms (RTT ${rtt}ms)`);
-  } catch (e) {
-    LOG.err('syncClockOffset exception', e);
-    STATE.clockOffset = 0;
-  }
-}
-
-function now() {
-  return Date.now() + STATE.clockOffset;
-}
-
-// ═══════════════════════════════════════════════════════════
-// USER
+// USER INIT
 // ═══════════════════════════════════════════════════════════
 function initUser() {
   try {
     const sess = localStorage.getItem('userSession');
-    if (!sess) { window.location.href = '/login.html'; return false; }
+    if (!sess) {
+      LOG.warn('Tidak ada userSession, redirect ke login');
+      window.location.href = '/login.html';
+      return false;
+    }
     STATE.user = JSON.parse(sess);
-    if (!STATE.user?.unique_id) return false;
+    if (!STATE.user?.unique_id) {
+      LOG.err('userSession tidak punya unique_id', STATE.user);
+      return false;
+    }
     UI.setText('playerName', STATE.user.full_name || STATE.user.unique_id);
     LOG.ok('User ready', STATE.user.unique_id);
     return true;
@@ -573,7 +229,7 @@ function generateBingoBoards() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// RENDER BOARD
+// RENDER
 // ═══════════════════════════════════════════════════════════
 function renderBoard(boardIdx) {
   const container = document.getElementById('gridContainer');
@@ -582,11 +238,12 @@ function renderBoard(boardIdx) {
 
   const state = STATE.boardStates[boardIdx];
   state.forEach((cell, idx) => {
+    // Wrapper untuk aspect ratio 1:1 (fallback iOS)
     const wrap = document.createElement('div');
     wrap.className = 'bingo-cell-wrap';
 
     const btn = document.createElement('button');
-    btn.className = 'bingo-cell text-sm ';
+    btn.className = 'bingo-cell text-sm transition-all duration-200 ';
 
     if (cell.status === 'default') {
       btn.className += 'bg-slate-700 text-white active:scale-95';
@@ -607,8 +264,8 @@ function switchBoard(idx) {
   STATE.currentBoardIndex = idx;
   document.querySelectorAll('.board-tab').forEach((tab, i) => {
     tab.className = i === idx
-      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900 transition-all'
-      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all';
+      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900'
+      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400';
   });
   renderBoard(idx);
 }
@@ -617,7 +274,10 @@ function switchBoard(idx) {
 // CLICK HANDLER
 // ═══════════════════════════════════════════════════════════
 async function handleCellClick(boardIdx, cellIdx) {
-  if (!STATE.isQuestionActive || STATE.activeAnswer === null) return;
+  if (!STATE.isQuestionActive || STATE.activeAnswer === null) {
+    LOG.warn('Klik diabaikan — soal tidak aktif');
+    return;
+  }
   if (STATE.isProcessing) return;
 
   const cell = STATE.boardStates[boardIdx][cellIdx];
@@ -625,25 +285,16 @@ async function handleCellClick(boardIdx, cellIdx) {
 
   STATE.isProcessing = true;
 
-  // Cari elemen button yang diklik
-  const wrap = document.getElementById('gridContainer').children[cellIdx];
-  const btn = wrap?.querySelector('.bingo-cell');
-
   if (cell.val === STATE.activeAnswer) {
     cell.status = 'correct';
-    animAdd(btn, 'anim-correct-pop', 500);
-    spawnConfetti(btn);
     addPoints(1, 'Jawaban Benar (+1)');
-    vibrate(30);
     checkBingoBonus(boardIdx);
   } else {
     cell.status = 'wrong';
-    animAdd(btn, 'anim-wrong-shake', 400);
     addPoints(-1, 'Salah Tekan (-1)');
-    vibrate([80, 40, 80]);
   }
 
-  setTimeout(() => renderBoard(STATE.currentBoardIndex), 400);
+  renderBoard(STATE.currentBoardIndex);
   STATE.isProcessing = false;
 }
 
@@ -659,8 +310,7 @@ function checkBingoBonus(boardIdx) {
       const rowCells = state.filter(c => c.row === r);
       if (rowCells.every(c => c.status === 'correct')) {
         STATE.lineBonusClaimed[boardIdx].push(tag);
-        addPoints(5, `🎉 BINGO Baris ${r + 1}! (+5)`);
-        showBingoBurst(`BINGO BARIS ${r + 1} · +5 POIN`);
+        addPoints(5, `BINGO Baris ${r + 1} (+5)`);
       }
     }
   }
@@ -671,8 +321,7 @@ function checkBingoBonus(boardIdx) {
       const colCells = state.filter(cell => cell.col === c);
       if (colCells.every(cell => cell.status === 'correct')) {
         STATE.lineBonusClaimed[boardIdx].push(tag);
-        addPoints(5, `🎉 BINGO Kolom ${c + 1}! (+5)`);
-        showBingoBurst(`BINGO KOLOM ${c + 1} · +5 POIN`);
+        addPoints(5, `BINGO Kolom ${c + 1} (+5)`);
       }
     }
   }
@@ -686,10 +335,6 @@ function addPoints(pts, reason) {
   STATE.pendingPoints += pts;
   UI.setText('totalScoreText', STATE.scoreAccumulated);
   UI.setText('statusMsg', reason);
-
-  // ⭐ Animasi skor
-  flashScore(pts > 0);
-  showScorePopup(pts);
 
   if (!STATE.flushTimer) {
     STATE.flushTimer = setTimeout(flushPendingPoints, FLUSH_DEBOUNCE_MS);
@@ -735,11 +380,11 @@ function resetBoardsForNewSession(reason = 'new-session') {
   STATE.scoreAccumulated = 0;
   STATE.pendingPoints = 0;
   STATE.isProcessing = false;
+
   STATE.activeQuestionNum = 0;
   STATE.activeAnswer = null;
   STATE.isQuestionActive = false;
   STATE.lastQuestionNum = 0;
-  STATE.lastTimerWarningState = '';
 
   if (STATE.timerInterval) {
     clearInterval(STATE.timerInterval);
@@ -757,18 +402,10 @@ function resetBoardsForNewSession(reason = 'new-session') {
   UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
   UI.debug('reset', 0);
 
-  // Reset timer display class
-  const timerEl = document.getElementById('timerDisplay');
-  if (timerEl) timerEl.className = 'text-xs font-mono font-bold text-rose-400 transition-all';
-
-  // Reset question card class
-  const qCard = document.getElementById('questionCard');
-  if (qCard) qCard.classList.remove('anim-question-glow');
-
   document.querySelectorAll('.board-tab').forEach((tab, i) => {
     tab.className = i === 0
-      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900 transition-all'
-      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all';
+      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900'
+      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400';
   });
 
   LOG.ok('✅ Papan & skor di-reset');
@@ -789,17 +426,22 @@ function processQuestionData(data) {
 
   LOG.info(`Data masuk: Q#${currQNum}, active=${data.is_active}, prevQ=#${prevQNum}`);
 
-  // Deteksi sesi baru
+  // ═══════════════════════════════════════════════════════
+  // DETEKSI SESI BARU
+  // ═══════════════════════════════════════════════════════
   const isNewSessionStart = (currQNum === 1 && prevQNum > 1);
   const isNumberReset = (currQNum > 0 && prevQNum > currQNum && currQNum > 1);
 
   if (isNewSessionStart || isNumberReset) {
-    LOG.ok(`🎮 SESI BARU (prev #${prevQNum} → #${currQNum})`);
+    LOG.ok(`🎮 SESI BARU terdeteksi (prev #${prevQNum} → #${currQNum})`);
     resetBoardsForNewSession('detect-new-session');
+    // Restore signature setelah reset — biar Q#1 tetap diproses di bawah
     STATE.lastSig = sig;
   }
 
-  // ═══ KONDISI A: WAITING / CLEARED ═══
+  // ═══════════════════════════════════════════════════════
+  // KONDISI A: WAITING / CLEARED (Q#0 / is_active=false)
+  // ═══════════════════════════════════════════════════════
   if (!data.is_active || currQNum === 0) {
     LOG.warn('State: WAITING / CLEARED');
 
@@ -812,7 +454,6 @@ function processQuestionData(data) {
     STATE.activeAnswer = null;
     STATE.activeQuestionNum = 0;
     STATE.lastQuestionNum = 0;
-    STATE.lastTimerWarningState = '';
 
     if (STATE.timerInterval) {
       clearInterval(STATE.timerInterval);
@@ -824,30 +465,21 @@ function processQuestionData(data) {
     UI.setText('statusMsg', 'Jawab sebelum waktu habis!');
     UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
     UI.debug('waiting', 0);
-
-    // Reset kelas timer
-    const timerEl = document.getElementById('timerDisplay');
-    if (timerEl) timerEl.className = 'text-xs font-mono font-bold text-rose-400 transition-all';
-
-    const qCard = document.getElementById('questionCard');
-    if (qCard) qCard.classList.remove('anim-question-glow');
-
-    // Show waiting indicator
-    const wi = document.getElementById('waitingIndicator');
-    if (wi) wi.classList.remove('hidden');
-
     return;
   }
 
-  // ═══ KONDISI B: Soal valid ═══
+  // ═══════════════════════════════════════════════════════
+  // KONDISI B: Soal valid
+  // ═══════════════════════════════════════════════════════
   const isNewQuestion = currQNum !== STATE.lastQuestionNum;
 
   if (!isNewQuestion) {
+    // Nomor soal sama → cek timer lokal
     if (STATE.isQuestionActive) {
       UI.debug('active', currQNum, 'poll-ok');
       return;
     }
-    LOG.info(`Resync Q#${currQNum}`);
+    LOG.info(`Resync Q#${currQNum} (timer lokal habis)`);
   }
 
   LOG.ok(`Proses soal #${currQNum}`);
@@ -857,34 +489,19 @@ function processQuestionData(data) {
   STATE.activeQuestionNum = currQNum;
   STATE.activeAnswer = data.correct_answer;
   STATE.isQuestionActive = true;
-  STATE.lastTimerWarningState = '';
 
   UI.setText('questionNum', `Soal #${currQNum}`);
   UI.setText('questionText', data.question_text || 'SIAP MEMULAI?');
   UI.setText('statusMsg', 'Cari jawaban di 5 papanmu!');
   UI.debug('active', currQNum);
 
-  // ⭐ Animasi soal muncul
-  const qCard = document.getElementById('questionCard');
-  const qText = document.getElementById('questionText');
-  if (qCard) {
-    animAdd(qCard, 'anim-bg-flash', 700);
-    qCard.classList.add('anim-question-glow');
-  }
-  if (qText) animAdd(qText, 'anim-question-pop', 600);
-
-  // Sembunyikan waiting indicator
-  const wi = document.getElementById('waitingIndicator');
-  if (wi) wi.classList.add('hidden');
-
   playBell();
-  vibrate(50);
 
-  // Hitung timer pakai jam server
+  // Timer sync dari start_time
   let remaining = QUESTION_DURATION;
   if (data.start_time) {
     const startMs = new Date(data.start_time).getTime();
-    const elapsed = Math.floor((now() - startMs) / 1000);
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
     remaining = Math.max(0, QUESTION_DURATION - elapsed);
     LOG.info(`Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
   }
@@ -892,7 +509,7 @@ function processQuestionData(data) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TIMER dengan animasi warning
+// TIMER
 // ═══════════════════════════════════════════════════════════
 function startTimer(secondsLeft) {
   if (STATE.timerInterval) {
@@ -901,21 +518,20 @@ function startTimer(secondsLeft) {
   }
 
   if (secondsLeft <= 0) {
-    LOG.warn('Soal masuk setelah waktu habis');
+    LOG.warn('Soal masuk setelah waktu habis — langsung timeup');
     STATE.isQuestionActive = false;
-    UI.setText('statusMsg', 'Waktu Habis!');
+    UI.setText('statusMsg', 'Waktu Habis! Soal ditutup.');
     UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
     updateTimerDisplay(0);
-    showTimeup();
     flushPendingPoints();
     UI.debug('timeup', STATE.activeQuestionNum);
     return;
   }
 
-  STATE.timerEndAt = now() + (secondsLeft * 1000);
+  STATE.timerEndAt = Date.now() + (secondsLeft * 1000);
 
   const tick = () => {
-    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - now()) / 1000));
+    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - Date.now()) / 1000));
     updateTimerDisplay(remaining);
 
     if (remaining <= 0) {
@@ -925,12 +541,7 @@ function startTimer(secondsLeft) {
       UI.setText('statusMsg', 'Waktu Habis! Soal ditutup.');
       UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
       UI.debug('timeup', STATE.activeQuestionNum);
-      showTimeup();
       flushPendingPoints();
-
-      const qCard = document.getElementById('questionCard');
-      if (qCard) qCard.classList.remove('anim-question-glow');
-
       LOG.warn(`⏰ Waktu habis Q#${STATE.activeQuestionNum}`);
     }
   };
@@ -941,30 +552,14 @@ function startTimer(secondsLeft) {
 
 function updateTimerDisplay(seconds) {
   const s = seconds < 10 ? `0${seconds}` : seconds;
-  const el = document.getElementById('timerDisplay');
-  if (!el) return;
-
-  el.innerHTML = `<i class="fas fa-clock mr-1"></i>00:${s}`;
-
-  // ⭐ Animasi timer berdasarkan sisa waktu
-  const newState = seconds <= 5 ? 'critical' : (seconds <= 10 ? 'warning' : '');
-  if (newState !== STATE.lastTimerWarningState) {
-    STATE.lastTimerWarningState = newState;
-    el.classList.remove('anim-timer-warning', 'anim-timer-critical');
-
-    if (newState === 'critical') {
-      el.classList.add('anim-timer-critical');
-      if (seconds === 5) vibrate(30);
-    } else if (newState === 'warning') {
-      el.classList.add('anim-timer-warning');
-    }
-  }
+  UI.setHTML('timerDisplay', `<i class="fas fa-clock mr-1"></i>00:${s}`);
 }
 
 // ═══════════════════════════════════════════════════════════
-// SUBSCRIBE
+// SUBSCRIBE: Realtime + Polling fallback
 // ═══════════════════════════════════════════════════════════
 function subscribeToAdmin() {
+  // 1. Realtime
   supabaseClient
     .channel('kiosk_bingo_rt')
     .on('postgres_changes', {
@@ -985,6 +580,7 @@ function subscribeToAdmin() {
       );
     });
 
+  // 2. Polling fallback
   setInterval(async () => {
     try {
       const { data, error } = await supabaseClient
@@ -999,7 +595,7 @@ function subscribeToAdmin() {
         STATE.lastQuestionNum,
         STATE.realtimeConnected ? 'rt' : 'poll'
       );
-    } catch (e) {}
+    } catch (e) { /* silent */ }
   }, POLL_INTERVAL_MS);
 }
 
@@ -1014,7 +610,7 @@ window.addEventListener('beforeunload', () => {
         game_name: 'Bingo Math',
         score_obtained: STATE.pendingPoints
       });
-    } catch (e) {}
+    } catch (e) { /* silent */ }
   }
 });
 
@@ -1030,9 +626,6 @@ async function init() {
   renderBoard(0);
   UI.debug('ready', 0);
 
-  LOG.info('Syncing clock...');
-  await syncClockOffset();
-
   try {
     const { data, error } = await supabaseClient
       .from('system_arithmatic_bingo')
@@ -1045,7 +638,6 @@ async function init() {
   } catch (e) { LOG.err('Initial fetch exception', e); }
 
   subscribeToAdmin();
-  setInterval(syncClockOffset, CLOCK_RESYNC_MS);
 
   LOG.ok('══════════ KIOSK READY ══════════');
 }
