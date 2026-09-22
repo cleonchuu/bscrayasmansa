@@ -2,17 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Kiosk Input Jawaban - Mimic Sudoku</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
+    * { -webkit-tap-highlight-color: transparent; }
     body {
       background-color: #0f172a;
       color: #ffffff;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       user-select: none;
+      -webkit-user-select: none;
+      overscroll-behavior: none;
     }
 
     .flash-screen {
@@ -39,6 +43,7 @@
       z-index: 9000;
       background: rgba(15, 23, 42, 0.95);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -51,6 +56,19 @@
       to { opacity: 1; transform: scale(1); }
     }
 
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-ring {
+      border: 5px solid rgba(99, 102, 241, 0.2);
+      border-top: 5px solid #6366f1;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      animation: spinRing 1s linear infinite;
+    }
+
     .calc-btn {
       background: #334155;
       color: #ffffff;
@@ -60,6 +78,9 @@
       padding: 1.25rem;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
       transition: all 0.1s ease;
+      -webkit-appearance: none;
+      border: none;
+      font-family: inherit;
     }
 
     .calc-btn:active:not(:disabled) {
@@ -71,13 +92,38 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+
+    /* Quota badge */
+    .quota-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+    .quota-high { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); }
+    .quota-mid  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4); }
+    .quota-low  { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+    .quota-none { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border-color: rgba(100, 116, 139, 0.4); }
+
+    /* Clock indicator */
+    @keyframes clockSyncPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .clock-syncing { animation: clockSyncPulse 1s ease-in-out infinite; }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-  <!-- FREEZE OVERLAY -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FREEZE OVERLAY (menunggu / timeout / loading)                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
-    <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+    <div id="freezeIconWrap" class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
       <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
     </div>
     <h2 id="freezeTitle" class="text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2">
@@ -92,33 +138,44 @@
     </div>
   </div>
 
-  <!-- FLASH OVERLAY -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FLASH OVERLAY (jawaban benar/salah)                          -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN KIOSK                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
 
     <!-- HEADER -->
-    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
-      <div>
-        <h1 class="text-xl font-black text-amber-400 tracking-wide">🎯 KIOSK PESERTA</h1>
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60 gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-lg font-black text-amber-400 tracking-wide truncate">🎯 KIOSK PESERTA</h1>
         <p class="text-xs text-slate-400 mt-0.5">Mimic Sudoku Fast Play</p>
       </div>
-      <div class="bg-slate-900 border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-        <i class="fas fa-stopwatch text-amber-400 text-sm"></i>
-        <span id="kioskTimerDisplay" class="font-mono font-bold text-amber-400 text-sm">--:--</span>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-2">
+          <i id="clockIcon" class="fas fa-stopwatch text-amber-400 text-sm"></i>
+          <span id="kioskTimerDisplay" class="font-mono font-bold text-amber-400 text-sm">--:--</span>
+        </div>
       </div>
     </div>
 
-    <!-- STEP 1 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 1: PILIH SEKOLAH                                    -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="stepSchool" class="space-y-4">
       <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
       <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- STEP 2 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 2: PILIH PESERTA                                    -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="stepStudent" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
@@ -127,14 +184,21 @@
       <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- STEP 3 -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 3: KALKULATOR                                       -->
+    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="stepCalculator" class="space-y-4 hidden">
-      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between">
-        <div>
-          <div id="selectedStudentName" class="font-bold text-lg text-white">Nama Peserta</div>
-          <div id="selectedStudentSchool" class="text-xs text-slate-400">Asal Sekolah</div>
+      <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between gap-2">
+        <div class="min-w-0 flex-1">
+          <div id="selectedStudentName" class="font-bold text-base text-white truncate">Nama Peserta</div>
+          <div id="selectedStudentSchool" class="text-xs text-slate-400 truncate">Asal Sekolah</div>
         </div>
-        <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Batal</button>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span id="quotaBadge" class="quota-badge quota-high">
+            <i class="fas fa-bolt"></i> <span id="quotaText">2</span>x
+          </span>
+          <button id="btnCancelCalc" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-slate-300">Batal</button>
+        </div>
       </div>
 
       <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right">
@@ -169,15 +233,12 @@
   // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-  const supabaseClient = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const CURRENT_GAME_NAME = "Mimic Sudoku";
+  const DEFAULT_QUOTA = 2;
+  const CLOCK_RESYNC_MS = 60000;
 
-  // ═══════════════════════════════════════════════════════════
-  // LEVEL POINT CONFIG
-  // ═══════════════════════════════════════════════════════════
   const LEVEL_CONFIG = {
     level_1: { durationSec: 120, maxPoint: 20, minPoint: 10 },
     level_2: { durationSec: 240, maxPoint: 40, minPoint: 20 },
@@ -193,13 +254,20 @@
   let currentInput = '';
   let isSubmitting = false;
   let isFrozen = false;
+  let currentQuota = DEFAULT_QUOTA;
 
-  // Session timing (dari id=5)
+  // Session
   let sessionStartTime = null;
   let sessionLevel = null;
   let sessionDurationSec = 0;
   let kioskTimerInterval = null;
   let lastStatusSig = '';
+  let lastLoadedLevel = null;   // ⭐ Track level yang sudah di-load
+  let isLoadingSession = false; // ⭐ Fase loading 5 detik
+
+  // ⭐ Clock sync
+  let clockOffset = 0;
+  let clockSynced = false;
 
   // ═══════════════════════════════════════════════════════════
   // DOM
@@ -214,7 +282,40 @@
   const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
 
   // ═══════════════════════════════════════════════════════════
-  // HITUNG POIN — linear decay
+  // ⭐ CLOCK SYNC
+  // ═══════════════════════════════════════════════════════════
+  async function syncClockOffset() {
+    try {
+      const t0 = Date.now();
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('updated_at')
+        .eq('id', 5)
+        .maybeSingle();
+      const t1 = Date.now();
+
+      if (!data || !data.updated_at) {
+        clockOffset = 0;
+        clockSynced = false;
+        return;
+      }
+
+      const serverTs = new Date(data.updated_at).getTime();
+      const rtt = t1 - t0;
+      const localEstimate = t0 + (rtt / 2);
+      clockOffset = serverTs - localEstimate;
+      clockSynced = true;
+      console.log(`[CLOCK] Offset: ${Math.round(clockOffset)}ms (RTT ${rtt}ms)`);
+    } catch (e) {
+      clockOffset = 0;
+      clockSynced = false;
+    }
+  }
+
+  function now() { return Date.now() + clockOffset; }
+
+  // ═══════════════════════════════════════════════════════════
+  // HITUNG POIN (linear decay pakai jam server)
   // ═══════════════════════════════════════════════════════════
   function calculateScore() {
     if (!sessionStartTime || !sessionLevel) return 0;
@@ -222,7 +323,7 @@
     const cfg = LEVEL_CONFIG[sessionLevel];
     if (!cfg) return 0;
 
-    const elapsedSec = (Date.now() - sessionStartTime) / 1000;
+    const elapsedSec = (now() - sessionStartTime) / 1000;
     const remainingSec = Math.max(0, cfg.durationSec - elapsedSec);
     const range = cfg.maxPoint - cfg.minPoint;
     const rawScore = cfg.minPoint + (remainingSec / cfg.durationSec) * range;
@@ -233,8 +334,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // POLLING STATUS — Baca dari id=5 (system_mimic_sudoku)
-  // id=5 → { action, current_level, session_start_time, duration, label }
+  // POLLING STATUS GAME
   // ═══════════════════════════════════════════════════════════
   function listenToGameStatus() {
     setInterval(async () => {
@@ -255,60 +355,124 @@
         console.log(`[STATUS] ${status.action} / ${status.current_level}`);
 
         if (status.action === 'START_GAME' && status.current_level) {
-          // Sesi baru
-          sessionStartTime = status.session_start_time || Date.now();
-          sessionLevel = status.current_level;
-          sessionDurationSec = status.duration || LEVEL_CONFIG[status.current_level]?.durationSec || 300;
-
-          console.log(`[SESSION] Start ${sessionLevel} (${sessionDurationSec}s)`);
-          unfreezeKiosk();
-          updateKioskTimer();
+          // ⭐ Sesi baru → fase loading 5 detik
+          await startNewSession(status);
         } else if (status.action === 'RESET') {
+          // Reset
           sessionStartTime = null;
           sessionLevel = null;
           sessionDurationSec = 0;
-          freezeKiosk('stopped', 'Sesi belum dimulai / sudah selesai.');
+          lastLoadedLevel = null;
+          isLoadingSession = false;
+
+          freezeKiosk('stopped', 'Menunggu admin memulai sesi...');
           kioskTimerDisplay.textContent = '--:--';
         }
       } catch (err) {
-        console.error("Error polling status:", err);
+        console.error("[STATUS] Polling error:", err);
       }
     }, 1500);
 
-    // Timer per detik
+    // Timer per detik pakai jam server
     kioskTimerInterval = setInterval(() => {
-      if (sessionStartTime && !isFrozen) {
+      if (sessionStartTime && !isFrozen && !isLoadingSession) {
         updateKioskTimer();
       }
     }, 500);
   }
 
+  // ⭐ Fase loading 5 detik saat sesi baru dimulai
+  async function startNewSession(status) {
+    isLoadingSession = true;
+    lastLoadedLevel = status.current_level;
+
+    // Tampilkan freeze dengan info loading
+    freezeKiosk('loading', `Mempersiapkan level ${status.current_level.replace('level_', '')}...`, 'LOADING');
+
+    // Set session time (dari server)
+    sessionStartTime = status.session_start_time || now();
+    sessionLevel = status.current_level;
+    sessionDurationSec = status.duration || LEVEL_CONFIG[status.current_level]?.durationSec || 300;
+
+    // Sync clock sekali lagi saat mulai sesi (biar akurat)
+    await syncClockOffset();
+
+    // ⭐ Tampilkan countdown loading 5 detik
+    for (let i = 5; i > 0; i--) {
+      const msg = document.getElementById('freezeMessage');
+      if (msg) msg.textContent = `Menyiapkan sesi... ${i} detik`;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    isLoadingSession = false;
+
+    // Unfreeze
+    unfreezeKiosk();
+    updateKioskTimer();
+
+    console.log(`[SESSION] Start ${sessionLevel} (${sessionDurationSec}s)`);
+  }
+
   function updateKioskTimer() {
     if (!sessionStartTime || sessionDurationSec === 0) return;
 
-    const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+    const elapsed = Math.floor((now() - sessionStartTime) / 1000);
     const remaining = Math.max(0, sessionDurationSec - elapsed);
 
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
     kioskTimerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
+    // Warna berubah saat kritis
+    if (remaining <= 10) {
+      kioskTimerDisplay.className = 'font-mono font-bold text-rose-500 text-sm animate-pulse';
+    } else if (remaining <= 30) {
+      kioskTimerDisplay.className = 'font-mono font-bold text-amber-400 text-sm';
+    } else {
+      kioskTimerDisplay.className = 'font-mono font-bold text-amber-400 text-sm';
+    }
+
     if (remaining <= 0) {
-      freezeKiosk('timeout', 'Waktu habis!');
+      freezeKiosk('timeout', 'Waktu habis! Harap tunggu putaran berikutnya.', 'TIMEOUT');
     }
   }
 
   // ═══════════════════════════════════════════════════════════
   // FREEZE / UNFREEZE
   // ═══════════════════════════════════════════════════════════
-  function freezeKiosk(status, message) {
-    if (isFrozen) return;
+  function freezeKiosk(status, message, label) {
+    if (isFrozen && status !== 'loading') return;
     isFrozen = true;
 
-    document.getElementById('freezeTitle').textContent = (status === 'timeout') ? "WAKTU HABIS!" : "SESI DIBEKUKAN";
-    document.getElementById('freezeMessage').textContent = message || "Papan sedang dibekukan oleh Admin.";
-    document.getElementById('freezeStatusText').textContent = status;
+    const iconWrap = document.getElementById('freezeIconWrap');
+    const icon = document.getElementById('freezeIcon');
+    const title = document.getElementById('freezeTitle');
+    const statusText = document.getElementById('freezeStatusText');
 
+    if (status === 'timeout') {
+      iconWrap.className = 'w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse';
+      icon.className = 'fas fa-clock text-5xl text-rose-500';
+      title.textContent = 'WAKTU HABIS!';
+      title.className = 'text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2';
+      statusText.textContent = 'TIMEOUT';
+      statusText.className = 'text-rose-400 font-bold uppercase';
+    } else if (status === 'loading') {
+      iconWrap.className = 'w-24 h-24 bg-indigo-500/10 border-2 border-indigo-500/30 rounded-full flex items-center justify-center mb-6';
+      iconWrap.innerHTML = '<div class="loading-ring"></div>';
+      title.textContent = 'MEMPROSES...';
+      title.className = 'text-3xl md:text-4xl font-black text-indigo-400 tracking-wider uppercase mb-2';
+      statusText.textContent = 'LOADING';
+      statusText.className = 'text-indigo-400 font-bold uppercase';
+    } else {
+      iconWrap.className = 'w-24 h-24 bg-slate-500/10 border-2 border-slate-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse';
+      iconWrap.innerHTML = '<i class="fas fa-hourglass-half text-5xl text-slate-400"></i>';
+      title.textContent = 'MENUNGGU ADMIN';
+      title.className = 'text-3xl md:text-4xl font-black text-slate-400 tracking-wider uppercase mb-2';
+      statusText.textContent = 'WAITING';
+      statusText.className = 'text-slate-400 font-bold uppercase';
+    }
+
+    document.getElementById('freezeMessage').textContent = message || 'Papan sedang dibekukan oleh Admin.';
     freezeOverlay.classList.remove('hidden');
     document.querySelectorAll('button').forEach(btn => btn.disabled = true);
   }
@@ -325,7 +489,6 @@
   // LOAD PESERTA
   // ═══════════════════════════════════════════════════════════
   async function loadAllParticipants() {
-    if (!supabaseClient) return;
     const { data, error } = await supabaseClient
       .from('users').select('*').eq('role', 'peserta');
 
@@ -343,7 +506,7 @@
     }
     schools.forEach(school => {
       const btn = document.createElement('button');
-      btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+      btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition active:scale-95';
       btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
       btn.onclick = () => selectSchool(school);
       schoolList.appendChild(btn);
@@ -358,7 +521,7 @@
     studentList.innerHTML = '';
     filtered.forEach(student => {
       const btn = document.createElement('button');
-      btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
+      btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition active:scale-95';
       btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
       btn.onclick = () => openCalculator(student);
       studentList.appendChild(btn);
@@ -371,14 +534,44 @@
   };
   document.getElementById('btnCancelCalc').onclick = resetToStart;
 
-  function openCalculator(student) {
+  async function openCalculator(student) {
     selectedStudent = student;
     currentInput = '';
     updateDisplay();
+
+    // ⭐ Fetch kuota dari DB
+    currentQuota = await getQuota(student.unique_id);
+    updateQuotaBadge(currentQuota);
+
     document.getElementById('selectedStudentName').textContent = student.full_name;
     document.getElementById('selectedStudentSchool').textContent = student.school_name;
+
+    // Kalau kuota habis → disable submit
+    const btnSubmit = document.getElementById('btnSubmitAnswer');
+    if (currentQuota <= 0) {
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add('opacity-50');
+      document.getElementById('btnSubmitText').textContent = 'KUOTA HABIS';
+    } else {
+      btnSubmit.disabled = false;
+      btnSubmit.classList.remove('opacity-50');
+      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+    }
+
     stepStudent.classList.add('hidden');
     stepCalculator.classList.remove('hidden');
+  }
+
+  function updateQuotaBadge(quota) {
+    const badge = document.getElementById('quotaBadge');
+    const text = document.getElementById('quotaText');
+    text.textContent = quota;
+
+    badge.className = 'quota-badge ';
+    if (quota >= 2) badge.className += 'quota-high';
+    else if (quota === 1) badge.className += 'quota-mid';
+    else if (quota === 0) badge.className += 'quota-none';
+    else badge.className += 'quota-low';
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -386,7 +579,7 @@
   // ═══════════════════════════════════════════════════════════
   function appendCalc(val) {
     if (isFrozen) return;
-    if (currentInput.length < 10) { currentInput += val; updateDisplay(); }
+    if (currentInput.length < 6) { currentInput += val; updateDisplay(); }
   }
   function clearCalc() {
     if (isFrozen) return;
@@ -421,7 +614,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // KUOTA
+  // KUOTA (default 2)
   // ═══════════════════════════════════════════════════════════
   async function getQuota(userUniqueId) {
     try {
@@ -431,17 +624,24 @@
         .eq('user_unique_id', userUniqueId)
         .maybeSingle();
 
-      if (error) { console.warn("[QUOTA] Error:", error); return 999; }
-      if (!data) return 2;
+      if (error) { console.warn("[QUOTA] Error:", error); return DEFAULT_QUOTA; }
+      if (!data) {
+        // Belum ada row → insert dengan default 2
+        await supabaseClient
+          .from('system_input_max_mimic_sudoku')
+          .insert([{ user_unique_id: userUniqueId, input_left: DEFAULT_QUOTA }]);
+        return DEFAULT_QUOTA;
+      }
       return data.input_left ?? 0;
     } catch (err) {
       console.error("[QUOTA] Exception:", err);
-      return 999;
+      return DEFAULT_QUOTA;
     }
   }
 
   async function decrementQuota(userUniqueId, currentQuota) {
     try {
+      const newQuota = Math.max(0, currentQuota - 1);
       const { data } = await supabaseClient
         .from('system_input_max_mimic_sudoku')
         .select('id')
@@ -451,15 +651,18 @@
       if (!data) {
         await supabaseClient
           .from('system_input_max_mimic_sudoku')
-          .insert([{ user_unique_id: userUniqueId, input_left: 1 }]);
+          .insert([{ user_unique_id: userUniqueId, input_left: newQuota }]);
       } else {
         await supabaseClient
           .from('system_input_max_mimic_sudoku')
-          .update({ input_left: Math.max(0, currentQuota - 1) })
+          .update({ input_left: newQuota })
           .eq('user_unique_id', userUniqueId);
       }
+
+      return newQuota;
     } catch (err) {
       console.error("[QUOTA] Gagal kurangi:", err);
+      return currentQuota;
     }
   }
 
@@ -468,11 +671,15 @@
   // ═══════════════════════════════════════════════════════════
   async function submitAnswer() {
     if (!currentInput || isSubmitting || isFrozen) return;
+    if (!sessionStartTime || !sessionLevel) {
+      alert('Sesi belum dimulai. Tunggu admin!');
+      return;
+    }
 
     isSubmitting = true;
     document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
 
-    // 1. Cek kuota
+    // 1. Cek kuota fresh
     const quota = await getQuota(selectedStudent.unique_id);
     if (quota <= 0) {
       alert('Kuota jawaban Anda sudah habis!');
@@ -493,7 +700,7 @@
     // 3. Evaluasi
     const isCorrect = (currentInput.trim() === correctAnswer.trim());
 
-    // 4. Hitung poin
+    // 4. Hitung poin (pakai jam server)
     let pointsEarned = 0;
     if (isCorrect) {
       pointsEarned = calculateScore();
@@ -514,13 +721,13 @@
     if (scoreErr) console.error("[SCORE] Gagal simpan:", scoreErr);
 
     // 6. Kurangi kuota
-    await decrementQuota(selectedStudent.unique_id, quota);
+    const newQuota = await decrementQuota(selectedStudent.unique_id, quota);
 
-    // 7. Flash
-    triggerFlashEffect(isCorrect, pointsEarned, correctAnswer);
+    // 7. Flash + update badge
+    triggerFlashEffect(isCorrect, pointsEarned, correctAnswer, newQuota);
   }
 
-  function triggerFlashEffect(isCorrect, pointsEarned, correctAnswer) {
+  function triggerFlashEffect(isCorrect, pointsEarned, correctAnswer, newQuota) {
     const overlay = document.getElementById('flashOverlay');
     const icon = document.getElementById('flashIcon');
     const text = document.getElementById('flashText');
@@ -532,11 +739,13 @@
       text.innerHTML = `
         <div>JAWABAN BENAR!</div>
         <div class="text-4xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${pointsEarned.toFixed(2)} PTS</div>
+        <div class="text-lg mt-3 opacity-80">Sisa kuota: ${newQuota}</div>
       `;
     } else {
       text.innerHTML = `
         <div>JAWABAN SALAH!</div>
         <div class="text-2xl mt-4 opacity-80">Jawaban benar: ${correctAnswer}</div>
+        <div class="text-lg mt-3 opacity-80">Sisa kuota: ${newQuota}</div>
       `;
     }
 
@@ -545,7 +754,9 @@
     setTimeout(() => {
       overlay.classList.add('hidden');
       isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
+      updateQuotaBadge(newQuota);
+
+      // Reset ke start
       resetToStart();
       loadAllParticipants();
     }, 3000);
@@ -572,9 +783,24 @@
   // ═══════════════════════════════════════════════════════════
   // INIT
   // ═══════════════════════════════════════════════════════════
-  loadAllParticipants();
-  listenToGameStatus();
-  freezeKiosk('stopped', 'Menunggu admin memulai sesi...');
+  (async () => {
+    console.log('[KIOSK] Boot...');
+
+    // ⭐ Sync clock dulu
+    await syncClockOffset();
+    setInterval(syncClockOffset, CLOCK_RESYNC_MS);
+
+    // Load peserta
+    await loadAllParticipants();
+
+    // Freeze awal (menunggu admin)
+    freezeKiosk('stopped', 'Menunggu admin memulai sesi...', 'WAITING');
+
+    // Listen status
+    listenToGameStatus();
+
+    console.log('[KIOSK] Ready');
+  })();
 </script>
 </body>
 </html>

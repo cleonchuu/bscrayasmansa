@@ -53,6 +53,39 @@
     }
     .animate-target-pulse { animation: pulseAmber 1.5s ease-in-out infinite; }
 
+    @keyframes balloonPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+    .animate-balloon { animation: balloonPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    /* Loading spinner */
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-ring {
+      border: 6px solid rgba(99, 102, 241, 0.2);
+      border-top: 6px solid #6366f1;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      animation: spinRing 1s linear infinite;
+    }
+
+    @keyframes loadingPulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    .loading-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #6366f1;
+      animation: loadingPulse 1s ease-in-out infinite;
+    }
+
     /* DEBUG PANEL */
     #debugPanel {
       position: fixed; bottom: 16px; right: 16px;
@@ -80,23 +113,6 @@
     #debugPanel .dbg-ok { color: #10b981; }
     #debugPanel .dbg-err { color: #ef4444; }
     #debugPanel .dbg-warn { color: #f59e0b; }
-    #debugPanel .dbg-btn {
-      background: #334155; border: 1px solid #475569; color: #cbd5e1;
-      padding: 4px 8px; border-radius: 6px; font-size: 10px;
-      cursor: pointer; margin: 2px;
-    }
-    #debugPanel .dbg-btn:hover { background: #475569; color: #fff; }
-    #debugPanel .dbg-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
-    #debugPanel .dbg-btn.success { background: #065f46; border-color: #047857; color: #a7f3d0; }
-
-    @keyframes balloonPop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.35); }
-  100% { transform: scale(1); }
-}
-.animate-balloon {
-  animation: balloonPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
   </style>
 </head>
 <body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
@@ -162,18 +178,15 @@
           <i class="fas fa-info-circle text-sm"></i>
           <span class="text-[10px] font-bold uppercase tracking-widest">STATUS</span>
         </div>
-        <!-- STATUS BADGE -->
         <span id="statusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
       </div>
       <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
 
-      <!-- LOOP TIMER -->
       <div id="loopTimerDisplay" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-3">
         <i class="fas fa-sync-alt fa-spin text-amber-400 text-xs"></i>
         <span class="text-amber-400 font-bold text-xs tracking-widest">GANTI PAPAN...</span>
       </div>
 
-      <!-- ACTIVE INDICATOR -->
       <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-auto">
         <span class="relative flex h-2.5 w-2.5">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -190,12 +203,36 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <main class="flex-1 relative flex items-center justify-center overflow-hidden">
 
+    <!-- VIEW: LOADING (5 detik pertama) -->
+    <div id="viewLoading" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="loading-ring mb-8"></div>
+      <h2 class="text-3xl font-black font-math text-white tracking-wider mb-2">MEMPROSES DATA...</h2>
+      <p class="text-slate-400 text-sm mb-6">Menyiapkan papan soal dari server</p>
+      <div class="flex items-center gap-3">
+        <div class="loading-dot" style="animation-delay: 0s"></div>
+        <div class="loading-dot" style="animation-delay: 0.2s"></div>
+        <div class="loading-dot" style="animation-delay: 0.4s"></div>
+      </div>
+      <div class="mt-8 text-xs font-mono text-slate-500">
+        FASE PERSIAPAN: <span id="loadingCountdown" class="text-amber-400 font-bold">5</span> detik
+      </div>
+    </div>
+
     <!-- VIEW: GAME -->
-    <div id="viewGame" class="stage-view active-view absolute inset-0 flex items-center justify-center p-4">
+    <div id="viewGame" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-4">
       <div id="gridWrapper" class="flex flex-col">
         <div id="columnHeaders" class="grid gap-1.5 mb-1.5"></div>
         <div id="gridQuestionArea" class="grid gap-1.5"></div>
         <div id="columnClues" class="grid gap-1.5 mt-1.5"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: BLANK (sebelum mulai) -->
+    <div id="viewBlank" class="stage-view active-view absolute inset-0 flex items-center justify-center p-4">
+      <div id="gridWrapperBlank" class="flex flex-col">
+        <div id="columnHeadersBlank" class="grid gap-1.5 mb-1.5"></div>
+        <div id="gridQuestionAreaBlank" class="grid gap-1.5"></div>
+        <div id="columnCluesBlank" class="grid gap-1.5 mt-1.5"></div>
       </div>
     </div>
 
@@ -238,14 +275,8 @@
       <div class="dbg-line"><span class="dbg-key">action:</span><span id="dbgAction" class="dbg-val">-</span></div>
       <div class="dbg-line"><span class="dbg-key">current_level:</span><span id="dbgLevel" class="dbg-val">-</span></div>
       <div class="dbg-line"><span class="dbg-key">Engine:</span><span id="dbgEngine" class="dbg-val">idle</span></div>
+      <div class="dbg-line"><span class="dbg-key">Clock Offset:</span><span id="dbgClock" class="dbg-val">±0ms</span></div>
       <div class="dbg-line"><span class="dbg-key">Last Event:</span><span id="dbgLastEvent" class="dbg-val">-</span></div>
-      <div style="margin-top:8px;border-top:1px solid #334155;padding-top:8px;">
-        <button class="dbg-btn" onclick="debugReadAll()">🔍 Read All</button>
-        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_1')">▶ L1</button>
-        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_2')">▶ L2</button>
-        <button class="dbg-btn success" onclick="debugTrigger('START_GAME','level_3')">▶ L3</button>
-        <button class="dbg-btn danger" onclick="debugTrigger('RESET','none')">⟲ Reset</button>
-      </div>
     </div>
   </div>
 
@@ -290,7 +321,42 @@
   const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
   const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
 
+  // ⭐ Durasi fase loading (5 detik)
+  const LOADING_DURATION_SEC = 5;
+
   let audioUnlocked = false;
+
+  // ⭐ Clock sync
+  let clockOffset = 0;
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ CLOCK SYNC — sinkron jam layout dengan server
+  // ═══════════════════════════════════════════════════════════
+  async function syncClockOffset() {
+    try {
+      const t0 = Date.now();
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('updated_at')
+        .eq('id', 5)
+        .maybeSingle();
+      const t1 = Date.now();
+
+      if (!data || !data.updated_at) { clockOffset = 0; return; }
+
+      const serverTs = new Date(data.updated_at).getTime();
+      const rtt = t1 - t0;
+      const localEstimate = t0 + (rtt / 2);
+      clockOffset = serverTs - localEstimate;
+      LOG.ok('CLOCK', `Offset: ${Math.round(clockOffset)}ms (RTT ${rtt}ms)`);
+      safeSetText('dbgClock', `±${Math.round(clockOffset)}ms`);
+    } catch (e) {
+      clockOffset = 0;
+      LOG.warn('CLOCK', 'Sync gagal, offset=0');
+    }
+  }
+
+  function now() { return Date.now() + clockOffset; }
 
   // ═══════════════════════════════════════════════════════════
   // AUDIO ENGINE
@@ -309,7 +375,7 @@
         this.cache.set(url, audio);
         return audio;
       } catch (e) {
-        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`, e.message);
+        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`);
         return null;
       }
     }
@@ -332,6 +398,7 @@
   class MimicLayout {
     constructor() {
       this.isPlaying = false;
+      this.isLoading = false;      // ⭐ Fase loading
       this.currentLevel = null;
       this.masterGrid = [];
       this.questionGrid = [];
@@ -343,6 +410,7 @@
       this.firstRenderDone = false;
 
       this.sessionTick = null;
+      this.loadingTick = null;    // ⭐ Timer loading
     }
 
     subscribe() {
@@ -359,6 +427,7 @@
         })
         .subscribe((status) => {
           LOG.info('SUB', `Channel: ${status}`);
+          safeSetText('dbgRealtime', status);
           if (status === 'SUBSCRIBED') this.fetchAll();
         });
 
@@ -380,6 +449,14 @@
       this.onMasterDataUpdate(data);
     }
 
+    async refreshMasterData() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data')
+        .in('id', [1, 2, 3]);
+      if (data) this.onMasterDataUpdate(data);
+    }
+
     onStatusUpdate(row) {
       if (!row || !row.grid_data) return;
       const data = row.grid_data;
@@ -388,6 +465,8 @@
       this.lastStatusSig = sig;
 
       LOG.info('STATUS', `Action: ${data.action}, Level: ${data.current_level}`);
+      safeSetText('dbgAction', data.action || '-');
+      safeSetText('dbgLevel', data.current_level || 'none');
 
       if (data.action === 'START_GAME' && data.current_level) {
         this.onStartGame(data);
@@ -396,25 +475,56 @@
       }
     }
 
+    // ═══════════════════════════════════════════════════════
+    // ⭐ START GAME — dengan fase loading 5 detik
+    // ═══════════════════════════════════════════════════════
     async onStartGame(status) {
       LOG.ok('STAGE', `▶ START (${status.current_level})`);
+
+      // Set state
       this.isPlaying = true;
+      this.isLoading = true;
       this.currentLevel = status.current_level;
       this.firstRenderDone = false;
-      
-      // ✅ Bersihkan dulu sebelum load data baru
+
+      // Clear data lama
       this.targetCells = [];
       this.answerValue = 0;
       safeSetText('targetCellDisplay', '--');
       safeSetText('timerDisplay', '--:--');
-      
-      const { data } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('id, grid_data')
-        .in('id', [1, 2, 3]);
-      if (data) this.onMasterDataUpdate(data);
-      // ...
+      safeSetText('dbgEngine', 'loading');
 
+      // ⭐ Tampilkan view loading
+      this.showView('loading');
+
+      // ⭐ Timer countdown 5 detik
+      let countdown = LOADING_DURATION_SEC;
+      safeSetText('loadingCountdown', countdown);
+      if (this.loadingTick) clearInterval(this.loadingTick);
+
+      // ⭐ Fetch data paralel (biar siap saat loading selesai)
+      const fetchPromise = this.fetchMasterAndQuestion();
+
+      this.loadingTick = setInterval(() => {
+        countdown--;
+        safeSetText('loadingCountdown', Math.max(0, countdown));
+        if (countdown <= 0) {
+          clearInterval(this.loadingTick);
+          this.loadingTick = null;
+        }
+      }, 1000);
+
+      // Tunggu 5 detik + fetch selesai
+      await Promise.all([
+        new Promise(r => setTimeout(r, LOADING_DURATION_SEC * 1000)),
+        fetchPromise
+      ]);
+
+      // ⭐ Loading selesai → masuk view game
+      this.isLoading = false;
+      safeSetText('dbgEngine', 'playing');
+
+      // Set UI
       safeSetText('stageStatus', `GAME BERJALAN — ${status.label || ''}`);
       safeSetText('levelText', status.label || status.current_level);
       const lvl = document.getElementById('levelIndicator');
@@ -424,12 +534,79 @@
       safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
       safeReplaceClass('repeatIndicator', 'hidden', 'flex');
 
+      this.showView('game');
+
+      // Render papan pertama (data sudah siap)
+      if (this.questionGrid.length) {
+        this.renderQuestionBoard();
+      }
+      if (this.masterGrid.length && this.targetCells.length) {
+        this.renderTargetCell();
+      }
+
+      // Play bell saat game mulai
+      audioEngine.play(SOUND_BELL);
+
+      // ⭐ Start timer pakai jam server (updated_at dari status)
       this.startLocalTimer(status.session_start_time, status.duration);
+    }
+
+    // ⭐ Fetch master grid (id=1) + target cells (id=2) + answer (id=3) + question board (id=4)
+    async fetchMasterAndQuestion() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data')
+        .in('id', [1, 2, 3, 4]);
+
+      if (!data) return;
+
+      // Master
+      const row1 = data.find(r => r.id === 1);
+      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+          row1.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
+
+      // Target cells
+      const row2 = data.find(r => r.id === 2);
+      if (row2 && Array.isArray(row2.grid_data)) {
+        this.targetCells = row2.grid_data.map(idx => {
+          const i = idx - 1;
+          return { r: Math.floor(i / 9), c: i % 9 };
+        });
+      }
+
+      // Answer
+      const row3 = data.find(r => r.id === 3);
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+        this.answerValue = row3.grid_data;
+      }
+
+      // Question board
+      const row4 = data.find(r => r.id === 4);
+      if (row4 && Array.isArray(row4.grid_data) && row4.grid_data.length === 81) {
+        this.questionGrid = Array.from({ length: 9 }, (_, r) =>
+          row4.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
+
+      LOG.ok('STAGE', `Loaded: master=${this.masterGrid.length}x9, target=${this.targetCells.length}, answer=${this.answerValue}`);
+    }
+
+    renderTargetCell() {
+      if (this.targetCells.length === 0) {
+        safeSetText('targetCellDisplay', '--');
+        return;
+      }
+      const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
+      safeSetText('targetCellDisplay', expr);
     }
 
     onReset() {
       LOG.warn('STAGE', '🔄 RESET');
       this.isPlaying = false;
+      this.isLoading = false;
       this.currentLevel = null;
       this.masterGrid = [];
       this.questionGrid = [];
@@ -438,6 +615,7 @@
       this.firstRenderDone = false;
 
       if (this.sessionTick) { clearInterval(this.sessionTick); this.sessionTick = null; }
+      if (this.loadingTick) { clearInterval(this.loadingTick); this.loadingTick = null; }
 
       safeSetText('stageStatus', 'STAGE READY');
       safeSetText('statusBadge', 'Ready');
@@ -447,41 +625,43 @@
       if (lvl) { lvl.classList.remove('flex'); lvl.classList.add('hidden'); }
       safeSetText('timerDisplay', '--:--');
       safeSetText('targetCellDisplay', '--');
+      safeSetText('dbgEngine', 'idle');
 
+      // ⭐ Kembali ke blank view
+      this.showView('blank');
       this.renderBlankBoard();
     }
-    
+
     onMasterDataUpdate(data) {
-  if (!Array.isArray(data)) return;
+      if (!Array.isArray(data)) return;
 
-  const row1 = data.find(r => r.id === 1);
-  const row2 = data.find(r => r.id === 2);
-  const row3 = data.find(r => r.id === 3);
+      const row1 = data.find(r => r.id === 1);
+      const row2 = data.find(r => r.id === 2);
+      const row3 = data.find(r => r.id === 3);
 
-  if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
-    this.masterGrid = Array.from({ length: 9 }, (_, r) =>
-      row1.grid_data.slice(r * 9, r * 9 + 9)
-    );
-  }
+      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+          row1.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
 
-  // ✅ GUARD: hanya update target cell jika game sedang berjalan
-  if (!this.isPlaying) {
-    safeSetText('targetCellDisplay', '--');
-    return;
-  }
+      // ⭐ Guard: hanya update target cell kalau game sedang aktif (bukan loading, bukan idle)
+      if (!this.isPlaying || this.isLoading) {
+        safeSetText('targetCellDisplay', '--');
+        return;
+      }
 
-  if (row2 && Array.isArray(row2.grid_data)) {
-    this.targetCells = row2.grid_data.map(idx => {
-      const i = idx - 1;
-      return { r: Math.floor(i / 9), c: i % 9 };
-    });
-    const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
-    safeSetText('targetCellDisplay', expr);
-  }
-  if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
-    this.answerValue = row3.grid_data;
-  }
-}
+      if (row2 && Array.isArray(row2.grid_data)) {
+        this.targetCells = row2.grid_data.map(idx => {
+          const i = idx - 1;
+          return { r: Math.floor(i / 9), c: i % 9 };
+        });
+        this.renderTargetCell();
+      }
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+        this.answerValue = row3.grid_data;
+      }
+    }
 
     onQuestionUpdate(row) {
       if (!row || !Array.isArray(row.grid_data) || row.grid_data.length !== 81) return;
@@ -493,8 +673,16 @@
       this.questionGrid = Array.from({ length: 9 }, (_, r) =>
         row.grid_data.slice(r * 9, r * 9 + 9)
       );
+
+      // ⭐ Skip render kalau masih loading (data lama masuk, jangan ganggu)
+      if (this.isLoading) {
+        LOG.info('STAGE', 'Question update di-skip (loading phase)');
+        return;
+      }
+
       this.renderQuestionBoard();
 
+      // Play bell saat papan ganti (bukan saat render pertama)
       if (this.isPlaying && this.firstRenderDone) {
         audioEngine.play(SOUND_BELL);
       }
@@ -504,22 +692,51 @@
     startLocalTimer(startTime, durationSec) {
       if (this.sessionTick) clearInterval(this.sessionTick);
 
+      const startMs = (typeof startTime === 'number')
+        ? startTime
+        : new Date(startTime).getTime();
+
       const compute = () => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const elapsed = Math.floor((now() - startMs) / 1000);
         const remaining = Math.max(0, durationSec - elapsed);
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         safeSetText('timerDisplay', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
-        if (remaining <= 0) { clearInterval(this.sessionTick); this.sessionTick = null; }
+        if (remaining <= 0) {
+          clearInterval(this.sessionTick);
+          this.sessionTick = null;
+        }
       };
       compute();
       this.sessionTick = setInterval(compute, 500);
     }
 
     // ═══════════════════════════════════════════════════════
-    // RENDER — pakai logika dari tes.html
-    // Hijau + balon untuk baris/kolom sempurna
-    // Merah + kuning untuk 1/3 sel salah
+    // VIEW SWITCHER
+    // ═══════════════════════════════════════════════════════
+    showView(viewName) {
+      const views = {
+        loading: document.getElementById('viewLoading'),
+        game: document.getElementById('viewGame'),
+        blank: document.getElementById('viewBlank'),
+        leaderboard: document.getElementById('viewLeaderboard'),
+        all_players: document.getElementById('viewAllPlayers')
+      };
+
+      Object.values(views).forEach(v => {
+        if (!v) return;
+        v.classList.add('hidden-view');
+        v.classList.remove('active-view');
+      });
+
+      if (views[viewName]) {
+        views[viewName].classList.remove('hidden-view');
+        views[viewName].classList.add('active-view');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CELL SIZE
     // ═══════════════════════════════════════════════════════
     _computeCellSize() {
       const sidebar = document.querySelector('aside');
@@ -529,6 +746,9 @@
       return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
     }
 
+    // ═══════════════════════════════════════════════════════
+    // RENDER QUESTION BOARD
+    // ═══════════════════════════════════════════════════════
     renderQuestionBoard() {
       if (!this.questionGrid.length) return;
       const container = document.getElementById('gridQuestionArea');
@@ -555,9 +775,7 @@
         colHeaders.appendChild(document.createElement('div'));
       }
 
-      // ═══════════════════════════════════════════════════════
-      // Identifikasi baris/kolom sempurna
-      // ═══════════════════════════════════════════════════════
+      // Baris/kolom sempurna
       const perfectRows = new Set();
       const perfectCols = new Set();
 
@@ -577,11 +795,7 @@
         if (isPerfect) perfectCols.add(c);
       }
 
-      // ═══════════════════════════════════════════════════════
-      // Identifikasi 1/3 sel salah untuk hint merah-kuning
-      // Deterministic per questionGrid (pakai seed dari updated_at
-      // supaya semua layout sama)
-      // ═══════════════════════════════════════════════════════
+      // 1/3 sel salah untuk hint
       const wrongCells = [];
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
@@ -591,19 +805,16 @@
         }
       }
 
-      // Seed deterministic berdasarkan grid content
       let seed = 0;
       for (let r = 0; r < 9; r++)
         for (let c = 0; c < 9; c++)
           seed = (seed * 31 + this.questionGrid[r][c]) >>> 0;
 
-      // Simple PRNG deterministic
       const prng = () => {
         seed = (seed * 1664525 + 1013904223) >>> 0;
         return seed / 4294967296;
       };
 
-      // Fisher-Yates dengan PRNG
       for (let i = wrongCells.length - 1; i > 0; i--) {
         const j = Math.floor(prng() * (i + 1));
         [wrongCells[i], wrongCells[j]] = [wrongCells[j], wrongCells[i]];
@@ -614,9 +825,6 @@
         wrongCells.slice(0, countToShowRed).map(cell => `${cell.r},${cell.c}`)
       );
 
-      // ═══════════════════════════════════════════════════════
-      // Render cells
-      // ═══════════════════════════════════════════════════════
       container.innerHTML = '';
       const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
 
@@ -639,23 +847,16 @@
           const isHighlightedWrong = highlightedWrongCells.has(`${r},${c}`);
 
           let cellStyle = 'bg-slate-800/80 border border-slate-700/60 text-amber-400';
-let animClass = '';
+          let animClass = '';
 
-// PRIORITAS 1: TARGET CELL — selalu terlihat
-if (isTargetCell) {
-  cellStyle = 'bg-amber-500/40 border-4 border-amber-400 text-white font-black shadow-2xl shadow-amber-500/60 animate-pulse z-30 scale-110';
-  animClass = '';  // jangan pakai balloon animation biar gak bentrok dengan pulse
-}
-// PRIORITAS 2: Baris/Kolom Sempurna
-else if (isRowPerfect || isColPerfect) {
-  cellStyle = 'bg-emerald-600/80 border-2 border-emerald-400 text-white font-black shadow-lg shadow-emerald-500/30';
-  animClass = 'animate-balloon';
-}
-// PRIORITAS 3: Hint Merah-Kuning
-else if (isHighlightedWrong) {
-  cellStyle = 'bg-rose-600/90 border border-rose-400 text-yellow-300 font-black';
-}
-// PRIORITAS 4: Normal
+          if (isTargetCell) {
+            cellStyle = 'bg-amber-500/40 border-4 border-amber-400 text-white font-black shadow-2xl shadow-amber-500/60 animate-pulse z-30 scale-110';
+          } else if (isRowPerfect || isColPerfect) {
+            cellStyle = 'bg-emerald-600/80 border-2 border-emerald-400 text-white font-black shadow-lg shadow-emerald-500/30';
+            animClass = 'animate-balloon';
+          } else if (isHighlightedWrong) {
+            cellStyle = 'bg-rose-600/90 border border-rose-400 text-yellow-300 font-black';
+          }
 
           cell.style.width = cellSize + 'px';
           cell.style.height = cellSize + 'px';
@@ -712,10 +913,13 @@ else if (isHighlightedWrong) {
       return html;
     }
 
+    // ═══════════════════════════════════════════════════════
+    // RENDER BLANK BOARD (sebelum mulai)
+    // ═══════════════════════════════════════════════════════
     renderBlankBoard() {
-      const container = document.getElementById('gridQuestionArea');
-      const colHeaders = document.getElementById('columnHeaders');
-      const colClues = document.getElementById('columnClues');
+      const container = document.getElementById('gridQuestionAreaBlank');
+      const colHeaders = document.getElementById('columnHeadersBlank');
+      const colClues = document.getElementById('columnCluesBlank');
       if (!container) return;
 
       const cellSize = this._computeCellSize();
@@ -776,38 +980,45 @@ else if (isHighlightedWrong) {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW SWITCHER
+  // VIEW SWITCHER — dikendalikan admin (leaderboard, all_players)
   // ═══════════════════════════════════════════════════════════
   let cachedScores = [];
   let currentRevealedRank = -1;
   let lastRevealedRank = -1;
   let autoScrollInterval = null;
+  let currentAdminView = 'game';  // ⭐ Track admin view
 
   function handleViewSwitch(viewName, revealedRank) {
-    const gView = document.getElementById('viewGame');
-    const lbView = document.getElementById('viewLeaderboard');
-    const allView = document.getElementById('viewAllPlayers');
-    if (!gView || !lbView || !allView) return;
+    currentAdminView = viewName;
 
+    // Kalau admin pilih game → balik ke state yang sesuai (loading/game/blank)
+    if (viewName === 'game') {
+      if (layout.isLoading) {
+        layout.showView('loading');
+      } else if (layout.isPlaying) {
+        layout.showView('game');
+      } else {
+        layout.showView('blank');
+      }
+      lastRevealedRank = -1;
+      return;
+    }
+
+    // Leaderboard / all_players → switch view
     stopAutoScroll();
-    gView.classList.add('hidden-view'); gView.classList.remove('active-view');
-    lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
-    allView.classList.add('hidden-view'); allView.classList.remove('active-view');
 
     const newRank = revealedRank || 0;
     if (viewName === 'leaderboard') {
-      lbView.classList.remove('hidden-view'); lbView.classList.add('active-view');
+      layout.showView('leaderboard');
       if (newRank !== lastRevealedRank) {
-        currentRevealedRank = newRank; lastRevealedRank = newRank;
+        currentRevealedRank = newRank;
+        lastRevealedRank = newRank;
         fetchAndRenderStageScores(false);
       }
     } else if (viewName === 'all_players') {
-      allView.classList.remove('hidden-view'); allView.classList.add('active-view');
+      layout.showView('all_players');
       lastRevealedRank = -1;
       fetchAndRenderStageScores(true);
-    } else {
-      gView.classList.remove('hidden-view'); gView.classList.add('active-view');
-      lastRevealedRank = -1;
     }
   }
 
@@ -884,33 +1095,46 @@ else if (isHighlightedWrong) {
     LOG.ok('AUDIO', '✅ Unlocked.');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
   const layout = new MimicLayout();
-  layout.subscribe();
-
-  supabaseClient.channel('stage_layout_remote')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
-      if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
-    })
-    .subscribe();
-
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-      if (layout.isPlaying) layout.renderQuestionBoard();
-      else layout.renderBlankBoard();
-    }, 200);
-  });
-
-  layout.renderBlankBoard();
 
   (async () => {
+    // ⭐ Sync clock dulu
+    await syncClockOffset();
+    setInterval(syncClockOffset, 60000);
+
+    // Render blank dulu
+    layout.renderBlankBoard();
+
+    // Subscribe
+    layout.subscribe();
+
+    // Layout remote (dari admin)
+    supabaseClient.channel('stage_layout_remote')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
+        if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+      })
+      .subscribe();
+
+    // Fetch layout awal
     const { data } = await supabaseClient
       .from('admin_layout_mimic_sudoku').select('*').eq('id', 1).maybeSingle();
     if (data) handleViewSwitch(data.current_view, data.revealed_rank);
-  })();
 
-  LOG.ok('INIT', '══════════ STAGE READY ══════════');
+    // Resize handler
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (layout.isPlaying && !layout.isLoading) layout.renderQuestionBoard();
+        else layout.renderBlankBoard();
+      }, 200);
+    });
+
+    LOG.ok('INIT', '══════════ STAGE READY ══════════');
+  })();
 </script>
 </body>
 </html>
