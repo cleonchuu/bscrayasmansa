@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Arithmatic Bingo - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -17,7 +18,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       BINGO GRID — pakai padding-bottom fallback untuk iOS lama
+       BINGO GRID — fallback 1:1 untuk iOS Safari lama
        ═══════════════════════════════════════════════════════════ */
     .bingo-grid {
       display: grid;
@@ -44,6 +45,7 @@
       border: none;
       font-family: inherit;
       cursor: pointer;
+      transition: all 0.15s ease;
     }
 
     @keyframes flashGreen {
@@ -63,7 +65,7 @@
   <!-- DEBUG BADGE -->
   <div id="debugBadge"
        class="fixed top-2 right-2 text-[10px] font-mono bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-slate-400 z-50 pointer-events-none">
-    <span id="dbgState">booting</span> · <span id="dbgQ">#-</span> · <span id="dbgSync">--</span>
+    <span id="dbgState">booting</span> · <span id="dbgQ">#-</span> · <span id="dbgSync">--</span> · <span id="dbgClock">±0</span>
   </div>
 
   <!-- HEADER -->
@@ -114,8 +116,12 @@ const QUESTION_DURATION = 20;
 const POLL_INTERVAL_MS = 800;
 const TIMER_TICK_MS = 200;
 const FLUSH_DEBOUNCE_MS = 500;
+const CLOCK_RESYNC_MS = 60000;  // re-sync jam server tiap 60 detik
 const TAG = '[KIOSK]';
 
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
 const LOG = {
   ok:   (m, d) => console.log(`%c${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
   info: (m, d) => console.log(`%c${TAG} ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
@@ -128,31 +134,45 @@ const LOG = {
 // ═══════════════════════════════════════════════════════════
 const STATE = {
   user: null,
+
+  // Papan
   boards: [],
   boardStates: [],
   lineBonusClaimed: [[], [], [], [], []],
   currentBoardIndex: 0,
 
+  // Soal
   activeQuestionNum: 0,
   activeAnswer: null,
   isQuestionActive: false,
 
+  // Timer
   timerInterval: null,
   timerEndAt: 0,
 
+  // Skor
   scoreAccumulated: 0,
   pendingPoints: 0,
   flushTimer: null,
 
+  // Guard
   isProcessing: false,
 
-  // Signature tracking
+  // Signature
   lastSig: '',
   lastQuestionNum: 0,
 
-  realtimeConnected: false
+  // Realtime
+  realtimeConnected: false,
+
+  // ⭐ Clock sync
+  clockOffset: 0,       // ms, selisih jam server vs jam lokal
+  clockSynced: false
 };
 
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
 const UI = {
   setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; },
   setHTML(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; },
@@ -160,8 +180,62 @@ const UI = {
     UI.setText('dbgState', state);
     UI.setText('dbgQ', `#${qNum}`);
     if (sync !== null) UI.setText('dbgSync', sync);
+    UI.setText('dbgClock', `±${Math.round(STATE.clockOffset)}ms`);
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// ⭐ CLOCK SYNC — supaya timer tidak salah karena jam HP
+// ═══════════════════════════════════════════════════════════
+async function syncClockOffset() {
+  try {
+    const t0 = Date.now();
+
+    // Ambil server_time dari Supabase (kalau kolom tidak ada, fallback ke updated_at)
+    const { data, error } = await supabaseClient
+      .from('system_arithmatic_bingo')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    const t1 = Date.now();
+
+    if (error || !data) {
+      LOG.warn('Clock sync: tidak bisa ambil data, pakai offset 0');
+      STATE.clockOffset = 0;
+      return;
+    }
+
+    // Ambil server_time kalau ada, kalau tidak pakai updated_at
+    let serverTs = null;
+    if (data.server_time) {
+      serverTs = new Date(data.server_time).getTime();
+    } else if (data.updated_at) {
+      serverTs = new Date(data.updated_at).getTime();
+    }
+
+    if (!serverTs) {
+      LOG.warn('Clock sync: tidak ada server_time/updated_at, pakai offset 0');
+      STATE.clockOffset = 0;
+      return;
+    }
+
+    const rtt = t1 - t0;
+    const localEstimate = t0 + (rtt / 2);
+    STATE.clockOffset = serverTs - localEstimate;
+    STATE.clockSynced = true;
+
+    LOG.ok(`Clock offset: ${STATE.clockOffset}ms (RTT ${rtt}ms)`);
+  } catch (e) {
+    LOG.err('syncClockOffset exception', e);
+    STATE.clockOffset = 0;
+  }
+}
+
+// ⭐ Helper: waktu "server" sekarang
+function now() {
+  return Date.now() + STATE.clockOffset;
+}
 
 // ═══════════════════════════════════════════════════════════
 // AUDIO
@@ -225,11 +299,11 @@ function generateBingoBoards() {
     STATE.boards.push(board);
     STATE.boardStates.push(stateBoard);
   }
-  LOG.ok('Board generated');
+  LOG.ok('Board generated (5 papan × 25 angka)');
 }
 
 // ═══════════════════════════════════════════════════════════
-// RENDER
+// RENDER BOARD
 // ═══════════════════════════════════════════════════════════
 function renderBoard(boardIdx) {
   const container = document.getElementById('gridContainer');
@@ -238,12 +312,11 @@ function renderBoard(boardIdx) {
 
   const state = STATE.boardStates[boardIdx];
   state.forEach((cell, idx) => {
-    // Wrapper untuk aspect ratio 1:1 (fallback iOS)
     const wrap = document.createElement('div');
     wrap.className = 'bingo-cell-wrap';
 
     const btn = document.createElement('button');
-    btn.className = 'bingo-cell text-sm transition-all duration-200 ';
+    btn.className = 'bingo-cell text-sm ';
 
     if (cell.status === 'default') {
       btn.className += 'bg-slate-700 text-white active:scale-95';
@@ -328,7 +401,7 @@ function checkBingoBonus(boardIdx) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// POINTS
+// POINTS (debounced)
 // ═══════════════════════════════════════════════════════════
 function addPoints(pts, reason) {
   STATE.scoreAccumulated += pts;
@@ -435,12 +508,11 @@ function processQuestionData(data) {
   if (isNewSessionStart || isNumberReset) {
     LOG.ok(`🎮 SESI BARU terdeteksi (prev #${prevQNum} → #${currQNum})`);
     resetBoardsForNewSession('detect-new-session');
-    // Restore signature setelah reset — biar Q#1 tetap diproses di bawah
     STATE.lastSig = sig;
   }
 
   // ═══════════════════════════════════════════════════════
-  // KONDISI A: WAITING / CLEARED (Q#0 / is_active=false)
+  // KONDISI A: WAITING / CLEARED
   // ═══════════════════════════════════════════════════════
   if (!data.is_active || currQNum === 0) {
     LOG.warn('State: WAITING / CLEARED');
@@ -474,12 +546,11 @@ function processQuestionData(data) {
   const isNewQuestion = currQNum !== STATE.lastQuestionNum;
 
   if (!isNewQuestion) {
-    // Nomor soal sama → cek timer lokal
     if (STATE.isQuestionActive) {
       UI.debug('active', currQNum, 'poll-ok');
       return;
     }
-    LOG.info(`Resync Q#${currQNum} (timer lokal habis)`);
+    LOG.info(`Resync Q#${currQNum}`);
   }
 
   LOG.ok(`Proses soal #${currQNum}`);
@@ -497,19 +568,19 @@ function processQuestionData(data) {
 
   playBell();
 
-  // Timer sync dari start_time
+  // ⭐ HITUNG TIMER PAKAI JAM SERVER (bukan jam HP)
   let remaining = QUESTION_DURATION;
   if (data.start_time) {
     const startMs = new Date(data.start_time).getTime();
-    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const elapsed = Math.floor((now() - startMs) / 1000);
     remaining = Math.max(0, QUESTION_DURATION - elapsed);
-    LOG.info(`Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
+    LOG.info(`Timer sync: elapsed=${elapsed}s, remaining=${remaining}s (clockOffset=${Math.round(STATE.clockOffset)}ms)`);
   }
   startTimer(remaining);
 }
 
 // ═══════════════════════════════════════════════════════════
-// TIMER
+// TIMER (pakai jam server)
 // ═══════════════════════════════════════════════════════════
 function startTimer(secondsLeft) {
   if (STATE.timerInterval) {
@@ -528,10 +599,11 @@ function startTimer(secondsLeft) {
     return;
   }
 
-  STATE.timerEndAt = Date.now() + (secondsLeft * 1000);
+  // ⭐ Pakai now() bukan Date.now()
+  STATE.timerEndAt = now() + (secondsLeft * 1000);
 
   const tick = () => {
-    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - Date.now()) / 1000));
+    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - now()) / 1000));
     updateTimerDisplay(remaining);
 
     if (remaining <= 0) {
@@ -626,6 +698,11 @@ async function init() {
   renderBoard(0);
   UI.debug('ready', 0);
 
+  // ⭐ Sync jam server dulu sebelum terima soal
+  LOG.info('Syncing clock with server...');
+  await syncClockOffset();
+
+  // Fetch state awal
   try {
     const { data, error } = await supabaseClient
       .from('system_arithmatic_bingo')
@@ -638,6 +715,9 @@ async function init() {
   } catch (e) { LOG.err('Initial fetch exception', e); }
 
   subscribeToAdmin();
+
+  // ⭐ Re-sync clock tiap 60 detik (buat jaga drift)
+  setInterval(syncClockOffset, CLOCK_RESYNC_MS);
 
   LOG.ok('══════════ KIOSK READY ══════════');
 }
