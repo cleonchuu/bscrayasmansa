@@ -2,664 +2,792 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Arithmatic Bingo - Peserta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Forsaken City Recall - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   <style>
-    .bingo-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 6px;
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+      overscroll-behavior: none;
     }
-    .bingo-cell {
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 8px;
-      user-select: none;
-      touch-action: manipulation;
-    }
-    @keyframes flashGreen {
-      0%, 100% { box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
-      50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.9); }
-    }
-    .flash-correct { animation: flashGreen 0.5s ease-in-out; }
+    .aspect-16-9 { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; overflow: hidden; }
+    .aspect-16-9 > img { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .aspect-16-9 > .overlay-content { position: absolute; inset: 0; z-index: 10; }
+    .custom-scroll { -webkit-overflow-scrolling: touch; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
+    @keyframes pulseTimer { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+    .animate-timer-pulse { animation: pulseTimer 1s ease-in-out infinite; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    .frozen-overlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(3, 7, 18, 0.95); }
+    .safe-grid { display: grid; grid-auto-rows: max-content; align-content: start; }
+    .btn-remove { touch-action: manipulation; -webkit-appearance: none; }
   </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4">
+<body class="bg-slate-900 text-white min-h-screen p-4 max-w-5xl mx-auto flex flex-col">
 
-  <!-- AUDIO BELL -->
-  <audio id="bellSound"
-    src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"
-    preload="auto"></audio>
+  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
-  <!-- DEBUG BADGE (hapus kalau sudah production) -->
-  <div id="debugBadge"
-       class="fixed top-2 right-2 text-[10px] font-mono bg-black/70 border border-white/10 rounded-lg px-2 py-1 text-slate-400 z-50 pointer-events-none">
-    <span id="dbgState">booting</span> · <span id="dbgQ">#-</span> · <span id="dbgSync">--</span>
-  </div>
-
-  <!-- HEADER -->
-  <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
-    <div>
-      <p id="playerName" class="text-xs text-gray-400">Loading...</p>
-      <h1 class="text-lg font-black text-amber-400">ARITHMATIC BINGO</h1>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 1: MENUNGGU PANITIA                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayWaiting" class="fixed inset-0 z-40 flex flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="w-28 h-28 bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
+        <i class="fas fa-hourglass-half text-5xl text-amber-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">MENUNGGU PANITIA</h2>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Fase permainan belum dimulai. Panitia akan segera membuka sesi menghafal.
+        <br><br>
+        Layar ini terkunci sampai panitia memulai.
+      </p>
+      <div class="flex items-center justify-center gap-2 text-xs text-slate-500">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span>Standby...</span>
+      </div>
     </div>
-    <div class="text-right">
-      <p class="text-[10px] text-gray-400 uppercase tracking-widest">Total Skor</p>
-      <p id="totalScoreText" class="text-2xl font-black text-green-400">0</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 2: FASE MENGHAPAL                                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayMemorize" class="fixed inset-0 z-40 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-md">
+      <div class="w-28 h-28 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
+        <i class="fas fa-eye text-5xl text-emerald-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">FASE MENGHAPAL</h2>
+      <p class="text-slate-400 text-sm leading-relaxed">
+        Silakan lihat layar utama dan hafalkan urutan 30 kota yang ditampilkan.
+        <br><br>
+        <b class="text-amber-400">Layar kios terkunci</b> selama fase menghafal berlangsung.
+      </p>
+      <div class="bg-slate-900/60 border border-emerald-500/30 rounded-2xl p-4 max-w-xs mx-auto">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Sisa Waktu Menghafal</div>
+        <div id="memorizeCountdown" class="text-4xl font-mono font-black text-emerald-400">30:00</div>
+      </div>
     </div>
   </div>
 
-  <!-- SOAL & TIMER -->
-  <div class="my-4 bg-gradient-to-r from-amber-500/20 via-slate-800 to-indigo-500/20 p-4 rounded-xl border border-amber-500/30 text-center relative overflow-hidden">
-    <div class="flex justify-between items-center mb-2">
-      <span id="questionNum" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">Soal #-</span>
-      <span id="timerDisplay" class="text-xs font-mono font-bold text-rose-400">
-        <i class="fas fa-clock mr-1"></i>00:20
-      </span>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 3: LOCKED / SELESAI                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="overlayLocked" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6 max-w-lg">
+      <div class="w-28 h-28 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto">
+        <i class="fas fa-lock text-5xl text-rose-400"></i>
+      </div>
+      <h2 id="lockedTitle" class="text-3xl font-black text-white">WAKTU HABIS</h2>
+      <p id="lockedSubtitle" class="text-slate-400 text-sm">
+        Jawabanmu sudah tersimpan otomatis. Layar ini terkunci.
+      </p>
+      <div class="bg-slate-900 border border-amber-500/30 rounded-3xl p-8">
+        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Total Poin Kamu</div>
+        <div id="finalScore" class="text-6xl font-mono font-black text-amber-400">0</div>
+        <div class="text-xs text-slate-500 mt-2">dari 6 sesi × 25 poin = 150</div>
+      </div>
+      <p class="text-xs text-slate-600">Hubungi panitia jika perlu bantuan.</p>
     </div>
-    <h2 id="questionText" class="text-2xl font-extrabold text-white my-2">Menunggu Admin...</h2>
-    <p id="statusMsg" class="text-xs text-gray-400">Jawab sebelum waktu habis!</p>
   </div>
 
-  <!-- TAB SELECTOR -->
-  <div class="flex justify-between gap-1 mb-2">
-    <button onclick="switchBoard(0)" id="tab-0" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900">Papan 1</button>
-    <button onclick="switchBoard(1)" id="tab-1" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 2</button>
-    <button onclick="switchBoard(2)" id="tab-2" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 3</button>
-    <button onclick="switchBoard(3)" id="tab-3" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 4</button>
-    <button onclick="switchBoard(4)" id="tab-4" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 5</button>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN GAME PANEL                                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="mainGamePanel" class="hidden flex-col flex-1 space-y-4">
+
+    <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg gap-2">
+      <div class="overflow-hidden flex-1 min-w-0">
+        <p id="playerName" class="text-xs text-gray-400 truncate">Loading...</p>
+        <h1 class="text-base sm:text-lg font-black text-amber-400 truncate">FORSAKEN CITY RECALL</h1>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div class="text-right">
+          <p class="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-widest">Poin</p>
+          <p id="totalScoreText" class="text-xl sm:text-2xl font-black text-green-400">0</p>
+        </div>
+        <div class="bg-slate-950 border border-amber-500/30 rounded-xl px-2 sm:px-3 py-2 text-center">
+          <p class="text-[8px] sm:text-[9px] text-slate-500 uppercase font-bold">Waktu</p>
+          <p id="answerCountdown" class="text-base sm:text-lg font-mono font-black text-emerald-400">15:00</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-1.5 px-1">
+      <div data-ses="1" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="2" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="3" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="4" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="5" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+      <div data-ses="6" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
+    </div>
+
+    <div id="questionPanel" class="bg-slate-800/80 p-4 sm:p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-700/60 pb-3 gap-2">
+        <div class="min-w-0 flex-1">
+          <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 inline-block">
+            Sesi 1 dari 6
+          </span>
+          <p class="text-xs text-gray-400 mt-2" id="sessionSubText">
+            Pilih 5 gambar sesuai urutan yang ditampilkan panitia (#1 - #5)
+          </p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <span class="text-xs font-bold text-slate-300">
+            Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
+        <div id="selectedSlotsGrid" class="safe-grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+      </div>
+
+      <div>
+        <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
+        <div id="imageOptionsGrid" class="safe-grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
+          <p class="col-span-full text-center text-gray-500 py-8 text-xs">Memuat opsi gambar...</p>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-slate-700/60 gap-2">
+        <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 sm:px-4 py-2 rounded-lg text-xs transition-all">
+          <i class="fas fa-arrow-left mr-1"></i> Sesi Sebelumnya
+        </button>
+        <div></div>
+        <button id="btnNextSession" onclick="nextSession()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all">
+          Simpan Sesi 1 & Lanjut <i class="fas fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="successPanel" class="hidden bg-slate-800 p-8 rounded-2xl border border-green-500/30 text-center space-y-4 shadow-2xl my-auto">
+      <div class="w-16 h-16 bg-green-500/10 text-green-400 rounded-full flex items-center justify-center text-3xl mx-auto border border-green-500/20">
+        <i class="fas fa-check"></i>
+      </div>
+      <h2 class="text-xl font-black text-white">Seluruh Sesi Berhasil Diselesaikan!</h2>
+      <p class="text-xs text-gray-400 max-w-sm mx-auto">
+        Terima kasih <span id="successUserText" class="text-amber-400 font-bold"></span>.
+        Seluruh poin sudah dicatat dan notifikasi terkirim ke panitia.
+      </p>
+      <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-5 inline-block">
+        <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Total Poin</div>
+        <div id="successScore" class="text-4xl font-mono font-black text-amber-400">0</div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- GRID -->
-  <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl flex-1"></div>
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-<script>
-// ═══════════════════════════════════════════════════════════
-// KONFIG
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const IMAGE_BASE_PATH = `${SUPABASE_URL}/storage/v1/object/public/forsaken_city/`;
 
-const QUESTION_DURATION = 20;      // detik
-const POLL_INTERVAL_MS = 1000;     // fallback polling
-const TIMER_TICK_MS = 200;         // resolusi timer display
-const FLUSH_DEBOUNCE_MS = 500;     // debounce insert skor
-const TAG = '[KIOSK]';
+    const SYS_TABLE = 'system_forsaken_city_recall';
+    const NOTIF_TABLE = 'recall_notifications';
+    const SUBMISSIONS_TABLE = 'recall_submissions';
 
-// ═══════════════════════════════════════════════════════════
-// LOGGER
-// ═══════════════════════════════════════════════════════════
-const LOG = {
-  ok:   (m, d) => console.log(`%c${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
-  info: (m, d) => console.log(`%c${TAG} ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
-  warn: (m, d) => console.warn(`%c${TAG} ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
-  err:  (m, d) => console.error(`%c${TAG} ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? '')
-};
+    const TOTAL_SESSIONS = 6;
+    const IMAGES_PER_SESSION = 5;
+    const POINTS_PER_CORRECT = 5;
+    const POLL_INTERVAL_MS = 1200;    // polling tiap 1.2 detik
+    const WATCHDOG_TIMEOUT_MS = 5000; // kalau tidak ada update 5 detik, resubscribe
 
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-const STATE = {
-  // User
-  user: null,
+    // State
+    let userSession = null;
+    let masterSequence = [];
+    let availableFilenames = [];
+    let userAnswers = new Array(30).fill(null);
+    let sessionSubmitted = [false, false, false, false, false, false];
+    let currentSession = 1;
+    let totalScoreAccumulated = 0;
 
-  // Papan
-  boards: [],
-  boardStates: [],
-  lineBonusClaimed: [[], [], [], [], []],
-  currentBoardIndex: 0,
+    let currentPhase = 'IDLE';
+    let answerTimerInt = null;
+    let memorizeTimerInt = null;
 
-  // Soal aktif
-  activeQuestionNum: 0,
-  activeAnswer: null,
-  isQuestionActive: false,
+    // Watchdog
+    let lastDataTs = Date.now();
+    let lastProcessedSig = '';
+    let realtimeChannel = null;
+    let pollTimerInt = null;
+    let watchdogInt = null;
 
-  // Timer
-  timerInterval: null,
-  timerEndAt: 0,
+    // ═══════════════════════════════════════════════════════════
+    // LOGGER (dengan debug badge)
+    // ═══════════════════════════════════════════════════════════
+    const LOG = {
+      ok:   (m, d) => console.log(`%c[KIOSK] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+      info: (m, d) => console.log(`%c[KIOSK] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+      warn: (m, d) => console.warn(`%c[KIOSK] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+      err:  (m, d) => console.error(`%c[KIOSK] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? '')
+    };
 
-  // Skor
-  scoreAccumulated: 0,
-  pendingPoints: 0,
-  flushTimer: null,
-
-  // Guard
-  isProcessing: false,
-
-  // Signature tracking
-  lastProcessedSig: '',
-  lastQuestionNum: 0,
-
-  // Realtime
-  realtimeConnected: false
-};
-
-// ═══════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════
-const UI = {
-  setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; },
-  setHTML(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; },
-  debug(state, qNum, sync = null) {
-    UI.setText('dbgState', state);
-    UI.setText('dbgQ', `#${qNum}`);
-    if (sync !== null) UI.setText('dbgSync', sync);
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
-// AUDIO
-// ═══════════════════════════════════════════════════════════
-function playBell() {
-  const bell = document.getElementById('bellSound');
-  if (!bell) return;
-  try {
-    bell.currentTime = 0;
-    bell.play().catch(() => LOG.warn('Autoplay diblokir browser'));
-  } catch (e) { LOG.warn('Bell error', e); }
-}
-
-// ═══════════════════════════════════════════════════════════
-// USER INIT
-// ═══════════════════════════════════════════════════════════
-function initUser() {
-  try {
-    const sess = localStorage.getItem('userSession');
-    if (!sess) {
-      LOG.warn('Tidak ada userSession, redirect ke login');
-      window.location.href = '/login.html';
-      return false;
+    // ═══════════════════════════════════════════════════════════
+    // AUDIO
+    // ═══════════════════════════════════════════════════════════
+    function playBell() {
+      const bell = document.getElementById('bellSound');
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
     }
-    STATE.user = JSON.parse(sess);
-    if (!STATE.user?.unique_id) {
-      LOG.err('userSession tidak punya unique_id', STATE.user);
-      return false;
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.max(0, sec % 60);
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
-    UI.setText('playerName', STATE.user.full_name || STATE.user.unique_id);
-    LOG.ok('User ready', STATE.user.unique_id);
-    return true;
-  } catch (e) {
-    LOG.err('initUser exception', e);
-    return false;
-  }
-}
 
-// ═══════════════════════════════════════════════════════════
-// GENERATE BOARD (99 unik + 26 duplikat = 125 angka untuk 5 papan)
-// ═══════════════════════════════════════════════════════════
-function generateBingoBoards() {
-  STATE.boards = [];
-  STATE.boardStates = [];
-  STATE.lineBonusClaimed = [[], [], [], [], []];
-
-  const primaryPool = Array.from({ length: 99 }, (_, i) => i + 1);
-  const duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
-  const finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
-
-  for (let b = 0; b < 5; b++) {
-    const board = [];
-    const stateBoard = [];
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
-        const val = finalPool.pop();
-        board.push(val);
-        stateBoard.push({ val, status: 'default', row: r, col: c });
+    // ═══════════════════════════════════════════════════════════
+    // USER
+    // ═══════════════════════════════════════════════════════════
+    function initUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) { window.location.href = '/login.html'; return false; }
+      try {
+        userSession = JSON.parse(sess);
+        if (!userSession || !userSession.unique_id) {
+          window.location.href = '/login.html';
+          return false;
+        }
+        document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
+        return true;
+      } catch (e) {
+        window.location.href = '/login.html';
+        return false;
       }
     }
-    STATE.boards.push(board);
-    STATE.boardStates.push(stateBoard);
-  }
-  LOG.ok('Board generated (5 papan × 25 angka)');
-}
 
-// ═══════════════════════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════════════════════
-function renderBoard(boardIdx) {
-  const container = document.getElementById('gridContainer');
-  if (!container) return;
-  container.innerHTML = '';
-
-  const state = STATE.boardStates[boardIdx];
-  state.forEach((cell, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'bingo-cell text-sm transition-all duration-200 ';
-
-    if (cell.status === 'default') {
-      btn.className += 'bg-slate-700 text-white hover:bg-slate-600 active:scale-95';
-    } else if (cell.status === 'correct') {
-      btn.className += 'bg-emerald-500 text-slate-900 font-extrabold shadow-lg shadow-emerald-500/50';
-    } else if (cell.status === 'wrong') {
-      btn.className += 'bg-rose-600 text-white line-through opacity-60';
-    }
-
-    btn.textContent = String(cell.val).padStart(2, '0');
-    btn.onclick = () => handleCellClick(boardIdx, idx);
-    container.appendChild(btn);
-  });
-}
-
-function switchBoard(idx) {
-  STATE.currentBoardIndex = idx;
-  document.querySelectorAll('.board-tab').forEach((tab, i) => {
-    tab.className = i === idx
-      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900'
-      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400';
-  });
-  renderBoard(idx);
-}
-
-// ═══════════════════════════════════════════════════════════
-// CLICK HANDLER
-// ═══════════════════════════════════════════════════════════
-async function handleCellClick(boardIdx, cellIdx) {
-  if (!STATE.isQuestionActive || STATE.activeAnswer === null) return;
-  if (STATE.isProcessing) return;
-
-  const cell = STATE.boardStates[boardIdx][cellIdx];
-  if (cell.status !== 'default') return;
-
-  STATE.isProcessing = true;
-
-  if (cell.val === STATE.activeAnswer) {
-    cell.status = 'correct';
-    addPoints(1, 'Jawaban Benar (+1)');
-    checkBingoBonus(boardIdx);
-  } else {
-    cell.status = 'wrong';
-    addPoints(-1, 'Salah Tekan (-1)');
-  }
-
-  renderBoard(STATE.currentBoardIndex);
-  STATE.isProcessing = false;
-}
-
-// ═══════════════════════════════════════════════════════════
-// BINGO BONUS
-// ═══════════════════════════════════════════════════════════
-function checkBingoBonus(boardIdx) {
-  const state = STATE.boardStates[boardIdx];
-
-  for (let r = 0; r < 5; r++) {
-    const tag = `R-${r}`;
-    if (!STATE.lineBonusClaimed[boardIdx].includes(tag)) {
-      const rowCells = state.filter(c => c.row === r);
-      if (rowCells.every(c => c.status === 'correct')) {
-        STATE.lineBonusClaimed[boardIdx].push(tag);
-        addPoints(5, `BINGO Baris ${r + 1} (+5)`);
-      }
-    }
-  }
-
-  for (let c = 0; c < 5; c++) {
-    const tag = `C-${c}`;
-    if (!STATE.lineBonusClaimed[boardIdx].includes(tag)) {
-      const colCells = state.filter(cell => cell.col === c);
-      if (colCells.every(cell => cell.status === 'correct')) {
-        STATE.lineBonusClaimed[boardIdx].push(tag);
-        addPoints(5, `BINGO Kolom ${c + 1} (+5)`);
-      }
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// POINTS (debounced)
-// ═══════════════════════════════════════════════════════════
-function addPoints(pts, reason) {
-  STATE.scoreAccumulated += pts;
-  STATE.pendingPoints += pts;
-
-  UI.setText('totalScoreText', STATE.scoreAccumulated);
-  UI.setText('statusMsg', reason);
-
-  if (!STATE.flushTimer) {
-    STATE.flushTimer = setTimeout(flushPendingPoints, FLUSH_DEBOUNCE_MS);
-  }
-}
-
-async function flushPendingPoints() {
-  if (STATE.flushTimer) {
-    clearTimeout(STATE.flushTimer);
-    STATE.flushTimer = null;
-  }
-  if (STATE.pendingPoints === 0) return;
-
-  const toSend = STATE.pendingPoints;
-  STATE.pendingPoints = 0;
-
-  try {
-    const { error } = await supabaseClient.from('game_scores').insert({
-      user_unique_id: STATE.user.unique_id,
-      game_name: 'Bingo Math',
-      score_obtained: toSend
-    });
-    if (error) LOG.err('Insert score error', error);
-    else LOG.ok(`Score flushed: ${toSend} pts`);
-  } catch (e) {
-    LOG.err('Insert exception', e);
-    // Kembalikan poin ke pending kalau gagal
-    STATE.pendingPoints += toSend;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// 🎯 RESET SESI BARU
-// Dipanggil ketika admin memulai game baru (Q#1 dari Q#>1)
-// atau saat admin clear (Q#0).
-// ═══════════════════════════════════════════════════════════
-function resetBoardsForNewSession(reason = 'new-session') {
-  LOG.warn(`🔄 RESET SESI (${reason})`);
-
-  // Flush sisa poin sesi lama
-  flushPendingPoints();
-
-  // Reset state papan & skor
-  STATE.boards = [];
-  STATE.boardStates = [];
-  STATE.lineBonusClaimed = [[], [], [], [], []];
-  STATE.currentBoardIndex = 0;
-  STATE.scoreAccumulated = 0;
-  STATE.pendingPoints = 0;
-  STATE.isProcessing = false;
-
-  // Reset state soal
-  STATE.activeQuestionNum = 0;
-  STATE.activeAnswer = null;
-  STATE.isQuestionActive = false;
-  STATE.lastQuestionNum = 0;
-
-  // Reset timer
-  if (STATE.timerInterval) {
-    clearInterval(STATE.timerInterval);
-    STATE.timerInterval = null;
-  }
-  STATE.timerEndAt = 0;
-
-  // Reset signature (biar data berikutnya diproses)
-  STATE.lastProcessedSig = '';
-
-  // Regenerate papan baru
-  generateBingoBoards();
-  renderBoard(0);
-
-  // Reset UI
-  UI.setText('totalScoreText', 0);
-  UI.setText('questionNum', 'Soal #-');
-  UI.setText('questionText', 'Menunggu Admin...');
-  UI.setText('statusMsg', 'Sesi baru! Bersiap...');
-  UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
-  UI.debug('reset', 0);
-
-  // Reset tab ke Papan 1
-  document.querySelectorAll('.board-tab').forEach((tab, i) => {
-    tab.className = i === 0
-      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900'
-      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400';
-  });
-
-  LOG.ok('✅ Papan & skor sudah di-reset');
-}
-
-// ═══════════════════════════════════════════════════════════
-// ⭐ CORE: PROCESS DATA DARI ADMIN
-// Single entry point — semua update soal lewat sini
-// ═══════════════════════════════════════════════════════════
-function processQuestionData(data) {
-  if (!data) return;
-
-  // ─── Signature guard: skip kalau data sama persis ───
-  const sig = `${data.question_number}|${data.start_time}|${data.is_active}`;
-  if (sig === STATE.lastProcessedSig) return;
-  STATE.lastProcessedSig = sig;
-
-  const prevQNum = STATE.lastQuestionNum;
-  const currQNum = data.question_number || 0;
-
-  LOG.info(`Data masuk: Q#${currQNum}, active=${data.is_active}, prevQ=#${prevQNum}`);
-
-  // ═══════════════════════════════════════════════════════
-  // 🎯 DETEKSI SESI BARU
-  // ═══════════════════════════════════════════════════════
-  // Sesi baru terdeteksi kalau:
-  //   (a) Soal #1 muncul & sebelumnya BUKAN #1 (dan bukan #0 yg baru reset)
-  //   (b) Nomor soal turun tajam (misal #50 → #1) tapi BUKAN via clear (#0)
-  // Kalau lewat clear (#0), akan di-handle di kondisi WAITING di bawah.
-  const isNewSessionStart =
-    currQNum === 1 && prevQNum > 1;
-
-  const isNumberReset =
-    currQNum > 0 && prevQNum > currQNum && currQNum > 1;
-
-  if (isNewSessionStart || isNumberReset) {
-    LOG.ok(`🎮 SESI BARU terdeteksi (prev #${prevQNum} → #${currQNum})`);
-    resetBoardsForNewSession('detect-new-session');
-    // lastProcessedSig sudah di-reset, tapi kita restore supaya Q#1 ini
-    // tetap diproses di bawah
-    STATE.lastProcessedSig = sig;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // KONDISI A: Admin clear / belum mulai (Q#0 / is_active=false)
-  // ═══════════════════════════════════════════════════════
-  if (!data.is_active || currQNum === 0) {
-    LOG.warn('State: WAITING / CLEARED');
-
-    // Kalau sebelumnya ada sesi aktif → reset papan
-    if (prevQNum > 0) {
-      resetBoardsForNewSession('admin-clear');
-      // Setelah reset, STATE.lastQuestionNum = 0. Restore signature.
-      STATE.lastProcessedSig = sig;
-    }
-
-    STATE.isQuestionActive = false;
-    STATE.activeAnswer = null;
-    STATE.activeQuestionNum = 0;
-    STATE.lastQuestionNum = 0;
-
-    if (STATE.timerInterval) {
-      clearInterval(STATE.timerInterval);
-      STATE.timerInterval = null;
-    }
-
-    UI.setText('questionNum', 'Soal #-');
-    UI.setText('questionText', 'Menunggu Admin...');
-    UI.setText('statusMsg', 'Jawab sebelum waktu habis!');
-    UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
-    UI.debug('waiting', 0);
-    return;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // KONDISI B: Soal valid
-  // ═══════════════════════════════════════════════════════
-  const isNewQuestion = currQNum !== STATE.lastQuestionNum;
-
-  if (!isNewQuestion) {
-    // Nomor soal sama → cek apakah timer lokal sudah habis
-    if (STATE.isQuestionActive) {
-      // Timer masih jalan, cukup update sync indicator
-      UI.debug('active', currQNum, 'poll-ok');
-      return;
-    }
-    LOG.info(`Resync Q#${currQNum} (timer lokal habis)`);
-  }
-
-  LOG.ok(`Proses soal #${currQNum}`);
-  flushPendingPoints();
-
-  STATE.lastQuestionNum = currQNum;
-  STATE.activeQuestionNum = currQNum;
-  STATE.activeAnswer = data.correct_answer;
-  STATE.isQuestionActive = true;
-
-  UI.setText('questionNum', `Soal #${currQNum}`);
-  UI.setText('questionText', data.question_text || 'SIAP MEMULAI?');
-  UI.setText('statusMsg', 'Cari jawaban di 5 papanmu!');
-  UI.debug('active', currQNum);
-
-  playBell();
-
-  // ─── Timer sync dari start_time ───
-  let remaining = QUESTION_DURATION;
-  if (data.start_time) {
-    const startMs = new Date(data.start_time).getTime();
-    const elapsed = Math.floor((Date.now() - startMs) / 1000);
-    remaining = Math.max(0, QUESTION_DURATION - elapsed);
-    LOG.info(`Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
-  }
-  startTimer(remaining);
-}
-
-// ═══════════════════════════════════════════════════════════
-// TIMER (timestamp-based, anti-lag)
-// ═══════════════════════════════════════════════════════════
-function startTimer(secondsLeft) {
-  if (STATE.timerInterval) {
-    clearInterval(STATE.timerInterval);
-    STATE.timerInterval = null;
-  }
-
-  if (secondsLeft <= 0) {
-    LOG.warn('Soal masuk setelah waktu habis — langsung timeup');
-    STATE.isQuestionActive = false;
-    UI.setText('statusMsg', 'Waktu Habis! Soal ditutup.');
-    UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
-    updateTimerDisplay(0);
-    flushPendingPoints();
-    UI.debug('timeup', STATE.activeQuestionNum);
-    return;
-  }
-
-  STATE.timerEndAt = Date.now() + (secondsLeft * 1000);
-
-  const tick = () => {
-    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - Date.now()) / 1000));
-    updateTimerDisplay(remaining);
-
-    if (remaining <= 0) {
-      clearInterval(STATE.timerInterval);
-      STATE.timerInterval = null;
-      STATE.isQuestionActive = false;
-      UI.setText('statusMsg', 'Waktu Habis! Soal ditutup.');
-      UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
-      UI.debug('timeup', STATE.activeQuestionNum);
-      flushPendingPoints();
-      LOG.warn(`⏰ Waktu habis Q#${STATE.activeQuestionNum}`);
-    }
-  };
-
-  updateTimerDisplay(secondsLeft);
-  STATE.timerInterval = setInterval(tick, TIMER_TICK_MS);
-}
-
-function updateTimerDisplay(seconds) {
-  const s = seconds < 10 ? `0${seconds}` : seconds;
-  UI.setHTML('timerDisplay', `<i class="fas fa-clock mr-1"></i>00:${s}`);
-}
-
-// ═══════════════════════════════════════════════════════════
-// SUBSCRIBE: Realtime + Polling fallback
-// ═══════════════════════════════════════════════════════════
-function subscribeToAdmin() {
-  // 1. Realtime listener
-  supabaseClient
-    .channel('kiosk_bingo_rt')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'system_arithmatic_bingo'
-    }, payload => {
-      LOG.info('⚡ Realtime event');
-      if (payload.new) processQuestionData(payload.new);
-    })
-    .subscribe(status => {
-      LOG.info(`Realtime: ${status}`);
-      STATE.realtimeConnected = (status === 'SUBSCRIBED');
-      UI.debug(
-        STATE.isQuestionActive ? 'active' : 'ready',
-        STATE.lastQuestionNum,
-        STATE.realtimeConnected ? 'rt' : 'poll'
-      );
-    });
-
-  // 2. Polling fallback
-  setInterval(async () => {
-    try {
+    // ═══════════════════════════════════════════════════════════
+    // FETCH MASTER DATA
+    // ═══════════════════════════════════════════════════════════
+    async function fetchMasterData() {
       const { data, error } = await supabaseClient
-        .from('system_arithmatic_bingo')
+        .from(SYS_TABLE)
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
-      if (!error && data) processQuestionData(data);
-      UI.debug(
-        STATE.isQuestionActive ? 'active' : 'ready',
-        STATE.lastQuestionNum,
-        STATE.realtimeConnected ? 'rt' : 'poll'
-      );
-    } catch (e) { /* silent */ }
-  }, POLL_INTERVAL_MS);
-}
+      if (error || !data) return null;
 
-// ═══════════════════════════════════════════════════════════
-// SAFETY FLUSH saat tab close
-// ═══════════════════════════════════════════════════════════
-window.addEventListener('beforeunload', () => {
-  if (STATE.pendingPoints !== 0 && STATE.user) {
-    try {
-      supabaseClient.from('game_scores').insert({
-        user_unique_id: STATE.user.unique_id,
-        game_name: 'Bingo Math',
-        score_obtained: STATE.pendingPoints
+      masterSequence = data.sequence_filenames || [];
+      availableFilenames = [...masterSequence].sort();
+      currentPhase = data.session_phase || 'IDLE';
+
+      return data;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FASE CONTROL
+    // ═══════════════════════════════════════════════════════════
+    function hideAllOverlays() {
+      ['overlayWaiting', 'overlayMemorize', 'overlayLocked'].forEach(x => {
+        const el = document.getElementById(x);
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
       });
-    } catch (e) { /* silent */ }
-  }
-});
+    }
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-async function init() {
-  LOG.ok('══════════ KIOSK BOOT ══════════');
+    function showOverlay(id) {
+      hideAllOverlays();
+      const target = document.getElementById(id);
+      if (target) { target.classList.remove('hidden'); target.classList.add('flex'); }
+      const mgp = document.getElementById('mainGamePanel');
+      if (mgp) { mgp.classList.add('hidden'); mgp.classList.remove('flex'); }
+    }
 
-  if (!initUser()) return;
+    async function applyPhase(phase, sysData) {
+      currentPhase = phase;
 
-  generateBingoBoards();
-  renderBoard(0);
-  UI.debug('ready', 0);
+      LOG.info(`Apply phase: ${phase}`);
 
-  // Fetch state awal
-  try {
-    const { data, error } = await supabaseClient
-      .from('system_arithmatic_bingo')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+      if (phase === 'IDLE') {
+        showOverlay('overlayWaiting');
+        stopAnswerTimer();
+        stopMemorizeTimer();
+        return;
+      }
+      if (phase === 'MEMORIZE') {
+        showOverlay('overlayMemorize');
+        if (sysData && sysData.memorize_start_time) {
+          startMemorizeCountdown(sysData.memorize_start_time, sysData.memorize_duration || 1800);
+        }
+        stopAnswerTimer();
+        return;
+      }
+      if (phase === 'ANSWER') {
+        hideAllOverlays();
+        const mgp = document.getElementById('mainGamePanel');
+        mgp.classList.remove('hidden');
+        mgp.classList.add('flex');
+        renderSession();
+        if (sysData && sysData.answer_start_time) {
+          startAnswerCountdown(sysData.answer_start_time, sysData.answer_duration || 900);
+        }
+        stopMemorizeTimer();
+        return;
+      }
+      if (phase === 'LOCKED') {
+        await autoSubmitRemaining();
+        stopAnswerTimer();
+        stopMemorizeTimer();
+        showFinalLockOverlay();
+        return;
+      }
+    }
 
-    if (error) LOG.err('Initial fetch error', error);
-    if (data) processQuestionData(data);
-  } catch (e) { LOG.err('Initial fetch exception', e); }
+    // ═══════════════════════════════════════════════════════════
+    // COUNTDOWN
+    // ═══════════════════════════════════════════════════════════
+    function startMemorizeCountdown(startTime, duration) {
+      if (memorizeTimerInt) clearInterval(memorizeTimerInt);
+      const startMs = new Date(startTime).getTime();
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const el = document.getElementById('memorizeCountdown');
+        if (el) el.textContent = formatTime(remaining);
+        if (remaining <= 0) clearInterval(memorizeTimerInt);
+      };
+      tick();
+      memorizeTimerInt = setInterval(tick, 500);
+    }
 
-  // Subscribe
-  subscribeToAdmin();
+    function stopMemorizeTimer() {
+      if (memorizeTimerInt) { clearInterval(memorizeTimerInt); memorizeTimerInt = null; }
+    }
 
-  LOG.ok('══════════ KIOSK READY ══════════');
-}
+    function startAnswerCountdown(startTime, duration) {
+      if (answerTimerInt) clearInterval(answerTimerInt);
+      const startMs = new Date(startTime).getTime();
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+        const el = document.getElementById('answerCountdown');
+        if (el) {
+          el.textContent = formatTime(remaining);
+          if (remaining <= 30) {
+            el.className = 'text-base sm:text-lg font-mono font-black text-rose-500 animate-timer-pulse';
+          } else if (remaining <= 120) {
+            el.className = 'text-base sm:text-lg font-mono font-black text-amber-400 animate-timer-pulse';
+          } else {
+            el.className = 'text-base sm:text-lg font-mono font-black text-emerald-400';
+          }
+        }
+        if (remaining <= 0) {
+          clearInterval(answerTimerInt);
+          handleTimeOut();
+        }
+      };
+      tick();
+      answerTimerInt = setInterval(tick, 500);
+    }
 
-// Expose untuk onclick
-window.switchBoard = switchBoard;
-window.handleCellClick = handleCellClick;
+    function stopAnswerTimer() {
+      if (answerTimerInt) { clearInterval(answerTimerInt); answerTimerInt = null; }
+    }
 
-// Start
-init();
-</script>
+    async function handleTimeOut() {
+      await autoSubmitRemaining();
+      showFinalLockOverlay();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════
+    function renderSession() {
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+      const filledCount = sessionAnswers.filter(Boolean).length;
+
+      document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari ${TOTAL_SESSIONS}`;
+      document.getElementById('sessionSubText').textContent =
+        `Pilih 5 gambar sesuai urutan tayangan panitia (#${startIndex + 1} - #${startIndex + IMAGES_PER_SESSION})`;
+      document.getElementById('selectedCount').textContent = filledCount;
+
+      renderSlots(sessionAnswers, startIndex);
+      renderOptions();
+      updateButtons();
+      updateSessionDots();
+    }
+
+    function renderSlots(sessionAnswers, startIndex) {
+      const container = document.getElementById('selectedSlotsGrid');
+      container.innerHTML = '';
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        const globalIdx = startIndex + i;
+        const filename = sessionAnswers[i];
+        const slot = document.createElement('div');
+
+        if (filename) {
+          slot.className = "aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 shadow-md";
+          slot.innerHTML = `
+            <img src="${IMAGE_BASE_PATH}${filename}" alt="" onerror="this.style.opacity=0.3"/>
+            <div class="overlay-content">
+              ${!isLocked ? `<button onclick="removeAnswer(${globalIdx})" class="btn-remove absolute top-1 right-1 bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-lg z-20">×</button>` : ''}
+              <span class="absolute bottom-1 left-1 bg-slate-900/90 text-amber-400 font-bold text-[10px] px-1.5 py-0.5 rounded z-20">#${globalIdx + 1}</span>
+            </div>
+          `;
+        } else {
+          slot.className = "aspect-16-9 bg-slate-900 rounded-lg border-2 border-dashed border-slate-700";
+          slot.innerHTML = `
+            <div class="overlay-content flex items-center justify-center">
+              <span class="text-slate-600 text-xs font-bold">#${globalIdx + 1}</span>
+            </div>
+          `;
+        }
+        container.appendChild(slot);
+      }
+    }
+
+    function renderOptions() {
+      const container = document.getElementById('imageOptionsGrid');
+      container.innerHTML = '';
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      if (availableFilenames.length === 0) {
+        container.innerHTML = '<p class="col-span-full text-center text-gray-500 py-8 text-xs">Belum ada opsi gambar.</p>';
+        return;
+      }
+
+      availableFilenames.forEach(filename => {
+        const isSelected = userAnswers.includes(filename);
+        const card = document.createElement('div');
+        card.className = `aspect-16-9 bg-slate-800 rounded-lg overflow-hidden border transition-all ${
+          isSelected || isLocked
+            ? 'opacity-20 border-slate-700 cursor-not-allowed'
+            : 'border-slate-700 active:scale-95 shadow-sm'
+        }`;
+        card.innerHTML = `<img src="${IMAGE_BASE_PATH}${filename}" alt="" onerror="this.style.opacity=0.3"/>`;
+
+        if (!isSelected && !isLocked) {
+          card.onclick = () => selectImage(filename);
+          card.style.cursor = 'pointer';
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function updateSessionDots() {
+      document.querySelectorAll('.ses-dot').forEach(dot => {
+        const s = parseInt(dot.dataset.ses);
+        if (sessionSubmitted[s - 1]) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-emerald-500 transition-all';
+        } else if (s === currentSession) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-amber-500 transition-all';
+        } else if (s < currentSession) {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-slate-600 transition-all';
+        } else {
+          dot.className = 'ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all';
+        }
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // AKSI
+    // ═══════════════════════════════════════════════════════════
+    function selectImage(filename) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        if (!userAnswers[startIndex + i]) {
+          userAnswers[startIndex + i] = filename;
+          renderSession();
+          return;
+        }
+      }
+      alert(`Slot Sesi ${currentSession} sudah penuh!`);
+    }
+
+    function removeAnswer(globalIdx) {
+      if (sessionSubmitted[currentSession - 1]) return;
+      userAnswers[globalIdx] = null;
+      renderSession();
+    }
+
+    function updateButtons() {
+      const btnPrev = document.getElementById('btnPrevSession');
+      const btnNext = document.getElementById('btnNextSession');
+      const isLocked = sessionSubmitted[currentSession - 1];
+
+      btnPrev.classList.toggle('hidden', currentSession === 1);
+
+      if (isLocked) {
+        if (currentSession < TOTAL_SESSIONS) {
+          btnNext.innerHTML = `Lanjut ke Sesi ${currentSession + 1} <i class="fas fa-arrow-right ml-1"></i>`;
+          btnNext.className = "bg-slate-700 hover:bg-slate-600 text-white font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+          btnNext.disabled = false;
+        } else {
+          btnNext.innerHTML = `<i class="fas fa-lock mr-1"></i> Selesai`;
+          btnNext.className = "bg-slate-800 text-slate-500 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs cursor-not-allowed";
+          btnNext.disabled = true;
+        }
+        return;
+      }
+
+      btnNext.disabled = false;
+
+      if (currentSession === TOTAL_SESSIONS) {
+        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir`;
+        btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      } else {
+        btnNext.innerHTML = `Simpan Sesi ${currentSession} <i class="fas fa-arrow-right ml-1"></i>`;
+        btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-4 sm:px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
+      }
+    }
+
+    function prevSession() {
+      if (currentSession > 1) { currentSession--; renderSession(); }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT
+    // ═══════════════════════════════════════════════════════════
+    async function nextSession() {
+      if (currentPhase !== 'ANSWER') return;
+
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const currentAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+
+      if (sessionSubmitted[currentSession - 1]) {
+        if (currentSession < TOTAL_SESSIONS) {
+          currentSession++;
+          renderSession();
+        }
+        return;
+      }
+
+      if (currentAnswers.some(ans => ans === null)) {
+        return alert(`Harap isi 5 gambar untuk Sesi ${currentSession} terlebih dahulu!`);
+      }
+
+      let sessionScore = 0;
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+        const globalIdx = startIndex + i;
+        if (currentAnswers[i] === masterSequence[globalIdx]) {
+          sessionScore += POINTS_PER_CORRECT;
+        }
+      }
+
+      const { error } = await supabaseClient
+        .from('game_scores')
+        .insert({
+          user_unique_id: userSession.unique_id,
+          game_name: `Recall Type ${currentSession}`,
+          score_obtained: sessionScore,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) { alert(`Gagal simpan Sesi ${currentSession}: ` + error.message); return; }
+
+      sessionSubmitted[currentSession - 1] = true;
+      totalScoreAccumulated += sessionScore;
+      document.getElementById('totalScoreText').textContent = totalScoreAccumulated;
+      playBell();
+
+      if (currentSession < TOTAL_SESSIONS) {
+        currentSession++;
+        renderSession();
+      } else {
+        await finalizeAllSubmissions();
+      }
+    }
+
+    async function autoSubmitRemaining() {
+      for (let s = 1; s <= TOTAL_SESSIONS; s++) {
+        if (sessionSubmitted[s - 1]) continue;
+        const startIndex = (s - 1) * IMAGES_PER_SESSION;
+        const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
+
+        let sessionScore = 0;
+        for (let i = 0; i < IMAGES_PER_SESSION; i++) {
+          if (sessionAnswers[i] && sessionAnswers[i] === masterSequence[startIndex + i]) {
+            sessionScore += POINTS_PER_CORRECT;
+          }
+        }
+
+        const { error } = await supabaseClient
+          .from('game_scores')
+          .insert({
+            user_unique_id: userSession.unique_id,
+            game_name: `Recall Type ${s}`,
+            score_obtained: sessionScore,
+            created_at: new Date().toISOString()
+          });
+
+        if (!error) {
+          sessionSubmitted[s - 1] = true;
+          totalScoreAccumulated += sessionScore;
+        }
+      }
+
+      await finalizeAllSubmissions(true);
+    }
+
+    async function finalizeAllSubmissions(silent = false) {
+      if (!silent) {
+        if (!confirm('Kirim lembar jawaban akhir dan beri tahu panitia?')) return;
+      }
+
+      await supabaseClient
+        .from(SUBMISSIONS_TABLE)
+        .insert({
+          user_unique_id: userSession.unique_id,
+          answers: userAnswers,
+          submitted_at: new Date().toISOString()
+        });
+
+      await supabaseClient
+        .from(NOTIF_TABLE)
+        .insert({
+          user_unique_id: userSession.unique_id,
+          message: `${userSession.full_name || userSession.unique_id} telah selesai menjawab`,
+          status: 'unread',
+          created_at: new Date().toISOString()
+        });
+
+      document.getElementById('successUserText').textContent = userSession.full_name || userSession.unique_id;
+      document.getElementById('successScore').textContent = totalScoreAccumulated;
+      document.getElementById('finalScore').textContent = totalScoreAccumulated;
+
+      const mgp = document.getElementById('mainGamePanel');
+      mgp.classList.add('hidden');
+      mgp.classList.remove('flex');
+      document.getElementById('successPanel').classList.remove('hidden');
+    }
+
+    function showFinalLockOverlay() {
+      document.getElementById('finalScore').textContent = totalScoreAccumulated;
+      hideAllOverlays();
+      document.getElementById('overlayLocked').classList.remove('hidden');
+      document.getElementById('overlayLocked').classList.add('flex');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CORE: PROSES DATA DARI SUPABASE
+    // ═══════════════════════════════════════════════════════════
+    async function processSystemData(data) {
+      if (!data) return;
+
+      lastDataTs = Date.now();
+
+      // Update sequence kalau ada
+      if (data.sequence_filenames && data.sequence_filenames.length > 0) {
+        masterSequence = data.sequence_filenames;
+        availableFilenames = [...masterSequence].sort();
+      }
+
+      const phase = data.session_phase || 'IDLE';
+      const sig = `${phase}|${data.memorize_start_time}|${data.answer_start_time}|${data.updated_at}|${data.memorize_mode}`;
+
+      // Skip kalau phase & timing sama
+      if (sig === lastProcessedSig) {
+        // Kalau phase = ANSWER dan belum render (misal reload), tetap render
+        if (phase === 'ANSWER' && currentPhase !== 'ANSWER') {
+          await applyPhase(phase, data);
+        }
+        return;
+      }
+
+      lastProcessedSig = sig;
+      LOG.ok(`Data baru: phase=${phase}, memMode=${data.memorize_mode}`);
+
+      await applyPhase(phase, data);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME + POLLING + WATCHDOG
+    // ═══════════════════════════════════════════════════════════
+    function subscribeSystem() {
+      // Realtime
+      realtimeChannel = supabaseClient
+        .channel('kiosk_recall_system')
+        .on('postgres_changes', { event: '*', schema: 'public', table: SYS_TABLE }, (payload) => {
+          LOG.info('⚡ Realtime update');
+          if (payload.new) processSystemData(payload.new);
+        })
+        .subscribe((status) => {
+          LOG.info(`Realtime status: ${status}`);
+        });
+
+      // Polling fallback cepat
+      pollTimerInt = setInterval(async () => {
+        try {
+          const { data } = await supabaseClient
+            .from(SYS_TABLE)
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+          if (data) processSystemData(data);
+        } catch (e) { /* silent */ }
+      }, POLL_INTERVAL_MS);
+
+      // Watchdog — kalau tidak ada data selama 5 detik, force resubscribe
+      watchdogInt = setInterval(() => {
+        const silence = Date.now() - lastDataTs;
+        if (silence > WATCHDOG_TIMEOUT_MS) {
+          LOG.warn(`Watchdog: ${Math.round(silence/1000)}s tanpa data, force resubscribe`);
+          forceResubscribe();
+          lastDataTs = Date.now(); // reset biar tidak spam
+        }
+      }, WATCHDOG_TIMEOUT_MS);
+    }
+
+    async function forceResubscribe() {
+      try {
+        if (realtimeChannel) {
+          await supabaseClient.removeChannel(realtimeChannel);
+        }
+      } catch (e) {}
+
+      realtimeChannel = supabaseClient
+        .channel('kiosk_recall_system_' + Date.now())
+        .on('postgres_changes', { event: '*', schema: 'public', table: SYS_TABLE }, (payload) => {
+          LOG.info('⚡ Realtime update (resub)');
+          if (payload.new) processSystemData(payload.new);
+        })
+        .subscribe();
+
+      // Force fetch sekali
+      const { data } = await supabaseClient
+        .from(SYS_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+      if (data) processSystemData(data);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
+    async function init() {
+      LOG.ok('══════════ KIOSK BOOT ══════════');
+
+      if (!initUser()) return;
+
+      const sysData = await fetchMasterData();
+      if (sysData) {
+        await processSystemData(sysData);
+      }
+
+      subscribeSystem();
+
+      LOG.ok('══════════ KIOSK READY ══════════');
+    }
+
+    init();
+  </script>
 </body>
 </html>
