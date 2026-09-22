@@ -23,53 +23,12 @@
       user-select: none;
       touch-action: manipulation;
     }
-
-    /* ✅ Overlay freeze transition */
-    #freezeOverlay {
-      transition: opacity 0.35s ease;
-    }
-
-    /* ✅ Shake animation untuk feedback klik saat beku */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-4px); }
-      75% { transform: translateX(4px); }
-    }
-    .shake {
-      animation: shake 0.3s ease-in-out;
-    }
-
-    /* ✅ Unfreeze pulse */
-    @keyframes unlockPulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      50% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-    .unlock-pulse {
-      animation: unlockPulse 0.8s ease-out;
-    }
-
-    /* ✅ Badge notifikasi pojok atas */
-    #toast {
-      transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    #toast.hidden-toast {
-      transform: translate(-50%, -150%);
-      opacity: 0;
-      pointer-events: none;
-    }
   </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4 relative">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between max-w-md mx-auto p-4">
 
-  <!-- AUDIO BEL PLAYER -->
+  <!-- AUDIO BEL PLAYER (SUPABASE BUCKET) -->
   <audio id="bellSound" src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3" preload="auto"></audio>
-
-  <!-- ✅ TOAST NOTIFIKASI -->
-  <div id="toast" class="hidden-toast fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl font-black text-sm shadow-2xl flex items-center gap-2">
-    <i id="toastIcon" class="fas fa-info-circle"></i>
-    <span id="toastText">—</span>
-  </div>
 
   <!-- Header Info -->
   <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg">
@@ -102,23 +61,8 @@
     <button onclick="switchBoard(4)" id="tab-4" class="board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400">Papan 5</button>
   </div>
 
-  <!-- Grid Bingo (5x5) + Overlay Freeze -->
-  <div class="relative flex-1">
-    <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl h-full transition-all duration-300">
-    </div>
-
-    <!-- ✅ OVERLAY FREEZE -->
-    <div id="freezeOverlay" class="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl pointer-events-auto">
-      <div class="p-5 bg-slate-800/80 rounded-full border border-amber-500/30 text-amber-400 mb-3 animate-pulse">
-        <i class="fas fa-lock text-3xl"></i>
-      </div>
-      <h3 class="text-lg font-black text-white tracking-wide">PAPAN DIBEKUKAN</h3>
-      <p class="text-xs text-slate-400 mt-1 px-6 text-center">Menunggu admin memulai permainan...</p>
-      <div class="mt-4 flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-        <span id="freezeReason">STANDBY</span>
-      </div>
-    </div>
+  <!-- Grid Bingo (5x5) -->
+  <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl flex-1">
   </div>
 
   <script>
@@ -135,7 +79,7 @@
     // STATE
     // ═══════════════════════════════════════════════════════════
     let currentBoardIndex = 0;
-    let boards = [];              // 5 Board x 25 Angka
+    let boards = [];              // 5 Board x 25 Angka = 125 Angka
     let boardStates = [];         // Status per sel
     let lineBonusClaimed = [[], [], [], [], []];
 
@@ -156,10 +100,6 @@
     // Tracking soal
     let lastQuestionNum = -1;
 
-    // ✅ FITUR BARU: freeze & session tracking
-    let isFrozen = true;              // default: beku saat load
-    let currentSessionId = null;      // ID sesi (dari start_time soal #1)
-
     // ═══════════════════════════════════════════════════════════
     // AUDIO
     // ═══════════════════════════════════════════════════════════
@@ -171,42 +111,6 @@
           console.log("[KIOSK] Autoplay audio diblokir browser.");
         });
       }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // ✅ TOAST NOTIFIKASI
-    // ═══════════════════════════════════════════════════════════
-    let toastTimer = null;
-    function showToast(text, type = 'info') {
-      const toast = document.getElementById('toast');
-      const icon = document.getElementById('toastIcon');
-      const txt = document.getElementById('toastText');
-      if (!toast || !icon || !txt) return;
-
-      // Reset style
-      toast.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl font-black text-sm shadow-2xl flex items-center gap-2';
-
-      if (type === 'success') {
-        toast.classList.add('bg-emerald-500', 'text-slate-950', 'shadow-emerald-500/40');
-        icon.className = 'fas fa-check-circle';
-      } else if (type === 'warn') {
-        toast.classList.add('bg-amber-500', 'text-slate-950', 'shadow-amber-500/40');
-        icon.className = 'fas fa-exclamation-triangle';
-      } else if (type === 'error') {
-        toast.classList.add('bg-rose-600', 'text-white', 'shadow-rose-600/40');
-        icon.className = 'fas fa-times-circle';
-      } else {
-        toast.classList.add('bg-slate-800', 'text-white', 'border', 'border-slate-700');
-        icon.className = 'fas fa-info-circle';
-      }
-
-      txt.textContent = text;
-      toast.classList.remove('hidden-toast');
-
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => {
-        toast.classList.add('hidden-toast');
-      }, 2200);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -291,72 +195,9 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ FITUR BARU: FREEZE / UNFREEZE KIOSK
-    // ═══════════════════════════════════════════════════════════
-    function setFrozen(state, reason = 'STANDBY') {
-      const wasFrozen = isFrozen;
-      isFrozen = state;
-
-      const overlay = document.getElementById('freezeOverlay');
-      const grid = document.getElementById('gridContainer');
-      const reasonEl = document.getElementById('freezeReason');
-
-      if (overlay) {
-        overlay.style.opacity = state ? '1' : '0';
-        overlay.style.pointerEvents = state ? 'auto' : 'none';
-      }
-
-      if (grid) {
-        grid.classList.toggle('opacity-40', state);
-        grid.classList.toggle('grayscale', state);
-      }
-
-      if (reasonEl && state) {
-        reasonEl.textContent = reason;
-      }
-
-      // Animasi unlock
-      if (wasFrozen && !state && grid) {
-        grid.classList.add('unlock-pulse');
-        setTimeout(() => grid.classList.remove('unlock-pulse'), 800);
-      }
-
-      console.log(`[KIOSK] Freeze: ${state} (${reason})`);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // ✅ FITUR BARU: RESET SEL (poin TIDAK ikut reset)
-    // ═══════════════════════════════════════════════════════════
-    function resetBoardsCells(showNotif = true) {
-      boardStates.forEach(board => {
-        board.forEach(cell => {
-          cell.status = 'default';
-        });
-      });
-      lineBonusClaimed = [[], [], [], [], []];
-      renderBoard(currentBoardIndex);
-      console.log('[KIOSK] ✅ Sel di-reset (poin tetap).');
-
-      if (showNotif) {
-        showToast('Papan di-reset! Game baru dimulai 🎮', 'success');
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // HANDLE CLICK — dengan guard freeze + spam
+    // HANDLE CLICK — dengan guard spam
     // ═══════════════════════════════════════════════════════════
     async function handleCellClick(boardIdx, cellIdx) {
-      // ✅ Guard: kiosk beku → shake + toast
-      if (isFrozen) {
-        const grid = document.getElementById('gridContainer');
-        if (grid) {
-          grid.classList.add('shake');
-          setTimeout(() => grid.classList.remove('shake'), 300);
-        }
-        showToast('Papan masih dibekukan. Tunggu admin!', 'warn');
-        return;
-      }
-
       // Guard: soal harus aktif & ada kunci jawaban
       if (!isQuestionActive || activeAnswer === null) return;
 
@@ -397,7 +238,6 @@
           if (rowCells.every(c => c.status === 'correct')) {
             lineBonusClaimed[boardIdx].push(rowTag);
             addPoints(5, `BINGO Baris ${r + 1} (+5)`);
-            showToast(`BINGO! Baris ${r + 1} +5 poin`, 'success');
           }
         }
       }
@@ -410,7 +250,6 @@
           if (colCells.every(cell => cell.status === 'correct')) {
             lineBonusClaimed[boardIdx].push(colTag);
             addPoints(5, `BINGO Kolom ${c + 1} (+5)`);
-            showToast(`BINGO! Kolom ${c + 1} +5 poin`, 'success');
           }
         }
       }
@@ -482,6 +321,7 @@
     function listenToAdmin() {
       console.log('[KIOSK] Setup listener...');
 
+      // 1. Realtime Listener
       supabaseClient
         .channel('realtime_bingo')
         .on('postgres_changes', {
@@ -496,7 +336,7 @@
           console.log('[KIOSK] Realtime status:', status);
         });
 
-      // Polling fallback
+      // 2. ✅ POLLING FALLBACK — setiap 1 detik
       setInterval(async () => {
         try {
           const { data, error } = await supabaseClient
@@ -513,19 +353,18 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ HANDLE INCOMING QUESTION — deteksi game baru + freeze
+    // HANDLE INCOMING QUESTION — Hindari duplikat
     // ═══════════════════════════════════════════════════════════
     function handleIncomingQuestion(data) {
       // ─── KONDISI 1: Admin clear / belum mulai ───
       if (!data.is_active || data.question_number === 0) {
-        if (isQuestionActive || lastQuestionNum !== -1 || !isFrozen) {
+        if (isQuestionActive || lastQuestionNum !== -1) {
           console.log('[KIOSK] Admin clear/reset. Kembali ke waiting state.');
 
           isQuestionActive = false;
           activeAnswer = null;
           activeQuestionNum = 0;
           lastQuestionNum = -1;
-          currentSessionId = null;
 
           clearInterval(timerInterval);
           timerInterval = null;
@@ -535,9 +374,6 @@
           document.getElementById('statusMsg').textContent = 'Jawab sebelum waktu habis!';
           document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:20`;
         }
-
-        // ✅ Kiosk beku saat tidak ada soal aktif
-        setFrozen(true, 'STANDBY');
         return;
       }
 
@@ -545,33 +381,7 @@
       if (data.question_number !== lastQuestionNum) {
         console.log(`[KIOSK] Soal baru #${data.question_number}`);
         lastQuestionNum = data.question_number;
-
-        // ✅ DETEKSI GAME BARU
-        const sessionId = data.start_time || `session_${Date.now()}`;
-
-        if (data.question_number === 1 && currentSessionId !== sessionId) {
-          // Game baru dimulai → reset sel
-          console.log('[KIOSK] 🎮 GAME BARU terdeteksi. Reset sel...');
-          resetBoardsCells(true);
-          currentSessionId = sessionId;
-        } else if (currentSessionId === null) {
-          // Kiosk baru load saat game sudah jalan (soal #n)
-          // Jangan reset sel, tapi tandai session aktif
-          console.log('[KIOSK] Kiosk load di tengah sesi. Session set.');
-          currentSessionId = sessionId;
-        } else if (sessionId !== currentSessionId) {
-          // start_time berubah = sesi baru
-          console.log('[KIOSK] 🔄 Sesi baru via start_time. Reset sel...');
-          resetBoardsCells(true);
-          currentSessionId = sessionId;
-        }
-
         setupNewQuestion(data);
-      }
-
-      // ✅ Kiosk terbuka saat soal aktif
-      if (isFrozen) {
-        setFrozen(false, 'ACTIVE');
       }
     }
 
@@ -593,7 +403,7 @@
       // Putar Bunyi Bel
       playBell();
 
-      // Hitung timer dari start_time (authoritative)
+      // ✅ HITUNG TIMER DARI start_time (authoritative source)
       let remaining = QUESTION_DURATION;
       if (data.start_time) {
         const startMs = new Date(data.start_time).getTime();
@@ -608,7 +418,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // START TIMER
+    // START TIMER — handle jika soal masuk telat
     // ═══════════════════════════════════════════════════════════
     function startTimer(secondsLeft) {
       clearInterval(timerInterval);
@@ -623,7 +433,6 @@
         isQuestionActive = false;
         document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
         document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
-        setFrozen(true, 'TIME UP');
         flushPendingPoints();
         return;
       }
@@ -639,9 +448,7 @@
           document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
           document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
 
-          // ✅ Freeze kiosk saat waktu habis
-          setFrozen(true, 'TIME UP');
-
+          // Flush poin terakhir
           flushPendingPoints();
         }
       }, 1000);
@@ -658,11 +465,13 @@
     // ═══════════════════════════════════════════════════════════
     window.addEventListener('beforeunload', () => {
       if (pendingPoints !== 0 && userSession) {
+        // Pakai sendBeacon kalau memungkinkan (fire-and-forget)
         const payload = JSON.stringify({
           user_unique_id: userSession.unique_id,
           game_name: 'Bingo Math',
           score_obtained: pendingPoints
         });
+        // Fallback: sync insert (bisa di-skip browser, tapi coba)
         navigator.sendBeacon?.(
           `${supabaseUrl}/rest/v1/game_scores?apikey=${supabaseKey}`,
           new Blob([payload], { type: 'application/json' })
@@ -679,10 +488,9 @@
       initUser();
       generateBingoBoards();
       renderBoard(0);
-      setFrozen(true, 'BOOTING');   // default beku sebelum state diketahui
       listenToAdmin();
 
-      // Fetch state awal
+      // Fetch state awal (kalau soal sudah aktif saat kiosk dibuka)
       const { data } = await supabaseClient
         .from('system_arithmatic_bingo')
         .select('*')
