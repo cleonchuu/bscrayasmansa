@@ -72,23 +72,86 @@
     }
     .animate-disaster { animation: disasterFade 0.6s ease-out forwards; }
 
+    @keyframes memorizePulse {
+      0%, 100% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
+      50% { box-shadow: 0 0 80px rgba(245, 158, 11, 0.6); }
+    }
+    .animate-memorize-pulse { animation: memorizePulse 2s ease-in-out infinite; }
+
+    @keyframes timeupFlash {
+      0% { opacity: 0; transform: scale(0.5); }
+      50% { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .animate-timeup { animation: timeupFlash 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
     .glow-purple { box-shadow: 0 0 60px rgba(168, 85, 247, 0.4); }
     .glow-cyan { box-shadow: 0 0 60px rgba(6, 182, 212, 0.4); }
     .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
-    .glow-rose { box-shadow: 0 0 60px rgba(244, 63, 94, 0.5); }
+    .glow-amber { box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
   <!-- AUDIO -->
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+  <audio id="beepSound"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"
+         preload="auto"></audio>
+
+  <!-- OVERLAY TIMEUP (untuk fase menghafal berakhir) -->
+  <div id="timeupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center pointer-events-none bg-rose-950/70 backdrop-blur-md">
+    <div class="text-center">
+      <div class="text-[120px] leading-none mb-4">⏰</div>
+      <div class="text-6xl font-black text-rose-400 drop-shadow-[0_0_30px_rgba(244,63,94,0.9)] font-math">
+        WAKTU MENGHAFAL HABIS
+      </div>
+      <div class="text-2xl text-white mt-4">Bersiap untuk mengerjakan soal!</div>
+    </div>
+  </div>
 
   <div class="w-full h-full relative">
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 1: TEAM ASSIGNMENT — 2 containers, 3 detik rotate  -->
+    <!-- VIEW 0: IDLE (kosong) — default ketika tidak ada sesi    -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewTeamAssignment" class="stage-view absolute inset-0 flex flex-col items-center justify-center p-8">
+    <div id="viewIdle" class="stage-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center space-y-6">
+        <div class="w-24 h-24 bg-purple-500/10 border-2 border-purple-500/30 rounded-3xl flex items-center justify-center mx-auto">
+          <i class="fas fa-hourglass-half text-5xl text-purple-400 animate-pulse"></i>
+        </div>
+        <h1 class="text-6xl font-black font-math text-slate-500 tracking-widest">CATACLYSM MEMORY</h1>
+        <p class="text-slate-600 text-xl">Menunggu instruksi dari panitia...</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 0B: MEMORIZE PHASE (15 menit countdown)             -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewMemorizePhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+      <div class="text-center mb-8">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-brain"></i> WAKTU MENGHAFAL
+        </span>
+        <h1 class="text-5xl font-black text-white mt-4 font-math">SIAPKAN FOKUSMU!</h1>
+        <p class="text-slate-400 text-lg mt-2">Hafalkan seluruh informasi yang ditampilkan</p>
+      </div>
+
+      <div class="bg-slate-900 border-4 border-amber-500/50 rounded-3xl p-16 glow-amber animate-memorize-pulse">
+        <div id="memorizeTimerDisplay" class="text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse">
+          15:00
+        </div>
+      </div>
+
+      <p class="text-slate-400 text-xl mt-8">
+        <i class="fas fa-eye mr-2"></i>Fokus pada layar — waktu terus berjalan
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- VIEW 1: TEAM ASSIGNMENT                                  -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="viewTeamAssignment" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-8">
         <span class="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
           <i class="fas fa-users-gear"></i> PEMBAGIAN TIM
@@ -96,13 +159,11 @@
         <h1 class="text-5xl font-black text-white mt-4 font-math">CATACLYSM MEMORY</h1>
       </div>
 
-      <!-- 2 containers side by side -->
       <div class="grid grid-cols-2 gap-8 w-full max-w-7xl">
         <div id="teamContainerA" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
         <div id="teamContainerB" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
       </div>
 
-      <!-- Progress dots -->
       <div class="flex items-center gap-2 mt-6">
         <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
         <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
@@ -113,14 +174,14 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2: MEMORIZE PHASE — 1 container, 3 detik rotate    -->
+    <!-- VIEW 2: DISASTER MEMORIZE (rotate kartu bencana)         -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewMemorizePhase" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
+    <div id="viewDisasterPhase" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
       <div id="disasterContainer" class="w-full max-w-6xl"></div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 3: ANSWER PHASE — countdown besar                  -->
+    <!-- VIEW 3: ANSWER PHASE                                     -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewAnswerPhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-8">
@@ -140,7 +201,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 4: TEAM STANDINGS — reveal team 10 → 1             -->
+    <!-- VIEW 4: TEAM STANDINGS (reveal peringkat / semua)        -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewTeamStandings" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-6">
@@ -150,13 +211,13 @@
         <h1 class="text-5xl font-black text-white mt-4 font-math">FINAL STANDINGS</h1>
       </div>
 
-      <div id="teamStandingReveal" class="w-full max-w-4xl min-h-[500px] flex items-center justify-center">
+      <div id="teamStandingReveal" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center">
         <p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 5: LEADERBOARD — top 10 akumulasi semua game       -->
+    <!-- VIEW 5: LEADERBOARD (individu top 10 / semua)            -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-6">
@@ -166,7 +227,7 @@
         <h1 class="text-5xl font-black text-white mt-4 font-math">GLOBAL LEADERBOARD</h1>
       </div>
 
-      <div id="leaderboardReveal" class="w-full max-w-4xl min-h-[500px] flex items-center justify-center">
+      <div id="leaderboardReveal" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
         <p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>
       </div>
     </div>
@@ -183,6 +244,7 @@
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
+    const DEFAULT_MEMORIZE_DURATION = 900; // 15 menit
 
     const TEAM_NAMES = {
       1: 'TIM MERAH', 2: 'TIM BIRU', 3: 'TIM HIJAU', 4: 'TIM KUNING', 5: 'TIM UNGU',
@@ -190,238 +252,36 @@
     };
 
     // ═══════════════════════════════════════════════════════════
-    // DATA BENCANA (dari PDF)
+    // DATA BENCANA
     // ═══════════════════════════════════════════════════════════
     const DISASTERS = [
-      {
-        no: 1,
-        nama: 'Gempa Bumi Shaanxi',
-        tanggal: '23 Januari 1556',
-        lokasi: 'Provinsi Shaanxi, Tiongkok (Dinasti Ming)',
-        korban: '± 830.000 jiwa',
-        penyebab: 'Gempa tektonik magnitudo 8,0–8,3',
-        deskripsi: 'Gempa bumi paling mematikan dalam sejarah manusia. Sebagian besar penduduk tinggal di Yaodong (rumah gua) yang langsung runtuh dan mengubur penghuninya.'
-      },
-      {
-        no: 2,
-        nama: 'Letusan Gunung Tambora',
-        tanggal: '5–15 April 1815',
-        lokasi: 'Pulau Sumbawa, NTB, Indonesia',
-        korban: '> 71.000 jiwa langsung',
-        penyebab: 'Erupsi super-kolosal VEI 7',
-        deskripsi: 'Letusan terbesar dalam sejarah modern. Miliaran ton abu menghalangi sinar matahari, memicu "Year Without a Summer" 1816 yang menyebabkan gagal panen global.'
-      },
-      {
-        no: 3,
-        nama: 'Siklon Coringa',
-        tanggal: '25 November 1839',
-        lokasi: 'Coringa, Andhra Pradesh, India',
-        korban: '± 300.000 jiwa',
-        penyebab: 'Siklon tropis + storm surge 12 meter',
-        deskripsi: 'Gelombang badai raksasa menghancurkan kota pelabuhan Coringa, menyapu 20.000 kapal, dan kota tidak pernah dibangun kembali ke kejayaannya.'
-      },
-      {
-        no: 4,
-        nama: 'Topan Haiphong',
-        tanggal: '8 Oktober 1881',
-        lokasi: 'Haiphong, Vietnam Utara (Teluk Tonkin)',
-        korban: '± 300.000 jiwa',
-        penyebab: 'Topan + gelombang pasang ekstrem',
-        deskripsi: 'Gelombang laut raksasa menenggelamkan kota pelabuhan di dataran rendah delta, memicu kelaparan dan wabah penyakit yang melipatgandakan korban.'
-      },
-      {
-        no: 5,
-        nama: 'Letusan Gunung Krakatau',
-        tanggal: '26–27 Agustus 1883',
-        lokasi: 'Selat Sunda, Indonesia',
-        korban: '± 36.000 jiwa',
-        penyebab: 'Erupsi kataklismik + tsunami 40 meter',
-        deskripsi: 'Suara ledakan terdengar ribuan km. Tsunami menghancurkan ratusan desa di Banten & Lampung. Abu menurunkan suhu global selama beberapa tahun.'
-      },
-      {
-        no: 6,
-        nama: 'Banjir Sungai Kuning',
-        tanggal: 'September–Oktober 1887',
-        lokasi: 'Sepanjang Sungai Kuning (Huang He), Tiongkok',
-        korban: '900.000 – 2 juta jiwa',
-        penyebab: 'Hujan lebat + jebolnya tanggul Huankou',
-        deskripsi: 'Salah satu banjir paling mematikan. Luapan air merendam area 130.000 km², menghancurkan ratusan kota, memicu kelaparan dan wabah berskala besar.'
-      },
-      {
-        no: 7,
-        nama: 'Letusan Gunung Pelée',
-        tanggal: '8 Mei 1902',
-        lokasi: 'Martinique, Kepulauan Karibia',
-        korban: '± 28.000 – 30.000 jiwa',
-        penyebab: 'Awan panas (nuée ardente) + piroklastik',
-        deskripsi: 'Awan panas gas beracun menyapu Kota Saint-Pierre dalam hitungan menit. Kota hancur total, hanya 2 orang selamat.'
-      },
-      {
-        no: 8,
-        nama: 'Gempa Bumi Messina',
-        tanggal: '28 Desember 1908',
-        lokasi: 'Selat Messina (Sisilia & Calabria), Italia',
-        korban: '± 75.000 – 100.000 jiwa',
-        penyebab: 'Gempa 7,1 M + tsunami 12 meter',
-        deskripsi: 'Bencana terburuk Eropa modern. Guncangan dini hari meruntuhkan 90% bangunan Messina & Reggio Calabria, disusul tsunami yang meratakan garis pantai.'
-      },
-      {
-        no: 9,
-        nama: 'Gempa Bumi Haiyuan',
-        tanggal: '16 Desember 1920',
-        lokasi: 'Kabupaten Haiyuan, Ningxia, Tiongkok',
-        korban: '± 200.000 – 273.000 jiwa',
-        penyebab: 'Pergeseran sesar Haiyuan 7,8–8,5 M',
-        deskripsi: 'Gempa besar akibat pergeseran sesar Haiyuan yang memicu kerusakan masif di wilayah Ningxia.'
-      },
-      {
-        no: 10,
-        nama: 'Gempa Bumi Kanto',
-        tanggal: '1 September 1923',
-        lokasi: 'Wilayah Kanto (Tokyo & Yokohama), Jepang',
-        korban: '± 142.000 – 143.000 jiwa',
-        penyebab: 'Gempa 7,9 M + tsunami + firestorm',
-        deskripsi: 'Gempa melanda saat jam makan siang ketika kompor menyala. Angin kencang menyebarkan api membakar Tokyo dan Yokohama.'
-      },
-      {
-        no: 11,
-        nama: 'Banjir Sungai Yangtze',
-        tanggal: 'Juli–Agustus 1931',
-        lokasi: 'Sungai Yangtze & Huai, Tiongkok',
-        korban: '2 – 4 juta jiwa',
-        penyebab: 'Hujan ekstrem + 7 siklon tropis',
-        deskripsi: 'Bencana alam paling mematikan dalam sejarah modern. Menenggelamkan wilayah seluas pulau Inggris, memicu wabah kolera & tifus.'
-      },
-      {
-        no: 12,
-        nama: 'Gempa Bumi Valdivia',
-        tanggal: '22 Mei 1960',
-        lokasi: 'Valdivia, Chile',
-        korban: '± 1.600 – 6.000 jiwa',
-        penyebab: 'Subduksi Lempeng Nazca 9,5 M',
-        deskripsi: 'Gempa terbesar yang pernah tercatat (9,5 M). Memicu tsunami lintas Pasifik yang mencapai Hawaii, Jepang, dan Filipina.'
-      },
-      {
-        no: 13,
-        nama: 'Siklon Bhola',
-        tanggal: '12 November 1970',
-        lokasi: 'Pakistan Timur (kini Bangladesh)',
-        korban: '± 300.000 – 500.000 jiwa',
-        penyebab: 'Siklon Kategori 3 + storm surge 6-10 m',
-        deskripsi: 'Menyapu pulau-pulau rendah di delta Gangga. Lambatnya bantuan memicu ketegangan politik yang berujung Perang Kemerdekaan Bangladesh.'
-      },
-      {
-        no: 14,
-        nama: 'Badai Nina',
-        tanggal: '30 Juli – 8 Agustus 1975',
-        lokasi: 'Henan, Tiongkok',
-        korban: '± 26.000 – 229.000 jiwa',
-        penyebab: 'Siklon Kategori 4 + jebolnya Bendungan Banqiao',
-        deskripsi: 'Bencana kegagalan bendungan paling mematikan. Gelombang air raksasa menerjang wilayah hilir, memutus akses logistik skala besar.'
-      },
-      {
-        no: 15,
-        nama: 'Gempa Bumi Tangshan',
-        tanggal: '28 Juli 1976',
-        lokasi: 'Tangshan, Provinsi Hebei, Tiongkok',
-        korban: '242.419 jiwa (resmi)',
-        penyebab: 'Gempa dangkal 7,5–7,8 M (Patahan Cangdong)',
-        deskripsi: 'Gempa mengguncang pukul 03.42 saat warga tidur. Karena tidak dirancang tahan gempa, 85% bangunan runtuh seketika.'
-      },
-      {
-        no: 16,
-        nama: 'Letusan Nevado del Ruiz',
-        tanggal: '13 November 1985',
-        lokasi: 'Armero, Tolima, Kolombia',
-        korban: '± 23.000 jiwa',
-        penyebab: 'Erupsi piroklastik + lahar dingin',
-        deskripsi: 'Aliran lumpur dan batu menerjang Lembah Armero di tengah malam. Kota tertimbun lumpur, tragedi vulkanik terburuk kedua abad ke-20.'
-      },
-      {
-        no: 17,
-        nama: 'Badai Mitch',
-        tanggal: '22 Oktober – 5 November 1998',
-        lokasi: 'Amerika Tengah (Honduras & Nikaragua)',
-        korban: '> 11.000 jiwa',
-        penyebab: 'Siklon Kategori 5 bergerak lambat',
-        deskripsi: 'Badai Atlantik paling mematikan dalam 200 tahun. Banjir bandang dan tanah longsor melumpuhkan ekonomi Honduras dan Nikaragua.'
-      },
-      {
-        no: 18,
-        nama: 'Longsor Vargas',
-        tanggal: '14–16 Desember 1999',
-        lokasi: 'Negara Bagian Vargas, Venezuela',
-        korban: '± 10.000 – 30.000 jiwa',
-        penyebab: 'Hujan rekor di Pegunungan Avila + debris flow',
-        deskripsi: 'Lereng gunung runtuh membawa lumpur, batu raksasa, dan pohon menyapu kota pesisir. Puluhan ribu rumah rusak, garis pantai berubah.'
-      },
-      {
-        no: 19,
-        nama: 'Gempa Bumi Bam',
-        tanggal: '26 Desember 2003',
-        lokasi: 'Bam, Provinsi Kerman, Iran',
-        korban: '± 26.000 – 30.000 jiwa',
-        penyebab: 'Gempa dangkal 6,6 M',
-        deskripsi: 'Gempa pagi hari. Bangunan tradisional mud-brick runtuh seketika, meruntuhkan situs warisan dunia Arg-e Bam.'
-      },
-      {
-        no: 20,
-        nama: 'Gelombang Panas Eropa',
-        tanggal: 'Juli–Agustus 2003',
-        lokasi: 'Eropa Barat & Tengah (terparah Prancis)',
-        korban: '> 70.000 jiwa',
-        penyebab: 'Antisiklon mengunci udara panas Afrika',
-        deskripsi: 'Musim panas terpanas sejak 1540. Suhu ekstrem memicu dehidrasi, heatstroke, gagal panen, dan krisis layanan kesehatan.'
-      },
-      {
-        no: 21,
-        nama: 'Gempa & Tsunami Samudra Hindia',
-        tanggal: '26 Desember 2004',
-        lokasi: 'Lepas pantai Sumatra, Indonesia (14 negara)',
-        korban: '> 230.000 jiwa (Aceh ± 170.000)',
-        penyebab: 'Megathrust 9,1–9,3 M',
-        deskripsi: 'Gempa terbesar ketiga dunia. Tsunami 30 meter menghantam Aceh, Thailand, Sri Lanka, hingga Afrika Timur. Operasi kemanusiaan terbesar sepanjang sejarah.'
-      },
-      {
-        no: 22,
-        nama: 'Siklon Nargis',
-        tanggal: '2–3 Mei 2008',
-        lokasi: 'Myanmar (Delta Ayeyarwady)',
-        korban: '± 138.000 jiwa',
-        penyebab: 'Siklon Kategori 4 + storm surge',
-        deskripsi: 'Badai paling mematikan dalam sejarah Myanmar. Merendam delta padat penduduk, memusnahkan pertanian, memicu krisis kemanusiaan.'
-      },
-      {
-        no: 23,
-        nama: 'Gempa Bumi Haiti',
-        tanggal: '12 Januari 2010',
-        lokasi: 'Dekat Léogâne, 25 km dari Port-au-Prince',
-        korban: '± 100.000 – 316.000 jiwa',
-        penyebab: 'Gempa dangkal 7,0 M (Patahan Enriquillo)',
-        deskripsi: 'Melumpuhkan Haiti karena pusat dekat area padat. Konstruksi buruk membuat rumah sakit, istana presiden, dan permukiman rata dengan tanah.'
-      },
-      {
-        no: 24,
-        nama: 'Gempa Bumi Jepang (Tohoku)',
-        tanggal: '11 Maret 2011',
-        lokasi: 'Lepas pantai timur Tohoku, Jepang',
-        korban: '± 18.000 – 20.000 jiwa',
-        penyebab: 'Megathrust 9,0–9,1 M + tsunami 40 m',
-        deskripsi: 'Gempa terkuat dalam sejarah Jepang. Tsunami menerjang Tohoku, memicu krisis nuklir Fukushima Daiichi.'
-      },
-      {
-        no: 25,
-        nama: 'Badai Haiyan (Yolanda)',
-        tanggal: '3–11 November 2013',
-        lokasi: 'Filipina, Vietnam, Tiongkok',
-        korban: '± 6.300 – 7.350 jiwa',
-        penyebab: 'Siklon Kategori 5, angin 315 km/jam',
-        deskripsi: 'Salah satu topan terkuat dengan landfall tercatat. Storm surge 5-6 m menerjang Tacloban, meratakan pemukiman, memicu krisis kemanusiaan.'
-      }
+      { no: 1, nama: 'Gempa Bumi Shaanxi', tanggal: '23 Januari 1556', lokasi: 'Provinsi Shaanxi, Tiongkok (Dinasti Ming)', korban: '± 830.000 jiwa', penyebab: 'Gempa tektonik magnitudo 8,0–8,3', deskripsi: 'Gempa bumi paling mematikan dalam sejarah manusia. Sebagian besar penduduk tinggal di Yaodong (rumah gua) yang langsung runtuh dan mengubur penghuninya.' },
+      { no: 2, nama: 'Letusan Gunung Tambora', tanggal: '5–15 April 1815', lokasi: 'Pulau Sumbawa, NTB, Indonesia', korban: '> 71.000 jiwa langsung', penyebab: 'Erupsi super-kolosal VEI 7', deskripsi: 'Letusan terbesar dalam sejarah modern. Miliaran ton abu menghalangi sinar matahari, memicu "Year Without a Summer" 1816 yang menyebabkan gagal panen global.' },
+      { no: 3, nama: 'Siklon Coringa', tanggal: '25 November 1839', lokasi: 'Coringa, Andhra Pradesh, India', korban: '± 300.000 jiwa', penyebab: 'Siklon tropis + storm surge 12 meter', deskripsi: 'Gelombang badai raksasa menghancurkan kota pelabuhan Coringa, menyapu 20.000 kapal, dan kota tidak pernah dibangun kembali ke kejayaannya.' },
+      { no: 4, nama: 'Topan Haiphong', tanggal: '8 Oktober 1881', lokasi: 'Haiphong, Vietnam Utara (Teluk Tonkin)', korban: '± 300.000 jiwa', penyebab: 'Topan + gelombang pasang ekstrem', deskripsi: 'Gelombang laut raksasa menenggelamkan kota pelabuhan di dataran rendah delta, memicu kelaparan dan wabah penyakit yang melipatgandakan korban.' },
+      { no: 5, nama: 'Letusan Gunung Krakatau', tanggal: '26–27 Agustus 1883', lokasi: 'Selat Sunda, Indonesia', korban: '± 36.000 jiwa', penyebab: 'Erupsi kataklismik + tsunami 40 meter', deskripsi: 'Suara ledakan terdengar ribuan km. Tsunami menghancurkan ratusan desa di Banten & Lampung. Abu menurunkan suhu global selama beberapa tahun.' },
+      { no: 6, nama: 'Banjir Sungai Kuning', tanggal: 'September–Oktober 1887', lokasi: 'Sepanjang Sungai Kuning (Huang He), Tiongkok', korban: '900.000 – 2 juta jiwa', penyebab: 'Hujan lebat + jebolnya tanggul Huankou', deskripsi: 'Salah satu banjir paling mematikan. Luapan air merendam area 130.000 km², menghancurkan ratusan kota, memicu kelaparan dan wabah berskala besar.' },
+      { no: 7, nama: 'Letusan Gunung Pelée', tanggal: '8 Mei 1902', lokasi: 'Martinique, Kepulauan Karibia', korban: '± 28.000 – 30.000 jiwa', penyebab: 'Awan panas (nuée ardente) + piroklastik', deskripsi: 'Awan panas gas beracun menyapu Kota Saint-Pierre dalam hitungan menit. Kota hancur total, hanya 2 orang selamat.' },
+      { no: 8, nama: 'Gempa Bumi Messina', tanggal: '28 Desember 1908', lokasi: 'Selat Messina (Sisilia & Calabria), Italia', korban: '± 75.000 – 100.000 jiwa', penyebab: 'Gempa 7,1 M + tsunami 12 meter', deskripsi: 'Bencana terburuk Eropa modern. Guncangan dini hari meruntuhkan 90% bangunan Messina & Reggio Calabria, disusul tsunami yang meratakan garis pantai.' },
+      { no: 9, nama: 'Gempa Bumi Haiyuan', tanggal: '16 Desember 1920', lokasi: 'Kabupaten Haiyuan, Ningxia, Tiongkok', korban: '± 200.000 – 273.000 jiwa', penyebab: 'Pergeseran sesar Haiyuan 7,8–8,5 M', deskripsi: 'Gempa besar akibat pergeseran sesar Haiyuan yang memicu kerusakan masif di wilayah Ningxia.' },
+      { no: 10, nama: 'Gempa Bumi Kanto', tanggal: '1 September 1923', lokasi: 'Wilayah Kanto (Tokyo & Yokohama), Jepang', korban: '± 142.000 – 143.000 jiwa', penyebab: 'Gempa 7,9 M + tsunami + firestorm', deskripsi: 'Gempa melanda saat jam makan siang ketika kompor menyala. Angin kencang menyebarkan api membakar Tokyo dan Yokohama.' },
+      { no: 11, nama: 'Banjir Sungai Yangtze', tanggal: 'Juli–Agustus 1931', lokasi: 'Sungai Yangtze & Huai, Tiongkok', korban: '2 – 4 juta jiwa', penyebab: 'Hujan ekstrem + 7 siklon tropis', deskripsi: 'Bencana alam paling mematikan dalam sejarah modern. Menenggelamkan wilayah seluas pulau Inggris, memicu wabah kolera & tifus.' },
+      { no: 12, nama: 'Gempa Bumi Valdivia', tanggal: '22 Mei 1960', lokasi: 'Valdivia, Chile', korban: '± 1.600 – 6.000 jiwa', penyebab: 'Subduksi Lempeng Nazca 9,5 M', deskripsi: 'Gempa terbesar yang pernah tercatat (9,5 M). Memicu tsunami lintas Pasifik yang mencapai Hawaii, Jepang, dan Filipina.' },
+      { no: 13, nama: 'Siklon Bhola', tanggal: '12 November 1970', lokasi: 'Pakistan Timur (kini Bangladesh)', korban: '± 300.000 – 500.000 jiwa', penyebab: 'Siklon Kategori 3 + storm surge 6-10 m', deskripsi: 'Menyapu pulau-pulau rendah di delta Gangga. Lambatnya bantuan memicu ketegangan politik yang berujung Perang Kemerdekaan Bangladesh.' },
+      { no: 14, nama: 'Badai Nina', tanggal: '30 Juli – 8 Agustus 1975', lokasi: 'Henan, Tiongkok', korban: '± 26.000 – 229.000 jiwa', penyebab: 'Siklon Kategori 4 + jebolnya Bendungan Banqiao', deskripsi: 'Bencana kegagalan bendungan paling mematikan. Gelombang air raksasa menerjang wilayah hilir, memutus akses logistik skala besar.' },
+      { no: 15, nama: 'Gempa Bumi Tangshan', tanggal: '28 Juli 1976', lokasi: 'Tangshan, Provinsi Hebei, Tiongkok', korban: '242.419 jiwa (resmi)', penyebab: 'Gempa dangkal 7,5–7,8 M (Patahan Cangdong)', deskripsi: 'Gempa mengguncang pukul 03.42 saat warga tidur. Karena tidak dirancang tahan gempa, 85% bangunan runtuh seketika.' },
+      { no: 16, nama: 'Letusan Nevado del Ruiz', tanggal: '13 November 1985', lokasi: 'Armero, Tolima, Kolombia', korban: '± 23.000 jiwa', penyebab: 'Erupsi piroklastik + lahar dingin', deskripsi: 'Aliran lumpur dan batu menerjang Lembah Armero di tengah malam. Kota tertimbun lumpur, tragedi vulkanik terburuk kedua abad ke-20.' },
+      { no: 17, nama: 'Badai Mitch', tanggal: '22 Oktober – 5 November 1998', lokasi: 'Amerika Tengah (Honduras & Nikaragua)', korban: '> 11.000 jiwa', penyebab: 'Siklon Kategori 5 bergerak lambat', deskripsi: 'Badai Atlantik paling mematikan dalam 200 tahun. Banjir bandang dan tanah longsor melumpuhkan ekonomi Honduras dan Nikaragua.' },
+      { no: 18, nama: 'Longsor Vargas', tanggal: '14–16 Desember 1999', lokasi: 'Negara Bagian Vargas, Venezuela', korban: '± 10.000 – 30.000 jiwa', penyebab: 'Hujan rekor di Pegunungan Avila + debris flow', deskripsi: 'Lereng gunung runtuh membawa lumpur, batu raksasa, dan pohon menyapu kota pesisir. Puluhan ribu rumah rusak, garis pantai berubah.' },
+      { no: 19, nama: 'Gempa Bumi Bam', tanggal: '26 Desember 2003', lokasi: 'Bam, Provinsi Kerman, Iran', korban: '± 26.000 – 30.000 jiwa', penyebab: 'Gempa dangkal 6,6 M', deskripsi: 'Gempa pagi hari. Bangunan tradisional mud-brick runtuh seketika, meruntuhkan situs warisan dunia Arg-e Bam.' },
+      { no: 20, nama: 'Gelombang Panas Eropa', tanggal: 'Juli–Agustus 2003', lokasi: 'Eropa Barat & Tengah (terparah Prancis)', korban: '> 70.000 jiwa', penyebab: 'Antisiklon mengunci udara panas Afrika', deskripsi: 'Musim panas terpanas sejak 1540. Suhu ekstrem memicu dehidrasi, heatstroke, gagal panen, dan krisis layanan kesehatan.' },
+      { no: 21, nama: 'Gempa & Tsunami Samudra Hindia', tanggal: '26 Desember 2004', lokasi: 'Lepas pantai Sumatra, Indonesia (14 negara)', korban: '> 230.000 jiwa (Aceh ± 170.000)', penyebab: 'Megathrust 9,1–9,3 M', deskripsi: 'Gempa terbesar ketiga dunia. Tsunami 30 meter menghantam Aceh, Thailand, Sri Lanka, hingga Afrika Timur.' },
+      { no: 22, nama: 'Siklon Nargis', tanggal: '2–3 Mei 2008', lokasi: 'Myanmar (Delta Ayeyarwady)', korban: '± 138.000 jiwa', penyebab: 'Siklon Kategori 4 + storm surge', deskripsi: 'Badai paling mematikan dalam sejarah Myanmar. Merendam delta padat penduduk, memusnahkan pertanian, memicu krisis kemanusiaan.' },
+      { no: 23, nama: 'Gempa Bumi Haiti', tanggal: '12 Januari 2010', lokasi: 'Dekat Léogâne, 25 km dari Port-au-Prince', korban: '± 100.000 – 316.000 jiwa', penyebab: 'Gempa dangkal 7,0 M (Patahan Enriquillo)', deskripsi: 'Melumpuhkan Haiti karena pusat dekat area padat. Konstruksi buruk membuat rumah sakit, istana presiden, dan permukiman rata dengan tanah.' },
+      { no: 24, nama: 'Gempa Bumi Jepang (Tohoku)', tanggal: '11 Maret 2011', lokasi: 'Lepas pantai timur Tohoku, Jepang', korban: '± 18.000 – 20.000 jiwa', penyebab: 'Megathrust 9,0–9,1 M + tsunami 40 m', deskripsi: 'Gempa terkuat dalam sejarah Jepang. Tsunami menerjang Tohoku, memicu krisis nuklir Fukushima Daiichi.' },
+      { no: 25, nama: 'Badai Haiyan (Yolanda)', tanggal: '3–11 November 2013', lokasi: 'Filipina, Vietnam, Tiongkok', korban: '± 6.300 – 7.350 jiwa', penyebab: 'Siklon Kategori 5, angin 315 km/jam', deskripsi: 'Salah satu topan terkuat dengan landfall tercatat. Storm surge 5-6 m menerjang Tacloban, meratakan pemukiman, memicu krisis kemanusiaan.' }
     ];
-    // ═══════════════════════════════════════════════════════════
-    // MAPPING GAMBAR BENCANA (dari bucket Supabase "bencana")
-    // ═══════════════════════════════════════════════════════════
+
     const DISASTER_IMAGES = {
       1:  'gempabumishanxi.jpeg',
       2:  'letusangunungtambora.jpeg',
@@ -449,10 +309,11 @@
       24: 'gempabumijepang.jpeg',
       25: 'badaihaiyan.jpeg'
     };
+
     // ═══════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════
-    let currentView = 'team_assignment';
+    let currentView = 'idle';
     let lastRevealedRank = -1;
     let currentTeamIndex = 0;
     let currentDisasterIndex = 0;
@@ -460,19 +321,37 @@
     let teamRotateInterval = null;
     let disasterRotateInterval = null;
     let answerTimerInterval = null;
+    let memorizeTimerInterval = null;
 
-    let teamsData = {};        // { teamNumber: [{unique_id, full_name}] }
+    let teamsData = {};
     let cachedTeamStandings = [];
     let cachedGlobalScores = [];
+
+    // Guard
+    let lastMemorizeSig = '';
+    let memorizeActive = false;
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
     // ═══════════════════════════════════════════════════════════
     function playBell() {
       const bell = document.getElementById('bellSound');
-      if (bell) {
-        bell.currentTime = 0;
-        bell.play().catch(() => {});
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
+    }
+
+    function playBeep() {
+      const beep = document.getElementById('beepSound');
+      if (!beep) return playBell();
+      try {
+        beep.currentTime = 0;
+        beep.volume = 1.0;
+        beep.play().catch(() => playBell());
+      } catch (e) { playBell(); }
+    }
+
+    function playBeepTimes(times = 3, gapMs = 400) {
+      for (let i = 0; i < times; i++) {
+        setTimeout(() => playBeep(), i * gapMs);
       }
     }
 
@@ -486,10 +365,7 @@
         .order('team', { ascending: true })
         .order('full_name', { ascending: true });
 
-      if (error) {
-        console.error('[STAGE] Fetch teams error:', error);
-        return;
-      }
+      if (error) { console.error('[STAGE] Fetch teams error:', error); return; }
 
       teamsData = {};
       for (let i = 1; i <= TEAM_COUNT; i++) teamsData[i] = [];
@@ -502,12 +378,10 @@
         });
       });
 
-      console.log('[STAGE] Teams fetched');
       if (currentView === 'team_assignment') startTeamRotation();
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // TEAM ASSIGNMENT — 2 containers, rotate tiap 3 detik
+    // ═══════════════════════════════════════════════════════════    // TEAM ASSIGNMENT
     // ═══════════════════════════════════════════════════════════
     function renderTeamContainer(containerId, teamNum) {
       const container = document.getElementById(containerId);
@@ -515,7 +389,6 @@
 
       const members = teamsData[teamNum] || [];
       const teamClass = `team-${teamNum}`;
-
       container.className = `bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden ${teamClass}`;
 
       if (members.length === 0) {
@@ -531,8 +404,6 @@
         return;
       }
 
-      // Grid 3 kolom × 4 baris (aspect 3:4)
-      // max 12 anggota per layar, kalau lebih scroll
       const gridHtml = members.map((m, idx) => {
         const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
         return `
@@ -564,11 +435,8 @@
 
     function startTeamRotation() {
       if (teamRotateInterval) clearInterval(teamRotateInterval);
-
-      // Reset
       currentTeamIndex = 0;
       rotateTeams();
-
       teamRotateInterval = setInterval(() => {
         if (currentView !== 'team_assignment') return;
         currentTeamIndex = (currentTeamIndex + 2) % 10;
@@ -577,20 +445,16 @@
     }
 
     function rotateTeams() {
-      // Ambil 2 tim: currentTeamIndex dan currentTeamIndex+1
       const teamA = (currentTeamIndex % 10) + 1;
       const teamB = ((currentTeamIndex + 1) % 10) + 1;
-
       renderTeamContainer('teamContainerA', teamA);
       renderTeamContainer('teamContainerB', teamB);
 
-      // Update dots
       const dots = document.querySelectorAll('.rotate-dot');
       const activeIdx = Math.floor(currentTeamIndex / 2);
       dots.forEach((d, i) => {
         d.className = `rotate-dot w-3 h-3 rounded-full transition-all ${i === activeIdx ? 'bg-cyan-400 scale-125' : 'bg-slate-700'}`;
       });
-
       playBell();
     }
 
@@ -599,22 +463,107 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-       function renderDisasterCard(disaster) {
+    // MEMORIZE PHASE (15 menit)
+    // ═══════════════════════════════════════════════════════════
+    async function startMemorizeTimer(startTime, duration) {
+      if (memorizeTimerInterval) clearInterval(memorizeTimerInterval);
+
+      const display = document.getElementById('memorizeTimerDisplay');
+      if (!display) return;
+
+      const startMs = new Date(startTime).getTime();
+      memorizeActive = true;
+
+      const tick = () => {
+        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const remaining = Math.max(0, duration - elapsed);
+
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+        if (remaining <= 30) {
+          display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
+        } else if (remaining <= 60) {
+          display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
+        } else {
+          display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
+        }
+
+        if (remaining <= 0) {
+          clearInterval(memorizeTimerInterval);
+          memorizeTimerInterval = null;
+          handleMemorizeTimeout();
+        }
+      };
+
+      tick();
+      memorizeTimerInterval = setInterval(tick, 500);
+    }
+
+    function stopMemorizeTimer() {
+      if (memorizeTimerInterval) { clearInterval(memorizeTimerInterval); memorizeTimerInterval = null; }
+      memorizeActive = false;
+    }
+
+    async function handleMemorizeTimeout() {
+      console.log('[STAGE] ⏰ Memorize timeout — kembali ke idle');
+
+      // 1) Bunyi beep 3x
+      playBeepTimes(3, 400);
+
+      // 2) Overlay "WAKTU MENGHAFAL HABIS"
+      const overlay = document.getElementById('timeupOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          overlay.classList.remove('flex');
+        }, 3500);
+      }
+
+      // 3) Update DB: is_memorize_active = false
+      try {
+        await supabaseClient
+          .from('system_cataclysm_memory')
+          .update({
+            is_memorize_active: false,
+            memorize_end_time: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 1);
+      } catch (e) { console.warn('Update memorize_end gagal', e); }
+
+      // 4) Set layout ke idle (kosong)
+      try {
+        await supabaseClient
+          .from('admin_layout_cataclysm_memory')
+          .update({
+            current_view: 'idle',
+            revealed_rank: 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 1);
+      } catch (e) { console.warn('Update layout idle gagal', e); }
+
+      memorizeActive = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DISASTER ROTATION
+    // ═══════════════════════════════════════════════════════════
+    function renderDisasterCard(disaster) {
       const container = document.getElementById('disasterContainer');
       if (!container) return;
 
-      // Warna random untuk header
       const colors = ['from-rose-900 to-rose-950', 'from-cyan-900 to-cyan-950', 'from-amber-900 to-amber-950', 'from-purple-900 to-purple-950', 'from-emerald-900 to-emerald-950'];
       const colorClass = colors[disaster.no % colors.length];
 
-      // Ambil gambar dari Supabase Storage bucket "bencana"
       let imageUrl = '';
       const fileName = DISASTER_IMAGES[disaster.no];
       if (fileName) {
-        const { data: urlData } = supabaseClient
-          .storage
-          .from('bencana')
-          .getPublicUrl(fileName);
+        const { data: urlData } = supabaseClient.storage.from('bencana').getPublicUrl(fileName);
         imageUrl = urlData.publicUrl;
       }
 
@@ -625,7 +574,6 @@
 
       container.innerHTML = `
         <div class="animate-disaster bg-slate-900 border-2 border-purple-500/40 rounded-3xl overflow-hidden glow-purple">
-          <!-- Header -->
           <div class="bg-gradient-to-r ${colorClass} p-6 border-b-2 border-white/10">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-4">
@@ -640,19 +588,14 @@
             </div>
           </div>
 
-          <!-- Body: Image (left) + Info (right) -->
           <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-8">
-
-            <!-- Image dari Supabase -->
             <div class="md:col-span-2">
               <div class="aspect-[3/4] bg-slate-950 border-2 border-slate-700 rounded-2xl flex items-center justify-center overflow-hidden">
                 ${imageHtml}
               </div>
             </div>
 
-            <!-- Info -->
             <div class="md:col-span-3 space-y-4">
-
               <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
                   <div class="flex items-center gap-2 text-rose-400 mb-1">
@@ -661,7 +604,6 @@
                   </div>
                   <div class="text-sm font-bold text-white">${disaster.tanggal}</div>
                 </div>
-
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
                   <div class="flex items-center gap-2 text-amber-400 mb-1">
                     <i class="fas fa-skull text-xs"></i>
@@ -694,7 +636,6 @@
                 </div>
                 <p class="text-sm text-slate-200 leading-relaxed">${disaster.deskripsi}</p>
               </div>
-
             </div>
           </div>
         </div>
@@ -703,13 +644,12 @@
 
     function startDisasterRotation() {
       if (disasterRotateInterval) clearInterval(disasterRotateInterval);
-
       currentDisasterIndex = 0;
       renderDisasterCard(DISASTERS[0]);
       playBell();
 
       disasterRotateInterval = setInterval(() => {
-        if (currentView !== 'memorize_phase') return;
+        if (currentView !== 'disaster_phase') return;
         currentDisasterIndex = (currentDisasterIndex + 1) % DISASTERS.length;
         renderDisasterCard(DISASTERS[currentDisasterIndex]);
         playBell();
@@ -721,11 +661,10 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ANSWER PHASE — countdown besar
+    // ANSWER PHASE TIMER
     // ═══════════════════════════════════════════════════════════
     function startAnswerTimer(startTime, duration) {
       if (answerTimerInterval) clearInterval(answerTimerInterval);
-
       const display = document.getElementById('answerTimerDisplay');
       if (!display) return;
 
@@ -734,12 +673,10 @@
       const tick = () => {
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
         const remaining = Math.max(0, duration - elapsed);
-
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
-        // Warna berubah saat kritis
         if (remaining <= 30) {
           display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
         } else if (remaining <= 60) {
@@ -760,69 +697,111 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // TEAM STANDINGS — reveal team 10 → 1
+    // TEAM STANDINGS — poin rata-rata per tim
     // ═══════════════════════════════════════════════════════════
     async function fetchTeamStandings() {
-      // Fetch teams
       const { data: teams } = await supabaseClient
         .from('cataclysm_memory_teams')
         .select('unique_id, full_name, team');
 
-      // Fetch scores
       const { data: scores } = await supabaseClient
         .from('game_scores')
         .select('user_unique_id, score_obtained')
         .eq('game_name', GAME_NAME);
 
-      // Team totals
-      const teamTotals = {};
-      for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { total: 0, members: [] };
-
-      (teams || []).forEach(t => {
-        if (teamTotals[t.team]) {
-          teamTotals[t.team].members.push({
-            unique_id: t.unique_id,
-            full_name: t.full_name || t.unique_id,
-            score: 0
-          });
-        }
-      });
-
-      // Assign score per user
+      // Buat map: unique_id → total skor
       const scoreMap = {};
       (scores || []).forEach(s => {
         scoreMap[s.user_unique_id] = (scoreMap[s.user_unique_id] || 0) + (s.score_obtained || 0);
       });
 
-      Object.keys(teamTotals).forEach(tn => {
-        teamTotals[tn].members.forEach(m => {
-          m.score = scoreMap[m.unique_id] || 0;
-          teamTotals[tn].total += m.score;
-        });
+      // Group members per tim
+      const teamTotals = {};
+      for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
+
+      (teams || []).forEach(t => {
+        if (teamTotals[t.team]) {
+          const memberScore = scoreMap[t.unique_id] || 0;
+          teamTotals[t.team].members.push({
+            unique_id: t.unique_id,
+            full_name: t.full_name || t.unique_id,
+            score: memberScore
+          });
+          teamTotals[t.team].sum += memberScore;
+          teamTotals[t.team].count += 1;
+        }
       });
 
-      // Sort teams by total desc
+      // Hitung rata-rata (bukan total!)
       cachedTeamStandings = Object.keys(teamTotals)
-        .map(tn => ({
-          team: parseInt(tn),
-          total: teamTotals[tn].total,
-          members: teamTotals[tn].members.sort((a, b) => b.score - a.score)
-        }))
-        .sort((a, b) => b.total - a.total);
+        .map(tn => {
+          const t = teamTotals[tn];
+          const avg = t.count > 0 ? (t.sum / t.count) : 0;
+          return {
+            team: parseInt(tn),
+            average: Math.round(avg * 10) / 10,  // 1 desimal
+            sum: t.sum,
+            count: t.count,
+            members: t.members.sort((a, b) => b.score - a.score)
+          };
+        })
+        .sort((a, b) => b.average - a.average);
 
-      console.log('[STAGE] Team standings cached:', cachedTeamStandings.length);
+      console.log('[STAGE] Team standings (rata-rata):', cachedTeamStandings.map(t => `${TEAM_NAMES[t.team]}=${t.average}`).join(', '));
     }
 
     function renderTeamStandingReveal(rank) {
       const container = document.getElementById('teamStandingReveal');
       if (!container) return;
 
+      // rank === -1 → tampilkan SEMUA tim
+      if (rank === -1) {
+        if (cachedTeamStandings.length === 0) {
+          container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data tim.</p>`;
+          return;
+        }
+        container.innerHTML = `
+          <div class="w-full">
+            <div class="text-center mb-6">
+              <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-slate-700 text-slate-200">
+                SEMUA TIM (${cachedTeamStandings.length})
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              ${cachedTeamStandings.map((t, idx) => {
+                const rankNum = idx + 1;
+                const tc = `team-${t.team}`;
+                let badge = `#${rankNum}`;
+                let badgeStyle = 'bg-slate-700 text-slate-200';
+                if (rankNum === 1) { badge = '🥇 #1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
+                else if (rankNum === 2) { badge = '🥈 #2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
+                else if (rankNum === 3) { badge = '🥉 #3'; badgeStyle = 'bg-amber-600 text-white'; }
+                return `
+                  <div class="animate-card-pop ${tc} border-2 rounded-2xl p-4" style="animation-delay: ${idx * 40}ms">
+                    <div class="text-center mb-3">
+                      <div class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest ${badgeStyle}">
+                        ${badge}
+                      </div>
+                      <div class="text-xl font-black font-math text-white mt-2">${TEAM_NAMES[t.team]}</div>
+                      <div class="text-3xl font-mono font-black text-white mt-1">${t.average}</div>
+                      <div class="text-[10px] uppercase opacity-70 font-bold">Rata-rata · ${t.count} anggota</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // rank === 0 → kosong
       if (rank === 0 || cachedTeamStandings.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>`;
         return;
       }
 
-      // rank 1 = juara 1 = index 0
+      // rank > 0 → tampilkan 1 tim
       const targetIdx = rank - 1;
       const target = cachedTeamStandings[targetIdx];
 
@@ -836,12 +815,10 @@
 
       let badge = `PERINGKAT #${rank}`;
       let badgeStyle = 'bg-slate-700 text-slate-200';
-
       if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
       else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
       else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; }
 
-      // Members grid
       const memberHtml = target.members.slice(0, 12).map((m, idx) => {
         const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
         return `
@@ -855,17 +832,15 @@
       }).join('');
 
       container.innerHTML = `
-        <div class="animate-card-pop w-full ${teamClass} border-2 rounded-3xl p-6">
+        <div class="animate-card-pop w-full max-w-4xl ${teamClass} border-2 rounded-3xl p-6">
           <div class="text-center mb-5">
             <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest ${badgeStyle}">
               ${badge}
             </div>
             <h2 class="text-4xl font-black font-math mt-3 text-white">${TEAM_NAMES[teamNum]}</h2>
-            <div class="text-2xl font-mono font-black text-white mt-2">
-              ${target.total} PTS
-            </div>
+            <div class="text-3xl font-mono font-black text-white mt-2">${target.average} <span class="text-lg">PTS</span></div>
+            <div class="text-xs text-slate-300 mt-1 opacity-80">Rata-rata dari ${target.count} anggota</div>
           </div>
-
           <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
             ${memberHtml}
           </div>
@@ -874,10 +849,9 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LEADERBOARD — top 10 akumulasi semua game
+    // LEADERBOARD (individu)
     // ═══════════════════════════════════════════════════════════
     async function fetchGlobalScores() {
-      // Fetch SEMUA game_scores (akumulasi semua game)
       const { data, error } = await supabaseClient
         .from('game_scores')
         .select('user_unique_id, score_obtained');
@@ -893,19 +867,63 @@
       cachedGlobalScores = Object.keys(scoreMap)
         .map(uid => ({ uid, total: scoreMap[uid] }))
         .sort((a, b) => b.total - a.total);
-
-      console.log('[STAGE] Global scores cached:', cachedGlobalScores.length);
     }
 
     function renderLeaderboardReveal(rank) {
       const container = document.getElementById('leaderboardReveal');
       if (!container) return;
 
+      // rank === -1 → tampilkan SEMUA
+      if (rank === -1) {
+        if (cachedGlobalScores.length === 0) {
+          container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data nilai.</p>`;
+          return;
+        }
+        container.innerHTML = `
+          <div class="w-full">
+            <div class="text-center mb-4">
+              <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-purple-700 text-purple-100">
+                SEMUA PESERTA (${cachedGlobalScores.length})
+              </div>
+            </div>
+            <div class="w-full space-y-1.5 max-h-[500px] overflow-y-auto custom-scroll pr-2">
+              ${cachedGlobalScores.map((p, idx) => {
+                const rankNum = idx + 1;
+                const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+                let rowClass = 'bg-slate-800/70 border-slate-700/50';
+                let rankStyle = 'bg-slate-700 text-slate-300';
+                let rankIcon = `#${rankNum}`;
+                if (rankNum === 1) { rowClass = 'bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-900 border-amber-500/50'; rankStyle = 'bg-amber-400 text-slate-950'; rankIcon = '👑'; }
+                else if (rankNum === 2) { rowClass = 'bg-gradient-to-r from-slate-800 via-slate-700/50 to-slate-900 border-slate-300/50'; rankStyle = 'bg-slate-200 text-slate-950'; rankIcon = '🥈'; }
+                else if (rankNum === 3) { rowClass = 'bg-gradient-to-r from-amber-900/60 via-amber-800/30 to-slate-900 border-amber-600/50'; rankStyle = 'bg-amber-600 text-white'; rankIcon = '🥉'; }
+                return `
+                  <div class="border-2 rounded-xl p-2 flex items-center justify-between gap-3 ${rowClass}">
+                    <div class="flex items-center gap-2 overflow-hidden flex-1">
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${rankStyle}">${rankIcon}</div>
+                      <img src="${avatar}" class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 flex-shrink-0 object-cover"/>
+                      <div class="overflow-hidden">
+                        <p class="text-xs font-bold text-white truncate">${p.uid}</p>
+                      </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                      <div class="text-lg font-mono font-black text-amber-400">${p.total}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // rank === 0 → kosong
       if (rank === 0 || cachedGlobalScores.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>`;
         return;
       }
 
+      // rank > 0 → 1 orang
       const targetIdx = rank - 1;
       const player = cachedGlobalScores[targetIdx];
 
@@ -948,90 +966,87 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-// VIEW SWITCHER — dengan guard anti re-render
-// ═══════════════════════════════════════════════════════════
-function handleViewSwitch(viewName, revealedRank) {
-  console.log('[STAGE] View switch:', viewName, 'rank:', revealedRank);
-
-  const views = {
-    team_assignment: document.getElementById('viewTeamAssignment'),
-    memorize_phase: document.getElementById('viewMemorizePhase'),
-    answer_phase: document.getElementById('viewAnswerPhase'),
-    team_standings: document.getElementById('viewTeamStandings'),
-    leaderboard: document.getElementById('viewLeaderboard')
-  };
-
-  // ═══════════════════════════════════════════════════════
-  // GUARD 1: Kalau view SAMA dan rank SAMA → skip total
-  // ═══════════════════════════════════════════════════════
-  const isSameView = (currentView === viewName);
-  const isSameRank = (lastRevealedRank === revealedRank);
-
-  if (isSameView && isSameRank) {
-    // Hanya update rank kalau berubah di view leaderboard/team_standings
-    if (viewName === 'leaderboard' && revealedRank !== lastRevealedRank) {
-      lastRevealedRank = revealedRank;
-      renderLeaderboardReveal(revealedRank);
-    } else if (viewName === 'team_standings' && revealedRank !== lastRevealedRank) {
-      lastRevealedRank = revealedRank;
-      renderTeamStandingReveal(revealedRank);
+    // VIEW SWITCHER
+    // ═══════════════════════════════════════════════════════════
+    function stopAllRotations() {
+      stopTeamRotation();
+      stopDisasterRotation();
+      stopAnswerTimer();
+      stopMemorizeTimer();
     }
-    return;
-  }
 
-  // ═══════════════════════════════════════════════════════
-  // GUARD 2: Kalau view SAMA tapi rank beda (hanya untuk
-  // leaderboard/team_standings) → update rank saja, JANGAN
-  // restart view
-  // ═══════════════════════════════════════════════════════
-  if (isSameView && !isSameRank) {
-    lastRevealedRank = revealedRank;
+    function handleViewSwitch(viewName, revealedRank) {
+      console.log('[STAGE] View switch:', viewName, 'rank:', revealedRank);
 
-    if (viewName === 'leaderboard') {
-      fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
-    } else if (viewName === 'team_standings') {
-      fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
+      const views = {
+        idle: document.getElementById('viewIdle'),
+        memorize_phase: document.getElementById('viewMemorizePhase'),
+        team_assignment: document.getElementById('viewTeamAssignment'),
+        disaster_phase: document.getElementById('viewDisasterPhase'),
+        answer_phase: document.getElementById('viewAnswerPhase'),
+        team_standings: document.getElementById('viewTeamStandings'),
+        leaderboard: document.getElementById('viewLeaderboard')
+      };
+
+      // Kalau view sama & rank sama → skip, tapi khusus leaderboard/standings tetap update rank
+      const isSameView = (currentView === viewName);
+      const isSameRank = (lastRevealedRank === revealedRank);
+
+      if (isSameView && isSameRank) {
+        if (viewName === 'leaderboard' && revealedRank !== lastRevealedRank) {
+          lastRevealedRank = revealedRank;
+          renderLeaderboardReveal(revealedRank);
+        } else if (viewName === 'team_standings' && revealedRank !== lastRevealedRank) {
+          lastRevealedRank = revealedRank;
+          renderTeamStandingReveal(revealedRank);
+        }
+        return;
+      }
+
+      // View sama tapi rank beda
+      if (isSameView && !isSameRank) {
+        lastRevealedRank = revealedRank;
+        if (viewName === 'leaderboard') {
+          fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
+        } else if (viewName === 'team_standings') {
+          fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
+        }
+        return;
+      }
+
+      // View beda → switch penuh
+      Object.values(views).forEach(v => {
+        if (v) { v.classList.add('hidden-view'); v.classList.remove('active-view'); }
+      });
+
+      stopAllRotations();
+      currentView = viewName;
+      lastRevealedRank = revealedRank;
+
+      if (views[viewName]) {
+        views[viewName].classList.remove('hidden-view');
+        views[viewName].classList.add('active-view');
+      }
+
+      // Handle specific view
+      if (viewName === 'team_assignment') {
+        fetchTeams().then(() => startTeamRotation());
+      } else if (viewName === 'disaster_phase') {
+        startDisasterRotation();
+      } else if (viewName === 'answer_phase') {
+        loadSessionAndStartTimer();
+      } else if (viewName === 'memorize_phase') {
+        loadMemorizeAndStartTimer();
+      } else if (viewName === 'team_standings') {
+        fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
+      } else if (viewName === 'leaderboard') {
+        fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
+      }
+      // idle → kosong, tidak perlu apa-apa
     }
-    return;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // Kalau view BEDA → baru switch
-  // ═══════════════════════════════════════════════════════
-  Object.values(views).forEach(v => {
-    if (v) { v.classList.add('hidden-view'); v.classList.remove('active-view'); }
-  });
-
-  // Stop rotation view lama
-  stopTeamRotation();
-  stopDisasterRotation();
-  stopAnswerTimer();
-
-  // Aktifkan view baru
-  if (views[viewName]) {
-    views[viewName].classList.remove('hidden-view');
-    views[viewName].classList.add('active-view');
-  }
-
-  currentView = viewName;
-  lastRevealedRank = revealedRank;
-
-  // Handle view specific
-  if (viewName === 'team_assignment') {
-    fetchTeams().then(() => startTeamRotation());
-  } else if (viewName === 'memorize_phase') {
-    startDisasterRotation();
-  } else if (viewName === 'answer_phase') {
-    loadSessionAndStartTimer();
-  } else if (viewName === 'team_standings') {
-    fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
-  } else if (viewName === 'leaderboard') {
-    fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
-  }
-}
 
     // ═══════════════════════════════════════════════════════════
-    // SESSION — untuk answer_phase timer
+    // SESSION LOADERS
     // ═══════════════════════════════════════════════════════════
     async function loadSessionAndStartTimer() {
       const { data } = await supabaseClient
@@ -1048,16 +1063,32 @@ function handleViewSwitch(viewName, revealedRank) {
       }
     }
 
+    async function loadMemorizeAndStartTimer() {
+      const { data } = await supabaseClient
+        .from('system_cataclysm_memory')
+        .select('is_memorize_active, memorize_start_time, memorize_duration')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (data && data.is_memorize_active && data.memorize_start_time) {
+        startMemorizeTimer(data.memorize_start_time, data.memorize_duration || DEFAULT_MEMORIZE_DURATION);
+      } else {
+        // Tidak aktif → balik ke idle
+        const display = document.getElementById('memorizeTimerDisplay');
+        if (display) display.textContent = '--:--';
+        console.warn('[STAGE] Memorize tidak aktif, tapi view memorize_phase dipanggil');
+      }
+    }
+
     // ═══════════════════════════════════════════════════════════
-    // SIGNATURE CACHE — cegah re-render berulang
+    // SIGNATURE CACHE
     // ═══════════════════════════════════════════════════════════
     let lastLayoutSignature = '';
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME — admin_layout (HANYA SATU VERSI)
+    // REALTIME: LAYOUT
     // ═══════════════════════════════════════════════════════════
     function subscribeLayout() {
-      // Realtime listener
       supabaseClient
         .channel('stage_cataclysm_layout')
         .on('postgres_changes', {
@@ -1071,7 +1102,6 @@ function handleViewSwitch(viewName, revealedRank) {
         })
         .subscribe();
 
-      // Polling fallback dengan signature check
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('admin_layout_cataclysm_memory')
@@ -1080,16 +1110,15 @@ function handleViewSwitch(viewName, revealedRank) {
           .maybeSingle();
 
         if (!data) return;
-
         const sig = `${data.current_view}|${data.revealed_rank}|${data.updated_at}`;
         if (sig === lastLayoutSignature) return;
-
         lastLayoutSignature = sig;
         handleViewSwitch(data.current_view, data.revealed_rank);
       }, 1500);
     }
+
     // ═══════════════════════════════════════════════════════════
-    // REALTIME — teams
+    // REALTIME: TEAMS
     // ═══════════════════════════════════════════════════════════
     function subscribeTeams() {
       supabaseClient
@@ -1105,8 +1134,9 @@ function handleViewSwitch(viewName, revealedRank) {
         })
         .subscribe();
     }
+
     // ═══════════════════════════════════════════════════════════
-    // REALTIME — system_cataclysm_memory (untuk timer)
+    // REALTIME: SYSTEM (memorize + answer)
     // ═══════════════════════════════════════════════════════════
     function subscribeSystem() {
       supabaseClient
@@ -1116,39 +1146,64 @@ function handleViewSwitch(viewName, revealedRank) {
           schema: 'public',
           table: 'system_cataclysm_memory'
         }, (payload) => {
-          if (currentView === 'answer_phase' && payload.new) {
-            if (payload.new.is_active && payload.new.session_start_time) {
-              startAnswerTimer(payload.new.session_start_time, payload.new.session_duration || 300);
+          if (!payload.new) return;
+          const sys = payload.new;
+
+          // ⭐ Memorize phase
+          if (sys.is_memorize_active && sys.memorize_start_time) {
+            const sig = `${sys.memorize_start_time}|${sys.memorize_duration}`;
+            if (sig !== lastMemorizeSig) {
+              lastMemorizeSig = sig;
+              // Kalau view sekarang bukan memorize_phase → switch
+              if (currentView !== 'memorize_phase') {
+                handleViewSwitch('memorize_phase', 0);
+              } else {
+                startMemorizeTimer(sys.memorize_start_time, sys.memorize_duration || DEFAULT_MEMORIZE_DURATION);
+              }
             }
+          } else {
+            // is_memorize_active = false
+            if (memorizeActive) {
+              console.log('[STAGE] Memorize dimatikan dari admin');
+              stopMemorizeTimer();
+              if (currentView === 'memorize_phase') {
+                handleViewSwitch('idle', 0);
+              }
+            }
+          }
+
+          // Answer phase
+          if (currentView === 'answer_phase' && sys.is_active && sys.session_start_time) {
+            startAnswerTimer(sys.session_start_time, sys.session_duration || 300);
           }
         })
         .subscribe();
     }
+
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-  console.log('[STAGE] Init Cataclysm Memory...');
+      console.log('[STAGE] Init Cataclysm Memory...');
 
-  const { data: layout } = await supabaseClient
-    .from('admin_layout_cataclysm_memory')
-    .select('*')
-    .eq('id', 1)
-    .maybeSingle();
+      const { data: layout } = await supabaseClient
+        .from('admin_layout_cataclysm_memory')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
 
-  if (layout) {
-    // Set signature SEBELUM handleViewSwitch biar tidak trigger re-render
-    lastLayoutSignature = `${layout.current_view}|${layout.revealed_rank}|${layout.updated_at}`;
-    handleViewSwitch(layout.current_view, layout.revealed_rank);
-  } else {
-    lastLayoutSignature = 'team_assignment|0|';
-    handleViewSwitch('team_assignment', 0);
-  }
+      if (layout) {
+        lastLayoutSignature = `${layout.current_view}|${layout.revealed_rank}|${layout.updated_at}`;
+        handleViewSwitch(layout.current_view, layout.revealed_rank);
+      } else {
+        lastLayoutSignature = 'idle|0|';
+        handleViewSwitch('idle', 0);
+      }
 
-  subscribeLayout();
-  subscribeSystem();
-  subscribeTeams();
-}
+      subscribeLayout();
+      subscribeSystem();
+      subscribeTeams();
+    }
 
     init();
   </script>
