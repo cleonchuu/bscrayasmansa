@@ -63,6 +63,14 @@
 
   <!-- Grid Bingo (5x5) -->
   <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl flex-1">
+    <!-- OVERLAY FREEZE -->
+    <div id="freezeOverlay" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl pointer-events-none transition-opacity duration-300">
+      <div class="p-5 bg-slate-800/80 rounded-full border border-amber-500/30 text-amber-400 mb-3 animate-pulse">
+        <i class="fas fa-lock text-3xl"></i>
+      </div>
+      <h3 class="text-lg font-black text-white tracking-wide">PAPAN DIBEKUKAN</h3>
+      <p class="text-xs text-slate-400 mt-1 px-6 text-center">Menunggu admin memulai permainan...</p>
+    </div>
   </div>
 
   <script>
@@ -92,6 +100,11 @@
 
     // Guard spam
     let isProcessing = false;
+
+    // ✅ FITUR BARU: freeze & session tracking
+    let isFrozen = true;              // default: beku saat load
+    let currentSessionId = null;      // ID sesi game (dari start_time soal #1)
+    let lastSessionId = null;         // untuk deteksi "game baru"
 
     // Debounce poin ke DB
     let pendingPoints = 0;
@@ -198,31 +211,34 @@
     // HANDLE CLICK — dengan guard spam
     // ═══════════════════════════════════════════════════════════
     async function handleCellClick(boardIdx, cellIdx) {
-      // Guard: soal harus aktif & ada kunci jawaban
-      if (!isQuestionActive || activeAnswer === null) return;
+  // ✅ Guard: kiosk beku
+  if (isFrozen) {
+    console.log('[KIOSK] Kiosk beku, klik diabaikan.');
+    return;
+  }
+  // Guard: soal harus aktif & ada kunci jawaban
+  if (!isQuestionActive || activeAnswer === null) return;
+  // Guard: cegah spam klik
+  if (isProcessing) return;
 
-      // Guard: cegah spam klik
-      if (isProcessing) return;
+  const cell = boardStates[boardIdx][cellIdx];
+  // Guard: sel sudah pernah ditekan
+  if (cell.status !== 'default') return;
 
-      const cell = boardStates[boardIdx][cellIdx];
+  isProcessing = true;
 
-      // Guard: sel sudah pernah ditekan
-      if (cell.status !== 'default') return;
+  if (cell.val === activeAnswer) {
+    cell.status = 'correct';
+    await addPoints(1, 'Jawaban Benar (+1)');
+    checkBingoBonus(boardIdx);
+  } else {
+    cell.status = 'wrong';
+    await addPoints(-1, 'Salah Tekan (-1)');
+  }
 
-      isProcessing = true;
-
-      if (cell.val === activeAnswer) {
-        cell.status = 'correct';
-        await addPoints(1, 'Jawaban Benar (+1)');
-        checkBingoBonus(boardIdx);
-      } else {
-        cell.status = 'wrong';
-        await addPoints(-1, 'Salah Tekan (-1)');
-      }
-
-      renderBoard(currentBoardIndex);
-      isProcessing = false;
-    }
+  renderBoard(currentBoardIndex);
+  isProcessing = false;
+}
 
     // ═══════════════════════════════════════════════════════════
     // BINGO BONUS (baris/kolom penuh = +5)
@@ -353,37 +369,95 @@
     }
 
     // ═══════════════════════════════════════════════════════════
+// ✅ FITUR BARU: FREEZE / UNFREEZE KIOSK
+// ═══════════════════════════════════════════════════════════
+function setFrozen(state) {
+  isFrozen = state;
+  const overlay = document.getElementById('freezeOverlay');
+  const grid = document.getElementById('gridContainer');
+  if (overlay) {
+    overlay.style.opacity = state ? '1' : '0';
+    overlay.style.pointerEvents = state ? 'auto' : 'none';
+  }
+  if (grid) {
+    grid.classList.toggle('opacity-40', state);
+    grid.classList.toggle('grayscale', state);
+  }
+  console.log(`[KIOSK] Freeze: ${state}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ✅ FITUR BARU: RESET SEL (bukan poin!)
+// Dipanggil saat admin mulai game baru (soal #1)
+// ═══════════════════════════════════════════════════════════
+function resetBoardsCells() {
+  // Reset semua status sel ke 'default', tapi angka tetap
+  boardStates.forEach(board => {
+    board.forEach(cell => {
+      cell.status = 'default';
+    });
+  });
+  lineBonusClaimed = [[], [], [], [], []];
+  renderBoard(currentBoardIndex);
+  console.log('[KIOSK] Sel di-reset (poin tetap).');
+}
+
+    // ═══════════════════════════════════════════════════════════
     // HANDLE INCOMING QUESTION — Hindari duplikat
     // ═══════════════════════════════════════════════════════════
     function handleIncomingQuestion(data) {
-      // ─── KONDISI 1: Admin clear / belum mulai ───
-      if (!data.is_active || data.question_number === 0) {
-        if (isQuestionActive || lastQuestionNum !== -1) {
-          console.log('[KIOSK] Admin clear/reset. Kembali ke waiting state.');
+  // ─── KONDISI 1: Admin clear / belum mulai ───
+  if (!data.is_active || data.question_number === 0) {
+    if (isQuestionActive || lastQuestionNum !== -1) {
+      console.log('[KIOSK] Admin clear/reset. Kembali ke waiting state.');
 
-          isQuestionActive = false;
-          activeAnswer = null;
-          activeQuestionNum = 0;
-          lastQuestionNum = -1;
+      isQuestionActive = false;
+      activeAnswer = null;
+      activeQuestionNum = 0;
+      lastQuestionNum = -1;
+      currentSessionId = null;
 
-          clearInterval(timerInterval);
-          timerInterval = null;
+      clearInterval(timerInterval);
+      timerInterval = null;
 
-          document.getElementById('questionNum').textContent = 'Soal #-';
-          document.getElementById('questionText').textContent = 'Menunggu Admin...';
-          document.getElementById('statusMsg').textContent = 'Jawab sebelum waktu habis!';
-          document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:20`;
-        }
-        return;
-      }
-
-      // ─── KONDISI 2: Soal baru (nomor beda) ───
-      if (data.question_number !== lastQuestionNum) {
-        console.log(`[KIOSK] Soal baru #${data.question_number}`);
-        lastQuestionNum = data.question_number;
-        setupNewQuestion(data);
-      }
+      document.getElementById('questionNum').textContent = 'Soal #-';
+      document.getElementById('questionText').textContent = 'Menunggu Admin...';
+      document.getElementById('statusMsg').textContent = 'Jawab sebelum waktu habis!';
+      document.getElementById('timerDisplay').innerHTML = `<i class="fas fa-clock mr-1"></i>00:20`;
     }
+
+    // ✅ Kiosk beku saat tidak ada soal aktif
+    setFrozen(true);
+    return;
+  }
+
+  // ─── KONDISI 2: Soal baru (nomor beda) ───
+  if (data.question_number !== lastQuestionNum) {
+    console.log(`[KIOSK] Soal baru #${data.question_number}`);
+    lastQuestionNum = data.question_number;
+
+    // ✅ DETEKSI GAME BARU: soal #1 = awal sesi baru
+    // Pakai start_time sebagai session ID unik
+    const sessionId = data.start_time || `session_${Date.now()}`;
+
+    if (data.question_number === 1 || currentSessionId === null) {
+      // Game baru dimulai → reset sel
+      console.log('[KIOSK] 🎮 GAME BARU terdeteksi. Reset sel...');
+      resetBoardsCells();
+      currentSessionId = sessionId;
+    } else if (sessionId !== currentSessionId) {
+      // Sesi berubah (start_time beda) → tetap reset sel
+      console.log('[KIOSK] 🔄 Sesi baru terdeteksi via start_time.');
+      resetBoardsCells();
+      currentSessionId = sessionId;
+    }
+
+    setupNewQuestion(data);
+  }
+
+  // ✅ Kiosk terbuka saat soal aktif
+  setFrozen(false);
+}
 
     // ═══════════════════════════════════════════════════════════
     // SETUP NEW QUESTION — Timer dari start_time DB
@@ -429,28 +503,31 @@
 
       // Kalau soal masuk telat & waktu sudah habis
       if (timeLeft <= 0) {
-        console.warn('[KIOSK] Soal masuk setelah waktu habis!');
-        isQuestionActive = false;
-        document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
-        document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
-        flushPendingPoints();
-        return;
-      }
+  console.warn('[KIOSK] Soal masuk setelah waktu habis!');
+  isQuestionActive = false;
+  document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
+  document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
+  setFrozen(true);  // ✅ tambahkan ini
+  flushPendingPoints();
+  return;
+}
 
       timerInterval = setInterval(() => {
         timeLeft--;
         updateTimerDisplay(timeLeft);
 
         if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-          isQuestionActive = false;
-          document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
-          document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
+  clearInterval(timerInterval);
+  timerInterval = null;
+  isQuestionActive = false;
+  document.getElementById('statusMsg').textContent = 'Waktu Habis! Soal ditutup.';
+  document.getElementById('questionText').textContent = '⏰ Menunggu soal berikutnya...';
 
-          // Flush poin terakhir
-          flushPendingPoints();
-        }
+  // ✅ Freeze kiosk saat waktu habis
+  setFrozen(true);
+
+  flushPendingPoints();
+}
       }, 1000);
     }
 
@@ -483,24 +560,24 @@
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-      console.log('[KIOSK] Booting...');
+  console.log('[KIOSK] Booting...');
 
-      initUser();
-      generateBingoBoards();
-      renderBoard(0);
-      listenToAdmin();
+  initUser();
+  generateBingoBoards();
+  renderBoard(0);
+  setFrozen(true);   // ✅ default beku sebelum state diketahui
+  listenToAdmin();
 
-      // Fetch state awal (kalau soal sudah aktif saat kiosk dibuka)
-      const { data } = await supabaseClient
-        .from('system_arithmatic_bingo')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+  const { data } = await supabaseClient
+    .from('system_arithmatic_bingo')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
 
-      if (data) handleIncomingQuestion(data);
+  if (data) handleIncomingQuestion(data);
 
-      console.log('[KIOSK] Ready');
-    }
+  console.log('[KIOSK] Ready');
+}
 
     init();
 
