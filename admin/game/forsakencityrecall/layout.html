@@ -69,9 +69,9 @@
 
     .glow-emerald { box-shadow: 0 0 60px rgba(16, 185, 129, 0.4); }
 
-    /* Grid scroll container — disable interaksi mouse biar auto-scroll stabil */
+    /* Grid scroll container — auto-scroll controlled by JS */
     #memorizeGridScroll {
-      pointer-events: none; /* biar mouse gak ganggu auto-scroll */
+      scroll-behavior: auto; /* manual control via rAF */
     }
   </style>
 </head>
@@ -113,16 +113,17 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2A: MEMORIZE SEQUENTIAL (5 per batch: 3 atas, 2 bawah) -->
+    <!-- VIEW 2A: MEMORIZE SEQUENTIAL (6 per batch × 5 batch)     -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewMemorizeSeq" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
+
       <!-- HEADER -->
       <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <div class="flex items-center gap-3">
           <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
             <i class="fas fa-brain mr-1"></i> FASE MENGHAPAL
           </span>
-          <span class="text-xs text-slate-400">Mode: 5 Gambar per Batch (3 + 2)</span>
+          <span class="text-xs text-slate-400">Mode: 6 Gambar per Batch (3 + 3)</span>
         </div>
         <div class="flex items-center gap-4">
           <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
@@ -131,30 +132,30 @@
           </div>
           <div class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-2.5 text-center">
             <div class="text-[10px] text-slate-500 uppercase font-bold">Batch</div>
-            <div id="memorizeSeqBatch" class="text-3xl font-mono font-black text-white">
-              <span id="currentBatchNo">1</span><span class="text-slate-500">/6</span>
+            <div class="text-3xl font-mono font-black text-white">
+              <span id="currentBatchNo">1</span><span class="text-slate-500">/5</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- BATCH CONTAINER -->
+      <!-- KONTAINER GAMBAR (terpisah) -->
       <div class="flex-1 bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 overflow-hidden relative min-h-0">
         <div id="seqBatchContainer" class="h-full w-full flex flex-col justify-center gap-4"></div>
+      </div>
 
-        <!-- Progress bar -->
-        <div class="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-amber-500/30 px-6 py-3 z-20">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
-              Menampilkan Batch <span id="currentBatchLabel">1</span> / 6
-            </span>
-            <span class="text-[10px] text-slate-500 font-mono">
-              Gambar <span id="currentImgLabel">1-5</span> / 30
-            </span>
-          </div>
-          <div class="bg-slate-800 rounded-full h-2 overflow-hidden">
-            <div id="memorizeSeqProgress" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-500" style="width: 0%"></div>
-          </div>
+      <!-- ⭐ KONTAINER BARU: INFO DI BAWAH (terpisah dari kotak gambar) -->
+      <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
+            <i class="fas fa-images mr-1"></i> Menampilkan Batch <span id="currentBatchLabel">1</span> / 5
+          </span>
+          <span class="text-sm text-slate-400 font-mono">
+            Gambar <span id="currentImgLabel">1-6</span> / 30
+          </span>
+        </div>
+        <div class="bg-slate-800 rounded-full h-2.5 overflow-hidden">
+          <div id="memorizeSeqProgress" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-500" style="width: 0%"></div>
         </div>
       </div>
     </div>
@@ -163,6 +164,7 @@
     <!-- VIEW 2B: MEMORIZE GRID (container 16:6, auto-scroll)      -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewMemorizeGrid" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
+
       <!-- HEADER -->
       <div class="flex items-center justify-between mb-4 flex-shrink-0">
         <div class="flex items-center gap-3">
@@ -177,35 +179,30 @@
         </div>
       </div>
 
-      <!-- CONTAINER UTAMA: ASPECT 16:6 -->
+      <!-- KONTAINER GAMBAR GRID -->
       <div class="flex-1 flex items-center justify-center min-h-0">
         <div class="w-full max-w-[266.67vh] aspect-[16/6] bg-slate-900 border-2 border-amber-500/40 rounded-3xl overflow-hidden relative">
-
           <!-- Scroll Area -->
           <div id="memorizeGridScroll" class="absolute inset-0 overflow-y-auto custom-scroll p-4">
             <div id="memorizeGridContainer" class="grid grid-cols-5 gap-3 w-full">
-              <!-- Diisi JS: 30 gambar landscape -->
+              <!-- Diisi JS -->
             </div>
           </div>
-
-          <!-- Progress indikator -->
+          <!-- Badge total (di dalam kotak) -->
           <div class="absolute top-3 right-3 bg-slate-950/90 border border-amber-500/30 rounded-2xl px-4 py-2 text-center z-20 pointer-events-none">
             <div class="text-[9px] text-slate-500 uppercase font-bold">Total</div>
             <div id="gridTotalCount" class="text-xl font-mono font-black text-amber-400">30</div>
           </div>
+        </div>
+      </div>
 
-          <!-- Info bawah -->
-          <div class="absolute bottom-0 left-0 right-0 bg-slate-950/90 backdrop-blur border-t border-amber-500/30 px-6 py-2 z-20 pointer-events-none">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
-                <i class="fas fa-arrows-up-down mr-1"></i> Auto-scroll aktif
-              </span>
-              <span id="gridScrollStatus" class="text-[10px] text-slate-500 font-mono">
-                ke bawah...
-              </span>
-            </div>
-          </div>
-
+      <!-- ⭐ KONTAINER BARU: INFO DI BAWAH (terpisah dari kotak gambar) -->
+      <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
+            <i class="fas fa-arrows-up-down mr-1"></i> Auto-scroll aktif
+          </span>
+          <span id="gridScrollStatus" class="text-sm text-slate-400 font-mono">ke bawah...</span>
         </div>
       </div>
     </div>
@@ -221,7 +218,7 @@
         <h1 class="text-5xl md:text-6xl font-black text-white mt-4 font-display tracking-wider">
           KERJAKAN SOAL!
         </h1>
-        <p class="text-slate-400 text-lg mt-2">Ingat kembali urutan 30 kota yang tadi ditampilkan</p>
+        <p class="text-slate-400 text-lg mt-2">Isi 6 gambar per sesi sesuai urutan yang tadi ditampilkan</p>
       </div>
 
       <div class="bg-slate-900 border-4 border-emerald-500/40 rounded-3xl p-16 glow-emerald">
@@ -270,10 +267,6 @@
           Menunggu panitia menentukan sistem eliminasi.<br>
           Kontrol akan tersedia setelah konfigurasi selesai.
         </p>
-        <div class="flex items-center justify-center gap-3 text-slate-500 text-sm">
-          <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
-          <span>Placeholder — Coming Soon</span>
-        </div>
       </div>
     </div>
 
@@ -288,7 +281,7 @@
         <h1 class="text-5xl font-black text-white mt-4 font-display tracking-wider">
           FORSAKEN CITY RECALL
         </h1>
-        <p id="leaderboardSubtitle" class="text-slate-400 mt-2">Akumulasi seluruh sesi (Recall Type 1–6)</p>
+        <p id="leaderboardSubtitle" class="text-slate-400 mt-2">Akumulasi seluruh sesi (Recall Type 1–5)</p>
       </div>
       <div id="leaderboardContainer" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
         <p class="text-slate-500 text-xl">Memuat klasemen...</p>
@@ -311,16 +304,15 @@
     const LAYOUT_TABLE = 'admin_layout_forsaken_city_recall';
     const NOTIF_TABLE = 'recall_notifications';
 
-    // Mode A
-    const SEQ_BATCH_SIZE = 5;
+    // ⭐ MODE A: 6 per batch, total 5 batch (30 gambar)
+    const SEQ_BATCH_SIZE = 6;
     const SEQ_BATCH_DURATION = 3000;
+    const TOTAL_BATCHES_A = 5;
 
-// Kecepatan scroll dalam pixel per detik
-const GRID_SCROLL_SPEED_PPS = 42;   // <-- atur di sini (px/detik)
-
-// Jeda atas/bawah dalam ms
-const GRID_PAUSE_TOP = 1000;
-const GRID_PAUSE_BOTTOM = 1000;
+    // ⭐ MODE B: auto-scroll speed (px/detik)
+    const GRID_SCROLL_SPEED_PPS = 42;   // atur di sini
+    const GRID_PAUSE_TOP = 800;         // jeda di atas (ms)
+    const GRID_PAUSE_BOTTOM = 800;      // jeda di bawah (ms)
 
     // State
     let currentView = 'idle';
@@ -335,9 +327,12 @@ const GRID_PAUSE_BOTTOM = 1000;
     let memorizeTimerInt = null;
     let answerTimerInt = null;
 
-    let gridScrollInterval = null;
-    let gridScrollDirection = 1;
+    // ⭐ Auto-scroll state (pakai rAF)
+    let gridScrollRAF = null;
+    let gridScrollLastTs = 0;
+    let gridScrollDirection = 1;   // 1 turun, -1 naik
     let gridScrollPaused = false;
+    let gridScrollPauseUntil = 0;
 
     let memorizeMode = 'sequential';
 
@@ -367,7 +362,8 @@ const GRID_PAUSE_BOTTOM = 1000;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // MODE A: SEQUENTIAL — 5 per batch (3 atas, 2 bawah)
+    // MODE A: SEQUENTIAL — 6 per batch (3 atas, 3 bawah)
+    // Total 30 gambar → 5 batch
     // ═══════════════════════════════════════════════════════════
     function renderSeqBatch(batchIdx) {
       const container = document.getElementById('seqBatchContainer');
@@ -386,8 +382,9 @@ const GRID_PAUSE_BOTTOM = 1000;
         batchItems.push({ index: i, filename: currentSequence[i] });
       }
 
+      // ⭐ 3 atas, 3 bawah
       const topRow = batchItems.slice(0, 3);
-      const bottomRow = batchItems.slice(3);
+      const bottomRow = batchItems.slice(3, 6);
 
       const makeCard = (item, animDelay) => `
         <div class="relative aspect-video bg-slate-950 border-2 border-amber-500/30 rounded-2xl overflow-hidden animate-fade-up"
@@ -412,8 +409,7 @@ const GRID_PAUSE_BOTTOM = 1000;
         </div>
         ${bottomRow.length > 0 ? `
           <div class="grid grid-cols-3 gap-4 flex-shrink-0">
-            <div class="col-start-1">${makeCard(bottomRow[0], 240)}</div>
-            <div class="col-start-3">${makeCard(bottomRow[1], 320)}</div>
+            ${bottomRow.map((item, i) => makeCard(item, 240 + i * 80)).join('')}
           </div>
         ` : ''}
       `;
@@ -448,6 +444,7 @@ const GRID_PAUSE_BOTTOM = 1000;
 
       sequentialTimer = setInterval(() => {
         sequentialBatchIndex++;
+        // Loop balik ke batch 1
         if (sequentialBatchIndex >= totalBatch) sequentialBatchIndex = 0;
 
         renderSeqBatch(sequentialBatchIndex);
@@ -461,7 +458,7 @@ const GRID_PAUSE_BOTTOM = 1000;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // MODE B: GRID — 30 gambar landscape, auto-scroll
+    // MODE B: GRID — 30 gambar, auto-scroll
     // ═══════════════════════════════════════════════════════════
     function renderMemorizeGrid() {
       const container = document.getElementById('memorizeGridContainer');
@@ -499,19 +496,14 @@ const GRID_PAUSE_BOTTOM = 1000;
       console.log('[STAGE] Rendered', currentSequence.length, 'grid images');
     }
 
-        // ═══════════════════════════════════════════════════════════
-    // MODE B: GRID AUTO-SCROLL (pakai requestAnimationFrame)
-    // ═══════════════════════════════════════════════════════════
-    let gridScrollRAF = null;
-    let gridScrollLastTs = 0;
-    let gridScrollPauseUntil = 0;
-
+    // ⭐ Auto-scroll dengan requestAnimationFrame — FIX STUCK BUG
     function startGridAutoScroll() {
       stopGridAutoScroll();
 
       const scrollEl = document.getElementById('memorizeGridScroll');
       if (!scrollEl) return;
 
+      // Reset state
       gridScrollDirection = 1;
       gridScrollPaused = false;
       gridScrollLastTs = 0;
@@ -520,11 +512,18 @@ const GRID_PAUSE_BOTTOM = 1000;
       updateGridScrollStatus('ke bawah...');
 
       const loop = (ts) => {
-        if (!gridScrollLastTs) gridScrollLastTs = ts;
+        if (!gridScrollLastTs) {
+          gridScrollLastTs = ts;
+          gridScrollRAF = requestAnimationFrame(loop);
+          return;
+        }
+
         const dt = ts - gridScrollLastTs;
         gridScrollLastTs = ts;
 
-        // Kalau sedang pause (jeda atas/bawah)
+        // Clamp dt biar tidak lompat kalau tab ke-throttle
+        const dtClamped = Math.min(dt, 100);
+
         if (gridScrollPaused) {
           if (ts >= gridScrollPauseUntil) {
             gridScrollPaused = false;
@@ -540,22 +539,26 @@ const GRID_PAUSE_BOTTOM = 1000;
           return;
         }
 
-        // Gerakkan berdasarkan delta waktu
-        const pixelsToMove = (GRID_SCROLL_SPEED_PPS * dt) / 1000;
-        scrollEl.scrollTop += pixelsToMove * gridScrollDirection;
+        // Gerakkan pixel berdasarkan dt
+        const pixelsToMove = (GRID_SCROLL_SPEED_PPS * dtClamped) / 1000;
+        let newScroll = scrollEl.scrollTop + (pixelsToMove * gridScrollDirection);
 
-        const currentScroll = scrollEl.scrollTop;
+        // Clamp
+        if (newScroll < 0) newScroll = 0;
+        if (newScroll > maxScroll) newScroll = maxScroll;
+        scrollEl.scrollTop = newScroll;
 
-        // Sampai bawah
-        if (currentScroll >= maxScroll) {
+        // ⭐ FIX: Cek pakai posisi & maxScroll (bukan threshold -1)
+        // Sampai bawah → pause + balik arah
+        if (gridScrollDirection === 1 && newScroll >= maxScroll - 0.5) {
           scrollEl.scrollTop = maxScroll;
           gridScrollPaused = true;
           gridScrollDirection = -1;
           gridScrollPauseUntil = ts + GRID_PAUSE_BOTTOM;
           updateGridScrollStatus('tahan di bawah...');
         }
-        // Sampai atas
-        else if (currentScroll <= 0) {
+        // Sampai atas → pause + balik arah
+        else if (gridScrollDirection === -1 && newScroll <= 0.5) {
           scrollEl.scrollTop = 0;
           gridScrollPaused = true;
           gridScrollDirection = 1;
@@ -577,6 +580,7 @@ const GRID_PAUSE_BOTTOM = 1000;
       gridScrollPaused = false;
       gridScrollDirection = 1;
       gridScrollLastTs = 0;
+      gridScrollPauseUntil = 0;
     }
 
     function updateGridScrollStatus(text) {
@@ -644,7 +648,7 @@ const GRID_PAUSE_BOTTOM = 1000;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // COMBO REVEAL
+    // COMBO REVEAL — Top 5 (karena 5 batch total)
     // ═══════════════════════════════════════════════════════════
     async function fetchComboData(sessionNum) {
       const { data: scores } = await supabaseClient
@@ -664,7 +668,8 @@ const GRID_PAUSE_BOTTOM = 1000;
       Object.keys(userScoresMap).forEach(uid => {
         let isPerfect = true;
         for (let s = 1; s <= sessionNum; s++) {
-          if (userScoresMap[uid][`Recall Type ${s}`] !== 25) {
+          // ⭐ Perfect = 6 gambar benar (perubahan dari 25 → 30)
+          if (userScoresMap[uid][`Recall Type ${s}`] !== 30) {
             isPerfect = false;
             break;
           }
@@ -694,7 +699,7 @@ const GRID_PAUSE_BOTTOM = 1000;
       const container = document.getElementById('comboRevealContainer');
       const title = document.getElementById('comboRevealTitle');
       container.innerHTML = `<p class="text-slate-500 text-xl">Memuat data peserta sesi ${sessionNum}...</p>`;
-      title.textContent = `SESI ${sessionNum} — Perfect (${sessionNum * 5} Poin)`;
+      title.textContent = `SESI ${sessionNum} — Perfect (30 Poin)`;
 
       const participants = await fetchComboData(sessionNum);
 
@@ -745,7 +750,7 @@ const GRID_PAUSE_BOTTOM = 1000;
               <img src="${avatar}" class="w-20 h-20 rounded-xl bg-slate-950 border border-indigo-500/30 object-cover"/>
               <div class="text-[11px] font-bold text-white text-center leading-tight truncate w-full">${p.full_name}</div>
               <span class="text-[9px] bg-indigo-500/30 text-indigo-300 font-black px-2 py-0.5 rounded border border-indigo-500/40">
-                PERFECT ${sessionNum * 5}
+                PERFECT 30
               </span>
             </div>
           `;
@@ -762,7 +767,7 @@ const GRID_PAUSE_BOTTOM = 1000;
                 <h3 class="text-4xl md:text-5xl font-black text-white tracking-wide">${p.full_name}</h3>
                 ${p.school_name ? `<p class="text-slate-400 text-sm">${p.school_name}</p>` : ''}
                 <div class="inline-block text-2xl font-mono font-black text-indigo-300 bg-indigo-500/10 px-6 py-2 rounded-2xl border border-indigo-500/30">
-                  PERFECT ${sessionNum * 5} POIN
+                  PERFECT 30 POIN
                 </div>
                 <p class="text-xs text-slate-400 mt-2">Sesi 1 s.d. Sesi ${sessionNum} sempurna</p>
               </div>

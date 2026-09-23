@@ -13,13 +13,15 @@
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
     @keyframes pulseBell { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
     .animate-pulse-bell { animation: pulseBell 1s ease-in-out infinite; }
+    @keyframes pulseAmber { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+    .animate-pulse-amber { animation: pulseAmber 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
 
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
-  <!-- NOTIFIKASI BANNER -->
+  <!-- NOTIF BANNER -->
   <div id="notifBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-6 py-4 rounded-2xl shadow-2xl font-black text-lg animate-pulse-bell flex items-center gap-3 border-2 border-emerald-300">
     <i class="fas fa-bell text-2xl"></i>
     <span id="notifBannerText">Notifikasi!</span>
@@ -34,7 +36,7 @@
           CONTROL PANEL ADMIN
         </span>
         <h1 class="text-2xl font-black text-white mt-2">Forsaken City Recall</h1>
-        <p class="text-xs text-slate-400 mt-1">Silk Road Memory Challenge — 30 Kota, 6 Sesi</p>
+        <p class="text-xs text-slate-400 mt-1">Silk Road Memory Challenge — 30 Kota, 5 Sesi × 6 Gambar</p>
       </div>
       <div class="flex items-center gap-3">
         <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-center">
@@ -67,15 +69,15 @@
             Fase Menghafal (30 Menit)
           </div>
           <select id="memorizeMode" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:border-amber-400">
-            <option value="sequential">Mode A — Muncul 1 per 1 (2 detik/gambar)</option>
-            <option value="grid">Mode B — Grid 30 Gambar Sekaligus</option>
+            <option value="sequential">Mode A — 6 gambar per batch (3 + 3)</option>
+            <option value="grid">Mode B — Grid 30 gambar sekaligus</option>
           </select>
           <button id="btnStartMemorize" onclick="startMemorize()" class="w-full py-2.5 rounded-xl font-black text-xs bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2">
             <i class="fas fa-play"></i> Mulai Menghafal
           </button>
           <button onclick="changeMemorizeMode()" class="w-full py-2 rounded-xl font-bold text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 transition active:scale-95 flex items-center justify-center gap-2">
             <i class="fas fa-sync-alt"></i> Ganti Mode Sekarang
-        </button>
+          </button>
         </div>
 
         <!-- FASE 2: ANSWER -->
@@ -152,15 +154,14 @@
 
       <!-- KONTROL REVEAL COMBO -->
       <div class="pt-3 border-t border-white/10 space-y-3">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Sesi:</span>
           <select id="comboSessionSelect" onchange="updateComboSession()" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:border-indigo-400">
-            <option value="1">Sesi 1 (Gambar #1-5)</option>
-            <option value="2">Sesi 2 (Gambar #6-10)</option>
-            <option value="3">Sesi 3 (Gambar #11-15)</option>
-            <option value="4">Sesi 4 (Gambar #16-20)</option>
-            <option value="5">Sesi 5 (Gambar #21-25)</option>
-            <option value="6">Sesi 6 (Gambar #26-30)</option>
+            <option value="1">Sesi 1 (Gambar #1-6)</option>
+            <option value="2">Sesi 2 (Gambar #7-12)</option>
+            <option value="3">Sesi 3 (Gambar #13-18)</option>
+            <option value="4">Sesi 4 (Gambar #19-24)</option>
+            <option value="5">Sesi 5 (Gambar #25-30)</option>
           </select>
           <button onclick="showAllCombos()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition">
             <i class="fas fa-list"></i> Tampilkan Semua Sesi
@@ -222,16 +223,13 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="shuffleAndSave()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-2 active:scale-95">
-  <i class="fas fa-random"></i> Acak & Simpan ke Supabase
-</button>
-          <button onclick="shuffleAndSave()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-2 active:scale-95">
-            <i class="fas fa-random"></i> Acak & Simpan
+            <i class="fas fa-random"></i> Acak & Simpan ke Supabase
           </button>
         </div>
       </div>
 
       <div id="sequencePreview" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 max-h-[400px] overflow-y-auto custom-scroll pr-2">
-        <p class="col-span-full text-center text-slate-500 text-xs py-8">Belum ada urutan. Klik "Load Folder" lalu "Acak & Simpan".</p>
+        <p class="col-span-full text-center text-slate-500 text-xs py-8">Belum ada urutan. Klik "Acak & Simpan" untuk memulai.</p>
       </div>
     </div>
 
@@ -247,6 +245,28 @@
       </div>
       <div id="submittedList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 max-h-[300px] overflow-y-auto custom-scroll pr-2">
         <p class="col-span-full text-center text-slate-500 text-xs py-6">Belum ada peserta submit.</p>
+      </div>
+    </div>
+
+    <!-- ⭐ PANEL DANGER: HAPUS SEMUA POIN -->
+    <div class="bg-rose-950/30 border-2 border-rose-500/40 p-6 rounded-2xl space-y-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center">
+          <i class="fas fa-exclamation-triangle text-rose-400 text-lg"></i>
+        </div>
+        <div>
+          <h3 class="font-black text-lg text-rose-400">Zona Bahaya</h3>
+          <p class="text-xs text-slate-400">Aksi di bawah ini tidak bisa dibatalkan.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <button onclick="resetAllScores()" class="py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-trash-alt"></i> Hapus Poin Seluruh Peserta
+        </button>
+        <button onclick="resetAllSubmissions()" class="py-3 rounded-xl font-black text-sm bg-rose-700 hover:bg-rose-600 text-white transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-eraser"></i> Hapus Semua Submission & Notif
+        </button>
       </div>
     </div>
 
@@ -275,9 +295,8 @@
     let memorizeTimerInt = null;
     let answerTimerInt = null;
 
-        // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // MASTER FILENAMES — 30 kota di bucket "forsaken_city"
-    // (Hardcode, tidak perlu load folder lokal lagi)
     // ═══════════════════════════════════════════════════════════
     const MASTER_FILENAMES = [
       'Allepo.jpg',
@@ -320,12 +339,17 @@
       if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
     }
 
-    
-        // ═══════════════════════════════════════════════════════════
-    // ACAK & SIMPAN DENGAN KONFIRMASI
+    function showNotif(text) {
+      const banner = document.getElementById('notifBanner');
+      document.getElementById('notifBannerText').textContent = text;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 4000);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ACAK & SIMPAN
     // ═══════════════════════════════════════════════════════════
     async function shuffleAndSave() {
-      // Cek session status — kalau sudah mulai, tidak boleh acak
       const { data: sys } = await supabaseClient
         .from(SYS_TABLE)
         .select('session_phase')
@@ -344,7 +368,6 @@
       );
       if (!confirmShuffle) return;
 
-      // Shuffle master
       const shuffled = [...MASTER_FILENAMES].sort(() => Math.random() - 0.5);
 
       const { error } = await supabaseClient
@@ -363,7 +386,7 @@
       playBell();
       currentSequence = shuffled;
       renderSequencePreview(shuffled);
-      alert(`✅ Urutan ${shuffled.length} gambar berhasil diacak & disimpan ke Supabase!`);
+      showNotif(`✅ Urutan ${shuffled.length} gambar berhasil diacak!`);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -395,23 +418,22 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // KONTROL FASE: MEMORIZE
+    // FASE: MEMORIZE
     // ═══════════════════════════════════════════════════════════
-        async function startMemorize() {
+    async function startMemorize() {
       if (currentSequence.length === 0) {
         return alert('Belum ada urutan gambar tersimpan!\nKlik "Acak & Simpan ke Supabase" dulu.');
       }
       if (currentSequence.length !== 30) {
         return alert(`⚠️ Urutan harus 30 gambar, saat ini hanya ${currentSequence.length}. Reset & acak ulang.`);
       }
-      // ... sisanya sama
 
       const mode = document.getElementById('memorizeMode').value;
       const now = new Date().toISOString();
 
       const confirmStart = confirm(
         `Mulai fase MENGHAPAL (30 menit) dengan mode:\n\n` +
-        (mode === 'sequential' ? '▪ Mode A: 1 gambar per 2 detik' : '▪ Mode B: Grid 30 gambar sekaligus') +
+        (mode === 'sequential' ? '▪ Mode A: 6 gambar per batch (3 atas, 3 bawah)' : '▪ Mode B: Grid 30 gambar sekaligus') +
         `\n\nPastikan peserta siap.`
       );
       if (!confirmStart) return;
@@ -431,12 +453,12 @@
 
       if (error) return alert('Gagal mulai: ' + error.message);
 
-      // Set layout view
       await switchStageView('memorize');
 
       playBell();
       updatePhaseUI('MEMORIZE');
       startMemorizeTimer(now);
+      showNotif('🧠 Fase menghafal dimulai — 30 menit');
     }
 
     function startMemorizeTimer(startTime) {
@@ -449,18 +471,20 @@
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         const el = document.getElementById('memorizeTimerDisplay');
-        el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        el.className = remaining <= 60 ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' : 'text-3xl font-mono font-black text-amber-400';
-        if (remaining <= 0) {
-          clearInterval(memorizeTimerInt);
+        if (el) {
+          el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          el.className = remaining <= 60 
+            ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' 
+            : 'text-3xl font-mono font-black text-amber-400';
         }
+        if (remaining <= 0) clearInterval(memorizeTimerInt);
       };
       tick();
       memorizeTimerInt = setInterval(tick, 500);
     }
 
     // ═══════════════════════════════════════════════════════════
-    // KONTROL FASE: ANSWER
+    // FASE: ANSWER
     // ═══════════════════════════════════════════════════════════
     async function startAnswer() {
       const now = new Date().toISOString();
@@ -487,6 +511,7 @@
       playBell();
       updatePhaseUI('ANSWER');
       startAnswerTimer(now);
+      showNotif('📝 Fase menjawab dimulai — 15 menit');
     }
 
     function startAnswerTimer(startTime) {
@@ -499,12 +524,15 @@
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         const el = document.getElementById('answerTimerDisplay');
-        el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        el.className = remaining <= 60 ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' : 'text-3xl font-mono font-black text-emerald-400';
+        if (el) {
+          el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+          el.className = remaining <= 60 
+            ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' 
+            : 'text-3xl font-mono font-black text-emerald-400';
+        }
 
         if (remaining <= 0) {
           clearInterval(answerTimerInt);
-          // Auto lock
           autoLockOnTimeout();
         }
       };
@@ -524,6 +552,7 @@
         .eq('id', 1);
       updatePhaseUI('LOCKED');
       playBell();
+      showNotif('🔒 Waktu habis — jawaban terkunci otomatis');
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -546,7 +575,7 @@
       if (error) return alert('Gagal lock: ' + error.message);
       updatePhaseUI('LOCKED');
       playBell();
-      alert('✅ Semua jawaban terkunci.');
+      showNotif('🔒 Semua jawaban terkunci');
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -558,7 +587,8 @@
         'Ini akan:\n' +
         '• Set fase ke IDLE\n' +
         '• Hapus status lock\n' +
-        '• Reset timer\n\n' +
+        '• Reset timer\n' +
+        '• Layout kembali ke idle\n\n' +
         '(Urutan gambar TIDAK dihapus)'
       );
       if (!confirmReset) return;
@@ -592,7 +622,7 @@
       document.getElementById('answerTimerDisplay').textContent = '--:--';
 
       updatePhaseUI('IDLE');
-      alert('✅ State berhasil di-reset.');
+      showNotif('✅ State berhasil di-reset');
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -672,14 +702,15 @@
         .from(LAYOUT_TABLE)
         .update({
           current_view: 'combo_reveal',
-          revealed_rank: -1, // -1 artinya tampilkan semua
+          revealed_rank: -1,
           updated_at: new Date().toISOString()
         })
         .eq('id', 1);
       playBell();
+      showNotif('📋 Menampilkan semua peserta combo');
     }
 
-        // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // GANTI MODE MENGHAFAL SAAT SESI BERJALAN
     // ═══════════════════════════════════════════════════════════
     async function changeMemorizeMode() {
@@ -712,7 +743,7 @@
       if (error) return alert('Gagal ganti mode: ' + error.message);
 
       playBell();
-      console.log('[ADMIN] Memorize mode changed to', newMode);
+      showNotif(`🔄 Mode → ${newMode === 'grid' ? 'Grid' : 'Sequential'}`);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -738,7 +769,6 @@
         return;
       }
 
-      // Ambil data user untuk avatar
       const uids = [...new Set(notifs.map(n => n.user_unique_id))];
       const { data: users } = await supabaseClient
         .from('users')
@@ -769,6 +799,85 @@
       await supabaseClient.from(NOTIF_TABLE).delete().neq('id', 0);
       loadSubmittedNotifications();
       playBell();
+      showNotif('🗑 Notifikasi dibersihkan');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ HAPUS POIN SELURUH PESERTA
+    // ═══════════════════════════════════════════════════════════
+    async function resetAllScores() {
+      const confirmReset = confirm(
+        '⚠️ HAPUS SEMUA POIN PESERTA?\n\n' +
+        'Ini akan menghapus semua skor dari 5 sesi (Recall Type 1-5) untuk SEMUA peserta.\n\n' +
+        'Tindakan ini TIDAK BISA dibatalkan.\n\n' +
+        'Lanjutkan?'
+      );
+      if (!confirmReset) return;
+
+      const confirmAgain = confirm('Yakin? Ini penghapusan permanen.');
+      if (!confirmAgain) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('game_scores')
+          .delete()
+          .like('game_name', 'Recall Type%');
+
+        if (error) {
+          alert('❌ Gagal hapus: ' + error.message);
+          return;
+        }
+
+        playBell();
+        showNotif('🗑 Semua poin peserta berhasil dihapus');
+        alert('✅ Semua poin peserta berhasil dihapus.');
+      } catch (e) {
+        alert('❌ Error: ' + e.message);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ HAPUS SEMUA SUBMISSION & NOTIFIKASI
+    // ═══════════════════════════════════════════════════════════
+    async function resetAllSubmissions() {
+      const confirmReset = confirm(
+        '⚠️ HAPUS SEMUA SUBMISSION & NOTIFIKASI?\n\n' +
+        'Ini akan menghapus:\n' +
+        '• Semua lembar jawaban peserta (recall_submissions)\n' +
+        '• Semua notifikasi submit (recall_notifications)\n\n' +
+        'Tindakan ini TIDAK BISA dibatalkan.\n\n' +
+        'Lanjutkan?'
+      );
+      if (!confirmReset) return;
+
+      const confirmAgain = confirm('Yakin? Penghapusan permanen.');
+      if (!confirmAgain) return;
+
+      try {
+        // Hapus submissions
+        const { error: subErr } = await supabaseClient
+          .from(SUBMISSIONS_TABLE)
+          .delete()
+          .neq('id', 0);
+
+        // Hapus notifications
+        const { error: notifErr } = await supabaseClient
+          .from(NOTIF_TABLE)
+          .delete()
+          .neq('id', 0);
+
+        if (subErr || notifErr) {
+          alert('⚠️ Sebagian gagal:\n' + (subErr?.message || '') + '\n' + (notifErr?.message || ''));
+          return;
+        }
+
+        playBell();
+        loadSubmittedNotifications();
+        showNotif('🗑 Semua submission & notifikasi dihapus');
+        alert('✅ Semua submission & notifikasi berhasil dihapus.');
+      } catch (e) {
+        alert('❌ Error: ' + e.message);
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -820,7 +929,12 @@
         renderSequencePreview(currentSequence);
         updatePhaseUI(data.session_phase || 'IDLE');
 
-        // Kalau ada sesi aktif, resume timer
+        // Set dropdown ke mode aktif
+        if (data.memorize_mode) {
+          document.getElementById('memorizeMode').value = data.memorize_mode;
+        }
+
+        // Resume timer kalau ada sesi aktif
         if (data.session_phase === 'MEMORIZE' && data.memorize_start_time) {
           startMemorizeTimer(data.memorize_start_time);
         } else if (data.session_phase === 'ANSWER' && data.answer_start_time) {

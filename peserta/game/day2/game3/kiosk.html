@@ -27,7 +27,7 @@
     .aspect-16-9 {
       position: relative;
       width: 100%;
-      padding-bottom: 56.25%; /* 9 / 16 = 0.5625 */
+      padding-bottom: 56.25%;
       height: 0;
       overflow: hidden;
     }
@@ -73,14 +73,13 @@
       background: rgba(3, 7, 18, 0.95);
     }
 
-    /* Grid safety — jangan collapse */
+    /* Grid safety */
     .safe-grid {
       display: grid;
       grid-auto-rows: max-content;
       align-content: start;
     }
 
-    /* Tombol hapus (×) — pastikan bisa diklik di iOS */
     .btn-remove {
       touch-action: manipulation;
       -webkit-appearance: none;
@@ -149,14 +148,14 @@
       <div class="bg-slate-900 border border-amber-500/30 rounded-3xl p-8">
         <div class="text-xs text-slate-500 uppercase font-bold mb-2">Total Poin Kamu</div>
         <div id="finalScore" class="text-6xl font-mono font-black text-amber-400">0</div>
-        <div class="text-xs text-slate-500 mt-2">dari 6 sesi × 25 poin = 150</div>
+        <div class="text-xs text-slate-500 mt-2">dari 5 sesi × 30 poin = 150</div>
       </div>
       <p class="text-xs text-slate-600">Hubungi panitia jika perlu bantuan.</p>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- MAIN GAME PANEL (muncul saat fase ANSWER)                    -->
+  <!-- MAIN GAME PANEL                                              -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="mainGamePanel" class="hidden flex-col flex-1 space-y-4">
 
@@ -178,14 +177,13 @@
       </div>
     </div>
 
-    <!-- PROGRESS SESI -->
+    <!-- ⭐ PROGRESS 5 SESI -->
     <div class="flex gap-1.5 px-1">
       <div data-ses="1" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
       <div data-ses="2" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
       <div data-ses="3" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
       <div data-ses="4" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
       <div data-ses="5" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
-      <div data-ses="6" class="ses-dot flex-1 h-1.5 rounded-full bg-slate-700 transition-all"></div>
     </div>
 
     <!-- PANEL SOAL -->
@@ -194,29 +192,29 @@
       <div class="flex justify-between items-center border-b border-slate-700/60 pb-3 gap-2">
         <div class="min-w-0 flex-1">
           <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20 inline-block">
-            Sesi 1 dari 6
+            Sesi 1 dari 5
           </span>
           <p class="text-xs text-gray-400 mt-2" id="sessionSubText">
-            Pilih 5 gambar sesuai urutan yang ditampilkan panitia (#1 - #5)
+            Pilih 6 gambar sesuai urutan tayangan panitia (#1 - #6)
           </p>
         </div>
         <div class="text-right flex-shrink-0">
           <span class="text-xs font-bold text-slate-300">
-            Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5
+            Terisi: <span id="selectedCount" class="text-amber-400">0</span>/6
           </span>
         </div>
       </div>
 
-      <!-- SLOT 5 GAMBAR TERPILIH -->
+      <!-- SLOT 6 GAMBAR TERPILIH -->
       <div>
         <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
-        <div id="selectedSlotsGrid" class="safe-grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+        <div id="selectedSlotsGrid" class="safe-grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3"></div>
       </div>
 
-      <!-- MATRIKS OPSI GAMBAR -->
+      <!-- MATRIKS OPSI GAMBAR (30) -->
       <div>
         <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
-        <div id="imageOptionsGrid" class="safe-grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
+        <div id="imageOptionsGrid" class="safe-grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 max-h-[420px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50 custom-scroll">
           <p class="col-span-full text-center text-gray-500 py-8 text-xs">Memuat opsi gambar...</p>
         </div>
       </div>
@@ -266,23 +264,56 @@
     const NOTIF_TABLE = 'recall_notifications';
     const SUBMISSIONS_TABLE = 'recall_submissions';
 
-    const TOTAL_SESSIONS = 6;
-    const IMAGES_PER_SESSION = 5;
+    // ⭐ KONFIGURASI BARU: 6 gambar per sesi, total 5 sesi
+    const TOTAL_SESSIONS = 5;
+    const IMAGES_PER_SESSION = 6;
     const POINTS_PER_CORRECT = 5;
+    const MAX_SCORE = TOTAL_SESSIONS * IMAGES_PER_SESSION * POINTS_PER_CORRECT; // 5 × 6 × 5 = 150
+    const CLOCK_RESYNC_MS = 60000;
 
     // State
     let userSession = null;
     let masterSequence = [];
     let availableFilenames = [];
-    let userAnswers = new Array(30).fill(null);
-    let sessionSubmitted = [false, false, false, false, false, false];
+    let userAnswers = new Array(TOTAL_SESSIONS * IMAGES_PER_SESSION).fill(null); // 30
+    let sessionSubmitted = [false, false, false, false, false];
     let currentSession = 1;
     let totalScoreAccumulated = 0;
 
     let currentPhase = 'IDLE';
     let answerTimerInt = null;
     let memorizeTimerInt = null;
-    let phaseApplied = false; // guard biar tidak re-apply phase yang sama
+    let phaseApplied = false;
+
+    // ⭐ Clock sync
+    let clockOffset = 0;
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ CLOCK SYNC
+    // ═══════════════════════════════════════════════════════════
+    async function syncClockOffset() {
+      try {
+        const t0 = Date.now();
+        const { data } = await supabaseClient
+          .from(SYS_TABLE)
+          .select('updated_at')
+          .eq('id', 1)
+          .maybeSingle();
+        const t1 = Date.now();
+
+        if (!data || !data.updated_at) { clockOffset = 0; return; }
+
+        const serverTs = new Date(data.updated_at).getTime();
+        const rtt = t1 - t0;
+        const localEstimate = t0 + (rtt / 2);
+        clockOffset = serverTs - localEstimate;
+        console.log(`[CLOCK] Offset: ${Math.round(clockOffset)}ms (RTT ${rtt}ms)`);
+      } catch (e) {
+        clockOffset = 0;
+      }
+    }
+
+    function now() { return Date.now() + clockOffset; }
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
@@ -355,13 +386,12 @@
       const target = document.getElementById(id);
       if (target) { target.classList.remove('hidden'); target.classList.add('flex'); }
 
-      // Sembunyikan main panel
       const mgp = document.getElementById('mainGamePanel');
       if (mgp) { mgp.classList.add('hidden'); mgp.classList.remove('flex'); }
     }
 
     async function applyPhase(phase, sysData) {
-      if (currentPhase === phase && phaseApplied) return; // guard
+      if (currentPhase === phase && phaseApplied) return;
       currentPhase = phase;
       phaseApplied = true;
 
@@ -413,7 +443,7 @@
       const startMs = new Date(startTime).getTime();
 
       const tick = () => {
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const elapsed = Math.floor((now() - startMs) / 1000);
         const remaining = Math.max(0, duration - elapsed);
         const el = document.getElementById('memorizeCountdown');
         if (el) el.textContent = formatTime(remaining);
@@ -435,7 +465,7 @@
       const startMs = new Date(startTime).getTime();
 
       const tick = () => {
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
+        const elapsed = Math.floor((now() - startMs) / 1000);
         const remaining = Math.max(0, duration - elapsed);
         const el = document.getElementById('answerCountdown');
         if (el) {
@@ -476,8 +506,8 @@
 
       document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari ${TOTAL_SESSIONS}`;
       document.getElementById('sessionSubText').textContent =
-        `Pilih 5 gambar sesuai urutan tayangan panitia (#${startIndex + 1} - #${startIndex + IMAGES_PER_SESSION})`;
-      document.getElementById('selectedCount').textContent = filledCount;
+        `Pilih ${IMAGES_PER_SESSION} gambar sesuai urutan tayangan panitia (#${startIndex + 1} - #${startIndex + IMAGES_PER_SESSION})`;
+      document.getElementById('selectedCount').textContent = `${filledCount}`;
 
       renderSlots(sessionAnswers, startIndex);
       renderOptions();
@@ -486,7 +516,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RENDER SLOTS (5 gambar terpilih)
+    // RENDER SLOTS (6 gambar terpilih)
     // ═══════════════════════════════════════════════════════════
     function renderSlots(sessionAnswers, startIndex) {
       const container = document.getElementById('selectedSlotsGrid');
@@ -633,7 +663,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SUBMIT SESI
+    // SUBMIT SESI — POIN = JUMLAH BENAR × 5
     // ═══════════════════════════════════════════════════════════
     async function nextSession() {
       if (currentPhase !== 'ANSWER') return;
@@ -651,31 +681,46 @@
       }
 
       if (currentAnswers.some(ans => ans === null)) {
-        return alert(`Harap isi 5 gambar untuk Sesi ${currentSession} terlebih dahulu!`);
+        return alert(`Harap isi ${IMAGES_PER_SESSION} gambar untuk Sesi ${currentSession} terlebih dahulu!`);
       }
 
-      // Hitung skor sesi
-      let sessionScore = 0;
+      // ⭐ Hitung skor sesi: jumlah benar × 5 (tanpa pengurangan kecepatan)
+      let sessionCorrect = 0;
       for (let i = 0; i < IMAGES_PER_SESSION; i++) {
         const globalIdx = startIndex + i;
         if (currentAnswers[i] === masterSequence[globalIdx]) {
-          sessionScore += POINTS_PER_CORRECT;
+          sessionCorrect++;
         }
       }
+      const sessionScore = sessionCorrect * POINTS_PER_CORRECT;
 
-      // Simpan ke game_scores
+      // ⭐ Simpan ke game_scores + submitted_at untuk tie-breaker
       const { error } = await supabaseClient
         .from('game_scores')
         .insert({
           user_unique_id: userSession.unique_id,
           game_name: `Recall Type ${currentSession}`,
           score_obtained: sessionScore,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          submitted_at: new Date().toISOString()  // untuk tie-breaker
         });
 
       if (error) {
-        alert(`Gagal simpan Sesi ${currentSession}: ` + error.message);
-        return;
+        console.error('Insert error:', error);
+        // Kalau kolom submitted_at tidak ada, coba tanpa itu
+        const { error: fallbackErr } = await supabaseClient
+          .from('game_scores')
+          .insert({
+            user_unique_id: userSession.unique_id,
+            game_name: `Recall Type ${currentSession}`,
+            score_obtained: sessionScore,
+            created_at: new Date().toISOString()
+          });
+
+        if (fallbackErr) {
+          alert(`Gagal simpan Sesi ${currentSession}: ` + fallbackErr.message);
+          return;
+        }
       }
 
       sessionSubmitted[currentSession - 1] = true;
@@ -702,12 +747,13 @@
         const startIndex = (s - 1) * IMAGES_PER_SESSION;
         const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
 
-        let sessionScore = 0;
+        let sessionCorrect = 0;
         for (let i = 0; i < IMAGES_PER_SESSION; i++) {
           if (sessionAnswers[i] && sessionAnswers[i] === masterSequence[startIndex + i]) {
-            sessionScore += POINTS_PER_CORRECT;
+            sessionCorrect++;
           }
         }
+        const sessionScore = sessionCorrect * POINTS_PER_CORRECT;
 
         const { error } = await supabaseClient
           .from('game_scores')
@@ -715,7 +761,8 @@
             user_unique_id: userSession.unique_id,
             game_name: `Recall Type ${s}`,
             score_obtained: sessionScore,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            submitted_at: new Date().toISOString()
           });
 
         if (!error) {
@@ -802,9 +849,13 @@
     async function init() {
       if (!initUser()) return;
 
+      // ⭐ Sync clock dulu
+      await syncClockOffset();
+      setInterval(syncClockOffset, CLOCK_RESYNC_MS);
+
       await fetchMasterData();
 
-      // Apply phase awal (tanpa guard supaya tetap di-apply pertama kali)
+      // Apply phase awal
       const { data: sys } = await supabaseClient
         .from(SYS_TABLE)
         .select('*')
