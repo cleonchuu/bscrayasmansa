@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Hiding Block</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .glow-indigo { box-shadow: 0 0 35px rgba(99, 102, 241, 0.25); }
+    .glow-amber  { box-shadow: 0 0 35px rgba(245, 158, 11, 0.25); }
+    .glow-rose   { box-shadow: 0 0 35px rgba(244, 63, 94, 0.25); }
+    .glow-emerald{ box-shadow: 0 0 35px rgba(16, 185, 129, 0.25); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+    @keyframes pulseSoft { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+    .pulse-soft { animation: pulseSoft 1.6s ease-in-out infinite; }
+    .tab-active { background: linear-gradient(180deg, #4f46e5, #4338ca); color: #fff; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-4 md:p-6">
+
+  <!-- DEBUG BADGE -->
+  <div id="dbgBadge"
+       class="fixed top-2 right-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
+    <span id="dbgState">boot</span> · <span id="dbgMode">-</span> · <span id="dbgRT">--</span>
+  </div>
+
+  <div class="max-w-[1600px] mx-auto space-y-4">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- HEADER -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <header class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl">
+          🧩
+        </div>
+        <div>
+          <h1 class="text-2xl font-black tracking-wide">HIDING BLOCK — ADMIN CONTROL</h1>
+          <p class="text-xs text-slate-400">Realtime Spatial Challenge Manager</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span id="connBadge"
+              class="text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-slate-800 text-slate-400 border-slate-700 font-mono">
+          ● Connecting...
+        </span>
+        <span id="modeBadge"
+              class="text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-slate-800 text-slate-400 border-slate-700">
+          MODE: IDLE
+        </span>
+        <span id="pauseBadge"
+              class="hidden text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-amber-500/10 text-amber-400 border-amber-500/40 pulse-soft">
+          ⏸ PAUSED
+        </span>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TABS -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <nav class="bg-slate-900 border border-slate-800 rounded-2xl p-2 flex flex-wrap gap-2">
+      <button data-tab="control"   onclick="switchTab('control')"   class="tab-btn tab-active px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fas fa-gamepad"></i> Kontrol</button>
+      <button data-tab="panitia"   onclick="switchTab('panitia')"   class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center gap-2"><i class="fas fa-user-tie"></i> Panitia & Peserta</button>
+      <button data-tab="layout"    onclick="switchTab('layout')"    class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center gap-2"><i class="fas fa-tv"></i> Layout Stage</button>
+      <button data-tab="bank"      onclick="switchTab('bank')"      class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center gap-2"><i class="fas fa-hourglass-half"></i> Bank Waktu</button>
+      <button data-tab="audit"     onclick="switchTab('audit')"     class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center gap-2"><i class="fas fa-clipboard-list"></i> Audit Trail</button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TAB: CONTROL -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="tab-control" class="tab-content space-y-4">
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- Mode Control -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <i class="fas fa-tower-broadcast text-emerald-400"></i> Kontrol Mode Global
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <button id="btnModeIdle" onclick="setMode('idle')"
+                    class="p-4 rounded-2xl border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-left transition">
+              <div class="flex items-center gap-2 mb-1">
+                <i class="fas fa-moon text-slate-400"></i>
+                <span class="font-black text-sm">IDLE</span>
+              </div>
+              <p class="text-[11px] text-slate-400">Layar tunggu, animasi & BGM LOBBY</p>
+            </button>
+            <button id="btnModeSimulasi" onclick="setMode('simulasi')"
+                    class="p-4 rounded-2xl border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-left transition">
+              <div class="flex items-center gap-2 mb-1">
+                <i class="fas fa-flask text-purple-400"></i>
+                <span class="font-black text-sm">SIMULASI</span>
+              </div>
+              <p class="text-[11px] text-slate-400">10 menit total · tanpa poin · 1x saja</p>
+            </button>
+            <button id="btnModeGame" onclick="setMode('game')"
+                    class="p-4 rounded-2xl border-2 border-slate-700 bg-slate-800/50 hover:bg-slate-800 text-left transition">
+              <div class="flex items-center gap-2 mb-1">
+                <i class="fas fa-bolt text-amber-400"></i>
+                <span class="font-black text-sm">GAME</span>
+              </div>
+              <p class="text-[11px] text-slate-400">30 menit bank · poin tersimpan</p>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-800">
+            <button id="btnPause" onclick="togglePause()"
+                    class="p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-sm transition flex items-center justify-center gap-2">
+              <i class="fas fa-pause"></i> Pause Global
+            </button>
+            <button onclick="resetSimulationQuota()"
+                    class="p-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-sm transition flex items-center justify-center gap-2">
+              <i class="fas fa-rotate"></i> Reset Kuota Simulasi
+            </button>
+            <button onclick="confirmResetSession()"
+                    class="p-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-sm transition flex items-center justify-center gap-2">
+              <i class="fas fa-power-off"></i> Reset Sesi Total
+            </button>
+          </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3">
+          <h3 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+            <i class="fas fa-info-circle text-cyan-400"></i> Info Sesi
+          </h3>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Mode</span>
+              <span id="infoMode" class="font-mono font-bold text-amber-400">idle</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Pause</span>
+              <span id="infoPause" class="font-mono font-bold text-slate-400">no</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Simulasi dipakai</span>
+              <span id="infoSimUsed" class="font-mono font-bold text-slate-400">no</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Peserta siap</span>
+              <span id="infoReadyCount" class="font-mono font-bold text-emerald-400">0</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Sedang bermain</span>
+              <span id="infoPlayingCount" class="font-mono font-bold text-indigo-400">0</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Selesai</span>
+              <span id="infoFinishedCount" class="font-mono font-bold text-slate-500">0</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Ready Participants -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <i class="fas fa-user-check text-emerald-400"></i> Peserta Siap Bermain
+          </h2>
+          <span id="readyCountBadge" class="text-xs px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+            0 Peserta
+          </span>
+        </div>
+        <div id="readyList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <p class="col-span-full text-xs text-slate-500 text-center py-6">Belum ada peserta yang menekan SIAP.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TAB: PANITIA & PESERTA -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="tab-panitia" class="tab-content hidden space-y-4">
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i class="fas fa-user-tie text-indigo-400"></i> Assign Panitia ↔ Peserta
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">1 panitia hanya boleh mendampingi 1 peserta. Wajib lengkap sebelum game dimulai.</p>
+          </div>
+          <button onclick="autoAssignPanitia()"
+                  class="px-4 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-wand-magic-sparkles"></i> Auto-Assign
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- Peserta List -->
+          <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+              <i class="fas fa-users"></i> Peserta Siap
+              <span id="panitiaReadyCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded">0</span>
+            </h3>
+            <div id="panitiaPesertaList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
+              <p class="text-xs text-slate-500 text-center py-4">Belum ada peserta.</p>
+            </div>
+          </div>
+
+          <!-- Panitia List -->
+          <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+            <h3 class="text-sm font-bold text-indigo-400 mb-3 flex items-center gap-2">
+              <i class="fas fa-user-shield"></i> Panitia Terdaftar
+              <span id="panitiaCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded">0</span>
+            </h3>
+            <div id="panitiaList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
+              <p class="text-xs text-slate-500 text-center py-4">Memuat panitia...</p>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="panitiaStatus" class="mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700 text-xs text-slate-300 flex items-center gap-2">
+          <i class="fas fa-circle-info text-cyan-400"></i>
+          <span>Status assign akan muncul di sini.</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TAB: LAYOUT STAGE -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="tab-layout" class="tab-content hidden space-y-4">
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <h2 class="text-lg font-bold flex items-center gap-2">
+          <i class="fas fa-tv text-cyan-400"></i> Kontrol Tampilan Layar Stage
+        </h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button onclick="switchLayout('idle')"        class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-moon text-slate-400 text-lg"></i> IDLE</button>
+          <button onclick="switchLayout('simulasi')"    class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-flask text-purple-400 text-lg"></i> SIMULASI</button>
+          <button onclick="switchLayout('game')"        class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-bolt text-amber-400 text-lg"></i> GAME</button>
+          <button onclick="switchLayout('leaderboard')" class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-trophy text-amber-400 text-lg"></i> TOP 10</button>
+          <button onclick="switchLayout('eliminasi')"   class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-skull-crossbones text-rose-400 text-lg"></i> ELIMINASI</button>
+          <button onclick="switchLayout('all_players')" class="layout-btn p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition flex flex-col items-center gap-2"><i class="fas fa-users text-emerald-400 text-lg"></i> ALL PLAYERS</button>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800">
+          <h3 class="text-sm font-bold text-amber-400 mb-3 flex items-center gap-2">
+            <i class="fas fa-award"></i> Reveal Peringkat (Top 10)
+          </h3>
+          <div class="grid grid-cols-5 md:grid-cols-10 gap-2">
+            <!-- #10 s.d #1 -->
+            <button onclick="revealRank(10)" class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#10</button>
+            <button onclick="revealRank(9)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#9</button>
+            <button onclick="revealRank(8)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#8</button>
+            <button onclick="revealRank(7)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#7</button>
+            <button onclick="revealRank(6)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#6</button>
+            <button onclick="revealRank(5)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#5</button>
+            <button onclick="revealRank(4)"  class="py-2 rounded-xl bg-slate-800 hover:bg-amber-500/20 border border-slate-700 text-slate-300 hover:text-amber-400 font-bold text-xs transition">#4</button>
+            <button onclick="revealRank(3)"  class="py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs transition">🥉 #3</button>
+            <button onclick="revealRank(2)"  class="py-2 rounded-xl bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-bold text-xs transition">🥈 #2</button>
+            <button onclick="revealRank(1)"  class="py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition animate-bounce">👑 #1</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TAB: BANK WAKTU -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="tab-bank" class="tab-content hidden space-y-4">
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i class="fas fa-hourglass-half text-amber-400"></i> Manajemen Bank Waktu Peserta
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Re-kuota individual atau global. Berguna jika ada masalah teknis.</p>
+          </div>
+          <button onclick="rekuotaSemua()"
+                  class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-rotate-right"></i> Re-Kuota SEMUA (30 mnt)
+          </button>
+        </div>
+
+        <div id="bankList" class="space-y-2 max-h-[500px] overflow-y-auto custom-scroll pr-1">
+          <p class="text-xs text-slate-500 text-center py-6">Belum ada peserta yang bermain.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- TAB: AUDIT TRAIL -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="tab-audit" class="tab-content hidden space-y-4">
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4 border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i class="fas fa-clipboard-list text-cyan-400"></i> Audit Trail
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Semua event penting tercatat. Auto-refresh realtime.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="auditCountBadge" class="text-xs px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono">0 log</span>
+            <button onclick="confirmHapusAudit()"
+                    class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition flex items-center gap-2">
+              <i class="fas fa-trash-alt"></i> Hapus Semua Log
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <input id="auditFilterUser" type="text" placeholder="Filter by user_unique_id..."
+                 oninput="renderAudit()"
+                 class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:outline-none focus:border-indigo-500" />
+          <select id="auditFilterAction" onchange="renderAudit()"
+                  class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:outline-none focus:border-indigo-500">
+            <option value="">Semua Action</option>
+            <option value="login_ready">login_ready</option>
+            <option value="open_image">open_image</option>
+            <option value="press_bell">press_bell</option>
+            <option value="verdict_benar">verdict_benar</option>
+            <option value="verdict_salah">verdict_salah</option>
+            <option value="choose_ulangi">choose_ulangi</option>
+            <option value="choose_lanjut">choose_lanjut</option>
+            <option value="timeup">timeup</option>
+            <option value="pause_on">pause_on</option>
+            <option value="pause_off">pause_off</option>
+            <option value="mode_change">mode_change</option>
+          </select>
+          <input id="auditFilterSearch" type="text" placeholder="Search metadata..."
+                 oninput="renderAudit()"
+                 class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:outline-none focus:border-indigo-500" />
+        </div>
+
+        <div id="auditList" class="space-y-2 max-h-[600px] overflow-y-auto custom-scroll pr-1">
+          <p class="text-xs text-slate-500 text-center py-6">Memuat audit log...</p>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- CONFIRM MODAL -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full space-y-4">
+      <div id="modalIconWrap" class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto bg-rose-500/10 border border-rose-500/30 text-rose-400">
+        <i id="modalIcon" class="fas fa-triangle-exclamation"></i>
+      </div>
+      <h3 id="modalTitle" class="text-xl font-bold text-center">Konfirmasi</h3>
+      <p id="modalBody" class="text-sm text-slate-300 text-center"></p>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-sm transition">Batal</button>
+        <button id="modalConfirmBtn" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm transition">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TOAST -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TAG = '[ADMIN-HB]';
+const BANK_GAME_SEC = 1800;   // 30 menit
+const BANK_SIM_SEC  = 600;    // 10 menit
+
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG = {
+  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  mode: 'idle',
+  isPaused: false,
+  simulasiUsed: false,
+  currentView: 'idle',
+
+  // Data cache
+  readyList: [],
+  panitiaList: [],
+  assignMap: {},          // peserta_unique_id → panitia_unique_id
+  participants: [],       // semua peserta di system_hiding_block_login
+  auditLogs: [],
+
+  // Guards
+  busy: false,
+  realtimeConnected: false
+};
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const UI = {
+  el: id => document.getElementById(id),
+  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
+  dbg(state, mode, rt) {
+    UI.txt('dbgState', state);
+    UI.txt('dbgMode', mode);
+    if (rt !== undefined) UI.txt('dbgRT', rt);
+  }
+};
+
+function toast(msg, type='info') {
+  const colors = {
+    info:    'bg-slate-800 border-slate-600 text-slate-200',
+    success: 'bg-emerald-600/90 border-emerald-500 text-white',
+    warn:    'bg-amber-600/90 border-amber-500 text-white',
+    error:   'bg-rose-600/90 border-rose-500 text-white'
+  };
+  const el = document.createElement('div');
+  el.className = `${colors[type]} px-4 py-2.5 rounded-xl border shadow-2xl text-sm font-semibold pointer-events-auto animate-[fadeIn_0.2s_ease]`;
+  el.textContent = msg;
+  UI.el('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function showModal({ title, body, confirmText = 'Konfirmasi', icon = 'fa-triangle-exclamation', danger = true, onConfirm }) {
+  UI.txt('modalTitle', title);
+  UI.txt('modalBody', body);
+  const btn = UI.el('modalConfirmBtn');
+  btn.textContent = confirmText;
+  btn.className = `flex-1 py-2.5 rounded-xl font-bold text-sm transition ${danger ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`;
+  btn.onclick = async () => {
+    closeModal();
+    if (onConfirm) await onConfirm();
+  };
+  UI.el('modalIcon').className = `fas ${icon}`;
+  UI.el('modalIconWrap').className = `w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto ${danger ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400' : 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'}`;
+  UI.el('modal').classList.remove('hidden');
+}
+function closeModal() { UI.el('modal').classList.add('hidden'); }
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCH
+// ═══════════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.dataset.tab === tab) b.className = 'tab-btn tab-active px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2';
+    else b.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-bold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center gap-2';
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+  UI.el(`tab-${tab}`).classList.remove('hidden');
+
+  if (tab === 'audit') renderAudit();
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIT LOG WRITER
+// ═══════════════════════════════════════════════════════════
+async function writeAudit({ user_unique_id = null, user_role = 'admin', action, metadata = {} }) {
+  try {
+    const sessionRow = await getSessionId();
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: sessionRow,
+      user_unique_id,
+      user_role,
+      action,
+      metadata
+    });
+  } catch (e) { LOG.err('writeAudit gagal', e); }
+}
+
+async function getSessionId() {
+  // Ambil session_id terkini dari login table (kalau ada) untuk audit tagging
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('session_id')
+      .limit(1)
+      .maybeSingle();
+    return data?.session_id || null;
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODE CONTROL
+// ═══════════════════════════════════════════════════════════
+async function setMode(mode) {
+  if (STATE.busy) return;
+
+  // Validasi simulasi
+  if (mode === 'simulasi' && STATE.simulasiUsed) {
+    toast('Simulasi sudah pernah dipakai di sesi ini.', 'warn');
+    return;
+  }
+
+  STATE.busy = true;
+  LOG.info(`Set mode → ${mode}`);
+
+  // Konfirmasi untuk mode game (bakal mulai hitung poin)
+  if (mode === 'game') {
+    showModal({
+      title: 'Mulai Mode GAME?',
+      body: 'Semua peserta yang sudah siap akan mulai bermain dengan bank 30 menit. Poin akan disimpan ke database.',
+      confirmText: 'Ya, Mulai Game',
+      icon: 'fa-bolt',
+      danger: false,
+      onConfirm: async () => {
+        await applyMode('game');
+        STATE.busy = false;
+      }
+    });
+    return;
+  }
+
+  if (mode === 'simulasi') {
+    showModal({
+      title: 'Mulai Mode SIMULASI?',
+      body: 'Peserta akan latihan dengan bank 10 menit. Tidak ada poin yang disimpan. Simulasi hanya bisa dilakukan 1x per sesi.',
+      confirmText: 'Ya, Mulai Simulasi',
+      icon: 'fa-flask',
+      danger: false,
+      onConfirm: async () => {
+        await applyMode('simulasi');
+        STATE.busy = false;
+      }
+    });
+    return;
+  }
+
+  // idle langsung
+  await applyMode('idle');
+  STATE.busy = false;
+}
+
+async function applyMode(mode) {
+  const now = new Date().toISOString();
+  const update = {
+    mode,
+    started_at: mode === 'idle' ? null : now,
+    updated_at: now
+  };
+  if (mode === 'simulasi') update.simulasi_used = true;
+
+  const { error } = await supabaseClient
+    .from('system_hiding_block_state')
+    .update(update)
+    .eq('id', 1);
+
+  if (error) { toast('Gagal update mode: ' + error.message, 'error'); return; }
+
+  STATE.mode = mode;
+  if (mode === 'simulasi') STATE.simulasiUsed = true;
+
+  await writeAudit({ action: 'mode_change', metadata: { to: mode } });
+  toast(`Mode → ${mode.toUpperCase()}`, 'success');
+
+  refreshUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAUSE GLOBAL
+// ═══════════════════════════════════════════════════════════
+async function togglePause() {
+  const next = !STATE.isPaused;
+  const { error } = await supabaseClient
+    .from('system_hiding_block_state')
+    .update({ is_paused: next, updated_at: new Date().toISOString() })
+    .eq('id', 1);
+
+  if (error) { toast('Gagal pause: ' + error.message, 'error'); return; }
+
+  STATE.isPaused = next;
+  await writeAudit({ action: next ? 'pause_on' : 'pause_off' });
+  toast(next ? '⏸ PAUSE GLOBAL AKTIF' : '▶ RESUME', next ? 'warn' : 'success');
+
+  refreshUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESET SIMULASI QUOTA
+// ═══════════════════════════════════════════════════════════
+function resetSimulationQuota() {
+  showModal({
+    title: 'Reset Kuota Simulasi?',
+    body: 'Simulasi akan bisa dimainkan sekali lagi. Berguna jika ada masalah teknis di simulasi sebelumnya.',
+    confirmText: 'Ya, Reset',
+    danger: false,
+    onConfirm: async () => {
+      await supabaseClient
+        .from('system_hiding_block_state')
+        .update({ simulasi_used: false, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      STATE.simulasiUsed = false;
+      await writeAudit({ action: 'reset_simulasi_quota' });
+      toast('Kuota simulasi direset.', 'success');
+      refreshUI();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESET SESI TOTAL
+// ═══════════════════════════════════════════════════════════
+function confirmResetSession() {
+  showModal({
+    title: '⚠ Reset SESI TOTAL?',
+    body: 'Semua progress peserta akan dihapus, semua peserta kembali ke state "belum siap", bank waktu direset. Tindakan ini TIDAK bisa dibatalkan.',
+    confirmText: 'Ya, Reset Total',
+    icon: 'fa-power-off',
+    onConfirm: async () => {
+      const { error } = await supabaseClient
+        .from('system_hiding_block_state')
+        .update({
+          mode: 'idle',
+          is_paused: false,
+          started_at: null,
+          simulasi_used: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (error) { toast('Gagal reset state: ' + error.message, 'error'); return; }
+
+      // Hapus login/progress/assign
+      await supabaseClient.from('hiding_block_progress').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseClient.from('hiding_block_panitia').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabaseClient.from('system_hiding_block_login').delete().neq('user_unique_id', '');
+
+      await writeAudit({ action: 'reset_session_total' });
+      toast('✅ Sesi total direset.', 'success');
+      refreshUI();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAYOUT REMOTE
+// ═══════════════════════════════════════════════════════════
+async function switchLayout(view) {
+  const payload = { current_view: view, updated_at: new Date().toISOString() };
+  if (view === 'leaderboard') payload.revealed_rank = 0;
+
+  const { error } = await supabaseClient
+    .from('admin_layout_hiding_block')
+    .update(payload)
+    .eq('id', 1);
+
+  if (error) { toast('Gagal switch layout: ' + error.message, 'error'); return; }
+  STATE.currentView = view;
+  await writeAudit({ action: 'layout_change', metadata: { view } });
+  toast(`Layout → ${view.toUpperCase()}`, 'success');
+}
+
+async function revealRank(rankNum) {
+  const { error } = await supabaseClient
+    .from('admin_layout_hiding_block')
+    .update({
+      current_view: 'leaderboard',
+      revealed_rank: rankNum,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', 1);
+
+  if (error) { toast('Gagal reveal: ' + error.message, 'error'); return; }
+  toast(`Reveal peringkat #${rankNum}`, 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PANITIA & PESERTA
+// ═══════════════════════════════════════════════════════════
+async function loadPanitia() {
+  try {
+    // Ambil dari tabel user (asumsi tabel user biasa, sesuaikan kalau beda)
+    const { data, error } = await supabaseClient
+      .from('game_scores')
+      .select('user_unique_id')
+      .eq('game_name', 'Panitia')       // asumsi ada role panitia ditandai di sini
+      .limit(50);
+
+    if (error) { LOG.warn('loadPanitia fallback', error.message); }
+
+    // Fallback: user bisa input manual di UI
+    STATE.panitiaList = (data || []).map(r => r.user_unique_id);
+    renderPanitiaList();
+  } catch (e) { LOG.err('loadPanitia exception', e); }
+}
+
+function renderPanitiaList() {
+  const c = UI.el('panitiaList');
+  if (!c) return;
+
+  if (STATE.panitiaList.length === 0) {
+    c.innerHTML = `
+      <p class="text-xs text-slate-500 text-center py-4 mb-2">
+        Belum ada panitia terdaftar. Tambahkan manual:
+      </p>
+      <div class="flex gap-2">
+        <input id="manualPanitiaInput" type="text" placeholder="unique_id panitia..."
+               class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs" />
+        <button onclick="addPanitiaManual()" class="px-3 py-2 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    `;
+    UI.txt('panitiaCount', 0);
+    return;
+  }
+
+  c.innerHTML = '';
+  STATE.panitiaList.forEach(p => {
+    const assignedTo = Object.entries(STATE.assignMap).find(([peserta, pan]) => pan === p)?.[0];
+    const div = document.createElement('div');
+    div.className = `p-2.5 rounded-lg border flex items-center justify-between text-xs ${assignedTo ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/50 border-slate-700'}`;
+    div.innerHTML = `
+      <div class="flex items-center gap-2">
+        <i class="fas fa-user-shield text-indigo-400"></i>
+        <span class="font-bold text-slate-200">${p}</span>
+      </div>
+      <span class="text-[10px] ${assignedTo ? 'text-emerald-400' : 'text-slate-500'}">
+        ${assignedTo ? `→ ${assignedTo}` : 'belum assign'}
+      </span>
+    `;
+    c.appendChild(div);
+  });
+  UI.txt('panitiaCount', STATE.panitiaList.length);
+}
+
+function addPanitiaManual() {
+  const inp = UI.el('manualPanitiaInput');
+  const val = (inp?.value || '').trim();
+  if (!val) return;
+  if (STATE.panitiaList.includes(val)) { toast('Panitia sudah terdaftar', 'warn'); return; }
+  STATE.panitiaList.push(val);
+  renderPanitiaList();
+  renderPanitiaPeserta();
+  toast(`Panitia ${val} ditambahkan`, 'success');
+}
+
+function renderPanitiaPeserta() {
+  const c = UI.el('panitiaPesertaList');
+  if (!c) return;
+
+  if (STATE.readyList.length === 0) {
+    c.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Belum ada peserta siap.</p>`;
+    UI.txt('panitiaReadyCount', 0);
+    return;
+  }
+
+  c.innerHTML = '';
+  STATE.readyList.forEach(r => {
+    const assignedPan = STATE.assignMap[r.user_unique_id];
+    const card = document.createElement('div');
+    card.className = `p-3 rounded-xl border text-xs ${assignedPan ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800 border-slate-700'}`;
+    card.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-user text-emerald-400"></i>
+          <span class="font-bold text-slate-100">${r.user_unique_id}</span>
+        </div>
+        ${assignedPan
+          ? `<button onclick="unassignPanitia('${r.user_unique_id}')" class="text-[10px] text-rose-400 hover:text-rose-300"><i class="fas fa-times"></i></button>`
+          : ''}
+      </div>
+      ${assignedPan
+        ? `<div class="text-[10px] text-emerald-400 flex items-center gap-1"><i class="fas fa-user-shield"></i> Diasuh oleh: <b>${assignedPan}</b></div>`
+        : `<select onchange="assignPanitia('${r.user_unique_id}', this.value)"
+                   class="w-full px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-[11px] mt-1">
+             <option value="">-- Pilih Panitia --</option>
+             ${STATE.panitiaList.map(p => `<option value="${p}" ${Object.values(STATE.assignMap).includes(p) ? 'disabled' : ''}>${p}${Object.values(STATE.assignMap).includes(p) ? ' (sudah ditugaskan)' : ''}</option>`).join('')}
+           </select>`
+      }
+    `;
+    c.appendChild(card);
+  });
+  UI.txt('panitiaReadyCount', STATE.readyList.length);
+}
+
+async function assignPanitia(pesertaId, panitiaId) {
+  if (!panitiaId) return;
+  if (Object.values(STATE.assignMap).includes(panitiaId)) {
+    toast('Panitia ini sudah ditugaskan ke peserta lain.', 'warn');
+    return;
+  }
+
+  const sessionId = await getSessionId();
+  const { error } = await supabaseClient.from('hiding_block_panitia').insert({
+    session_id: sessionId,
+    panitia_unique_id: panitiaId,
+    peserta_unique_id: pesertaId
+  });
+
+  if (error) { toast('Gagal assign: ' + error.message, 'error'); return; }
+
+  STATE.assignMap[pesertaId] = panitiaId;
+  await writeAudit({ action: 'assign_panitia', metadata: { peserta: pesertaId, panitia: panitiaId } });
+  toast(`✅ ${pesertaId} → ${panitiaId}`, 'success');
+  renderPanitiaList();
+  renderPanitiaPeserta();
+  updatePanitiaStatus();
+}
+
+async function unassignPanitia(pesertaId) {
+  const sessionId = await getSessionId();
+  await supabaseClient.from('hiding_block_panitia').delete()
+    .eq('session_id', sessionId)
+    .eq('peserta_unique_id', pesertaId);
+  delete STATE.assignMap[pesertaId];
+  await writeAudit({ action: 'unassign_panitia', metadata: { peserta: pesertaId } });
+  renderPanitiaList();
+  renderPanitiaPeserta();
+  updatePanitiaStatus();
+}
+
+async function autoAssignPanitia() {
+  const unassignedPeserta = STATE.readyList.filter(r => !STATE.assignMap[r.user_unique_id]);
+  const availablePanitia = STATE.panitiaList.filter(p => !Object.values(STATE.assignMap).includes(p));
+
+  if (unassignedPeserta.length === 0) { toast('Semua peserta sudah diassign.', 'info'); return; }
+  if (availablePanitia.length < unassignedPeserta.length) {
+    toast(`Panitia kurang: butuh ${unassignedPeserta.length}, tersedia ${availablePanitia.length}`, 'warn');
+    return;
+  }
+
+  const sessionId = await getSessionId();
+  const inserts = [];
+  unassignedPeserta.forEach((r, i) => {
+    const pan = availablePanitia[i];
+    STATE.assignMap[r.user_unique_id] = pan;
+    inserts.push({
+      session_id: sessionId,
+      panitia_unique_id: pan,
+      peserta_unique_id: r.user_unique_id
+    });
+  });
+
+  if (inserts.length) {
+    const { error } = await supabaseClient.from('hiding_block_panitia').insert(inserts);
+    if (error) { toast('Gagal auto-assign: ' + error.message, 'error'); return; }
+  }
+
+  await writeAudit({ action: 'auto_assign_panitia', metadata: { count: inserts.length } });
+  toast(`✅ ${inserts.length} peserta di-assign otomatis.`, 'success');
+  renderPanitiaList();
+  renderPanitiaPeserta();
+  updatePanitiaStatus();
+}
+
+function updatePanitiaStatus() {
+  const totalPeserta = STATE.readyList.length;
+  const assignedCount = Object.keys(STATE.assignMap).length;
+  const ok = totalPeserta > 0 && assignedCount === totalPeserta;
+
+  const el = UI.el('panitiaStatus');
+  if (!el) return;
+
+  el.className = `mt-4 p-3 rounded-xl border text-xs flex items-center gap-2 ${ok ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`;
+  el.innerHTML = ok
+    ? `<i class="fas fa-circle-check"></i> <span>✅ Semua peserta siap sudah di-assign. Aman untuk mulai game.</span>`
+    : `<i class="fas fa-triangle-exclamation"></i> <span>⚠ ${assignedCount}/${totalPeserta} peserta sudah di-assign. Lengkapi dulu sebelum mulai.</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// BANK WAKTU
+// ═══════════════════════════════════════════════════════════
+function renderBankList() {
+  const c = UI.el('bankList');
+  if (!c) return;
+
+  const playing = STATE.participants.filter(p => p.bank_started_at);
+  if (playing.length === 0) {
+    c.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Belum ada peserta yang bermain.</p>`;
+    return;
+  }
+
+  c.innerHTML = '';
+  playing.forEach(p => {
+    const startedMs = new Date(p.bank_started_at).getTime();
+    const elapsed = Math.floor((Date.now() - startedMs) / 1000);
+    const remaining = Math.max(0, BANK_GAME_SEC - elapsed);
+    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const ss = String(remaining % 60).padStart(2, '0');
+    const pct = (remaining / BANK_GAME_SEC) * 100;
+    const color = remaining < 300 ? 'rose' : remaining < 900 ? 'amber' : 'emerald';
+
+    const div = document.createElement('div');
+    div.className = `p-3 rounded-xl border bg-slate-800/50 border-slate-700 flex items-center gap-3`;
+    div.innerHTML = `
+      <div class="flex-1">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-sm font-bold text-slate-100">${p.user_unique_id}</span>
+          <span class="font-mono font-bold text-${color}-400 text-sm">${mm}:${ss}</span>
+        </div>
+        <div class="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+          <div class="h-full bg-${color}-500 transition-all" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <button onclick="rekuotaSatu('${p.user_unique_id}')"
+              class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[10px] font-bold transition">
+        <i class="fas fa-rotate-right"></i> Re-Kuota
+      </button>
+    `;
+    c.appendChild(div);
+  });
+}
+
+async function rekuotaSatu(userId) {
+  const now = new Date().toISOString();
+  const { error } = await supabaseClient
+    .from('system_hiding_block_login')
+    .update({ bank_started_at: now, bank_remaining_sec: BANK_GAME_SEC })
+    .eq('user_unique_id', userId);
+
+  if (error) { toast('Gagal re-kuota: ' + error.message, 'error'); return; }
+  await writeAudit({ action: 'rekuota_bank', metadata: { user_unique_id: userId } });
+  toast(`✅ Bank ${userId} direset ke 30 menit`, 'success');
+}
+
+function rekuotaSemua() {
+  showModal({
+    title: 'Re-Kuota SEMUA Peserta?',
+    body: 'Semua peserta yang sedang bermain akan direset bank waktunya ke 30 menit.',
+    confirmText: 'Ya, Reset Semua',
+    danger: false,
+    onConfirm: async () => {
+      const now = new Date().toISOString();
+      const { error } = await supabaseClient
+        .from('system_hiding_block_login')
+        .update({ bank_started_at: now, bank_remaining_sec: BANK_GAME_SEC })
+        .not('bank_started_at', 'is', null);
+
+      if (error) { toast('Gagal: ' + error.message, 'error'); return; }
+      await writeAudit({ action: 'rekuota_bank_all' });
+      toast('✅ Semua bank direset.', 'success');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIT TRAIL
+// ═══════════════════════════════════════════════════════════
+async function loadAudit() {
+  const { data, error } = await supabaseClient
+    .from('hiding_block_audit_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  if (error) { LOG.err('loadAudit', error); return; }
+  STATE.auditLogs = data || [];
+  renderAudit();
+}
+
+function renderAudit() {
+  const c = UI.el('auditList');
+  if (!c) return;
+
+  const fUser = (UI.el('auditFilterUser')?.value || '').toLowerCase().trim();
+  const fAction = UI.el('auditFilterAction')?.value || '';
+  const fSearch = (UI.el('auditFilterSearch')?.value || '').toLowerCase().trim();
+
+  let filtered = STATE.auditLogs;
+  if (fUser) filtered = filtered.filter(l => (l.user_unique_id || '').toLowerCase().includes(fUser));
+  if (fAction) filtered = filtered.filter(l => l.action === fAction);
+  if (fSearch) {
+    filtered = filtered.filter(l => {
+      const m = JSON.stringify(l.metadata || {}).toLowerCase();
+      return m.includes(fSearch);
+    });
+  }
+
+  UI.txt('auditCountBadge', `${filtered.length} log`);
+
+  if (filtered.length === 0) {
+    c.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Tidak ada log yang cocok.</p>`;
+    return;
+  }
+
+  const actionColor = a => {
+    if (a.includes('benar') || a.includes('success') || a === 'login_ready') return 'emerald';
+    if (a.includes('salah') || a === 'timeup') return 'rose';
+    if (a.includes('pause') || a.includes('rekuota')) return 'amber';
+    return 'indigo';
+  };
+
+  c.innerHTML = '';
+  filtered.forEach(log => {
+    const t = new Date(log.created_at).toLocaleTimeString('id-ID');
+    const col = actionColor(log.action);
+    const div = document.createElement('div');
+    div.className = 'p-3 rounded-xl border bg-slate-800/40 border-slate-700 text-xs flex items-start gap-3';
+    div.innerHTML = `
+      <div class="w-20 flex-shrink-0 font-mono text-[10px] text-slate-400">${t}</div>
+      <div class="w-24 flex-shrink-0">
+        <span class="px-2 py-0.5 rounded bg-${col}-500/20 text-${col}-300 border border-${col}-500/30 text-[10px] font-bold">${log.action}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-slate-200 font-bold">${log.user_unique_id || '<system>'}</div>
+        <div class="text-[10px] text-slate-400 font-mono truncate">${JSON.stringify(log.metadata || {})}</div>
+      </div>
+      <div class="text-[10px] text-slate-500 font-mono">${log.user_role || ''}</div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+function confirmHapusAudit() {
+  showModal({
+    title: '⚠ Hapus SEMUA Audit Log?',
+    body: 'Semua riwayat event akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.',
+    confirmText: 'Ya, Hapus Permanen',
+    danger: true,
+    onConfirm: async () => {
+      // Konfirmasi 2x
+      const ok2 = confirm('Konfirmasi terakhir: HAPUS SEMUA LOG PERMANEN?');
+      if (!ok2) return;
+
+      const { error } = await supabaseClient
+        .from('hiding_block_audit_log')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (error) { toast('Gagal hapus: ' + error.message, 'error'); return; }
+      STATE.auditLogs = [];
+      renderAudit();
+      toast('🗑 Semua log dihapus.', 'success');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// REFRESH UI DARI STATE
+// ═══════════════════════════════════════════════════════════
+function refreshUI() {
+  // Header badges
+  UI.txt('infoMode', STATE.mode);
+  UI.txt('infoPause', STATE.isPaused ? 'yes' : 'no');
+  UI.txt('infoSimUsed', STATE.simulasiUsed ? 'yes' : 'no');
+
+  const modeBadge = UI.el('modeBadge');
+  if (modeBadge) {
+    const colors = {
+      idle: 'bg-slate-800 text-slate-400 border-slate-700',
+      simulasi: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      game: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+    };
+    modeBadge.className = `text-[10px] font-bold px-3 py-1.5 rounded-lg border ${colors[STATE.mode] || colors.idle}`;
+    modeBadge.textContent = `MODE: ${STATE.mode.toUpperCase()}`;
+  }
+
+  UI.el('pauseBadge').classList.toggle('hidden', !STATE.isPaused);
+  UI.txt('dbgMode', STATE.mode);
+
+  // Mode buttons highlight
+  ['idle','simulasi','game'].forEach(m => {
+    const btn = UI.el(`btnMode${m.charAt(0).toUpperCase()+m.slice(1)}`);
+    if (!btn) return;
+    const active = STATE.mode === m;
+    btn.className = `p-4 rounded-2xl border-2 text-left transition ${
+      active
+        ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/20'
+        : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+    }`;
+  });
+
+  // Ready list
+  const ready = STATE.readyList;
+  const playing = STATE.participants.filter(p => p.status === 'playing');
+  const finished = STATE.participants.filter(p => p.status === 'finished' || p.status === 'eliminated');
+
+  UI.txt('infoReadyCount', ready.length);
+  UI.txt('infoPlayingCount', playing.length);
+  UI.txt('infoFinishedCount', finished.length);
+  UI.txt('readyCountBadge', `${ready.length} Peserta`);
+
+  const rl = UI.el('readyList');
+  if (rl) {
+    if (ready.length === 0) {
+      rl.innerHTML = `<p class="col-span-full text-xs text-slate-500 text-center py-6">Belum ada peserta yang menekan SIAP.</p>`;
+    } else {
+      rl.innerHTML = '';
+      ready.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'p-3 rounded-xl bg-slate-800 border border-slate-700 text-xs flex items-center justify-between';
+        div.innerHTML = `
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span class="font-bold text-slate-100">${r.user_unique_id}</span>
+          </div>
+          <span class="text-[10px] text-slate-500 font-mono">${new Date(r.joined_at).toLocaleTimeString('id-ID')}</span>
+        `;
+        rl.appendChild(div);
+      });
+    }
+  }
+
+  renderPanitiaPeserta();
+  updatePanitiaStatus();
+  renderBankList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA LOADERS
+// ═══════════════════════════════════════════════════════════
+async function loadState() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) { LOG.err('loadState', error); return; }
+    if (data) {
+      STATE.mode = data.mode || 'idle';
+      STATE.isPaused = !!data.is_paused;
+      STATE.simulasiUsed = !!data.simulasi_used;
+    }
+  } catch (e) { LOG.err('loadState exception', e); }
+}
+
+async function loadParticipants() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('*')
+      .order('joined_at', { ascending: true });
+
+    if (error) { LOG.err('loadParticipants', error); return; }
+    STATE.participants = data || [];
+    STATE.readyList = STATE.participants.filter(p => p.status === 'ready');
+  } catch (e) { LOG.err('loadParticipants exception', e); }
+}
+
+async function loadAssignments() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_panitia')
+      .select('*');
+
+    if (error) { LOG.err('loadAssignments', error); return; }
+    STATE.assignMap = {};
+    (data || []).forEach(r => {
+      STATE.assignMap[r.peserta_unique_id] = r.panitia_unique_id;
+    });
+  } catch (e) { LOG.err('loadAssignments exception', e); }
+}
+
+async function reloadAll() {
+  await loadState();
+  await loadParticipants();
+  await loadAssignments();
+  refreshUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME SUBSCRIPTION
+// ═══════════════════════════════════════════════════════════
+function setupRealtime() {
+  supabaseClient
+    .channel('admin_hiding_block_rt')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'system_hiding_block_state' }, payload => {
+      if (payload.new) {
+        STATE.mode = payload.new.mode || 'idle';
+        STATE.isPaused = !!payload.new.is_paused;
+        STATE.simulasiUsed = !!payload.new.simulasi_used;
+        refreshUI();
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'system_hiding_block_login' }, () => {
+      loadParticipants().then(refreshUI);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hiding_block_panitia' }, () => {
+      loadAssignments().then(() => { renderPanitiaList(); renderPanitiaPeserta(); updatePanitiaStatus(); });
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'hiding_block_audit_log' }, () => {
+      loadAudit();
+    })
+    .subscribe(status => {
+      STATE.realtimeConnected = status === 'SUBSCRIBED';
+      const badge = UI.el('connBadge');
+      if (badge) {
+        badge.textContent = STATE.realtimeConnected ? '● Connected' : `● ${status}`;
+        badge.className = `text-[10px] font-bold px-3 py-1.5 rounded-lg border font-mono ${
+          STATE.realtimeConnected
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40'
+            : 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+        }`;
+      }
+      UI.dbg('ready', STATE.mode, STATE.realtimeConnected ? 'rt' : 'poll');
+    });
+
+  // Polling fallback
+  setInterval(async () => {
+    await reloadAll();
+    if (document.getElementById('tab-audit') && !document.getElementById('tab-audit').classList.contains('hidden')) {
+      loadAudit();
+    }
+  }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-CLEAR SAAT ADMIN BOOT (bersihkan state "playing" basi)
+// ═══════════════════════════════════════════════════════════
+async function autoCleanStaleState() {
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (!data) return;
+
+    // Kalau mode bukan idle tapi semua peserta tidak playing → kemungkinan sesi basi
+    const { data: playing } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('user_unique_id')
+      .eq('status', 'playing');
+
+    if ((data.mode !== 'idle') && (!playing || playing.length === 0)) {
+      LOG.warn('Sesi basi terdeteksi — reset ke idle');
+      await supabaseClient
+        .from('system_hiding_block_state')
+        .update({
+          mode: 'idle',
+          is_paused: false,
+          started_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+    }
+  } catch (e) { LOG.warn('autoCleanStaleState', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  LOG.ok('══════════ ADMIN HIDING BLOCK BOOT ══════════');
+  UI.dbg('booting', '-');
+
+  await autoCleanStaleState();
+  await reloadAll();
+  await loadPanitia();
+  await loadAudit();
+
+  setupRealtime();
+
+  LOG.ok('══════════ ADMIN READY ══════════');
+  UI.dbg('ready', STATE.mode, STATE.realtimeConnected ? 'rt' : 'poll');
+
+  // Timer refresh untuk bank list (tiap 1 detik)
+  setInterval(renderBankList, 1000);
+})();
+
+// Expose
+window.switchTab = switchTab;
+window.setMode = setMode;
+window.togglePause = togglePause;
+window.resetSimulationQuota = resetSimulationQuota;
+window.confirmResetSession = confirmResetSession;
+window.switchLayout = switchLayout;
+window.revealRank = revealRank;
+window.assignPanitia = assignPanitia;
+window.unassignPanitia = unassignPanitia;
+window.autoAssignPanitia = autoAssignPanitia;
+window.addPanitiaManual = addPanitiaManual;
+window.rekuotaSatu = rekuotaSatu;
+window.rekuotaSemua = rekuotaSemua;
+window.confirmHapusAudit = confirmHapusAudit;
+window.closeModal = closeModal;
+</script>
+</body>
+</html>

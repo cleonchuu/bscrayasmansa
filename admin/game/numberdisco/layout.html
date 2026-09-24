@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Number Disco - Stage Display Engine</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💿</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -76,9 +77,47 @@
 
     .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
     .glow-indigo { box-shadow: 0 0 45px rgba(99, 102, 241, 0.35); }
+
+    /* ═══════════════════════════════════════════════════════════
+       BGM BADGE — indikator kecil di pojok
+       ═══════════════════════════════════════════════════════════ */
+    .bgm-badge {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-family: monospace;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #94a3b8;
+      z-index: 100;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bgm-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.muted { background: #f43f5e; }
+    @keyframes bgmPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
   </style>
 </head>
 <body class="min-h-screen p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       AUDIO ELEMENT — DI LUAR SEMUA CONTAINER RENDER
+       ═══════════════════════════════════════════════════════════ -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
 
   <!-- OVERLAY UNTUK UNLOCK AUDIO BROWSER -->
   <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
@@ -87,6 +126,12 @@
     </div>
     <h2 class="text-2xl font-black font-math tracking-wider text-white">KLIK LAYAR UNTUK MENGAKTIFKAN STAGE</h2>
     <p class="text-sm text-slate-400 mt-2">Diperlukan interaksi awal agar browser mengizinkan audio putar otomatis</p>
+  </div>
+
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
   </div>
 
   <!-- HEADER STAGE -->
@@ -139,7 +184,7 @@
       </div>
     </main>
 
-    <!-- 2. VIEW PAPAN PERINGKAT TOP 10 (MODE FOCUS CARD 1 PER 1) -->
+    <!-- 2. VIEW PAPAN PERINGKAT TOP 10 -->
     <div id="viewLeaderboard" class="stage-view hidden-view bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
       <div class="mb-6">
         <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
@@ -229,6 +274,120 @@
     const SOUND_BEEP = getSoundEffectUrl('beep.mp3');
 
     // ═══════════════════════════════════════════════════════════
+    // ⭐ BGM MANAGER — HANYA LOBBY & WINNER
+    // - Saat view = game → BGM DIMATIKAN (melatih pendengaran)
+    // - Saat view = leaderboard → WINNER.mp3
+    // - Saat view = all_players → LOBBY.mp3
+    // - Anti-refresh: guard track sama → skip
+    // ═══════════════════════════════════════════════════════════
+    const BGM = {
+      baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+      tracks: {
+        lobby:  'LOBBY.mp3',
+        winner: 'WINNER.mp3'
+      },
+      current: null,     // track yang sedang diputar
+      player: null,
+      volume: 0.5,
+      pendingTrack: null // untuk diputar setelah unlock
+    };
+
+    function initBGM() {
+      BGM.player = document.getElementById('bgmPlayer');
+      if (!BGM.player) {
+        LOG.err('BGM', 'Elemen #bgmPlayer tidak ditemukan');
+        return;
+      }
+
+      BGM.player.volume = BGM.volume;
+      BGM.player.loop = true;
+
+      // Set src awal tapi JANGAN play dulu — tunggu unlock dari user
+      BGM.player.src = BGM.baseUrl + BGM.tracks.lobby;
+      BGM.current = 'lobby';
+
+      updateBGMBadge('idle', 'lobby');
+      LOG.info('BGM', 'Initialized (menunggu unlock)');
+    }
+
+    /**
+     * ⭐ Ganti track BGM — anti-refresh dengan 4 guard
+     */
+    function playBGM(trackName) {
+      if (!BGM.player) return;
+
+      // GUARD 1: track sama → skip total
+      if (BGM.current === trackName) return;
+
+      const filename = BGM.tracks[trackName];
+      if (!filename) {
+        LOG.warn('BGM', 'Track tidak dikenal: ' + trackName);
+        return;
+      }
+
+      // GUARD 2: belum unlock → simpan sebagai pending
+      if (!audioUnlocked) {
+        BGM.pendingTrack = trackName;
+        BGM.current = trackName;
+        updateBGMBadge('idle', trackName);
+        LOG.info('BGM', `Pending: ${trackName}`);
+        return;
+      }
+
+      const newSrc = BGM.baseUrl + filename;
+
+      // GUARD 3: src sudah sama (double check)
+      if (BGM.player.src === newSrc) {
+        BGM.current = trackName;
+        return;
+      }
+
+      // LAKUKAN GANTI TRACK
+      BGM.current = trackName;
+
+      try { BGM.player.pause(); } catch(e){}
+      BGM.player.src = newSrc;
+      BGM.player.currentTime = 0;
+
+      // Delay kecil untuk hindari ERR_SSL_PROTOCOL_ERROR
+      setTimeout(() => {
+        BGM.player.load();
+        BGM.player.play()
+          .then(() => {
+            LOG.ok('BGM', `▶ ${trackName}`);
+            updateBGMBadge('playing', trackName);
+          })
+          .catch(err => {
+            LOG.warn('BGM', 'Play ditolak: ' + err.message);
+            updateBGMBadge('idle', trackName);
+          });
+      }, 80);
+    }
+
+    /**
+     * ⭐ Stop BGM — saat masuk mode game (melatih pendengaran)
+     */
+    function stopBGM() {
+      if (BGM.player) {
+        try { BGM.player.pause(); } catch(e){}
+        BGM.current = null;
+        updateBGMBadge('muted', 'silent');
+        LOG.info('BGM', '⏸ Stopped (mode game = silent)');
+      }
+    }
+
+    function updateBGMBadge(status, trackName) {
+      const dot = document.getElementById('bgmDot');
+      const label = document.getElementById('bgmLabel');
+      if (dot) {
+        if (status === 'playing') dot.className = 'dot playing';
+        else if (status === 'muted') dot.className = 'dot muted';
+        else dot.className = 'dot';
+      }
+      if (label) label.textContent = `BGM: ${trackName}`;
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // LAYOUT VIEW SWITCHER
     // ═══════════════════════════════════════════════════════════
     function subscribeAdminLayoutRemote() {
@@ -272,6 +431,9 @@
         lbView.classList.remove('hidden-view');
         lbView.classList.add('active-view');
 
+        // ⭐ WINNER BGM saat papan peringkat
+        playBGM('winner');
+
         if (newRank !== lastRevealedRank) {
           currentRevealedRank = newRank;
           lastRevealedRank = newRank;
@@ -281,11 +443,19 @@
         allView.classList.remove('hidden-view');
         allView.classList.add('active-view');
         lastRevealedRank = -1;
+
+        // ⭐ LOBBY BGM saat rekap peserta
+        playBGM('lobby');
+
         fetchAndRenderStageScores(true);
       } else {
+        // ⭐ viewName === 'game'
         gView.classList.remove('hidden-view');
         gView.classList.add('active-view');
         lastRevealedRank = -1;
+
+        // 🔇 MATIKAN BGM — game melatih pendengaran
+        stopBGM();
       }
     }
 
@@ -353,7 +523,6 @@
 
     // ═══════════════════════════════════════════════════════════
     // STAGE ENGINE
-    // ✅ FIXED: Baca soal dari DB (system_number_disco_question)
     // ═══════════════════════════════════════════════════════════
     class StageEngine {
       constructor() {
@@ -373,6 +542,9 @@
           return;
         }
 
+        // ⭐ Pastikan BGM mati saat game mulai
+        stopBGM();
+
         this.isPlaying = true;
         this.resetDisplay();
         this.historySteps = [];
@@ -380,9 +552,6 @@
         document.getElementById('stageStatus').textContent = "MEMBACA SOAL DARI DATABASE...";
         LOG.step('GAME', 'Baca soal dari DB...');
 
-        // ═══════════════════════════════════════════════════════
-        // ✅ BACA SOAL DARI DATABASE (bukan generate lokal)
-        // ═══════════════════════════════════════════════════════
         const { data, error } = await supabaseClient
           .from('system_number_disco_question')
           .select('blue_steps, red_steps, blue_answer, red_answer, updated_at')
@@ -398,12 +567,10 @@
 
         LOG.ok('GAME', `Soal dari DB: Blue=${data.blue_answer}, Red=${data.red_answer}`);
 
-        // ✅ Convert steps dari DB → format dengan audioUrls
         this.historySteps = this.buildHistoryStepsFromDB(data);
         this.femaleTotal = data.blue_answer;
         this.maleTotal = data.red_answer;
 
-        // Kumpulkan semua audio URLs
         const allAudioUrls = [];
         this.historySteps.forEach(step => allAudioUrls.push(...step.audioUrls));
         allAudioUrls.push(SOUND_BELL, SOUND_BEEP);
@@ -417,9 +584,6 @@
         document.getElementById('stageStatus').textContent = "GAME BERJALAN";
         LOG.ok('GAME', 'Game started');
 
-        // ═══════════════════════════════════════════════════════
-        // ✅ Hitung sisa waktu dari updated_at (sync dengan kiosk)
-        // ═══════════════════════════════════════════════════════
         const startMs = new Date(data.updated_at).getTime();
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
         const remaining = Math.max(0, TOTAL_TIME_SECONDS - elapsed);
@@ -428,7 +592,6 @@
 
         this.start5MinTimer(remaining);
 
-        // Play sequence pertama
         for (const step of this.historySteps) {
           if (!this.isPlaying) return;
 
@@ -446,14 +609,6 @@
         await this.enterRepeatMode();
       }
 
-      // ═══════════════════════════════════════════════════════
-      // ✅ Convert steps dari DB → format internal
-      // Steps dari DB formatnya:
-      //   { type, value, display, audioFiles: ['file.mp3', ...] }
-      // Kita convert jadi:
-      //   { team, display, audioUrls: ['full-url', ...] }
-      // Dan interleave Blue/Red biar adil
-      // ═══════════════════════════════════════════════════════
       buildHistoryStepsFromDB(data) {
         const blueSteps = Array.isArray(data.blue_steps) ? data.blue_steps : [];
         const redSteps = Array.isArray(data.red_steps) ? data.red_steps : [];
@@ -536,7 +691,6 @@
         }
       }
 
-      // ✅ Parameter initialSeconds biar bisa sync dari DB
       start5MinTimer(initialSeconds = TOTAL_TIME_SECONDS) {
         this.stopTimer();
         this.remainingSeconds = initialSeconds;
@@ -548,7 +702,7 @@
 
           if (this.remainingSeconds <= 0) {
             this.stopTimer();
-            // ⭐ TIMEUP: play beep dulu, baru reset
+            // ⭐ TIMEUP: play beep 3x, lalu reset
             this.playTimeupBeep().then(() => this.reset());
           }
         }, 1000);
@@ -561,19 +715,17 @@
         }
       }
 
-      // ⭐ BUNYI BEEP SAAT WAKTU HABIS
-async playTimeupBeep() {
-  LOG.warn('AUDIO', '⏰ Timeup! Play beep...');
-  try {
-    // Beep 3 kali biar jelas
-    for (let i = 0; i < 3; i++) {
-      await this.audioEngine.playSequence([SOUND_BEEP]);
-      await this.delay(200);
-    }
-  } catch (e) {
-    LOG.error('AUDIO', 'Beep error', e);
-  }
-}
+      async playTimeupBeep() {
+        LOG.warn('AUDIO', '⏰ Timeup! Play beep...');
+        try {
+          for (let i = 0; i < 3; i++) {
+            await this.audioEngine.playSequence([SOUND_BEEP]);
+            await this.delay(200);
+          }
+        } catch (e) {
+          LOG.error('AUDIO', 'Beep error', e);
+        }
+      }
 
       updateTimerUI() {
         const mins = Math.floor(this.remainingSeconds / 60);
@@ -603,9 +755,6 @@ async playTimeupBeep() {
         this.audioEngine.stop();
         this.stopTimer();
 
-        // Beep sudah di-handle di playTimeupBeep() saat timer habis.
-        // Reset manual (dari admin) tidak perlu bunyi beep.
-
         this.isPlaying = false;
         this.resetDisplay();
         this.remainingSeconds = TOTAL_TIME_SECONDS;
@@ -613,6 +762,9 @@ async playTimeupBeep() {
 
         const statusEl = document.getElementById('stageStatus');
         if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
+
+        // ⭐ Kembali ke BGM Lobby setelah reset
+        playBGM('lobby');
       }
 
       delay(ms) {
@@ -629,16 +781,20 @@ async playTimeupBeep() {
       const statusEl = document.getElementById('stageStatus');
       if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
       LOG.ok('AUDIO', 'Audio unlocked');
+
+      // ⭐ Play BGM Lobby setelah unlock (atau track yang pending)
+      const trackToPlay = BGM.pendingTrack || 'lobby';
+      BGM.pendingTrack = null;
+      BGM.current = null;  // reset biar playBGM tidak skip
+      playBGM(trackToPlay);
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ REALTIME SIGNAL LISTENER DARI ADMIN
-    // Selalu reset dulu sebelum start baru
+    // REALTIME SIGNAL LISTENER DARI ADMIN
     // ═══════════════════════════════════════════════════════════
     let lastControlSig = '';
 
     function listenToControl() {
-      // Realtime
       supabaseClient.channel('stage_control_channel')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
           if (payload.new) handleControlAction(payload.new);
@@ -647,7 +803,6 @@ async playTimeupBeep() {
           LOG.info('REALTIME', 'Stage control channel: ' + status);
         });
 
-      // Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('system_number_disco_control')
@@ -669,7 +824,7 @@ async playTimeupBeep() {
       if (data.action === 'START_GAME') {
         if (!audioUnlocked) unlockAudio();
 
-        // ✅ Selalu reset dulu, baru start (biar fresh & sync)
+        // ⭐ Reset dulu, baru start
         await engine.reset();
         await engine.start();
       } else if (data.action === 'RESET') {
@@ -830,7 +985,10 @@ async playTimeupBeep() {
     async function initStage() {
       LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
 
-      // ⭐ Preload beep & bell sejak awal biar timeup langsung bunyi
+      // ⭐ Init BGM manager
+      initBGM();
+
+      // ⭐ Preload beep & bell sejak awal
       try {
         await engine.audioEngine.downloadAllAudioFiles([SOUND_BEEP, SOUND_BELL]);
         LOG.ok('AUDIO', 'Beep & bell preloaded');
@@ -847,7 +1005,7 @@ async playTimeupBeep() {
 
       if (layoutData) handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
 
-      // Fetch control state awal (biar kalau admin sudah START sebelum layout buka)
+      // Fetch control state awal
       const { data: controlData } = await supabaseClient
         .from('system_number_disco_control')
         .select('action, trigger_id, updated_at')
@@ -856,7 +1014,6 @@ async playTimeupBeep() {
 
       if (controlData) {
         lastControlSig = `${controlData.action}|${controlData.trigger_id}|${controlData.updated_at}`;
-        // Jangan auto-start, biar user klik unlock dulu
       }
 
       subscribeAdminLayoutRemote();

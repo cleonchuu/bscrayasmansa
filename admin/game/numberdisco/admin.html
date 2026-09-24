@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Control - Number Disco</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎛️</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -21,6 +22,20 @@
       border-color: #6366f1 !important;
       background-color: rgba(99, 102, 241, 0.2) !important;
       box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Loading state untuk tombol START */
+    .btn-loading {
+      opacity: 0.7;
+      cursor: wait !important;
+    }
+    .btn-loading i.fa-play,
+    .btn-loading i.fa-rotate-left {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -51,21 +66,25 @@
 
     <!-- GAME ENGINE CONTROLLER & LIVE ANSWERS -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
+
       <!-- KONTROL GAME STAGE (2 COLUMNS) -->
       <div class="lg:col-span-2 bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm flex flex-col justify-between">
         <div>
           <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
             <i class="fas fa-gamepad text-indigo-400"></i> Kontrol Game Stage
           </h2>
-          <p class="text-xs text-slate-400 mb-6">Tekan START untuk memulai acak soal & pemutaran audio di layar stage panggung.</p>
+          <p class="text-xs text-slate-400 mb-6">
+            Tekan START untuk memulai acak soal & pemutaran audio di layar stage panggung.
+            <br>
+            <span class="text-amber-400">⚡ Kuota semua peserta akan otomatis di-reset ke 2 setiap kali START.</span>
+          </p>
         </div>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <button onclick="triggerAction('START_GAME')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-600/30">
+          <button id="btnStartGame" onclick="triggerAction('START_GAME')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-indigo-600/30">
             <i class="fas fa-play text-xl"></i> START GAME (ACAK SOAL)
           </button>
-          <button onclick="triggerAction('RESET')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-200 font-bold py-4 px-6 rounded-2xl border border-slate-700 flex items-center justify-center gap-3">
+          <button id="btnResetDisplay" onclick="triggerAction('RESET')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-slate-200 font-bold py-4 px-6 rounded-2xl border border-slate-700 flex items-center justify-center gap-3">
             <i class="fas fa-rotate-left text-xl"></i> RESET DISPLAY
           </button>
         </div>
@@ -106,7 +125,7 @@
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung (Stage Display)
       </h2>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 hover:border-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
           <i class="fas fa-display"></i> Mode Game (Blue/Red)
@@ -197,7 +216,7 @@
 
   <script>
   // ═══════════════════════════════════════════════════════════
-  // LOGGER (Debug helper)
+  // LOGGER
   // ═══════════════════════════════════════════════════════════
   const DEBUG = true;
   const LOG = {
@@ -215,17 +234,17 @@
   const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Konfigurasi audio
   const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
   const GENDER_BUCKET = { blue: 'voice_female', red: 'voice_male' };
 
-  // Config level
   const INITIAL_RANGE = { min: 2, max: 50 };
-  const TOTAL_STEPS = 7;  // 1 init + 6 operasi
-  const TOTAL_TIME_SECONDS = 300;  // 5 menit
+  const TOTAL_STEPS = 7;
+  const TOTAL_TIME_SECONDS = 300;
+
+  const DEFAULT_QUOTA = 2;   // ⭐ Kuota default setiap reset
 
   // ═══════════════════════════════════════════════════════════
-  // MATH GENERATOR (dipindah dari layout ke admin)
+  // MATH GENERATOR
   // ═══════════════════════════════════════════════════════════
   class MathGenerator {
     static PERFECT_SQUARES = [4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225];
@@ -234,7 +253,6 @@
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Generate langkah awal
     static generateInitialNumber(team) {
       const type = Math.random();
       if (type < 0.4) {
@@ -266,7 +284,6 @@
       }
     }
 
-    // Generate operand value
     static generateOperandValue() {
       const type = Math.random();
       if (type < 0.5) {
@@ -289,7 +306,6 @@
       }
     }
 
-    // Generate operasi (hasil akhir harus 2 digit: 10-99)
     static generateOperation(currentValue) {
       const ops = ['+', '-', '×', '÷'];
       let op, operand, finalVal, attempts = 0;
@@ -308,7 +324,7 @@
           const mult = this.getRandomInt(2, 4);
           operand = { value: mult, display: `${mult}`, audioFiles: [`${mult}.mp3`] };
           finalVal = currentValue * mult;
-        } else {  // ÷
+        } else {
           const factors = [];
           for (let i = 2; i <= Math.abs(currentValue); i++) {
             if (currentValue % i === 0) factors.push(i);
@@ -318,7 +334,6 @@
           finalVal = currentValue / div;
         }
 
-        // Safety guard
         if (attempts > 20) {
           const target = this.getRandomInt(10, 99);
           const diff = target - currentValue;
@@ -352,7 +367,6 @@
       };
     }
 
-    // Generate semua langkah untuk 1 tim
     static generateFullSteps() {
       const steps = [];
       const initial = this.generateInitialNumber();
@@ -377,7 +391,7 @@
   // ═══════════════════════════════════════════════════════════
   let userToDelete = null;
   let lastQuestion = null;
-  let isProcessingAction = false;  // Guard spam klik START
+  let isProcessingAction = false;
 
   // ═══════════════════════════════════════════════════════════
   // RENDER RANK BUTTONS
@@ -397,22 +411,18 @@
 
   // ═══════════════════════════════════════════════════════════
   // GENERATE + PUBLISH SOAL
-  // ✅ FIX: Gunakan updated_at yang sama untuk question & control
   // ═══════════════════════════════════════════════════════════
   async function generateAndPublishQuestion() {
     LOG.step('ADMIN', 'Generating question...');
 
-    // Generate untuk kedua tim
     const blueResult = MathGenerator.generateFullSteps();
     const redResult = MathGenerator.generateFullSteps();
 
     LOG.info('ADMIN', `Blue steps: ${blueResult.steps.length}, Final: ${blueResult.finalAnswer}`);
     LOG.info('ADMIN', `Red steps: ${redResult.steps.length}, Final: ${redResult.finalAnswer}`);
 
-    // ✅ Satu timestamp untuk semua (biar konsisten)
     const nowISO = new Date().toISOString();
 
-    // Publish ke Supabase
     const { error } = await supabaseClient
       .from('system_number_disco_question')
       .upsert({
@@ -437,7 +447,6 @@
     return true;
   }
 
-  // Preview soal di panel admin
   function updatePreview() {
     if (!lastQuestion) return;
 
@@ -449,8 +458,35 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // TRIGGER ACTION
-  // ✅ FIX: Satu timestamp untuk question & control
+  // ⭐ AUTO-RESET KUOTA SEMUA PESERTA
+  // ═══════════════════════════════════════════════════════════
+  async function autoResetAllQuotas() {
+    LOG.step('ADMIN', 'Auto-reset kuota semua peserta...');
+
+    try {
+      // ⭐ Update semua row di system_input_max_number_disco
+      const { data, error } = await supabaseClient
+        .from('system_input_max_number_disco')
+        .update({ input_left: DEFAULT_QUOTA })
+        .neq('user_unique_id', '')
+        .select('user_unique_id, color');
+
+      if (error) {
+        LOG.warn('ADMIN', 'Gagal auto-reset kuota: ' + error.message);
+        return { ok: false, count: 0, error: error.message };
+      }
+
+      const count = data ? data.length : 0;
+      LOG.ok('ADMIN', `Kuota ${count} row di-reset ke ${DEFAULT_QUOTA}`);
+      return { ok: true, count };
+    } catch (e) {
+      LOG.error('ADMIN', 'Auto-reset exception: ' + e.message);
+      return { ok: false, count: 0, error: e.message };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ TRIGGER ACTION (dengan auto-reset kuota)
   // ═══════════════════════════════════════════════════════════
   async function triggerAction(actionName) {
     if (isProcessingAction) {
@@ -460,17 +496,81 @@
 
     isProcessingAction = true;
 
+    const btnStart = document.getElementById('btnStartGame');
+    const btnReset = document.getElementById('btnResetDisplay');
+
     try {
-      // Kalau START, generate soal dulu
+      // ═══════════════════════════════════════════════════════════
+      // ✅ FITUR BARU: AUTO-RESET KUOTA saat START_GAME
+      // ═══════════════════════════════════════════════════════════
       if (actionName === 'START_GAME') {
+        // Loading state
+        btnStart.classList.add('btn-loading');
+        btnStart.disabled = true;
+        btnStart.innerHTML = `<i class="fas fa-spinner"></i> MEMPROSES...`;
+
+        // Step 1: Reset kuota semua peserta
+        LOG.step('ADMIN', 'Step 1/3: Reset kuota peserta...');
+        const quotaResult = await autoResetAllQuotas();
+
+        // Step 2: Generate soal baru
+        LOG.step('ADMIN', 'Step 2/3: Generate soal...');
         const ok = await generateAndPublishQuestion();
+
         if (!ok) {
+          // Gagal generate → restore button
+          btnStart.classList.remove('btn-loading');
+          btnStart.disabled = false;
+          btnStart.innerHTML = `<i class="fas fa-play text-xl"></i> START GAME (ACAK SOAL)`;
           isProcessingAction = false;
           return;
         }
+
+        // Step 3: Kirim trigger
+        LOG.step('ADMIN', 'Step 3/3: Kirim sinyal START...');
+        const triggerId = Date.now();
+        const nowISO = new Date().toISOString();
+
+        const { error } = await supabaseClient
+          .from('system_number_disco_control')
+          .update({
+            action: actionName,
+            trigger_id: triggerId,
+            updated_at: nowISO
+          })
+          .eq('id', 1);
+
+        // Restore button
+        btnStart.classList.remove('btn-loading');
+        btnStart.disabled = false;
+        btnStart.innerHTML = `<i class="fas fa-play text-xl"></i> START GAME (ACAK SOAL)`;
+
+        if (error) {
+          LOG.error('ADMIN', 'Gagal update action: ' + error.message);
+          alert('Gagal kirim perintah: ' + error.message);
+        } else {
+          LOG.ok('ADMIN', `Action sent: ${actionName} (trigger: ${triggerId})`);
+
+          // Alert informatif
+          const quotaMsg = quotaResult.ok
+            ? `✅ ${quotaResult.count} peserta kuotanya di-reset ke ${DEFAULT_QUOTA}`
+            : `⚠️ Reset kuota gagal: ${quotaResult.error || 'unknown'}`;
+
+          alert(
+            `🎮 GAME DIMULAI!\n\n` +
+            `• Soal baru sudah di-generate\n` +
+            `• ${quotaMsg}\n` +
+            `• Trigger ID: ${triggerId}`
+          );
+        }
+
+        isProcessingAction = false;
+        return;
       }
 
-      // ✅ Kirim sinyal control dengan trigger_id unik
+      // ═══════════════════════════════════════════════════════════
+      // ACTION: RESET (tidak reset kuota)
+      // ═══════════════════════════════════════════════════════════
       const triggerId = Date.now();
       const nowISO = new Date().toISOString();
 
@@ -489,6 +589,7 @@
       } else {
         LOG.ok('ADMIN', `Action sent: ${actionName} (trigger: ${triggerId})`);
       }
+
     } finally {
       isProcessingAction = false;
     }
@@ -615,28 +716,28 @@
   async function resetUserLimit(userUniqueId) {
     const { error } = await supabaseClient
       .from('system_input_max_number_disco')
-      .update({ input_left: 2 })
+      .update({ input_left: DEFAULT_QUOTA })
       .eq('user_unique_id', userUniqueId);
 
     if (error) alert("Gagal: " + error.message);
     else {
-      LOG.ok('ADMIN', `Kuota ${userUniqueId} → 2`);
-      alert("Kuota " + userUniqueId + " → 2");
+      LOG.ok('ADMIN', `Kuota ${userUniqueId} → ${DEFAULT_QUOTA}`);
+      alert(`Kuota ${userUniqueId} → ${DEFAULT_QUOTA}`);
     }
   }
 
   async function resetAllLimits() {
-    if (!confirm("Reset kuota SEMUA peserta ke 2?")) return;
+    if (!confirm(`Reset kuota SEMUA peserta ke ${DEFAULT_QUOTA}?`)) return;
 
     const { error } = await supabaseClient
       .from('system_input_max_number_disco')
-      .update({ input_left: 2 })
+      .update({ input_left: DEFAULT_QUOTA })
       .neq('user_unique_id', '');
 
     if (error) alert("Gagal: " + error.message);
     else {
-      LOG.ok('ADMIN', 'Semua kuota di-reset ke 2');
-      alert("Berhasil! Kuota semua peserta → 2");
+      LOG.ok('ADMIN', `Semua kuota di-reset ke ${DEFAULT_QUOTA}`);
+      alert(`Berhasil! Kuota semua peserta → ${DEFAULT_QUOTA}`);
     }
   }
 

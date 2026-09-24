@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hiding Block — Peserta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; overflow-x: hidden; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #020617;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+    .bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+    .stage-panel {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .stage-panel.hidden-panel { display: none; }
+
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    /* Bell shake */
+    @keyframes ringBell {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(-22deg); }
+      40%     { transform: rotate(22deg); }
+      60%     { transform: rotate(-14deg); }
+      80%     { transform: rotate(14deg); }
+    }
+    .ring-bell { animation: ringBell 0.9s ease-in-out infinite; }
+
+    /* Pulse ring */
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70%  { box-shadow: 0 0 0 22px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .pulse-ring { animation: pulseRing 1.6s infinite; }
+
+    /* Level button selected */
+    .level-btn.selected {
+      background: linear-gradient(180deg, rgba(99,102,241,0.3), rgba(99,102,241,0.1));
+      border-color: #818cf8 !important;
+      box-shadow: 0 0 25px rgba(99,102,241,0.4);
+    }
+
+    /* Image fullscreen viewer */
+    .img-viewer {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+    }
+    .img-viewer img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    /* Flashing timer warning */
+    @keyframes flash {
+      0%,100% { opacity: 1; }
+      50%     { opacity: 0.4; }
+    }
+    .flash-warning { animation: flash 1s ease-in-out infinite; }
+
+    /* Fade in */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+
+    /* Pulse slow */
+    @keyframes pulseSoft {
+      0%,100% { opacity: 1; }
+      50%     { opacity: 0.6; }
+    }
+    .pulse-soft { animation: pulseSoft 1.4s ease-in-out infinite; }
+
+    /* Locked overlay */
+    .locked-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 12px;
+      backdrop-filter: blur(3px);
+    }
+  </style>
+</head>
+<body class="text-white">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- DEBUG BADGE -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="dbgBadge"
+       class="fixed top-1 right-1 text-[9px] font-mono bg-black/85 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 z-[200] pointer-events-none">
+    <span id="dbgState">boot</span>·<span id="dbgQ">-</span>·<span id="dbgBank">--:--</span>·<span id="dbgRT">-</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- AUDIO PLAYERS -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <audio id="sfxBell"   preload="auto"></audio>
+  <audio id="sfxTimer"  preload="auto"></audio>
+  <audio id="sfxTimeup" preload="auto"></audio>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL 1: LOADING / LOGIN -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panelLoad" class="stage-panel items-center justify-center text-center p-6">
+    <div class="p-5 bg-indigo-500/10 rounded-full border-2 border-indigo-500/30 text-indigo-400 mb-4 animate-pulse">
+      <i class="fas fa-cube text-5xl"></i>
+    </div>
+    <h1 class="text-3xl font-black mb-1">HIDING BLOCK</h1>
+    <p class="text-xs text-slate-400">Memuat sesi...</p>
+    <p id="loadError" class="text-xs text-rose-400 mt-3 hidden"></p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL 2: READY (tekan SIAP) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panelReady" class="stage-panel hidden-panel p-6">
+    <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+      <div class="w-24 h-24 bg-emerald-500/10 border-2 border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400">
+        <i class="fas fa-hand text-5xl"></i>
+      </div>
+      <div class="space-y-2">
+        <h2 class="text-4xl font-black">HALO, <span id="readyName" class="text-emerald-400">-</span>!</h2>
+        <p class="text-slate-400 text-sm max-w-xs mx-auto">Tekan tombol SIAP di bawah untuk menandai bahwa kamu sudah siap bermain.</p>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-sm w-full space-y-2 text-left text-xs text-slate-300">
+        <div class="flex items-center gap-2 text-amber-400 font-bold mb-2">
+          <i class="fas fa-circle-info"></i> Cara Bermain
+        </div>
+        <p><b class="text-indigo-400">1.</b> Pilih level (1-5), lalu pilih opsi A atau B</p>
+        <p><b class="text-indigo-400">2.</b> Gambar muncul → tiru bentuknya</p>
+        <p><b class="text-indigo-400">3.</b> Tekan BEL jika kamu merasa sudah mirip</p>
+        <p><b class="text-indigo-400">4.</b> Panitia akan menilai BENAR / SALAH</p>
+        <p><b class="text-indigo-400">5.</b> Bank waktu: <b class="text-rose-400">30 menit</b> total</p>
+      </div>
+
+      <button id="btnReady"
+              onclick="pressReady()"
+              class="w-full max-w-sm py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-2xl transition active:scale-95 shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-3">
+        <i class="fas fa-check-circle text-3xl"></i>
+        <span>SIAP!</span>
+      </button>
+
+      <p id="readyStatus" class="text-xs text-slate-500">Menunggu kamu menekan SIAP...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL 3: WAITING (sudah SIAP, tunggu admin start) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panelWaiting" class="stage-panel hidden-panel items-center justify-center text-center p-6">
+    <div class="w-32 h-32 bg-indigo-500/10 border-2 border-indigo-500/40 rounded-full flex items-center justify-center text-indigo-400 mb-6 pulse-ring">
+      <i class="fas fa-hourglass-half text-6xl"></i>
+    </div>
+    <h2 class="text-3xl font-black mb-2">KAMU SUDAH SIAP!</h2>
+    <p class="text-slate-400 text-sm">Menunggu admin memulai permainan...</p>
+    <div class="mt-6 inline-block px-6 py-3 rounded-2xl bg-slate-900 border border-slate-800">
+      <div class="text-[10px] text-slate-500 uppercase tracking-wider">Nama Peserta</div>
+      <div id="waitingName" class="text-xl font-black text-emerald-400">-</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL 4: FROZEN (bank habis) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panelFrozen" class="stage-panel hidden-panel items-center justify-center text-center p-6">
+    <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/40 rounded-full flex items-center justify-center text-rose-400 mb-6">
+      <i class="fas fa-snowflake text-6xl"></i>
+    </div>
+    <h2 class="text-4xl font-black text-rose-400 mb-2">WAKTU HABIS</h2>
+    <p class="text-slate-400 text-sm">Sesi kamu sudah berakhir. Terima kasih sudah bermain!</p>
+
+    <div class="mt-6 grid grid-cols-2 gap-3 max-w-xs w-full">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="text-[10px] text-slate-500 uppercase">Poin</div>
+        <div id="frozenPoints" class="text-3xl font-math font-black text-amber-400">0</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="text-[10px] text-slate-500 uppercase">Selesai</div>
+        <div id="frozenLocked" class="text-3xl font-math font-black text-emerald-400">0<span class="text-slate-500 text-lg">/10</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL 5: GAME (main game) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panelGame" class="stage-panel hidden-panel">
+
+    <!-- HEADER: Nama + Bank -->
+    <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between sticky top-0 z-30">
+      <div>
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Peserta</div>
+        <div id="gameName" class="text-sm font-black text-white truncate max-w-[140px]">-</div>
+      </div>
+      <div class="text-center">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
+        <div id="gamePoints" class="text-xl font-math font-black text-amber-400">0</div>
+      </div>
+      <div class="text-right">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Bank</div>
+        <div id="gameBank" class="text-xl font-math font-black text-rose-400">30:00</div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL 5a: PILIH LEVEL -->
+    <div id="subPanelSelectLevel" class="flex-1 p-4 overflow-y-auto custom-scroll">
+      <div class="text-center mb-5 mt-2">
+        <h3 class="text-2xl font-black">PILIH LEVEL</h3>
+        <p class="text-xs text-slate-400">Pilih level yang ingin kamu kerjakan</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 max-w-md mx-auto" id="levelButtonsWrap">
+        <!-- Level buttons generated by JS -->
+      </div>
+
+      <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 max-w-md mx-auto">
+        <div class="flex items-center justify-between text-xs mb-2">
+          <span class="text-slate-400">Gambar selesai</span>
+          <span id="levelProgressLocked" class="font-mono font-bold text-emerald-400">0 / 10</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-400">Total poin</span>
+          <span id="levelProgressPoints" class="font-mono font-bold text-amber-400">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL 5b: PILIH A/B -->
+    <div id="subPanelSelectChoice" class="hidden flex-1 p-4 overflow-y-auto custom-scroll">
+      <div class="text-center mb-5 mt-2">
+        <div class="text-xs text-slate-500 mb-1">LEVEL <span id="choiceLevelNum" class="text-indigo-400 font-black">1</span></div>
+        <h3 class="text-2xl font-black">PILIH GAMBAR</h3>
+        <p class="text-xs text-slate-400">Pilih A atau B</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 max-w-md mx-auto">
+        <button onclick="chooseOption('a')"
+                class="aspect-square bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 hover:from-indigo-500/50 border-2 border-indigo-500/40 rounded-3xl flex flex-col items-center justify-center transition active:scale-95">
+          <div class="text-6xl font-math font-black text-indigo-300">A</div>
+          <div class="text-[10px] text-indigo-300/70 mt-2 uppercase">Gambar A</div>
+        </button>
+        <button onclick="chooseOption('b')"
+                class="aspect-square bg-gradient-to-br from-purple-600/30 to-purple-900/20 hover:from-purple-500/50 border-2 border-purple-500/40 rounded-3xl flex flex-col items-center justify-center transition active:scale-95">
+          <div class="text-6xl font-math font-black text-purple-300">B</div>
+          <div class="text-[10px] text-purple-300/70 mt-2 uppercase">Gambar B</div>
+        </button>
+      </div>
+
+      <button onclick="backToLevelSelect()"
+              class="mt-6 mx-auto block text-xs text-slate-500 hover:text-slate-300 underline">
+        <i class="fas fa-arrow-left"></i> Kembali ke pilih level
+      </button>
+    </div>
+
+    <!-- SUB-PANEL 5c: VIEW GAMBAR -->
+    <div id="subPanelViewImage" class="hidden flex-1 flex flex-col">
+      <!-- Timer strip -->
+      <div class="bg-slate-950 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-slate-500 uppercase">Level</span>
+          <span id="imgLevelLabel" class="font-math font-black text-indigo-400">1A</span>
+        </div>
+        <div id="imgTimerDisplay" class="text-2xl font-math font-black text-emerald-400">00:00</div>
+        <div class="w-16"></div>
+      </div>
+
+      <!-- Image area -->
+      <div class="flex-1 img-viewer bg-black relative overflow-hidden">
+        <div id="imgLoadingOverlay" class="absolute inset-0 flex items-center justify-center bg-slate-950 z-20">
+          <div class="text-center space-y-3">
+            <i class="fas fa-spinner fa-spin text-4xl text-indigo-400"></i>
+            <p class="text-xs text-slate-400">Memuat gambar...</p>
+          </div>
+        </div>
+        <img id="imgViewerTarget" src="" alt="" />
+      </div>
+
+      <!-- Bottom action -->
+      <div class="bg-slate-900 border-t border-slate-800 p-4">
+        <button id="btnBell"
+                onclick="pressBell()"
+                class="w-full py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xl transition active:scale-95 shadow-2xl shadow-amber-500/40 flex items-center justify-center gap-3">
+          <i class="fas fa-bell text-2xl"></i>
+          <span>SUDAH MIRIP — TEKAN BEL</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL 5d: WAITING VERDICT -->
+    <div id="subPanelWaitingVerdict" class="hidden flex-1 items-center justify-center text-center p-6 flex flex-col">
+      <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-ring">
+        <i class="fas fa-bell text-6xl ring-bell"></i>
+      </div>
+      <h3 class="text-3xl font-black text-amber-300 mb-2">MENUNGGU PANITIA</h3>
+      <p class="text-sm text-slate-400 max-w-xs">Panitia sedang memeriksa hasil kerjamu. Timer kamu sementara dibekukan.</p>
+
+      <div class="mt-6 px-6 py-3 rounded-2xl bg-slate-900 border border-slate-800">
+        <div class="text-[10px] text-slate-500 uppercase">Durasi Kerja</div>
+        <div id="waitVerdictDuration" class="text-3xl font-math font-black text-white">00:00</div>
+      </div>
+    </div>
+
+    <!-- SUB-PANEL 5e: AFTER VERDICT — BENAR -->
+    <div id="subPanelVerdictBenar" class="hidden flex-1 items-center justify-center text-center p-6 flex flex-col">
+      <div class="w-32 h-32 bg-emerald-500/20 border-4 border-emerald-400 rounded-full flex items-center justify-center text-emerald-400 mb-6 shadow-2xl shadow-emerald-500/50">
+        <i class="fas fa-check text-7xl"></i>
+      </div>
+      <h3 class="text-4xl font-black text-emerald-400 mb-2">BENAR!</h3>
+      <p class="text-sm text-slate-400 mb-4">Gambar terkunci permanen.</p>
+      <div class="text-5xl font-math font-black text-amber-400">+<span id="verdictBenarPoin">0</span></div>
+      <div class="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Poin</div>
+      <button onclick="backToLevelSelect()" class="mt-8 px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition active:scale-95">
+        <i class="fas fa-arrow-right"></i> Lanjut Pilih Level
+      </button>
+    </div>
+
+    <!-- SUB-PANEL 5f: AFTER VERDICT — SALAH -->
+    <div id="subPanelVerdictSalah" class="hidden flex-1 p-6 flex flex-col items-center justify-center text-center">
+      <div class="w-28 h-28 bg-rose-500/20 border-4 border-rose-400 rounded-full flex items-center justify-center text-rose-400 mb-5">
+        <i class="fas fa-times text-6xl"></i>
+      </div>
+      <h3 class="text-4xl font-black text-rose-400 mb-2">SALAH</h3>
+      <p class="text-sm text-slate-400 mb-6 max-w-xs">Pilih apakah kamu mau <b>mengulangi</b> gambar ini (timer lanjut) atau <b>lanjut</b> ke level lain.</p>
+
+      <div class="grid grid-cols-2 gap-3 w-full max-w-sm">
+        <button onclick="chooseUlangi()"
+                class="py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-black transition active:scale-95 flex flex-col items-center gap-1">
+          <i class="fas fa-rotate-left text-2xl"></i>
+          <span>ULANGI</span>
+        </button>
+        <button onclick="chooseLanjut()"
+                class="py-4 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black transition active:scale-95 flex flex-col items-center gap-1">
+          <i class="fas fa-arrow-right text-2xl"></i>
+          <span>LANJUT</span>
+        </button>
+      </div>
+
+      <p class="text-[10px] text-slate-500 mt-4 max-w-xs">
+        <i class="fas fa-info-circle"></i>
+        <b>Ulangi</b> = timer lanjut dari sekarang (tidak reset).
+        <b>Lanjut</b> = gambar ini dianggap gagal, bisa dikerjakan lain waktu.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PAUSE OVERLAY -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="pauseOverlay" class="hidden fixed inset-0 z-[150] bg-black/95 backdrop-blur-md items-center justify-center text-center p-6 flex flex-col">
+    <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-soft">
+      <i class="fas fa-pause text-6xl"></i>
+    </div>
+    <h2 class="text-4xl font-black text-amber-300 mb-3">PAUSE</h2>
+    <p class="text-slate-300 mb-3">Ada gangguan teknis. Jangan sentuh HP.</p>
+    <div class="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 max-w-sm">
+      <p class="text-sm text-amber-200">
+        <i class="fas fa-hand-raised text-lg"></i>
+        <b>ANGKAT TANGAN</b> kamu dan tunggu panitia!
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TOAST -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none w-[90%] max-w-sm"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TAG = '[KIOSK-HB]';
+const BANK_GAME_SEC = 1800;    // 30 menit
+const BANK_SIM_SEC  = 600;     // 10 menit
+const TARGET_FULL_POINT_SEC = 600;  // 10 menit untuk poin penuh
+
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
+const BUCKET_BLOCK = `${STORAGE_BASE}/block`;
+const BUCKET_TIMER = `${STORAGE_BASE}/timer`;
+
+const POINT_MAP = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 };
+
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG = {
+  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  user: null,
+  sessionId: null,
+  mode: 'idle',           // idle | simulasi | game
+  isPaused: false,
+  isReady: false,
+
+  // Bank waktu
+  bankStartedAt: null,
+  bankDurationSec: BANK_GAME_SEC,
+
+  // Soal aktif
+  currentLevel: null,
+  currentChoice: null,
+  currentAttemptId: null,
+  currentStatus: null,    // 'in_progress' | 'waiting_verdict' | 'locked' | 'wrong_continued'
+
+  // Per gambar
+  imageLoaded: false,
+  imageLoadedAt: null,
+  imageStartTick: null,
+  imageElapsedSec: 0,
+
+  // Progress
+  progressMap: {},        // "1a": {status, points, ...}
+
+  // Guards
+  busy: false,
+  bellPressed: false,
+
+  // Pause
+  pausedAt: null,
+
+  realtimeConnected: false,
+  bankTickInterval: null,
+  imageTickInterval: null,
+
+  // Audio tracking — hindari pengulangan
+  timerAudiosPlayed: new Set()
+};
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const UI = {
+  el: id => document.getElementById(id),
+  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  show(id, asFlex = false) {
+    const e = UI.el(id);
+    if (!e) return;
+    e.classList.remove('hidden', 'hidden-panel');
+    if (asFlex) e.classList.add('flex');
+  },
+  hide(id) {
+    const e = UI.el(id);
+    if (!e) return;
+    if (e.classList.contains('stage-panel')) e.classList.add('hidden-panel');
+    else e.classList.add('hidden');
+  },
+  panel(showId) {
+    ['panelLoad','panelReady','panelWaiting','panelFrozen','panelGame']
+      .forEach(id => {
+        const e = UI.el(id);
+        if (e) e.classList.add('hidden-panel');
+      });
+    const t = UI.el(showId);
+    if (t) t.classList.remove('hidden-panel');
+  },
+  subPanel(showId) {
+    ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
+     'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah']
+      .forEach(id => {
+        const e = UI.el(id);
+        if (e) {
+          e.classList.add('hidden');
+          e.classList.remove('flex');
+        }
+      });
+    const t = UI.el(showId);
+    if (t) {
+      t.classList.remove('hidden');
+      // Beberapa sub-panel butuh flex untuk layout
+      if (showId.includes('Waiting') || showId.includes('VerdictBenar')) {
+        t.classList.add('flex');
+      }
+    }
+  },
+  dbg(state, q, bank, rt) {
+    UI.txt('dbgState', state);
+    if (q !== undefined) UI.txt('dbgQ', q || '-');
+    if (bank !== undefined) UI.txt('dbgBank', bank || '--:--');
+    if (rt !== undefined) UI.txt('dbgRT', rt || '-');
+  }
+};
+
+function toast(msg, type='info', duration=2500) {
+  const colors = {
+    info:    'bg-slate-800 border-slate-600 text-slate-200',
+    success: 'bg-emerald-600/95 border-emerald-400 text-white',
+    warn:    'bg-amber-600/95 border-amber-400 text-white',
+    error:   'bg-rose-600/95 border-rose-400 text-white'
+  };
+  const el = document.createElement('div');
+  el.className = `${colors[type]} px-4 py-3 rounded-2xl border-2 shadow-2xl text-sm font-bold fade-in text-center`;
+  el.textContent = msg;
+  UI.el('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════════════════════════
+const AUDIO = {
+  bell()   { AUDIO._play('sfxBell',   `${STORAGE_BASE}/sounds_effect/bell.mp3`); },
+  timeup() { AUDIO._play('sfxTimeup', `${BUCKET_TIMER}/waktu_habis.mp3`); },
+  timerFile(name) {
+    if (!name) return;
+    if (STATE.timerAudiosPlayed.has(name)) return;
+    STATE.timerAudiosPlayed.add(name);
+    AUDIO._play('sfxTimer', `${BUCKET_TIMER}/${name}`);
+  },
+  _play(elId, url) {
+    const el = UI.el(elId);
+    if (!el) return;
+    try {
+      el.pause();
+      el.src = url;
+      el.currentTime = 0;
+      el.volume = 1;
+      el.play().catch(err => LOG.warn(`Audio ${url.split('/').pop()} gagal:`, err.message));
+    } catch (e) { LOG.warn('Audio exception', e); }
+  },
+  resetTimerTracking() {
+    STATE.timerAudiosPlayed.clear();
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// USER INIT
+// ═══════════════════════════════════════════════════════════
+function initUser() {
+  try {
+    const sess = localStorage.getItem('userSession');
+    if (!sess) {
+      LOG.warn('Tidak ada userSession, redirect ke login');
+      window.location.href = '/login.html';
+      return false;
+    }
+    STATE.user = JSON.parse(sess);
+    if (!STATE.user?.unique_id) {
+      LOG.err('userSession tidak punya unique_id');
+      return false;
+    }
+    return true;
+  } catch (e) {
+    LOG.err('initUser exception', e);
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESSION ID
+// ═══════════════════════════════════════════════════════════
+async function fetchSessionId() {
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('session_id')
+      .order('joined_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data?.session_id || null;
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRESS READY
+// ═══════════════════════════════════════════════════════════
+async function pressReady() {
+  if (STATE.busy || STATE.isReady) return;
+  STATE.busy = true;
+
+  const btn = UI.el('btnReady');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+
+  try {
+    STATE.sessionId = await fetchSessionId();
+    if (!STATE.sessionId) throw new Error('Session ID tidak ditemukan. Hubungi admin.');
+
+    // Insert atau update (kalau peserta sudah ada)
+    const { error } = await supabaseClient
+      .from('system_hiding_block_login')
+      .upsert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        status: 'ready',
+        joined_at: new Date().toISOString()
+      }, { onConflict: 'session_id,user_unique_id' });
+
+    if (error) throw error;
+
+    STATE.isReady = true;
+    AUDIO.bell();
+    LOG.ok('Peserta ready');
+
+    // Pindah ke panel waiting
+    UI.panel('panelWaiting');
+    UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
+
+    // Start realtime
+    startRealtimeListening();
+  } catch (e) {
+    LOG.err('pressReady', e);
+    toast('Gagal: ' + (e.message || 'Error tidak diketahui'), 'error');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-check-circle text-3xl"></i><span>SIAP!</span>`;
+  } finally {
+    STATE.busy = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FETCH CURRENT STATE
+// ═══════════════════════════════════════════════════════════
+async function fetchSystemState() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (error) { LOG.warn('fetchSystemState', error.message); return null; }
+    return data;
+  } catch (e) { LOG.err('fetchSystemState exception', e); return null; }
+}
+
+async function fetchMyLogin() {
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('*')
+      .eq('user_unique_id', STATE.user.unique_id)
+      .maybeSingle();
+    return data;
+  } catch { return null; }
+}
+
+async function fetchMyProgress() {
+  try {
+    const { data } = await supabaseClient
+      .from('hiding_block_progress')
+      .select('*')
+      .eq('user_unique_id', STATE.user.unique_id);
+    if (!data) return {};
+
+    const map = {};
+    data.forEach(r => {
+      const key = `${r.level}${r.choice}`;
+      // Simpan yang terbaru / locked
+      if (!map[key] || r.status === 'locked' || new Date(r.created_at) > new Date(map[key].created_at)) {
+        map[key] = r;
+      }
+    });
+    return map;
+  } catch { return {}; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC STATE (dari DB)
+// ═══════════════════════════════════════════════════════════
+async function syncState() {
+  const sys = await fetchSystemState();
+  if (!sys) return;
+
+  const prevMode = STATE.mode;
+  const prevPaused = STATE.isPaused;
+
+  STATE.mode = sys.mode || 'idle';
+  STATE.isPaused = !!sys.is_paused;
+
+  // Handle pause/unpause
+  if (STATE.isPaused && !prevPaused) {
+    onPauseActivated();
+  } else if (!STATE.isPaused && prevPaused) {
+    onPauseDeactivated();
+  }
+
+  // Handle mode berubah
+  if (STATE.mode !== prevMode) {
+    LOG.ok(`Mode berubah: ${prevMode} → ${STATE.mode}`);
+    onModeChanged(STATE.mode);
+  }
+
+  // Sync bank waktu
+  const myLogin = await fetchMyLogin();
+  if (myLogin?.bank_started_at) {
+    const prev = STATE.bankStartedAt;
+    STATE.bankStartedAt = myLogin.bank_started_at;
+    STATE.bankDurationSec = STATE.mode === 'simulasi' ? BANK_SIM_SEC : BANK_GAME_SEC;
+
+    if (!prev && STATE.bankStartedAt) {
+      // Bank baru mulai → start tick
+      startBankTick();
+    }
+  }
+
+  // Kalau bank habis → freeze
+  if (STATE.bankStartedAt && !STATE.isPaused) {
+    const elapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
+    if (elapsed >= STATE.bankDurationSec) {
+      onBankTimeUp();
+      return;
+    }
+  }
+
+  UI.dbg(STATE.isPaused ? 'paused' : STATE.mode, 
+         STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
+         STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
+         STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+function remainingBankSec() {
+  if (!STATE.bankStartedAt) return STATE.bankDurationSec;
+  const elapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
+  return Math.max(0, STATE.bankDurationSec - elapsed);
+}
+
+function formatMMSS(sec) {
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODE CHANGED
+// ═══════════════════════════════════════════════════════════
+async function onModeChanged(newMode) {
+  LOG.ok(`Mode: ${newMode}`);
+
+  if (newMode === 'idle') {
+    // Kembali ke waiting
+    if (STATE.isReady) {
+      UI.panel('panelWaiting');
+    } else {
+      UI.panel('panelReady');
+    }
+  } else if (newMode === 'simulasi' || newMode === 'game') {
+    // Peserta masuk mode game
+    if (STATE.isReady) {
+      await enterGameMode();
+    } else {
+      toast('Kamu belum menekan SIAP!', 'warn');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENTER GAME MODE
+// ═══════════════════════════════════════════════════════════
+async function enterGameMode() {
+  LOG.ok('Enter game mode');
+
+  // Set bank duration sesuai mode
+  STATE.bankDurationSec = STATE.mode === 'simulasi' ? BANK_SIM_SEC : BANK_GAME_SEC;
+
+  // Cek bank sudah dimulai belum
+  const myLogin = await fetchMyLogin();
+  if (!myLogin?.bank_started_at) {
+    // Belum mulai → tunggu peserta buka gambar pertama
+    LOG.info('Bank belum mulai — tunggu gambar pertama');
+  } else {
+    STATE.bankStartedAt = myLogin.bank_started_at;
+    startBankTick();
+  }
+
+  // Load progress
+  STATE.progressMap = await fetchMyProgress();
+
+  // Tampil panel game → sub panel pilih level
+  UI.panel('panelGame');
+  UI.txt('gameName', STATE.user.full_name || STATE.user.unique_id);
+
+  renderLevelButtons();
+  UI.subPanel('subPanelSelectLevel');
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEVEL BUTTONS
+// ═══════════════════════════════════════════════════════════
+function renderLevelButtons() {
+  const wrap = UI.el('levelButtonsWrap');
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+  const levelColors = {
+    1: 'from-emerald-600/30 to-emerald-900/20 border-emerald-500/40 hover:from-emerald-500/50 text-emerald-300',
+    2: 'from-sky-600/30 to-sky-900/20 border-sky-500/40 hover:from-sky-500/50 text-sky-300',
+    3: 'from-amber-600/30 to-amber-900/20 border-amber-500/40 hover:from-amber-500/50 text-amber-300',
+    4: 'from-orange-600/30 to-orange-900/20 border-orange-500/40 hover:from-orange-500/50 text-orange-300',
+    5: 'from-rose-600/30 to-rose-900/20 border-rose-500/40 hover:from-rose-500/50 text-rose-300'
+  };
+
+  for (let level = 1; level <= 5; level++) {
+    const btn = document.createElement('button');
+
+    const a = STATE.progressMap[`${level}a`];
+    const b = STATE.progressMap[`${level}b`];
+    const aLocked = a?.status === 'locked';
+    const bLocked = b?.status === 'locked';
+    const allLocked = aLocked && bLocked;
+
+    const badge = allLocked ? '✓ SELESAI'
+                 : (aLocked || bLocked) ? '● 1/2' : '';
+
+    btn.className = `aspect-square rounded-3xl border-2 bg-gradient-to-br ${levelColors[level]} p-4 flex flex-col items-center justify-center transition active:scale-95 relative ${allLocked ? 'opacity-50' : ''}`;
+    btn.disabled = allLocked;
+    btn.onclick = () => selectLevel(level);
+
+    btn.innerHTML = `
+      <div class="text-5xl font-math font-black">${level}</div>
+      <div class="text-[10px] uppercase tracking-wider mt-1 opacity-80">Level ${level}</div>
+      <div class="text-[9px] opacity-60 mt-0.5">${POINT_MAP[level]} poin</div>
+      ${badge ? `<div class="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded bg-black/40">${badge}</div>` : ''}
+    `;
+    wrap.appendChild(btn);
+  }
+
+  // Update progress bar bawah
+  updateProgressDisplay();
+}
+
+function updateProgressDisplay() {
+  const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
+  const totalPoin = Object.values(STATE.progressMap)
+    .filter(p => p.status === 'locked')
+    .reduce((s, p) => s + (p.points_awarded || 0), 0);
+
+  UI.txt('levelProgressLocked', `${locked} / 10`);
+  UI.txt('levelProgressPoints', totalPoin);
+  UI.txt('gamePoints', totalPoin);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SELECT LEVEL
+// ═══════════════════════════════════════════════════════════
+function selectLevel(level) {
+  if (STATE.isPaused) { toast('Sedang pause. Tunggu panitia.', 'warn'); return; }
+  if (STATE.mode === 'idle') { toast('Belum mulai.', 'warn'); return; }
+
+  STATE.currentLevel = level;
+  UI.txt('choiceLevelNum', level);
+  UI.subPanel('subPanelSelectChoice');
+}
+
+function backToLevelSelect() {
+  UI.subPanel('subPanelSelectLevel');
+  STATE.currentLevel = null;
+  STATE.currentChoice = null;
+  renderLevelButtons();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHOOSE OPTION A/B
+// ═══════════════════════════════════════════════════════════
+async function chooseOption(choice) {
+  if (STATE.busy) return;
+  if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
+
+  const key = `${STATE.currentLevel}${choice}`;
+
+  // Cek kalau sudah locked
+  if (STATE.progressMap[key]?.status === 'locked') {
+    toast('Gambar ini sudah selesai (locked).', 'warn');
+    return;
+  }
+
+  STATE.busy = true;
+  STATE.currentChoice = choice;
+  STATE.bellPressed = false;
+  STATE.imageLoaded = false;
+  STATE.imageLoadedAt = null;
+  STATE.imageElapsedSec = 0;
+  AUDIO.resetTimerTracking();
+
+  const isSimulasi = STATE.mode === 'simulasi';
+  const fileName = isSimulasi ? `s${STATE.currentLevel}${choice}.png` : `${STATE.currentLevel}${choice}.png`;
+  const imageUrl = `${BUCKET_BLOCK}/${fileName}`;
+
+  LOG.ok(`Buka gambar: ${fileName}`);
+
+  // Insert progress attempt
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .insert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        level: STATE.currentLevel,
+        choice: choice,
+        mode: STATE.mode,
+        status: 'in_progress',
+        attempt_count: 1,
+        started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    STATE.currentAttemptId = data.id;
+    STATE.currentStatus = 'in_progress';
+  } catch (e) {
+    LOG.err('Insert progress', e);
+    toast('Gagal mulai gambar: ' + e.message, 'error');
+    STATE.busy = false;
+    return;
+  }
+
+  // Tampil sub-panel view gambar
+  UI.subPanel('subPanelViewImage');
+  UI.txt('imgLevelLabel', `${STATE.currentLevel}${choice.toUpperCase()}`);
+  UI.txt('imgTimerDisplay', '00:00');
+  UI.show('imgLoadingOverlay');
+
+  // Load image
+  const img = UI.el('imgViewerTarget');
+  img.onload = () => onImageLoaded();
+  img.onerror = () => onImageFailed();
+  img.src = imageUrl + `?t=${Date.now()}`;
+
+  STATE.busy = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMAGE LOADED → START TIMER
+// ═══════════════════════════════════════════════════════════
+async function onImageLoaded() {
+  LOG.ok('Gambar loaded');
+  UI.hide('imgLoadingOverlay');
+
+  STATE.imageLoaded = true;
+  STATE.imageLoadedAt = Date.now();
+
+  // Update DB
+  try {
+    await supabaseClient
+      .from('hiding_block_progress')
+      .update({ image_loaded_at: new Date().toISOString() })
+      .eq('id', STATE.currentAttemptId);
+  } catch (e) { LOG.warn('Update image_loaded_at', e); }
+
+  // Start bank tick kalau belum
+  if (!STATE.bankStartedAt) {
+    await startBankTimer();
+  }
+
+  // Start timer per gambar
+  startImageTimer();
+}
+
+function onImageFailed() {
+  LOG.err('Gambar gagal load');
+  UI.hide('imgLoadingOverlay');
+
+  STATE.imageLoaded = false;
+
+  // Tampilkan opsi ke peserta: pakai bel untuk skip
+  toast('Gambar gagal dimuat. Tekan BEL untuk minta bantuan panitia.', 'warn', 5000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// START BANK TIMER (mulai bank 30 menit)
+// ═══════════════════════════════════════════════════════════
+async function startBankTimer() {
+  const now = new Date().toISOString();
+  try {
+    const { error } = await supabaseClient
+      .from('system_hiding_block_login')
+      .update({
+        bank_started_at: now,
+        bank_remaining_sec: STATE.bankDurationSec,
+        status: 'playing'
+      })
+      .eq('user_unique_id', STATE.user.unique_id);
+
+    if (error) { LOG.err('startBankTimer', error); return; }
+    STATE.bankStartedAt = now;
+    startBankTick();
+    LOG.ok('Bank started');
+
+    // Audit
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.user.unique_id,
+      user_role: 'peserta',
+      action: 'bank_start',
+      metadata: { duration: STATE.bankDurationSec, mode: STATE.mode }
+    });
+  } catch (e) { LOG.err('startBankTimer exception', e); }
+}
+
+function startBankTick() {
+  if (STATE.bankTickInterval) clearInterval(STATE.bankTickInterval);
+
+  const tick = () => {
+    if (STATE.isPaused) return;
+    const rem = remainingBankSec();
+    UI.txt('gameBank', formatMMSS(rem));
+    UI.dbg(STATE.isPaused ? 'paused' : 'game',
+           STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
+           formatMMSS(rem),
+           STATE.realtimeConnected ? 'rt' : 'poll');
+
+    // Warna warning
+    const bankEl = UI.el('gameBank');
+    if (bankEl) {
+      if (rem < 60) bankEl.className = 'text-xl font-math font-black text-rose-500 flash-warning';
+      else if (rem < 300) bankEl.className = 'text-xl font-math font-black text-rose-400';
+      else if (rem < 900) bankEl.className = 'text-xl font-math font-black text-amber-400';
+      else bankEl.className = 'text-xl font-math font-black text-emerald-400';
+    }
+
+    // Suara peringatan bank
+    if (rem === 300) AUDIO.timerFile('5_menit.mp3');
+    if (rem === 60)  AUDIO.timerFile('1_menit.mp3');
+    if (rem === 30)  AUDIO.timerFile('30_detik.mp3');
+
+    if (rem <= 0) {
+      clearInterval(STATE.bankTickInterval);
+      STATE.bankTickInterval = null;
+      onBankTimeUp();
+    }
+  };
+  tick();
+  STATE.bankTickInterval = setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMAGE TIMER (per gambar)
+// ═══════════════════════════════════════════════════════════
+function startImageTimer() {
+  if (STATE.imageTickInterval) clearInterval(STATE.imageTickInterval);
+
+  const tick = () => {
+    if (!STATE.imageLoadedAt) return;
+    if (STATE.isPaused) return;
+    if (!STATE.imageLoaded) return;
+
+    STATE.imageElapsedSec = Math.floor((Date.now() - STATE.imageLoadedAt) / 1000);
+    const mm = String(Math.floor(STATE.imageElapsedSec / 60)).padStart(2, '0');
+    const ss = String(STATE.imageElapsedSec % 60).padStart(2, '0');
+    UI.txt('imgTimerDisplay', `${mm}:${ss}`);
+
+    // Suara per menit (1.mp3 s.d. 10.mp3)
+    const minutes = Math.floor(STATE.imageElapsedSec / 60);
+    if (STATE.imageElapsedSec % 60 === 0 && minutes >= 1 && minutes <= 10) {
+      AUDIO.timerFile(`${minutes}.mp3`);
+    }
+  };
+  tick();
+  STATE.imageTickInterval = setInterval(tick, 500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PRESS BELL
+// ═══════════════════════════════════════════════════════════
+async function pressBell() {
+  if (STATE.busy) return;
+  if (STATE.bellPressed) { toast('Bel sudah ditekan. Tunggu panitia.', 'warn'); return; }
+  if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
+  if (!STATE.currentAttemptId) return;
+
+  STATE.busy = true;
+  STATE.bellPressed = true;
+
+  const btn = UI.el('btnBell');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> MENUNGGU...`;
+
+  try {
+    // Hitung durasi (dari image_loaded_at)
+    let durationSec = STATE.imageElapsedSec || 0;
+    // Kalau gambar gagal load, hitung dari attempt started_at
+    if (!STATE.imageLoadedAt && STATE.currentAttemptId) {
+      // Fallback: hitung dari created_at
+      durationSec = 0;
+    }
+
+    const { error } = await supabaseClient
+      .from('hiding_block_progress')
+      .update({
+        status: 'waiting_verdict',
+        submitted_at: new Date().toISOString(),
+        duration_sec: durationSec
+      })
+      .eq('id', STATE.currentAttemptId);
+
+    if (error) throw error;
+
+    STATE.currentStatus = 'waiting_verdict';
+
+    // Stop image timer
+    if (STATE.imageTickInterval) {
+      clearInterval(STATE.imageTickInterval);
+      STATE.imageTickInterval = null;
+    }
+
+    // Tampil waiting verdict
+    UI.subPanel('subPanelWaitingVerdict');
+    const mm = String(Math.floor(durationSec / 60)).padStart(2, '0');
+    const ss = String(durationSec % 60).padStart(2, '0');
+    UI.txt('waitVerdictDuration', `${mm}:${ss}`);
+
+    // Audit
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.user.unique_id,
+      user_role: 'peserta',
+      action: 'press_bell',
+      metadata: {
+        level: STATE.currentLevel,
+        choice: STATE.currentChoice,
+        duration_sec: durationSec,
+        attempt_id: STATE.currentAttemptId
+      }
+    });
+
+    LOG.ok(`Bel ditekan (durasi: ${durationSec}s)`);
+  } catch (e) {
+    LOG.err('pressBell', e);
+    toast('Gagal: ' + e.message, 'error');
+    STATE.bellPressed = false;
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+  } finally {
+    STATE.busy = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// WATCH VERDICT (dari panitia)
+// ═══════════════════════════════════════════════════════════
+async function checkVerdict() {
+  if (!STATE.currentAttemptId) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .select('status, verdict, points_awarded, duration_sec')
+      .eq('id', STATE.currentAttemptId)
+      .maybeSingle();
+
+    if (error || !data) return;
+
+    // Kalau status masih waiting_verdict, tidak ada perubahan
+    if (data.status === 'waiting_verdict') return;
+
+    // Verdict diberikan!
+    if (data.status === 'locked' || data.verdict === 'benar') {
+      LOG.ok(`BENAR! +${data.points_awarded} pts`);
+      AUDIO.bell();
+      UI.txt('verdictBenarPoin', data.points_awarded || 0);
+      UI.subPanel('subPanelVerdictBenar');
+
+      // Update progress map
+      const key = `${STATE.currentLevel}${STATE.currentChoice}`;
+      STATE.progressMap[key] = {
+        ...STATE.progressMap[key],
+        status: 'locked',
+        points_awarded: data.points_awarded
+      };
+
+      // Reload progress dari DB untuk akurat
+      await reloadProgress();
+      STATE.currentStatus = 'locked';
+
+    } else if (data.status === 'wrong_continued' || data.verdict === 'salah') {
+      LOG.warn('SALAH — pilih lanjut/ulangi');
+      UI.subPanel('subPanelVerdictSalah');
+      STATE.currentStatus = 'wrong_continued';
+    }
+  } catch (e) { LOG.err('checkVerdict', e); }
+}
+
+async function reloadProgress() {
+  STATE.progressMap = await fetchMyProgress();
+  updateProgressDisplay();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHOOSE ULANGI / LANJUT (setelah salah)
+// ═══════════════════════════════════════════════════════════
+async function chooseUlangi() {
+  LOG.info('Peserta pilih ULANGI');
+
+  // Buat attempt baru untuk gambar yang sama
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .insert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        level: STATE.currentLevel,
+        choice: STATE.currentChoice,
+        mode: STATE.mode,
+        status: 'in_progress',
+        attempt_count: (STATE.progressMap[`${STATE.currentLevel}${STATE.currentChoice}`]?.attempt_count || 1) + 1,
+        started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    STATE.currentAttemptId = data.id;
+    STATE.currentStatus = 'in_progress';
+    STATE.bellPressed = false;
+
+    // Audit
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.user.unique_id,
+      user_role: 'peserta',
+      action: 'choose_ulangi',
+      metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
+    });
+
+    // Kembali ke view gambar (timer lanjut dari 0? TIDAK — timer lanjut dari 0 karena attempt baru
+    // TAPI spec: "timer lanjut, tidak reset" → jadi kita biarkan imageLoadedAt = null
+    // dan tidak start timer baru; timer per gambar tidak dihitung lagi untuk attempt ini? 
+    // 
+    // Interpretasi: attempt baru = timer baru. Tapi spec bilang "lanjut tidak reset".
+    // Kita interpretasikan "lanjut" = timer di attempt baru dimulai dari 0 karena
+    // attempt adalah unit terpisah.
+    //
+    // Untuk mereset behavior, kita reset imageElapsedSec = 0
+    STATE.imageLoaded = false;
+    STATE.imageLoadedAt = null;
+    STATE.imageElapsedSec = 0;
+    AUDIO.resetTimerTracking();
+
+    // Reopen image
+    const isSimulasi = STATE.mode === 'simulasi';
+    const fileName = isSimulasi ? `s${STATE.currentLevel}${STATE.currentChoice}.png` : `${STATE.currentLevel}${STATE.currentChoice}.png`;
+    const imageUrl = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
+
+    UI.subPanel('subPanelViewImage');
+    UI.show('imgLoadingOverlay');
+    UI.txt('imgTimerDisplay', '00:00');
+
+    const img = UI.el('imgViewerTarget');
+    img.onload = () => onImageLoaded();
+    img.onerror = () => onImageFailed();
+    img.src = imageUrl;
+
+    // Reset bell button
+    const btn = UI.el('btnBell');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+
+  } catch (e) {
+    LOG.err('chooseUlangi', e);
+    toast('Gagal: ' + e.message, 'error');
+  }
+}
+
+async function chooseLanjut() {
+  LOG.info('Peserta pilih LANJUT');
+  try {
+    // Update status ke surrendered/wrong_continued
+    await supabaseClient
+      .from('hiding_block_progress')
+      .update({ status: 'wrong_continued' })
+      .eq('id', STATE.currentAttemptId);
+
+    // Audit
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.user.unique_id,
+      user_role: 'peserta',
+      action: 'choose_lanjut',
+      metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
+    });
+
+    // Reset state
+    STATE.currentStatus = 'wrong_continued';
+    STATE.bellPressed = false;
+    STATE.currentAttemptId = null;
+
+    // Reload progress
+    await reloadProgress();
+
+    // Balik ke pilih level
+    backToLevelSelect();
+  } catch (e) { LOG.err('chooseLanjut', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BANK TIME UP
+// ═══════════════════════════════════════════════════════════
+function onBankTimeUp() {
+  if (STATE.currentStatus === 'frozen') return;
+  STATE.currentStatus = 'frozen';
+
+  LOG.warn('⏰ Bank time up');
+
+  // Stop timer
+  if (STATE.bankTickInterval) { clearInterval(STATE.bankTickInterval); STATE.bankTickInterval = null; }
+  if (STATE.imageTickInterval) { clearInterval(STATE.imageTickInterval); STATE.imageTickInterval = null; }
+
+  AUDIO.timeup();
+
+  // Update login status
+  supabaseClient
+    .from('system_hiding_block_login')
+    .update({ status: 'finished' })
+    .eq('user_unique_id', STATE.user.unique_id);
+
+  // Audit
+  supabaseClient.from('hiding_block_audit_log').insert({
+    session_id: STATE.sessionId,
+    user_unique_id: STATE.user.unique_id,
+    user_role: 'peserta',
+    action: 'timeup',
+    metadata: { total_points: getTotalPoints() }
+  });
+
+  // Tampilkan panel frozen
+  UI.panel('panelFrozen');
+  UI.txt('frozenPoints', getTotalPoints());
+  const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
+  UI.txt('frozenLocked', `${locked}`);
+
+  UI.dbg('frozen', '-', '00:00', STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+function getTotalPoints() {
+  return Object.values(STATE.progressMap)
+    .filter(p => p.status === 'locked')
+    .reduce((s, p) => s + (p.points_awarded || 0), 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAUSE HANDLERS
+// ═══════════════════════════════════════════════════════════
+function onPauseActivated() {
+  LOG.warn('PAUSE activated');
+
+  // Tampil overlay
+  UI.show('pauseOverlay', true);
+
+  // Bekukan timer (tidak clear, hanya skip di tick)
+  // Tidak perlu action karena tick sudah cek STATE.isPaused
+}
+
+function onPauseDeactivated() {
+  LOG.info('PAUSE deactivated');
+  UI.hide('pauseOverlay');
+}
+
+// ═══════════════════════════════════════════════════════════
+// WATCH MODE CHANGE FROM DB
+// ═══════════════════════════════════════════════════════════
+async function watchSystemState() {
+  // Realtime listener
+  supabaseClient
+    .channel(`kiosk_hb_${STATE.user.unique_id}`)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'system_hiding_block_state'
+    }, () => syncState())
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'hiding_block_progress',
+      filter: `user_unique_id=eq.${STATE.user.unique_id}`
+    }, (payload) => {
+      LOG.info('Progress update', payload);
+      checkVerdict();
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'system_hiding_block_login',
+      filter: `user_unique_id=eq.${STATE.user.unique_id}`
+    }, () => syncState())
+    .subscribe(status => {
+      STATE.realtimeConnected = status === 'SUBSCRIBED';
+      LOG.info(`Realtime: ${status}`);
+      UI.dbg(
+        STATE.isPaused ? 'paused' : STATE.mode,
+        STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
+        STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
+        STATE.realtimeConnected ? 'rt' : 'poll'
+      );
+    });
+
+  // Polling fallback (tiap 2 detik)
+  setInterval(async () => {
+    await syncState();
+    if (STATE.currentAttemptId && STATE.currentStatus === 'waiting_verdict') {
+      await checkVerdict();
+    }
+  }, 2000);
+}
+
+function startRealtimeListening() {
+  watchSystemState();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  LOG.ok('══════════ KIOSK HIDING BLOCK BOOT ══════════');
+  UI.dbg('boot', '-', '--:--', '-');
+
+  // 1. Cek user
+  if (!initUser()) {
+    UI.txt('loadError', 'Session tidak valid. Redirect...');
+    return;
+  }
+
+  // 2. Cek apakah sudah pernah ready
+  const myLogin = await fetchMyLogin();
+
+  if (myLogin?.status === 'finished' || myLogin?.status === 'eliminated') {
+    // Sudah selesai → frozen
+    STATE.sessionId = myLogin.session_id;
+    STATE.progressMap = await fetchMyProgress();
+    STATE.bankStartedAt = myLogin.bank_started_at;
+    UI.txt('frozenPoints', getTotalPoints());
+    const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
+    UI.txt('frozenLocked', `${locked}`);
+    UI.panel('panelFrozen');
+    LOG.warn('Peserta sudah selesai — frozen');
+    return;
+  }
+
+  if (myLogin?.status === 'ready' || myLogin?.status === 'playing') {
+    // Sudah SIAP → langsung waiting / game
+    STATE.sessionId = myLogin.session_id;
+    STATE.isReady = true;
+
+    const sys = await fetchSystemState();
+    if (sys?.mode === 'game' || sys?.mode === 'simulasi') {
+      STATE.mode = sys.mode;
+      STATE.isPaused = !!sys.is_paused;
+      await enterGameMode();
+    } else {
+      UI.panel('panelWaiting');
+      UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
+    }
+
+    startRealtimeListening();
+    return;
+  }
+
+  // 3. Belum ready → tampil ready panel
+  UI.txt('readyName', STATE.user.full_name || STATE.user.unique_id);
+  UI.panel('panelReady');
+  UI.dbg('ready', '-', '--:--', '-');
+
+  // Prefetch state untuk tahu mode
+  const sys = await fetchSystemState();
+  if (sys) {
+    STATE.mode = sys.mode || 'idle';
+    STATE.isPaused = !!sys.is_paused;
+  }
+
+  LOG.ok('══════════ READY ══════════');
+})();
+
+// Expose ke window (untuk onclick)
+window.pressReady = pressReady;
+window.selectLevel = selectLevel;
+window.backToLevelSelect = backToLevelSelect;
+window.chooseOption = chooseOption;
+window.pressBell = pressBell;
+window.chooseUlangi = chooseUlangi;
+window.chooseLanjut = chooseLanjut;
+</script>
+</body>
+</html>

@@ -84,6 +84,20 @@
       opacity: 0.4;
       cursor: not-allowed;
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       PANEL LOCKED STATE — visual jelas biar tidak bingung
+       ═══════════════════════════════════════════════════════════ */
+    .panel-locked {
+      opacity: 0.35 !important;
+      filter: grayscale(1);
+      cursor: not-allowed !important;
+    }
+    .tab-locked {
+      opacity: 0.35 !important;
+      filter: grayscale(1);
+      cursor: not-allowed !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
@@ -171,11 +185,15 @@
       <!-- Dual Panel Display -->
       <div class="grid grid-cols-2 gap-3">
         <div id="panelBlue" onclick="switchPanel('blue')" class="cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-blue-500 ring-2 ring-blue-500/30">
-          <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider text-left">Jawaban Biru</div>
+          <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider text-left">
+            Jawaban Biru <span id="lockIconBlue" class="hidden">🔒</span>
+          </div>
           <div id="displayBlue" class="text-3xl font-mono font-bold tracking-wider text-amber-400 min-h-[40px] flex items-center justify-end break-all">-</div>
         </div>
         <div id="panelRed" onclick="switchPanel('red')" class="cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60">
-          <div class="text-[10px] font-bold text-red-400 uppercase tracking-wider text-left">Jawaban Merah</div>
+          <div class="text-[10px] font-bold text-red-400 uppercase tracking-wider text-left">
+            Jawaban Merah <span id="lockIconRed" class="hidden">🔒</span>
+          </div>
           <div id="displayRed" class="text-3xl font-mono font-bold tracking-wider text-amber-400 min-h-[40px] flex items-center justify-end break-all">-</div>
         </div>
       </div>
@@ -232,6 +250,8 @@
       TOTAL_TIME_SECONDS: 300
     };
 
+    const DEFAULT_QUOTA = 2;
+
     // ═══════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════
@@ -239,31 +259,25 @@
     let selectedSchool = '';
     let selectedStudent = null;
 
-    // Freeze state
     let isFrozen = true;
     let frozenReason = '';
-
-    // Submit state
     let isSubmitting = false;
 
-    // Timer state
     let timerInterval = null;
     let timerStartMs = null;
     let lastTimerSecond = -1;
 
-    // Control state
     let lastControlSig = '';
 
     // Number Disco state
     let activePanel = 'blue';
     let valBlue = "-";
     let valRed = "-";
-    let inputLeftBlue = 2;
-    let inputLeftRed = 2;
+    let inputLeftBlue = DEFAULT_QUOTA;
+    let inputLeftRed = DEFAULT_QUOTA;
     let targetAnswerBlue = null;
     let targetAnswerRed = null;
 
-    // Question signature (untuk deteksi soal baru)
     let lastQuestionSig = '';
 
     // DOM
@@ -282,7 +296,6 @@
       isFrozen = true;
       frozenReason = reason || '';
 
-      // ✅ Reset timer state saat freeze
       stopTimer();
       timerStartMs = null;
       lastTimerSecond = -1;
@@ -315,11 +328,7 @@
       }
 
       overlay.classList.remove('hidden');
-
-      // Disable semua input & tombol
       disableAllButtons();
-
-      // Hide timer
       timerDisplay.classList.add('hidden');
 
       LOG.warn('KIOSK', 'Frozen: ' + reason);
@@ -332,8 +341,10 @@
       const overlay = document.getElementById('freezeOverlay');
       overlay.classList.add('hidden');
 
-      // ✅ Re-enable semua tombol (kecuali yang di-lock oleh kuota)
       enableAllButtons();
+
+      // ⭐ Re-apply panel locks setelah unfreeze
+      // supaya panel yang locked tetap terlihat locked
       updatePanelLocks();
 
       const badge = document.getElementById('statusText');
@@ -344,22 +355,17 @@
     }
 
     function disableAllButtons() {
-      document.querySelectorAll('button').forEach(b => {
-        // Skip tombol freeze overlay (kalau ada)
-        b.disabled = true;
-      });
-      document.querySelectorAll('input').forEach(i => i.disabled = true);
+      document.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      document.querySelectorAll('input').forEach(i => { i.disabled = true; });
     }
 
     function enableAllButtons() {
-      document.querySelectorAll('button').forEach(b => {
-        b.disabled = false;
-      });
-      document.querySelectorAll('input').forEach(i => i.disabled = false);
+      document.querySelectorAll('button').forEach(b => { b.disabled = false; });
+      document.querySelectorAll('input').forEach(i => { i.disabled = false; });
     }
 
     // ═══════════════════════════════════════════════════════════
-    // TIMER (sync dari DB: system_number_disco_question.updated_at)
+    // TIMER
     // ═══════════════════════════════════════════════════════════
     function startRealtimeTimer() {
       stopTimer();
@@ -370,7 +376,7 @@
       }
 
       timerDisplay.classList.remove('hidden');
-      lastTimerSecond = -1;  // ✅ Reset
+      lastTimerSecond = -1;
 
       const tick = () => {
         const now = Date.now();
@@ -381,7 +387,6 @@
         const secs = remainingSeconds % 60;
         timerText.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-        // Warna berubah saat kritis
         if (remainingSeconds <= 30) {
           timerText.parentElement.className = "bg-rose-500/20 border border-rose-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-300";
         } else if (remainingSeconds <= 60) {
@@ -390,7 +395,6 @@
           timerText.parentElement.className = "bg-emerald-500/20 border border-emerald-500/50 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-300";
         }
 
-        // ✅ Waktu habis → freeze kiosk (hanya sekali)
         if (remainingSeconds <= 0 && lastTimerSecond > 0) {
           clearInterval(timerInterval);
           timerInterval = null;
@@ -466,7 +470,6 @@
         btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition';
         btn.innerHTML = `<span>🏫 ${school}</span> <span class="text-xs text-amber-400">Pilih →</span>`;
         btn.onclick = () => selectSchool(school);
-        // ✅ Re-apply disabled state kalau sedang frozen
         if (isFrozen) btn.disabled = true;
         schoolList.appendChild(btn);
       });
@@ -515,6 +518,9 @@
       stepStudent.classList.add('hidden');
       stepCalculator.classList.remove('hidden');
 
+      // ⭐ Reset active panel ke biru setiap buka kalkulator
+      activePanel = 'blue';
+
       await loadQuestionData();
       await checkInputLimits();
       startRealtimeTimer();
@@ -523,8 +529,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LOAD DATA SOAL dari system_number_disco_question
-    // ✅ Pakai generated_at kalau ada, fallback ke updated_at
+    // LOAD DATA SOAL
     // ═══════════════════════════════════════════════════════════
     async function loadQuestionData() {
       const { data, error } = await supabaseClient
@@ -541,7 +546,6 @@
       targetAnswerBlue = data.blue_answer;
       targetAnswerRed = data.red_answer;
 
-      // ✅ Prioritas: generated_at → updated_at
       const timestamp = data.generated_at || data.updated_at;
       timerStartMs = new Date(timestamp).getTime();
 
@@ -563,11 +567,11 @@
       if (!data) {
         const { data: newData } = await supabaseClient
           .from('system_input_max_number_disco')
-          .insert([{ user_unique_id: userUniqueId, color: color, input_left: 2 }])
+          .insert([{ user_unique_id: userUniqueId, color: color, input_left: DEFAULT_QUOTA }])
           .select('input_left')
           .single();
 
-        return newData ? newData.input_left : 2;
+        return newData ? newData.input_left : DEFAULT_QUOTA;
       }
 
       return data.input_left;
@@ -579,76 +583,168 @@
       inputLeftBlue = await getOrInitInputLeft(selectedStudent.unique_id, 'blue');
       inputLeftRed = await getOrInitInputLeft(selectedStudent.unique_id, 'red');
 
+      LOG.info('QUOTA', `Blue=${inputLeftBlue}, Red=${inputLeftRed}`);
+
       updatePanelLocks();
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // ✅ UPDATE PANEL LOCKS (FIXED VERSION)
+    // - Lock visual per panel (bukan paksa switch)
+    // - Auto-switch HANYA kalau panel aktif sekarang locked
+    // - Badge "HABIS" saat kuota 0
+    // - Lock icon muncul saat locked
+    // ═══════════════════════════════════════════════════════════
     function updatePanelLocks() {
-      const badgeBlue = document.getElementById('badgeBlue');
-      const badgeRed = document.getElementById('badgeRed');
-      const btnSubmit = document.getElementById('btnSubmitAnswer');
-
-      badgeBlue.textContent = `(Tersisa ${Math.max(0, inputLeftBlue)}x)`;
-      badgeRed.textContent = `(Tersisa ${Math.max(0, inputLeftRed)}x)`;
-
-      // ✅ Kalau frozen, jangan enable submit
-      if (isFrozen) {
-        btnSubmit.disabled = true;
-        document.getElementById('btnSubmitText').textContent = "MENUNGGU SESI...";
-        return;
-      }
-
-      btnSubmit.disabled = false;
-      document.getElementById('btnSubmitText').textContent = "SUBMIT JAWABAN 🚀";
-
-      if (inputLeftBlue <= 0 && inputLeftRed > 0) {
-        switchPanel('red');
-      } else if (inputLeftRed <= 0 && inputLeftBlue > 0) {
-        switchPanel('blue');
-      } else if (inputLeftBlue <= 0 && inputLeftRed <= 0) {
-        btnSubmit.disabled = true;
-        document.getElementById('btnSubmitText').textContent = "BATAS PENGISIAN HABIS 🔒";
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // PANEL SWITCH
-    // ═══════════════════════════════════════════════════════════
-    function switchPanel(panel) {
-      if (panel === 'blue' && inputLeftBlue <= 0) return;
-      if (panel === 'red' && inputLeftRed <= 0) return;
-
-      activePanel = panel;
       const pBlue = document.getElementById('panelBlue');
       const pRed = document.getElementById('panelRed');
       const tabBlue = document.getElementById('tabBlue');
       const tabRed = document.getElementById('tabRed');
+      const badgeBlue = document.getElementById('badgeBlue');
+      const badgeRed = document.getElementById('badgeRed');
+      const lockIconBlue = document.getElementById('lockIconBlue');
+      const lockIconRed = document.getElementById('lockIconRed');
+      const btnSubmit = document.getElementById('btnSubmitAnswer');
+      const btnText = document.getElementById('btnSubmitText');
 
-      if (panel === 'blue') {
-        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-blue-500 ring-2 ring-blue-500/30";
-        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
-        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-blue-900/40 border-blue-500 text-blue-300";
-        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
-      } else {
-        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-red-500 ring-2 ring-red-500/30";
-        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
-        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-red-900/40 border-red-500 text-red-300";
-        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
+      const blueLocked = inputLeftBlue <= 0;
+      const redLocked = inputLeftRed <= 0;
+
+      LOG.info('LOCKS', `BlueLocked=${blueLocked}, RedLocked=${redLocked}, active=${activePanel}`);
+
+      // ═══════════════════════════════════════════════════════
+      // 1. UPDATE BADGE
+      // ═══════════════════════════════════════════════════════
+      badgeBlue.textContent = blueLocked ? '🔒 HABIS' : `(Tersisa ${inputLeftBlue}x)`;
+      badgeRed.textContent  = redLocked  ? '🔒 HABIS' : `(Tersisa ${inputLeftRed}x)`;
+
+      // ═══════════════════════════════════════════════════════
+      // 2. UPDATE LOCK ICON
+      // ═══════════════════════════════════════════════════════
+      if (blueLocked) lockIconBlue.classList.remove('hidden');
+      else lockIconBlue.classList.add('hidden');
+
+      if (redLocked) lockIconRed.classList.remove('hidden');
+      else lockIconRed.classList.add('hidden');
+
+      // ═══════════════════════════════════════════════════════
+      // 3. AUTO-SWITCH HANYA KALAU PANEL AKTIF LOCKED
+      // ═══════════════════════════════════════════════════════
+      const activeIsLocked =
+        (activePanel === 'blue' && blueLocked) ||
+        (activePanel === 'red' && redLocked);
+
+      if (activeIsLocked) {
+        if (!blueLocked) {
+          activePanel = 'blue';
+          LOG.info('LOCKS', 'Auto-switch → blue');
+        } else if (!redLocked) {
+          activePanel = 'red';
+          LOG.info('LOCKS', 'Auto-switch → red');
+        }
       }
+
+      // ═══════════════════════════════════════════════════════
+      // 4. VISUAL: PANEL BIRU
+      // ═══════════════════════════════════════════════════════
+      if (blueLocked) {
+        // Biru LOCKED — visual abu-abu
+        pBlue.className = "cursor-not-allowed border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-800 panel-locked";
+        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-950 border-slate-800 text-slate-600 tab-locked";
+        tabBlue.disabled = true;
+      } else if (activePanel === 'blue') {
+        // Biru AKTIF
+        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-blue-500 ring-2 ring-blue-500/30";
+        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-blue-900/40 border-blue-500 text-blue-300";
+        tabBlue.disabled = false;
+      } else {
+        // Biru IDLE (available tapi tidak aktif)
+        pBlue.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
+        tabBlue.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
+        tabBlue.disabled = false;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // 5. VISUAL: PANEL MERAH
+      // ═══════════════════════════════════════════════════════
+      if (redLocked) {
+        // Merah LOCKED — visual abu-abu
+        pRed.className = "cursor-not-allowed border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-800 panel-locked";
+        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-950 border-slate-800 text-slate-600 tab-locked";
+        tabRed.disabled = true;
+      } else if (activePanel === 'red') {
+        // Merah AKTIF
+        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-red-500 ring-2 ring-red-500/30";
+        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-red-900/40 border-red-500 text-red-300";
+        tabRed.disabled = false;
+      } else {
+        // Merah IDLE
+        pRed.className = "cursor-pointer border-2 rounded-2xl p-3 bg-slate-950 text-right transition border-slate-700 opacity-60";
+        tabRed.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex flex-col items-center gap-1 bg-slate-900 border-slate-700 text-slate-400";
+        tabRed.disabled = false;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // 6. SUBMIT BUTTON STATE
+      // ═══════════════════════════════════════════════════════
+      if (isFrozen) {
+        btnSubmit.disabled = true;
+        btnText.textContent = "MENUNGGU SESI...";
+        return;
+      }
+
+      if (blueLocked && redLocked) {
+        btnSubmit.disabled = true;
+        btnText.textContent = "BATAS PENGISIAN HABIS 🔒";
+        return;
+      }
+
+      btnSubmit.disabled = false;
+      btnText.textContent = "SUBMIT JAWABAN 🚀";
     }
 
     // ═══════════════════════════════════════════════════════════
-    // KEYPAD
+    // ✅ SWITCH PANEL (FIXED)
+    // - Block kalau panel locked
+    // - Update activePanel + visual via updatePanelLocks
+    // ═══════════════════════════════════════════════════════════
+    function switchPanel(panel) {
+      if (isFrozen) return;
+
+      if (panel === 'blue' && inputLeftBlue <= 0) {
+        LOG.warn('PANEL', 'Panel Biru locked, tidak bisa switch');
+        return;
+      }
+      if (panel === 'red' && inputLeftRed <= 0) {
+        LOG.warn('PANEL', 'Panel Merah locked, tidak bisa switch');
+        return;
+      }
+
+      activePanel = panel;
+      updatePanelLocks();
+      LOG.info('PANEL', 'Switched to: ' + panel);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // KEYPAD (FIXED — cek lock lebih ketat)
     // ═══════════════════════════════════════════════════════════
     function appendCalc(val) {
       if (isFrozen) return;
+
       if (activePanel === 'blue') {
-        if (inputLeftBlue <= 0) return;
+        if (inputLeftBlue <= 0) {
+          LOG.warn('INPUT', 'Panel Biru locked, input ditolak');
+          return;
+        }
         if (valBlue === "-" || valBlue === "0") valBlue = val;
         else if (valBlue === "-0") valBlue = "-" + val;
         else if (valBlue.length < 10) valBlue += val;
         document.getElementById('displayBlue').textContent = valBlue;
       } else {
-        if (inputLeftRed <= 0) return;
+        if (inputLeftRed <= 0) {
+          LOG.warn('INPUT', 'Panel Merah locked, input ditolak');
+          return;
+        }
         if (valRed === "-" || valRed === "0") valRed = val;
         else if (valRed === "-0") valRed = "-" + val;
         else if (valRed.length < 10) valRed += val;
@@ -674,9 +770,11 @@
     function clearCalc() {
       if (isFrozen) return;
       if (activePanel === 'blue') {
+        if (inputLeftBlue <= 0) return;
         valBlue = "-";
         document.getElementById('displayBlue').textContent = "-";
       } else {
+        if (inputLeftRed <= 0) return;
         valRed = "-";
         document.getElementById('displayRed').textContent = "-";
       }
@@ -685,12 +783,14 @@
     function deleteCalc() {
       if (isFrozen) return;
       if (activePanel === 'blue') {
+        if (inputLeftBlue <= 0) return;
         if (valBlue !== "-" && valBlue.length > 0) {
           valBlue = valBlue.slice(0, -1);
           if (valBlue === "" || valBlue === "-") valBlue = "-";
         }
         document.getElementById('displayBlue').textContent = valBlue;
       } else {
+        if (inputLeftRed <= 0) return;
         if (valRed !== "-" && valRed.length > 0) {
           valRed = valRed.slice(0, -1);
           if (valRed === "" || valRed === "-") valRed = "-";
@@ -700,12 +800,12 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SUBMIT — dengan validasi ulang
+    // SUBMIT (FIXED — refresh kuota sebelum & sesudah submit)
     // ═══════════════════════════════════════════════════════════
     async function submitAnswer() {
       if (isSubmitting || isFrozen || !selectedStudent) return;
 
-      // ✅ Re-check timer sebelum submit
+      // Re-check timer
       if (timerStartMs) {
         const elapsed = Math.floor((Date.now() - timerStartMs) / 1000);
         const remaining = SCORE_CONFIG.TOTAL_TIME_SECONDS - elapsed;
@@ -725,8 +825,14 @@
       const results = [];
       const limitsToUpdate = [];
 
-      // ✅ Re-fetch soal terbaru (anti race condition kalau admin ganti soal mid-submit)
+      // Re-fetch soal terbaru (anti race condition)
       await loadQuestionData();
+
+      // ⭐ Re-fetch kuota terbaru dari DB (anti race condition dengan admin)
+      inputLeftBlue = await getOrInitInputLeft(selectedStudent.unique_id, 'blue');
+      inputLeftRed = await getOrInitInputLeft(selectedStudent.unique_id, 'red');
+
+      LOG.info('SUBMIT', `Kuota realtime: Blue=${inputLeftBlue}, Red=${inputLeftRed}`);
 
       // Evaluasi Biru
       if (valBlue !== "-" && valBlue !== "-0" && inputLeftBlue > 0) {
@@ -790,7 +896,7 @@
         return;
       }
 
-      // Update kuota
+      // Update kuota di DB
       for (const item of limitsToUpdate) {
         await supabaseClient
           .from('system_input_max_number_disco')
@@ -799,7 +905,14 @@
           .eq('color', item.color);
       }
 
+      // ⭐ Update state lokal setelah DB update
+      for (const item of limitsToUpdate) {
+        if (item.color === 'blue') inputLeftBlue = item.newLeft;
+        if (item.color === 'red') inputLeftRed = item.newLeft;
+      }
+
       LOG.ok('SUBMIT', `Submitted: ${results.map(r => r.team + '=' + r.val).join(', ')}`);
+      LOG.info('SUBMIT', `Sisa kuota: Blue=${inputLeftBlue}, Red=${inputLeftRed}`);
 
       triggerFlashEffect(results);
     }
@@ -838,7 +951,6 @@
 
     function resetToStart() {
       stopTimer();
-      // ✅ Reset timer state
       lastTimerSecond = -1;
       timerDisplay.classList.add('hidden');
 
@@ -853,8 +965,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LISTENER CONTROL dari system_number_disco_control
-    // ✅ Realtime + Polling fallback
+    // LISTENER CONTROL
     // ═══════════════════════════════════════════════════════════
     async function checkControlState() {
       const { data, error } = await supabaseClient
@@ -872,20 +983,18 @@
       LOG.step('KIOSK', `Control action: ${data.action}, trigger: ${data.trigger_id}`);
 
       if (data.action === 'START_GAME') {
-        // Admin mulai → unfreeze
         unfreezeKiosk();
-        // ✅ Load soal & restart timer
         await loadQuestionData();
         startRealtimeTimer();
+        LOG.ok('KIOSK', 'Session started');
       } else if (data.action === 'RESET') {
-        // Admin reset → freeze
         freezeKiosk('reset', 'waiting');
         resetToStart();
+        LOG.warn('KIOSK', 'Session reset');
       }
     }
 
     function subscribeControl() {
-      // Realtime
       supabaseClient.channel('kiosk_control_channel')
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -898,16 +1007,13 @@
           LOG.info('REALTIME', 'Kiosk control channel: ' + status);
         });
 
-      // Polling fallback
       setInterval(checkControlState, 2000);
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ✅ REALTIME QUESTION UPDATE + POLLING FALLBACK
-    // Kalau admin generate soal baru (mid-session), update timer
+    // REALTIME QUESTION UPDATE
     // ═══════════════════════════════════════════════════════════
     function subscribeQuestionUpdate() {
-      // Realtime
       supabaseClient.channel('kiosk_question_channel')
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -921,7 +1027,6 @@
           LOG.info('REALTIME', 'Kiosk question channel: ' + status);
         });
 
-      // ✅ Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('system_number_disco_question')
@@ -947,7 +1052,6 @@
       timerStartMs = new Date(timestamp).getTime();
       lastTimerSecond = -1;
 
-      // Kalau peserta sedang di kalkulator, restart timer
       if (selectedStudent && !isFrozen) {
         startRealtimeTimer();
       }
@@ -962,7 +1066,6 @@
       await loadAllParticipants();
       await checkControlState();
 
-      // Default: freeze sampai admin START
       if (lastControlSig === '') {
         freezeKiosk('initial', 'waiting');
       }

@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panitia — Hiding Block</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .glow-emerald { box-shadow: 0 0 35px rgba(16, 185, 129, 0.35); }
+    .glow-rose    { box-shadow: 0 0 35px rgba(244, 63, 94, 0.35); }
+    .glow-amber   { box-shadow: 0 0 35px rgba(245, 158, 11, 0.35); }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+      70%  { box-shadow: 0 0 0 18px rgba(245, 158, 11, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    .pulse-ring { animation: pulseRing 1.6s infinite; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%     { transform: translateX(-4px); }
+      75%     { transform: translateX(4px); }
+    }
+    .shake { animation: shake 0.4s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+
+    @keyframes ringBell {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(-18deg); }
+      40%     { transform: rotate(18deg); }
+      60%     { transform: rotate(-12deg); }
+      80%     { transform: rotate(12deg); }
+    }
+    .ring-bell { animation: ringBell 0.9s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen p-4 md:p-6">
+
+  <!-- DEBUG BADGE -->
+  <div id="dbgBadge"
+       class="fixed top-2 right-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
+    <span id="dbgState">boot</span> · <span id="dbgPeserta">-</span> · <span id="dbgRT">--</span>
+  </div>
+
+  <div class="max-w-4xl mx-auto space-y-4">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- LOGIN PANITIA -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="loginView" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 space-y-5">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 mx-auto bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <h1 class="text-2xl font-black">PANITIA — HIDING BLOCK</h1>
+        <p class="text-xs text-slate-400">Masukkan <b>unique_id</b> panitia untuk memulai tugas pendampingan</p>
+      </div>
+
+      <div class="space-y-3">
+        <input id="inputPanitiaId" type="text" placeholder="contoh: panitia_a"
+               onkeydown="if(event.key==='Enter') loginPanitia()"
+               class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-indigo-500 transition" />
+        <button onclick="loginPanitia()"
+                class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-white transition flex items-center justify-center gap-2 active:scale-95">
+          <i class="fas fa-right-to-bracket"></i> Masuk Sebagai Panitia
+        </button>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 text-[11px] text-slate-500 space-y-1">
+        <p><i class="fas fa-info-circle text-cyan-400"></i> Setiap panitia hanya mendampingi 1 peserta.</p>
+        <p><i class="fas fa-lock text-amber-400"></i> Anda tidak dapat melihat peserta yang bukan asuhan Anda.</p>
+        <p><i class="fas fa-triangle-exclamation text-rose-400"></i> Tugas tidak dapat dibatalkan sampai sesi selesai.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- WAITING VIEW (belum di-assign peserta) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="waitingView" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
+      <div class="w-20 h-20 mx-auto bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center text-amber-400 text-3xl pulse-ring">
+        <i class="fas fa-hourglass-half"></i>
+      </div>
+      <h2 class="text-xl font-black">Menunggu Assign Peserta</h2>
+      <p class="text-sm text-slate-400 max-w-md mx-auto">
+        Admin belum menugaskan peserta untuk Anda. Halaman akan otomatis menampilkan peserta begitu admin melakukan assign.
+      </p>
+
+      <div class="inline-block px-4 py-2 rounded-xl bg-slate-800 border border-slate-700">
+        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Anda login sebagai</div>
+        <div id="waitingPanitiaId" class="font-mono font-bold text-indigo-400"></div>
+      </div>
+
+      <button onclick="logoutPanitia()"
+              class="text-xs text-rose-400 hover:text-rose-300 underline">
+        <i class="fas fa-arrow-left"></i> Ganti akun
+      </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- ACTIVE VIEW (sudah di-assign peserta) -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="activeView" class="hidden space-y-4">
+
+      <!-- Header Info -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400">
+            <i class="fas fa-user-shield text-xl"></i>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Panitia</div>
+            <div id="activePanitiaId" class="font-bold text-slate-100">-</div>
+          </div>
+        </div>
+
+        <div class="h-8 w-px bg-slate-700 hidden md:block"></div>
+
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-center text-emerald-400">
+            <i class="fas fa-user text-xl"></i>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-500 uppercase tracking-wider">Peserta Asuhan</div>
+            <div id="activePesertaId" class="font-bold text-emerald-300">-</div>
+          </div>
+        </div>
+
+        <div class="h-8 w-px bg-slate-700 hidden md:block"></div>
+
+        <div class="flex items-center gap-2">
+          <span id="statusBadge"
+                class="text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-slate-800 text-slate-400 border-slate-700 font-mono">
+            IDLE
+          </span>
+          <span id="connBadge"
+                class="text-[10px] font-bold px-2 py-1.5 rounded-lg border bg-emerald-500/10 text-emerald-400 border-emerald-500/40 font-mono">
+            ● RT
+          </span>
+        </div>
+      </div>
+
+      <!-- Statistik Peserta -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Poin Sementara</div>
+          <div id="statPoints" class="text-3xl font-black text-amber-400 font-mono">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Gambar Selesai</div>
+          <div id="statLocked" class="text-3xl font-black text-emerald-400 font-mono">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Attempt</div>
+          <div id="statAttempt" class="text-3xl font-black text-indigo-400 font-mono">0</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <div class="text-[10px] text-slate-500 uppercase tracking-wider">Bank Tersisa</div>
+          <div id="statBank" class="text-3xl font-black text-rose-400 font-mono">--:--</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- ALERT ZONE: peserta tekan bel -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <div id="alertZone" class="hidden bg-gradient-to-br from-amber-950/80 via-amber-900/50 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-8 glow-amber space-y-6 fade-in">
+        <div class="text-center space-y-3">
+          <div class="w-24 h-24 mx-auto bg-amber-500/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-400 text-5xl ring-bell">
+            <i class="fas fa-bell"></i>
+          </div>
+          <div class="space-y-1">
+            <h2 class="text-2xl font-black text-amber-300">PESERTA MENEKAN BEL!</h2>
+            <p class="text-sm text-amber-200/80">Periksa hasil kerja peserta, lalu pilih keputusan:</p>
+          </div>
+        </div>
+
+        <!-- Info Attempt -->
+        <div class="bg-slate-950/60 border border-amber-500/30 rounded-2xl p-5 space-y-3">
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Level</div>
+              <div id="alertLevel" class="text-3xl font-black text-white font-mono">-</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Pilihan</div>
+              <div id="alertChoice" class="text-3xl font-black text-white font-mono uppercase">-</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Waktu</div>
+              <div id="alertDuration" class="text-3xl font-black text-amber-300 font-mono">-</div>
+            </div>
+          </div>
+
+          <div class="border-t border-amber-500/20 pt-3 text-center">
+            <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Poin Jika Benar</div>
+            <div id="alertPoin" class="text-2xl font-black text-emerald-400 font-mono">+0</div>
+          </div>
+        </div>
+
+        <!-- Tombol Keputusan -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button onclick="verdict('benar')" id="btnBenar"
+                  class="py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg transition active:scale-95 glow-emerald flex items-center justify-center gap-3 shadow-lg">
+            <i class="fas fa-check-circle text-2xl"></i>
+            <span>BENAR</span>
+          </button>
+          <button onclick="verdict('salah')" id="btnSalah"
+                  class="py-5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-lg transition active:scale-95 glow-rose flex items-center justify-center gap-3 shadow-lg">
+            <i class="fas fa-times-circle text-2xl"></i>
+            <span>SALAH</span>
+          </button>
+        </div>
+
+        <div class="text-center text-[11px] text-amber-400/60">
+          <i class="fas fa-info-circle"></i>
+          Keputusan <b>TIDAK BISA</b> dibatalkan. Pastikan sudah yakin sebelum menekan.
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- IDLE ZONE: peserta sedang mengerjakan -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <div id="idleZone" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
+        <div class="w-16 h-16 mx-auto bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center text-slate-500 text-2xl">
+          <i class="fas fa-eye"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-200">Mengawasi Peserta</h3>
+        <p class="text-sm text-slate-400">Peserta sedang mengerjakan. Anda akan menerima notifikasi saat peserta menekan bel.</p>
+        <div class="text-[11px] text-slate-500">
+          <i class="fas fa-clock"></i> Bank waktu berjalan hanya saat peserta membuka gambar
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- RIWAYAT ATTEMPT -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
+          <i class="fas fa-list-ul text-indigo-400"></i> Riwayat Attempt Peserta
+          <span id="historyCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded font-mono">0</span>
+        </h3>
+        <div id="historyList" class="space-y-2 max-h-[300px] overflow-y-auto custom-scroll pr-1">
+          <p class="text-xs text-slate-500 text-center py-6">Belum ada riwayat attempt.</p>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- BOTTOM BAR: tidak bisa logout -->
+      <!-- ═══════════════════════════════════════════════════════ -->
+      <div class="bg-slate-900 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2 text-amber-400">
+          <i class="fas fa-lock"></i>
+          <span>Tugas aktif — tidak bisa dibatalkan sampai sesi selesai.</span>
+        </div>
+        <div class="text-slate-500 font-mono">
+          Session: <span id="sessionIdDisplay">-</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- MODAL KONFIRMASI VERDICT -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full space-y-4 fade-in">
+      <div id="modalIconWrap" class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto">
+        <i id="modalIcon" class="fas fa-question"></i>
+      </div>
+      <h3 id="modalTitle" class="text-xl font-bold text-center">Konfirmasi</h3>
+      <p id="modalBody" class="text-sm text-slate-300 text-center"></p>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal()" class="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 font-semibold text-sm transition">Batal</button>
+        <button id="modalConfirmBtn" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TOAST -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
+
+  <!-- AUDIO NOTIF -->
+  <audio id="bellNotif" src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3" preload="auto"></audio>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TAG = '[PANITIA-HB]';
+const BANK_GAME_SEC = 1800;
+
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG = {
+  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  panitiaId: null,
+  pesertaId: null,
+  sessionId: null,
+
+  // Attempt yang sedang dinilai
+  pendingAttempt: null,
+
+  // Cache
+  history: [],
+  stats: {
+    points: 0,
+    locked: 0,
+    attempt: 0,
+    bankRemaining: 0
+  },
+
+  realtimeConnected: false,
+  bankTick: null
+};
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const UI = {
+  el: id => document.getElementById(id),
+  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
+  show(id) { UI.el(id)?.classList.remove('hidden'); },
+  hide(id) { UI.el(id)?.classList.add('hidden'); },
+  dbg(state, peserta, rt) {
+    UI.txt('dbgState', state);
+    if (peserta !== undefined) UI.txt('dbgPeserta', peserta || '-');
+    if (rt !== undefined) UI.txt('dbgRT', rt);
+  }
+};
+
+function toast(msg, type='info') {
+  const colors = {
+    info:    'bg-slate-800 border-slate-600 text-slate-200',
+    success: 'bg-emerald-600/90 border-emerald-500 text-white',
+    warn:    'bg-amber-600/90 border-amber-500 text-white',
+    error:   'bg-rose-600/90 border-rose-500 text-white'
+  };
+  const el = document.createElement('div');
+  el.className = `${colors[type]} px-4 py-2.5 rounded-xl border shadow-2xl text-sm font-semibold pointer-events-auto fade-in`;
+  el.textContent = msg;
+  UI.el('toastWrap').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function showModal({ title, body, confirmText, icon, danger, onConfirm }) {
+  UI.txt('modalTitle', title);
+  UI.txt('modalBody', body);
+  const btn = UI.el('modalConfirmBtn');
+  btn.textContent = confirmText;
+  btn.className = `flex-1 py-2.5 rounded-xl font-bold text-sm transition ${
+    danger ? 'bg-rose-600 hover:bg-rose-500 text-white'
+           : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+  }`;
+  btn.onclick = async () => { closeModal(); if (onConfirm) await onConfirm(); };
+  UI.el('modalIcon').className = `fas ${icon}`;
+  UI.el('modalIconWrap').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto ${
+    danger ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+           : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+  }`;
+  UI.show('modal');
+}
+function closeModal() { UI.hide('modal'); }
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════════════
+function playBell() {
+  const bell = UI.el('bellNotif');
+  if (!bell) return;
+  try {
+    bell.currentTime = 0;
+    bell.play().catch(() => LOG.warn('Autoplay bell diblokir browser'));
+  } catch (e) { LOG.warn('bell error', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUDIT LOG
+// ═══════════════════════════════════════════════════════════
+async function writeAudit(action, metadata = {}) {
+  try {
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.panitiaId,
+      user_role: 'panitia',
+      action,
+      metadata
+    });
+  } catch (e) { LOG.err('writeAudit', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+async function loginPanitia() {
+  const input = UI.el('inputPanitiaId');
+  const val = (input?.value || '').trim();
+
+  if (!val) { toast('Masukkan unique_id panitia', 'warn'); return; }
+  if (val.length < 3) { toast('Unique ID minimal 3 karakter', 'warn'); return; }
+
+  LOG.info(`Login panitia: ${val}`);
+  STATE.panitiaId = val;
+  sessionStorage.setItem('panitia_hb_id', val);
+
+  // Ambil session_id dari sistem (yang aktif)
+  const sid = await getCurrentSessionId();
+  STATE.sessionId = sid;
+
+  // Cek assignment
+  await checkAssignment();
+
+  // Subscribe realtime
+  subscribeRealtime();
+
+  UI.hide('loginView');
+  UI.txt('sessionIdDisplay', sid ? sid.slice(0, 8) + '...' : '-');
+  LOG.ok(`Panitia logged in: ${val}`);
+}
+
+function logoutPanitia() {
+  if (STATE.pesertaId) {
+    toast('Tugas aktif — tidak bisa logout sampai sesi selesai.', 'error');
+    return;
+  }
+  sessionStorage.removeItem('panitia_hb_id');
+  STATE.panitiaId = null;
+  STATE.pesertaId = null;
+  UI.show('loginView');
+  UI.hide('waitingView');
+  UI.hide('activeView');
+}
+
+async function getCurrentSessionId() {
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('session_id')
+      .order('joined_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data?.session_id || null;
+  } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CEK ASSIGNMENT
+// ═══════════════════════════════════════════════════════════
+async function checkAssignment() {
+  if (!STATE.panitiaId) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_panitia')
+      .select('*')
+      .eq('panitia_unique_id', STATE.panitiaId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) { LOG.warn('checkAssignment', error.message); }
+
+    if (data && data.peserta_unique_id) {
+      STATE.pesertaId = data.peserta_unique_id;
+      STATE.sessionId = data.session_id;
+      await enterActiveView();
+    } else {
+      enterWaitingView();
+    }
+  } catch (e) { LOG.err('checkAssignment exception', e); }
+}
+
+function enterWaitingView() {
+  UI.hide('loginView');
+  UI.hide('activeView');
+  UI.show('waitingView');
+  UI.txt('waitingPanitiaId', STATE.panitiaId);
+  UI.dbg('waiting', '-', STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+async function enterActiveView() {
+  UI.hide('loginView');
+  UI.hide('waitingView');
+  UI.show('activeView');
+
+  UI.txt('activePanitiaId', STATE.panitiaId);
+  UI.txt('activePesertaId', STATE.pesertaId);
+
+  LOG.ok(`Peserta asuhan: ${STATE.pesertaId}`);
+
+  // Load stats & history
+  await loadStats();
+  await loadHistory();
+
+  // Cek apakah ada pending attempt (kalau peserta sedang tekan bel)
+  await checkPendingAttempt();
+
+  UI.dbg('active', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATS PESERTA
+// ═══════════════════════════════════════════════════════════
+async function loadStats() {
+  if (!STATE.pesertaId) return;
+
+  try {
+    // Bank time
+    const { data: login } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('bank_started_at, status')
+      .eq('user_unique_id', STATE.pesertaId)
+      .maybeSingle();
+
+    if (login?.bank_started_at) {
+      const startedMs = new Date(login.bank_started_at).getTime();
+      const elapsed = Math.floor((Date.now() - startedMs) / 1000);
+      STATE.stats.bankRemaining = Math.max(0, BANK_GAME_SEC - elapsed);
+    } else {
+      STATE.stats.bankRemaining = BANK_GAME_SEC;
+    }
+
+    // Progress
+    const { data: progress } = await supabaseClient
+      .from('hiding_block_progress')
+      .select('*')
+      .eq('user_unique_id', STATE.pesertaId);
+
+    if (progress) {
+      const locked = progress.filter(p => p.status === 'locked');
+      STATE.stats.locked = locked.length;
+      STATE.stats.points = locked.reduce((s, p) => s + (p.points_awarded || 0), 0);
+      STATE.stats.attempt = progress.length;
+    }
+
+    renderStats();
+
+    // Start bank tick
+    if (!STATE.bankTick) {
+      STATE.bankTick = setInterval(() => {
+        if (STATE.stats.bankRemaining > 0) {
+          STATE.stats.bankRemaining--;
+          renderStats();
+        }
+      }, 1000);
+    }
+  } catch (e) { LOG.err('loadStats exception', e); }
+}
+
+function renderStats() {
+  UI.txt('statPoints', STATE.stats.points);
+  UI.txt('statLocked', `${STATE.stats.locked}/10`);
+  UI.txt('statAttempt', STATE.stats.attempt);
+
+  const rem = STATE.stats.bankRemaining;
+  const mm = String(Math.floor(rem / 60)).padStart(2, '0');
+  const ss = String(rem % 60).padStart(2, '0');
+  UI.txt('statBank', `${mm}:${ss}`);
+
+  const bankEl = UI.el('statBank');
+  if (bankEl) {
+    if (rem < 300) bankEl.className = 'text-3xl font-black text-rose-500 font-mono animate-pulse';
+    else if (rem < 900) bankEl.className = 'text-3xl font-black text-amber-400 font-mono';
+    else bankEl.className = 'text-3xl font-black text-rose-400 font-mono';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════
+async function loadHistory() {
+  if (!STATE.pesertaId) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .select('*')
+      .eq('user_unique_id', STATE.pesertaId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) { LOG.warn('loadHistory', error.message); }
+    STATE.history = data || [];
+    renderHistory();
+  } catch (e) { LOG.err('loadHistory exception', e); }
+}
+
+function renderHistory() {
+  const c = UI.el('historyList');
+  if (!c) return;
+
+  UI.txt('historyCount', STATE.history.length);
+
+  if (STATE.history.length === 0) {
+    c.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Belum ada riwayat attempt.</p>`;
+    return;
+  }
+
+  c.innerHTML = '';
+  STATE.history.forEach(h => {
+    const statusMeta = {
+      in_progress:      { color: 'indigo',  label: 'IN PROGRESS', icon: 'fa-spinner' },
+      waiting_verdict:  { color: 'amber',   label: 'MENUNGGU',    icon: 'fa-hourglass-half' },
+      locked:           { color: 'emerald', label: 'LOCKED ✓',    icon: 'fa-lock' },
+      wrong_continued:  { color: 'rose',    label: 'SALAH-LANJUT',icon: 'fa-forward' },
+      surrendered:      { color: 'slate',   label: 'MENYERAH',    icon: 'fa-flag' },
+      timeup:           { color: 'slate',   label: 'TIME UP',     icon: 'fa-clock' }
+    };
+    const meta = statusMeta[h.status] || statusMeta.in_progress;
+    const dur = h.duration_sec ? `${Math.floor(h.duration_sec/60)}m ${h.duration_sec%60}s` : '-';
+
+    const div = document.createElement('div');
+    div.className = 'p-3 rounded-xl border bg-slate-800/40 border-slate-700 text-xs flex items-center gap-3';
+    div.innerHTML = `
+      <div class="w-16 flex-shrink-0">
+        <div class="font-mono font-bold text-slate-200">L${h.level}${h.choice.toUpperCase()}</div>
+        <div class="text-[10px] text-slate-500">#${h.attempt_count}</div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-${meta.color}-500/20 text-${meta.color}-300 border border-${meta.color}-500/30 text-[10px] font-bold">
+            <i class="fas ${meta.icon}"></i> ${meta.label}
+          </span>
+          <span class="text-[10px] text-slate-500">${dur}</span>
+        </div>
+        ${h.points_awarded ? `<div class="text-[10px] text-emerald-400 font-mono mt-1">+${h.points_awarded} pts</div>` : ''}
+      </div>
+      <div class="text-[10px] text-slate-500 font-mono text-right">
+        ${new Date(h.created_at).toLocaleTimeString('id-ID')}
+      </div>
+    `;
+    c.appendChild(list => div);
+    c.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CEK PENDING ATTEMPT (saat buka halaman, ada peserta tekan bel?)
+// ═══════════════════════════════════════════════════════════
+async function checkPendingAttempt() {
+  if (!STATE.pesertaId) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .select('*')
+      .eq('user_unique_id', STATE.pesertaId)
+      .eq('status', 'waiting_verdict')
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) { LOG.warn('checkPendingAttempt', error.message); }
+
+    if (data) {
+      LOG.ok('Pending attempt ditemukan — tampilkan alert');
+      showAlert(data);
+    } else {
+      hideAlert();
+    }
+  } catch (e) { LOG.err('checkPendingAttempt exception', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALERT ZONE
+// ═══════════════════════════════════════════════════════════
+function showAlert(attempt) {
+  STATE.pendingAttempt = attempt;
+
+  UI.txt('alertLevel', attempt.level);
+  UI.txt('alertChoice', (attempt.choice || '').toUpperCase());
+
+  const dur = attempt.duration_sec || 0;
+  const mm = String(Math.floor(dur / 60)).padStart(2, '0');
+  const ss = String(dur % 60).padStart(2, '0');
+  UI.txt('alertDuration', `${mm}:${ss}`);
+
+  // Hitung poin jika benar
+  const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
+  const TARGET = 600;
+  let multiplier;
+  if (dur <= TARGET) {
+    multiplier = 1 - (0.5 * dur / TARGET);
+  } else {
+    multiplier = 0.5;
+  }
+  const poin = Math.round(poinMax * multiplier);
+  UI.txt('alertPoin', `+${poin}`);
+
+  UI.show('alertZone');
+  UI.hide('idleZone');
+  UI.el('alertZone').classList.add('shake');
+  setTimeout(() => UI.el('alertZone').classList.remove('shake'), 400);
+
+  // Bunyi bel notif
+  playBell();
+
+  // Update status badge
+  UI.txt('statusBadge', 'MENUNGGU PENILAIAN');
+  const badge = UI.el('statusBadge');
+  badge.className = 'text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-amber-500/20 text-amber-300 border-amber-500/40 font-mono pulse-ring';
+
+  UI.dbg('alert', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+function hideAlert() {
+  STATE.pendingAttempt = null;
+  UI.hide('alertZone');
+  UI.show('idleZone');
+  UI.txt('statusBadge', 'MENGAWASI');
+  const badge = UI.el('statusBadge');
+  badge.className = 'text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-slate-800 text-slate-400 border-slate-700 font-mono';
+  UI.dbg('active', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+// ═══════════════════════════════════════════════════════════
+// VERDICT (BENAR / SALAH)
+// ═══════════════════════════════════════════════════════════
+async function verdict(keputusan) {
+  if (!STATE.pendingAttempt) {
+    toast('Tidak ada attempt yang perlu dinilai.', 'warn');
+    return;
+  }
+
+  const attempt = STATE.pendingAttempt;
+
+  const isBenar = keputusan === 'benar';
+  const icon = isBenar ? 'fa-check-circle' : 'fa-times-circle';
+  const title = isBenar ? 'Konfirmasi: BENAR?' : 'Konfirmasi: SALAH?';
+  const body = isBenar
+    ? `Peserta akan mendapat poin dan gambar Level ${attempt.level}${attempt.choice.toUpperCase()} akan TERKUNCI PERMANEN.`
+    : `Peserta akan diminta memilih LANJUT atau ULANGI. Gambar tidak akan terkunci.`;
+
+  showModal({
+    title, body,
+    confirmText: isBenar ? 'Ya, Benar' : 'Ya, Salah',
+    icon,
+    danger: !isBenar,
+    onConfirm: async () => { await submitVerdict(attempt, keputusan); }
+  });
+}
+
+async function submitVerdict(attempt, keputusan) {
+  // Disable tombol sementara
+  UI.el('btnBenar').disabled = true;
+  UI.el('btnSalah').disabled = true;
+
+  const now = new Date().toISOString();
+  const dur = attempt.duration_sec || 0;
+  const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
+  const TARGET = 600;
+  let multiplier = dur <= TARGET ? 1 - (0.5 * dur / TARGET) : 0.5;
+  const poin = keputusan === 'benar' ? Math.round(poinMax * multiplier) : 0;
+
+  const newStatus = keputusan === 'benar' ? 'locked' : 'wrong_continued';
+
+  try {
+    const { error } = await supabaseClient
+      .from('hiding_block_progress')
+      .update({
+        status: newStatus,
+        verdict: keputusan,
+        verdict_at: now,
+        verdict_by: STATE.panitiaId,
+        points_awarded: poin
+      })
+      .eq('id', attempt.id);
+
+    if (error) throw error;
+
+    await writeAudit(keputusan === 'benar' ? 'verdict_benar' : 'verdict_salah', {
+      peserta: STATE.pesertaId,
+      attempt_id: attempt.id,
+      level: attempt.level,
+      choice: attempt.choice,
+      points: poin
+    });
+
+    toast(keputusan === 'benar' ? `✅ BENAR! +${poin} pts` : '⚠ SALAH — peserta pilih lanjut/ulangi', keputusan === 'benar' ? 'success' : 'warn');
+
+    // Reset UI
+    hideAlert();
+    UI.el('btnBenar').disabled = false;
+    UI.el('btnSalah').disabled = false;
+
+    // Reload stats & history
+    await loadStats();
+    await loadHistory();
+
+  } catch (e) {
+    LOG.err('submitVerdict', e);
+    toast('Gagal submit verdict: ' + e.message, 'error');
+    UI.el('btnBenar').disabled = false;
+    UI.el('btnSalah').disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME SUBSCRIPTION
+// ═══════════════════════════════════════════════════════════
+function subscribeRealtime() {
+  if (!STATE.panitiaId) return;
+
+  supabaseClient
+    .channel(`panitia_hb_${STATE.panitiaId}`)
+
+    // 1. Assignment berubah (admin assign/unassign)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'hiding_block_panitia',
+      filter: `panitia_unique_id=eq.${STATE.panitiaId}`
+    }, async (payload) => {
+      LOG.info('Assignment update', payload);
+      if (payload.eventType === 'DELETE') {
+        STATE.pesertaId = null;
+        enterWaitingView();
+      } else if (payload.new?.peserta_unique_id) {
+        STATE.pesertaId = payload.new.peserta_unique_id;
+        STATE.sessionId = payload.new.session_id;
+        await enterActiveView();
+      }
+    })
+
+    // 2. Progress peserta — cek apakah ada yang waiting_verdict
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'hiding_block_progress',
+      filter: `user_unique_id=eq.${STATE.pesertaId || 'NONE'}`
+    }, async (payload) => {
+      LOG.info('Progress update', payload);
+      await loadStats();
+      await loadHistory();
+      await checkPendingAttempt();
+    })
+
+    // 3. Bank peserta (untuk update stats)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'system_hiding_block_login',
+      filter: `user_unique_id=eq.${STATE.pesertaId || 'NONE'}`
+    }, () => {
+      loadStats();
+    })
+
+    .subscribe(status => {
+      STATE.realtimeConnected = status === 'SUBSCRIBED';
+      const badge = UI.el('connBadge');
+      if (badge) {
+        badge.textContent = STATE.realtimeConnected ? '● RT' : '● POLL';
+        badge.className = `text-[10px] font-bold px-2 py-1.5 rounded-lg border font-mono ${
+          STATE.realtimeConnected
+            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40'
+            : 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+        }`;
+      }
+      LOG.info(`Realtime: ${status}`);
+      UI.dbg(
+        STATE.pendingAttempt ? 'alert' : (STATE.pesertaId ? 'active' : 'waiting'),
+        STATE.pesertaId || '-',
+        STATE.realtimeConnected ? 'rt' : 'poll'
+      );
+    });
+
+  // Polling fallback (setiap 2 detik)
+  setInterval(async () => {
+    if (!STATE.panitiaId) return;
+    await checkAssignment();
+    if (STATE.pesertaId) {
+      await loadStats();
+      await checkPendingAttempt();
+    }
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESSION RESTORE (kalau refresh)
+// ═══════════════════════════════════════════════════════════
+async function tryRestoreSession() {
+  const saved = sessionStorage.getItem('panitia_hb_id');
+  if (saved) {
+    LOG.info(`Restore session panitia: ${saved}`);
+    STATE.panitiaId = saved;
+    UI.el('inputPanitiaId').value = saved;
+    await loginPanitia();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  LOG.ok('══════════ PANITIA HIDING BLOCK BOOT ══════════');
+  UI.dbg('boot', '-', '-');
+
+  await tryRestoreSession();
+
+  if (!STATE.panitiaId) {
+    UI.show('loginView');
+    UI.dbg('login', '-', '-');
+  }
+
+  LOG.ok('══════════ READY ══════════');
+})();
+
+// Expose
+window.loginPanitia = loginPanitia;
+window.logoutPanitia = logoutPanitia;
+window.verdict = verdict;
+window.closeModal = closeModal;
+</script>
+</body>
+</html>

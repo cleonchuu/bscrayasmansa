@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Layout Stage — Hiding Block</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
+
+    html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #020617;
+      color: #fff;
+    }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+
+    /* View transitions */
+    .stage-view {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .stage-view.hidden-view {
+      opacity: 0;
+      transform: scale(0.94);
+      pointer-events: none;
+      visibility: hidden;
+    }
+    .stage-view.active-view {
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
+    }
+
+    /* Idle animation */
+    @keyframes floaty {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50%     { transform: translateY(-20px) rotate(3deg); }
+    }
+    .floaty   { animation: floaty 6s ease-in-out infinite; }
+    .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
+    .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
+
+    @keyframes gradientShift {
+      0%,100% { background-position: 0% 50%; }
+      50%     { background-position: 100% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(270deg, #4338ca, #7c3aed, #db2777, #f59e0b, #4338ca);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+    .animated-gradient-text {
+      background: linear-gradient(270deg, #818cf8, #c084fc, #f472b6, #fbbf24, #818cf8);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    /* Glow */
+    .glow-gold    { box-shadow: 0 0 80px rgba(245, 158, 11, 0.35); }
+    .glow-indigo  { box-shadow: 0 0 80px rgba(99, 102, 241, 0.35); }
+    .glow-emerald { box-shadow: 0 0 80px rgba(16, 185, 129, 0.30); }
+    .glow-rose    { box-shadow: 0 0 80px rgba(244, 63, 94, 0.35); }
+
+    /* Card pop */
+    @keyframes cardPop {
+      0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-card-pop { animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* Elimination */
+    @keyframes elimShake {
+      0%,100% { transform: translateX(0) scale(1); filter: brightness(1); }
+      20%     { transform: translateX(-12px) scale(1.02); filter: brightness(1.3) hue-rotate(-20deg); }
+      40%     { transform: translateX(12px) scale(1.02); }
+      60%     { transform: translateX(-8px) scale(1.02); }
+      80%     { transform: translateX(8px) scale(1.02); }
+    }
+    .elim-shake { animation: elimShake 0.7s ease-in-out; }
+
+    @keyframes fadeGrey {
+      to { filter: grayscale(1) brightness(0.35); opacity: 0.5; }
+    }
+    .elim-faded { animation: fadeGrey 1.2s ease-in forwards; }
+
+    /* Pulse ring */
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70%  { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .pulse-ring { animation: pulseRing 1.8s infinite; }
+
+    /* Particle drift */
+    @keyframes drift {
+      0%   { transform: translate(0,0) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); opacity: 0; }
+    }
+    .drift {
+      position: absolute;
+      animation: drift var(--dur) linear infinite;
+      animation-delay: var(--delay);
+    }
+
+    /* Custom scroll */
+    .custom-scroll::-webkit-scrollbar { width: 8px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    /* Live timer bar */
+    @keyframes smoothBar {
+      from { width: 100%; }
+      to   { width: 0%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- AUDIO UNLOCK OVERLAY -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="audioUnlockOverlay"
+       onclick="unlockAudio()"
+       class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
+    <div class="p-8 bg-indigo-600/20 rounded-full border-2 border-indigo-500/50 text-indigo-400 mb-6 animate-bounce">
+      <i class="fas fa-volume-high text-6xl"></i>
+    </div>
+    <h2 class="text-3xl font-black font-math tracking-wider text-white mb-2">KLIK UNTUK MENGAKTIFKAN STAGE</h2>
+    <p class="text-sm text-slate-400">Diperlukan interaksi awal agar browser mengizinkan audio & animasi</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 1. VIEW: IDLE -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewIdle" class="stage-view active-view">
+    <!-- Animated background -->
+    <div class="absolute inset-0 animated-gradient opacity-20"></div>
+
+    <!-- Floating blocks -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute top-[10%] left-[8%] w-24 h-24 bg-indigo-500/30 rounded-2xl floaty backdrop-blur-sm border border-indigo-400/30"></div>
+      <div class="absolute top-[70%] left-[15%] w-16 h-16 bg-purple-500/30 rounded-xl floaty-2 border border-purple-400/30"></div>
+      <div class="absolute top-[20%] right-[12%] w-32 h-32 bg-amber-500/25 rounded-3xl floaty-3 border border-amber-400/30"></div>
+      <div class="absolute top-[65%] right-[20%] w-20 h-20 bg-pink-500/25 rounded-2xl floaty border border-pink-400/30"></div>
+      <div class="absolute bottom-[15%] left-1/2 w-14 h-14 bg-emerald-500/30 rounded-xl floaty-2 border border-emerald-400/30"></div>
+    </div>
+
+    <!-- Content -->
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
+      <div class="mb-6">
+        <div class="inline-flex items-center gap-3 px-6 py-2.5 bg-indigo-500/20 border border-indigo-400/40 rounded-full backdrop-blur-md">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-sm font-bold text-indigo-200 tracking-widest uppercase">Spatial Challenge</span>
+        </div>
+      </div>
+
+      <h1 class="text-[10rem] lg:text-[14rem] font-math font-black leading-none mb-4">
+        <span class="animated-gradient-text">HIDING</span>
+      </h1>
+      <h1 class="text-[10rem] lg:text-[14rem] font-math font-black leading-none mb-12">
+        <span class="text-white">BLOCK</span>
+      </h1>
+
+      <p class="text-2xl lg:text-3xl text-slate-300 font-semibold mb-12 max-w-2xl leading-relaxed">
+        Latih <span class="text-indigo-400 font-black">spasial 3D</span> & ketajaman <span class="text-amber-400 font-black">visual</span> kamu!
+      </p>
+
+      <div class="flex items-center gap-8 text-center">
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-amber-400">5</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Level</div>
+        </div>
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-emerald-400">10</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Gambar</div>
+        </div>
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-rose-400">30</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Menit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="relative z-10 py-8 text-center">
+      <div class="inline-flex items-center gap-3 text-slate-500 text-sm">
+        <i class="fas fa-hourglass-start"></i>
+        <span>Menunggu panitia memulai sesi...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 2. VIEW: SIMULASI -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewSimulasi" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
+      <div class="inline-flex items-center gap-3 px-6 py-3 bg-purple-500/20 border-2 border-purple-400/50 rounded-full mb-8 animate-pulse">
+        <i class="fas fa-flask text-purple-300 text-2xl"></i>
+        <span class="text-lg font-black text-purple-200 tracking-widest uppercase">Mode Simulasi</span>
+      </div>
+
+      <h2 class="text-7xl lg:text-9xl font-math font-black text-white mb-4">LATIHAN</h2>
+      <p class="text-2xl text-purple-200/80 mb-16 max-w-2xl">
+        Pahami mekanisme permainan. Poin tidak dihitung!
+      </p>
+
+      <!-- Global Countdown -->
+      <div class="bg-slate-950/70 border-4 border-purple-500/40 rounded-[2.5rem] p-12 glow-indigo backdrop-blur-sm">
+        <div class="text-xs text-purple-400 uppercase tracking-[0.3em] mb-3">Sisa Waktu Simulasi</div>
+        <div id="simulasiCountdown" class="text-[8rem] lg:text-[12rem] font-math font-black text-white leading-none">
+          10:00
+        </div>
+      </div>
+
+      <p class="mt-12 text-slate-400 text-lg">
+        <i class="fas fa-info-circle text-purple-400"></i>
+        Simulasi hanya dapat dimainkan <b class="text-purple-300">1x</b> per sesi.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 3. VIEW: GAME -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewGame" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 pt-8 pb-4 px-10 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 bg-amber-500/20 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center text-amber-400 text-3xl">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div>
+          <div class="text-xs text-amber-400 uppercase tracking-widest font-bold">Mode Aktif</div>
+          <div class="text-3xl font-math font-black text-white">GAME ON</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <div class="text-right">
+          <div class="text-xs text-slate-400 uppercase tracking-widest">Peserta Bermain</div>
+          <div id="gamePlayerCount" class="text-3xl font-math font-black text-indigo-400">0</div>
+        </div>
+        <div class="w-px h-12 bg-slate-700"></div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400 uppercase tracking-widest">Global Timer</div>
+          <div id="gameGlobalTimer" class="text-3xl font-math font-black text-rose-400">--:--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid Peserta -->
+    <div class="relative z-10 flex-1 px-10 pb-8 overflow-hidden">
+      <div id="gamePlayersGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full">
+        <p class="col-span-full text-center text-slate-500 text-xl py-20">
+          <i class="fas fa-spinner fa-spin"></i> Menunggu peserta membuka gambar...
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 4. VIEW: LEADERBOARD TOP 10 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewLeaderboard" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-amber-950/30 via-slate-950 to-yellow-950/20"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
+      <div class="mb-8">
+        <span class="bg-amber-500/20 border-2 border-amber-400/50 text-amber-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em]">
+          <i class="fas fa-trophy"></i> Final Standings
+        </span>
+      </div>
+
+      <h2 class="text-6xl lg:text-7xl font-math font-black text-white mb-12">
+        PAPAN PERINGKAT <span class="text-amber-400">TOP 10</span>
+      </h2>
+
+      <!-- Card Reveal Container -->
+      <div class="relative w-full max-w-2xl min-h-[520px] flex items-center justify-center">
+        <!-- Left arrow decoration -->
+        <div class="absolute -left-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+
+        <div id="leaderboardCard" class="w-full">
+          <p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>
+        </div>
+
+        <!-- Right arrow decoration -->
+        <div class="absolute -right-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
+          <i class="fas fa-chevron-right"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 5. VIEW: ELIMINASI -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewEliminasi" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-rose-950/40 via-slate-950 to-black"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
+      <div class="mb-6">
+        <span class="bg-rose-500/20 border-2 border-rose-400/50 text-rose-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em] animate-pulse">
+          <i class="fas fa-skull-crossbones"></i> Round Complete
+        </span>
+      </div>
+
+      <h2 class="text-7xl lg:text-8xl font-math font-black text-rose-500 mb-4">ELIMINASI</h2>
+      <p class="text-2xl text-slate-400 mb-12">5 Peserta dengan poin terendah tereliminasi</p>
+
+      <!-- Eliminated List -->
+      <div id="eliminasiList" class="grid grid-cols-1 lg:grid-cols-5 gap-4 max-w-6xl w-full">
+        <p class="col-span-full text-slate-500 text-xl py-12">
+          <i class="fas fa-spinner fa-spin"></i> Menghitung hasil...
+        </p>
+      </div>
+
+      <!-- Survivor Banner -->
+      <div id="eliminasiSurvivorBanner" class="hidden mt-12 opacity-0 transition-opacity duration-1000">
+        <div class="inline-flex items-center gap-4 px-8 py-4 bg-emerald-500/20 border-2 border-emerald-400/50 rounded-2xl">
+          <i class="fas fa-medal text-emerald-400 text-3xl"></i>
+          <div class="text-left">
+            <div class="text-xs text-emerald-300 uppercase tracking-widest">Lolos ke Final</div>
+            <div id="eliminasiSurvivorCount" class="text-3xl font-math font-black text-white">5 Peserta</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- 6. VIEW: ALL PLAYERS -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <section id="viewAllPlayers" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-slate-950 to-emerald-950/20"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col px-10 py-8">
+      <div class="text-center mb-6">
+        <span class="bg-indigo-500/20 border-2 border-indigo-400/50 text-indigo-300 font-black text-xs px-5 py-1.5 rounded-full uppercase tracking-[0.2em]">
+          <i class="fas fa-users"></i> Full Roster
+        </span>
+        <h2 class="text-5xl lg:text-6xl font-math font-black text-white mt-4">
+          REKAP SEMUA PESERTA
+        </h2>
+      </div>
+
+      <div id="allPlayersScroll" class="flex-1 overflow-y-auto custom-scroll pr-2">
+        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- BGM AUDIO (hidden) -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
+
+  <!-- DEBUG BADGE -->
+  <div id="dbgBadge"
+       class="fixed bottom-2 left-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
+    <span id="dbgState">boot</span> · <span id="dbgBGM">-</span> · <span id="dbgRT">--</span> · <span id="dbgPlayers">0</span>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TAG = '[LAYOUT-HB]';
+const BANK_GAME_SEC = 1800;
+const BANK_SIM_SEC  = 600;
+
+// ═══════════════════════════════════════════════════════════
+// BGM URLs (bucket: bgm)
+// ═══════════════════════════════════════════════════════════
+const BGM = {
+  lobby:    `${SUPABASE_URL}/storage/v1/object/public/bgm/LOBBY.mp3`,
+  tegang:   `${SUPABASE_URL}/storage/v1/object/public/bgm/TEGANG.mp3`,
+  opening:  `${SUPABASE_URL}/storage/v1/object/public/bgm/OPENING.mp3`,
+  tenang:   `${SUPABASE_URL}/storage/v1/object/public/bgm/TENANG.mp3`,
+  run:      `${SUPABASE_URL}/storage/v1/object/public/bgm/RUN.mp3`
+};
+
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG = {
+  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  audioUnlocked: false,
+  currentView: 'idle',
+  currentMode: 'idle',
+  isPaused: false,
+
+  revealedRank: 0,
+  lastView: '',
+  lastMode: '',
+
+  // Cache
+  participants: [],
+  scores: [],
+  panitiaMap: {},   // peserta → panitia
+
+  // BGM
+  currentBGM: null,
+  bgmLocked: false,
+
+  // Timers
+  tickInterval: null,
+
+  realtimeConnected: false
+};
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const UI = {
+  el: id => document.getElementById(id),
+  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
+  dbg(state, bgm, rt, players) {
+    UI.txt('dbgState', state);
+    if (bgm !== undefined) UI.txt('dbgBGM', bgm || '-');
+    if (rt !== undefined) UI.txt('dbgRT', rt || '--');
+    if (players !== undefined) UI.txt('dbgPlayers', players);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO ENGINE (BGM)
+// ═══════════════════════════════════════════════════════════
+function unlockAudio() {
+  STATE.audioUnlocked = true;
+  const overlay = UI.el('audioUnlockOverlay');
+  if (overlay) overlay.classList.add('hidden');
+  LOG.ok('Audio unlocked');
+
+  // Langsung putar BGM sesuai mode
+  playBGM(STATE.currentMode === 'simulasi' || STATE.currentMode === 'game' ? 'tegang' : 'lobby');
+}
+
+async function playBGM(track) {
+  if (!STATE.audioUnlocked) {
+    LOG.warn(`Audio belum unlock — skip BGM ${track}`);
+    return;
+  }
+  if (STATE.currentBGM === track) {
+    LOG.info(`BGM ${track} sudah diputar`);
+    return;
+  }
+
+  const player = UI.el('bgmPlayer');
+  if (!player) return;
+
+  const url = BGM[track];
+  if (!url) { LOG.warn(`Track ${track} tidak ditemukan`); return; }
+
+  try {
+    player.pause();
+    player.src = url;
+    player.volume = 0.6;
+    player.loop = true;
+
+    await player.play().catch(err => {
+      LOG.warn(`Play BGM ${track} gagal: ${err.message}`);
+      return null;
+    });
+
+    STATE.currentBGM = track;
+    UI.txt('dbgBGM', track);
+    LOG.ok(`🎵 BGM → ${track}`);
+  } catch (e) {
+    LOG.err(`playBGM exception: ${track}`, e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEW SWITCHER
+// ═══════════════════════════════════════════════════════════
+function switchView(viewName, revealedRank = 0) {
+  // Signature check
+  const sig = `${viewName}|${revealedRank}`;
+  if (sig === STATE.lastView) {
+    LOG.info(`Skip view (sama): ${sig}`);
+    return;
+  }
+  STATE.lastView = sig;
+
+  LOG.info(`Switch view → ${viewName}, rank: ${revealedRank}`);
+
+  // Hide all
+  ['viewIdle','viewSimulasi','viewGame','viewLeaderboard','viewEliminasi','viewAllPlayers']
+    .forEach(id => {
+      const el = UI.el(id);
+      if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
+    });
+
+  // Show target
+  const map = {
+    idle: 'viewIdle',
+    simulasi: 'viewSimulasi',
+    game: 'viewGame',
+    leaderboard: 'viewLeaderboard',
+    eliminasi: 'viewEliminasi',
+    all_players: 'viewAllPlayers'
+  };
+
+  const targetId = map[viewName] || 'viewIdle';
+  const target = UI.el(targetId);
+  if (target) {
+    target.classList.remove('hidden-view');
+    target.classList.add('active-view');
+  }
+
+  STATE.currentView = viewName;
+  STATE.revealedRank = revealedRank;
+
+  // BGM selection per view
+  if (viewName === 'idle')            playBGM('lobby');
+  else if (viewName === 'simulasi')   playBGM('tegang');
+  else if (viewName === 'game')       playBGM('tegang');
+  else if (viewName === 'leaderboard') playBGM('opening');
+  else if (viewName === 'eliminasi')  playBGM('opening');
+  else if (viewName === 'all_players') playBGM('tenang');
+
+  // Special handlers
+  if (viewName === 'leaderboard') {
+    fetchAndRenderLeaderboard(revealedRank);
+  } else if (viewName === 'eliminasi') {
+    fetchAndRenderElimination();
+  } else if (viewName === 'all_players') {
+    fetchAndRenderAllPlayers();
+  } else if (viewName === 'game') {
+    renderGameGrid();
+  }
+
+  UI.dbg(viewName, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA FETCHERS
+// ═══════════════════════════════════════════════════════════
+async function loadScores() {
+  const { data, error } = await supabaseClient
+    .from('game_scores')
+    .select('user_unique_id, score_obtained')
+    .eq('game_name', 'Hiding Block');
+
+  if (error) { LOG.warn('loadScores', error.message); return; }
+
+  const map = {};
+  (data || []).forEach(r => {
+    if (!r.user_unique_id) return;
+    map[r.user_unique_id] = (map[r.user_unique_id] || 0) + (r.score_obtained || 0);
+  });
+
+  STATE.scores = Object.keys(map)
+    .map(uid => ({ uid, total: map[uid] }))
+    .sort((a, b) => b.total - a.total);
+}
+
+async function loadParticipants() {
+  const { data, error } = await supabaseClient
+    .from('system_hiding_block_login')
+    .select('*')
+    .order('joined_at', { ascending: true });
+
+  if (error) { LOG.warn('loadParticipants', error.message); return; }
+  STATE.participants = data || [];
+
+  // Map peserta → panitia
+  const { data: panitiaData } = await supabaseClient
+    .from('hiding_block_panitia')
+    .select('peserta_unique_id, panitia_unique_id');
+  STATE.panitiaMap = {};
+  (panitiaData || []).forEach(r => {
+    STATE.panitiaMap[r.peserta_unique_id] = r.panitia_unique_id;
+  });
+}
+
+async function loadProgressFor(userId) {
+  const { data, error } = await supabaseClient
+    .from('hiding_block_progress')
+    .select('*')
+    .eq('user_unique_id', userId);
+
+  if (error) return [];
+  return data || [];
+}
+
+// ═══════════════════════════════════════════════════════════
+// GAME VIEW — GRID PESERTA + COUNTDOWN PER PESERTA
+// ═══════════════════════════════════════════════════════════
+async function renderGameGrid() {
+  const c = UI.el('gamePlayersGrid');
+  if (!c) return;
+
+  const playing = STATE.participants.filter(p => p.status === 'playing' || p.status === 'ready');
+
+  UI.txt('gamePlayerCount', playing.length);
+
+  if (playing.length === 0) {
+    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">
+      <i class="fas fa-spinner fa-spin"></i> Menunggu peserta bergabung...</p>`;
+    return;
+  }
+
+  c.innerHTML = '';
+
+  // Parallel: fetch progress per peserta
+  const progressList = await Promise.all(playing.map(p => loadProgressFor(p.user_unique_id)));
+
+  playing.forEach((p, i) => {
+    const progress = progressList[i] || [];
+    const locked = progress.filter(x => x.status === 'locked');
+    const lastAttempt = progress.sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+    let bankSec = BANK_GAME_SEC;
+    if (p.bank_started_at) {
+      const elapsed = Math.floor((Date.now() - new Date(p.bank_started_at).getTime()) / 1000);
+      bankSec = Math.max(0, BANK_GAME_SEC - elapsed);
+    }
+    const mm = String(Math.floor(bankSec / 60)).padStart(2, '0');
+    const ss = String(bankSec % 60).padStart(2, '0');
+
+    let statusText = 'Menunggu buka gambar';
+    let statusColor = 'slate';
+    let statusIcon = 'fa-hourglass-start';
+
+    if (lastAttempt) {
+      if (lastAttempt.status === 'in_progress') {
+        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · mengerjakan`;
+        statusColor = 'indigo';
+        statusIcon = 'fa-pen-to-square';
+      } else if (lastAttempt.status === 'waiting_verdict') {
+        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · MENUNGGU PANITIA`;
+        statusColor = 'amber';
+        statusIcon = 'fa-bell';
+      } else if (lastAttempt.status === 'locked') {
+        statusText = `✓ Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} SELESAI`;
+        statusColor = 'emerald';
+        statusIcon = 'fa-lock';
+      } else if (lastAttempt.status === 'wrong_continued') {
+        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · salah, lanjut`;
+        statusColor = 'rose';
+        statusIcon = 'fa-forward';
+      }
+    }
+
+    if (p.status === 'finished' || p.status === 'eliminated') {
+      statusText = 'SELESAI';
+      statusColor = 'slate';
+      statusIcon = 'fa-flag-checkered';
+    }
+
+    const totalPoin = locked.reduce((s, x) => s + (x.points_awarded || 0), 0);
+
+    const card = document.createElement('div');
+    card.className = `bg-slate-900/80 border-2 border-slate-700/60 rounded-2xl p-5 backdrop-blur-md animate-card-pop flex flex-col justify-between ${bankSec < 300 ? 'border-rose-500/60' : ''}`;
+    card.innerHTML = `
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400">#${i+1}</span>
+          <span class="text-[10px] font-mono ${bankSec < 300 ? 'text-rose-400 animate-pulse' : 'text-slate-400'}">${mm}:${ss}</span>
+        </div>
+        <div class="text-xl font-black text-white mb-1 truncate">${p.user_unique_id}</div>
+        <div class="text-[10px] text-slate-500 mb-3">Panitia: ${STATE.panitiaMap[p.user_unique_id] || '-'}</div>
+
+        <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-${statusColor}-500/10 border border-${statusColor}-500/30 mb-3">
+          <i class="fas ${statusIcon} text-${statusColor}-400 text-xs"></i>
+          <span class="text-[11px] font-bold text-${statusColor}-300 truncate">${statusText}</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+        <div>
+          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
+          <div class="text-2xl font-math font-black text-amber-400">${totalPoin}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Selesai</div>
+          <div class="text-2xl font-math font-black text-emerald-400">${locked.length}<span class="text-slate-500 text-base">/10</span></div>
+        </div>
+      </div>
+    `;
+    c.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIMULASI VIEW — GLOBAL COUNTDOWN
+// ═══════════════════════════════════════════════════════════
+function startSimulasiCountdown(startedAt) {
+  if (STATE.tickInterval) clearInterval(STATE.tickInterval);
+
+  const tick = () => {
+    if (!startedAt) {
+      UI.txt('simulasiCountdown', '10:00');
+      return;
+    }
+    const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+    const remaining = Math.max(0, BANK_SIM_SEC - elapsed);
+    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const ss = String(remaining % 60).padStart(2, '0');
+    UI.txt('simulasiCountdown', `${mm}:${ss}`);
+  };
+
+  tick();
+  STATE.tickInterval = setInterval(tick, 500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEADERBOARD VIEW — REVEAL PER RANK
+// ═══════════════════════════════════════════════════════════
+async function fetchAndRenderLeaderboard(revealedRank) {
+  await loadScores();
+  renderLeaderboardCard(revealedRank);
+}
+
+function renderLeaderboardCard(rank) {
+  const c = UI.el('leaderboardCard');
+  if (!c) return;
+
+  if (!rank || rank === 0) {
+    c.innerHTML = `<p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>`;
+    return;
+  }
+
+  const p = STATE.scores[rank - 1];
+  if (!p) {
+    c.innerHTML = `<p class="text-slate-400 text-2xl py-20">Belum ada peserta di peringkat #${rank}</p>`;
+    return;
+  }
+
+  const themeMap = {
+    1: {
+      bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20',
+      border: 'border-amber-400',
+      badge: 'bg-amber-400 text-slate-950',
+      label: '👑 JUARA 1',
+      glow: 'glow-gold'
+    },
+    2: {
+      bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30',
+      border: 'border-slate-300',
+      badge: 'bg-slate-200 text-slate-950',
+      label: '🥈 JUARA 2',
+      glow: ''
+    },
+    3: {
+      bg: 'from-amber-800/30 via-orange-800/15 to-slate-900/30',
+      border: 'border-amber-700',
+      badge: 'bg-amber-700 text-white',
+      label: '🥉 JUARA 3',
+      glow: ''
+    }
+  };
+  const theme = themeMap[rank] || {
+    bg: 'from-indigo-900/30 via-slate-900/40 to-slate-950',
+    border: 'border-slate-600',
+    badge: 'bg-slate-700 text-slate-200',
+    label: `PERINGKAT #${rank}`,
+    glow: ''
+  };
+
+  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+  c.innerHTML = `
+    <div class="animate-card-pop bg-gradient-to-br ${theme.bg} border-4 ${theme.border} rounded-[2.5rem] p-12 ${theme.glow} flex flex-col items-center gap-6">
+      <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">
+        ${theme.label}
+      </div>
+
+      <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
+        <img src="${avatar}" class="w-full h-full object-contain" alt="${p.uid}" />
+      </div>
+
+      <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
+
+      <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
+        +${p.total} PTS
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ELIMINASI VIEW
+// ═══════════════════════════════════════════════════════════
+async function fetchAndRenderElimination() {
+  await loadScores();
+
+  const c = UI.el('eliminasiList');
+  if (!c) return;
+
+  const scores = STATE.scores;
+  if (scores.length === 0) {
+    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">
+      <i class="fas fa-spinner fa-spin"></i> Menghitung...</p>`;
+    return;
+  }
+
+  // Ambil 5 terendah (dari 10 peserta)
+  const total = scores.length;
+  const eliminatedCount = Math.max(0, total - 5);
+  const eliminated = scores.slice(-eliminatedCount).reverse();
+  const survivors = scores.slice(0, total - eliminatedCount);
+
+  c.innerHTML = '';
+
+  // Eliminated cards (animasi shake + faded)
+  eliminated.forEach((p, idx) => {
+    const card = document.createElement('div');
+    card.className = `elim-shake bg-rose-950/60 border-2 border-rose-700/60 rounded-3xl p-6 flex flex-col items-center gap-3 animate-card-pop`;
+    card.style.animationDelay = `${idx * 0.2}s`;
+    card.innerHTML = `
+      <div class="px-4 py-1.5 rounded-full bg-rose-700/80 text-white font-math font-black text-sm uppercase">
+        ❌ ELIMINATED
+      </div>
+      <div class="text-2xl font-black text-white text-center truncate w-full">${p.uid}</div>
+      <div class="text-2xl font-math font-black text-rose-400">${p.total} PTS</div>
+    `;
+    c.appendChild(card);
+
+    // Trigger fade setelah shake
+    setTimeout(() => {
+      card.classList.add('elim-faded');
+      card.classList.remove('elim-shake');
+    }, 800 + idx * 200);
+  });
+
+  // Survivor banner
+  const sb = UI.el('eliminasiSurvivorBanner');
+  if (sb) {
+    UI.txt('eliminasiSurvivorCount', `${survivors.length} Peserta`);
+    setTimeout(() => {
+      sb.classList.remove('hidden');
+      sb.style.opacity = '1';
+    }, 1800 + eliminated.length * 200);
+  }
+
+  LOG.ok(`Eliminasi: ${eliminated.length} tereliminasi, ${survivors.length} lolos`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALL PLAYERS VIEW
+// ═══════════════════════════════════════════════════════════
+async function fetchAndRenderAllPlayers() {
+  await loadScores();
+
+  const c = UI.el('allPlayersGrid');
+  if (!c) return;
+
+  if (STATE.scores.length === 0) {
+    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">Belum ada peserta.</p>`;
+    return;
+  }
+
+  c.innerHTML = '';
+  STATE.scores.forEach((p, i) => {
+    const rank = i + 1;
+    const rankColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+    const card = document.createElement('div');
+    card.className = `p-4 rounded-2xl border bg-slate-900/60 backdrop-blur-sm flex items-center gap-3 border-${rankColor}-500/30 animate-card-pop`;
+    card.style.animationDelay = `${i * 0.05}s`;
+    card.innerHTML = `
+      <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">
+        ${rank}
+      </div>
+      <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0" />
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-white truncate">${p.uid}</div>
+        <div class="text-[10px] text-slate-500 font-mono">Panitia: ${STATE.panitiaMap[p.uid] || '-'}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-math font-black text-amber-400 text-xl">${p.total}</div>
+        <div class="text-[9px] text-slate-500 uppercase">PTS</div>
+      </div>
+    `;
+    c.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE SYNC (mode & pause)
+// ═══════════════════════════════════════════════════════════
+async function syncState() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error || !data) return;
+
+    STATE.currentMode = data.mode || 'idle';
+    STATE.isPaused = !!data.is_paused;
+
+    LOG.info(`State: mode=${STATE.currentMode}, paused=${STATE.isPaused}`);
+
+    // Kalau pause → matikan BGM, tampilkan overlay pause
+    if (STATE.isPaused) {
+      const player = UI.el('bgmPlayer');
+      if (player) player.pause();
+      STATE.currentBGM = 'pause';
+      // Optional: play TENANG.mp3 saat pause
+      // playBGM('tenang');
+    } else {
+      // Resume BGM sesuai view
+      if (STATE.currentBGM === 'pause') {
+        STATE.currentBGM = null;
+      }
+    }
+
+    // Auto-switch view ke mode kalau perlu
+    if (STATE.currentMode === 'simulasi' && STATE.currentView !== 'simulasi' && !STATE.isPaused) {
+      const { data: state } = await supabaseClient
+        .from('system_hiding_block_state')
+        .select('started_at')
+        .eq('id', 1)
+        .maybeSingle();
+      switchView('simulasi');
+      startSimulasiCountdown(state?.started_at);
+    } else if (STATE.currentMode === 'game' && STATE.currentView !== 'game' && !STATE.isPaused) {
+      switchView('game');
+    } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle' && STATE.currentView !== 'leaderboard' && STATE.currentView !== 'eliminasi' && STATE.currentView !== 'all_players') {
+      switchView('idle');
+    }
+
+  } catch (e) { LOG.err('syncState', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LAYOUT VIEW SYNC (dari admin_layout_hiding_block)
+// ═══════════════════════════════════════════════════════════
+async function syncLayout() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_layout_hiding_block')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error || !data) return;
+
+    const view = data.current_view || 'idle';
+    const rank = data.revealed_rank || 0;
+
+    switchView(view, rank);
+  } catch (e) { LOG.err('syncLayout', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME SUBSCRIPTIONS
+// ═══════════════════════════════════════════════════════════
+function setupRealtime() {
+  const channel = supabaseClient.channel('layout_hb_rt');
+
+  // State (mode, pause)
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'system_hiding_block_state' },
+    () => syncState());
+
+  // Layout (view, rank)
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'admin_layout_hiding_block' },
+    () => syncLayout());
+
+  // Peserta login
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'system_hiding_block_login' },
+    async () => {
+      await loadParticipants();
+      renderGameGrid();
+    });
+
+  // Progress
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'hiding_block_progress' },
+    () => { if (STATE.currentView === 'game') renderGameGrid(); });
+
+  // Scores
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'game_scores' },
+    () => {
+      if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(STATE.revealedRank);
+      else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
+      else if (STATE.currentView === 'eliminasi') fetchAndRenderElimination();
+    });
+
+  channel.subscribe(status => {
+    STATE.realtimeConnected = status === 'SUBSCRIBED';
+    LOG.info(`Realtime: ${status}`);
+    UI.dbg(STATE.currentView, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
+  });
+
+  // Polling fallback
+  setInterval(async () => {
+    await syncState();
+    await syncLayout();
+    await loadParticipants();
+    await loadScores();
+    if (STATE.currentView === 'game') renderGameGrid();
+    UI.dbg(STATE.currentView, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
+  }, 3000);
+
+  // Fast refresh untuk game view (countdown per peserta)
+  setInterval(() => {
+    if (STATE.currentView === 'game' && !STATE.isPaused) renderGameGrid();
+  }, 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTO PROGRESS GLOBAL TIMER
+// ═══════════════════════════════════════════════════════════
+function startGlobalTimer() {
+  setInterval(async () => {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('started_at')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (data?.started_at && STATE.currentMode === 'game') {
+      const elapsed = Math.floor((Date.now() - new Date(data.started_at).getTime()) / 1000);
+      const remaining = Math.max(0, BANK_GAME_SEC - elapsed);
+      const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const ss = String(remaining % 60).padStart(2, '0');
+      UI.txt('gameGlobalTimer', `${mm}:${ss}`);
+    } else {
+      UI.txt('gameGlobalTimer', '--:--');
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  LOG.ok('══════════ LAYOUT HIDING BLOCK BOOT ══════════');
+  UI.dbg('boot', '-', '-', 0);
+
+  // Fetch awal
+  await loadParticipants();
+  await loadScores();
+  await syncState();
+  await syncLayout();
+
+  // Setup
+  setupRealtime();
+  startGlobalTimer();
+
+  // Initial view
+  switchView('idle');
+
+  LOG.ok('══════════ READY ══════════');
+})();
+
+// Expose
+window.unlockAudio = unlockAudio;
+window.switchView = switchView;
+</script>
+</body>
+</html>
