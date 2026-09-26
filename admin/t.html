@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cataclysm Memory - Day 1 Lobby</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #05070a;
+      font-family: 'Rajdhani', sans-serif;
+      color: #e0e6ed;
+    }
+
+    /* Canvas background */
+    #bg-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Overlay Scanline & Vignette */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      background: 
+        radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.85) 100%),
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 100%, 100% 4px;
+      pointer-events: none;
+    }
+
+    /* HUD Layout Container */
+    .lobby-container {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2rem 3rem;
+    }
+
+    /* Header UI */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 77, 77, 0.3);
+      padding-bottom: 1rem;
+      background: rgba(5, 7, 10, 0.4);
+      backdrop-filter: blur(5px);
+    }
+
+    .badge-day {
+      background: #ff3333;
+      color: #fff;
+      padding: 0.3rem 1rem;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+      box-shadow: 0 0 15px rgba(255, 51, 51, 0.5);
+    }
+
+    .system-status {
+      display: flex;
+      gap: 2rem;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      color: #8a9ba8;
+    }
+
+    .status-item span {
+      color: #ff4d4d;
+      font-weight: 700;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: -2rem;
+    }
+
+    .title-sub {
+      font-size: 1rem;
+      letter-spacing: 6px;
+      color: #ff6666;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      animation: pulseText 2s infinite alternate;
+    }
+
+    .title-main {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 4.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: #ffffff;
+      text-shadow: 
+        0 0 10px rgba(255, 51, 51, 0.8),
+        0 0 20px rgba(255, 51, 51, 0.4),
+        0 0 40px rgba(255, 0, 0, 0.2);
+      position: relative;
+    }
+
+    /* Glitch effect on title */
+    .title-main::before, .title-main::after {
+      content: "CATACLYSM MEMORY";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .game-brief {
+      max-width: 600px;
+      margin: 1.5rem 0 2.5rem;
+      background: rgba(15, 23, 36, 0.6);
+      border-left: 3px solid #ff3333;
+      padding: 1rem 1.5rem;
+      font-size: 1.1rem;
+      color: #c2d1e0;
+      text-align: left;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    .game-brief strong {
+      color: #ff4d4d;
+    }
+
+    /* Start Button */
+    .btn-start {
+      position: relative;
+      padding: 1.2rem 3.5rem;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, #cc0000 0%, #800000 100%);
+      border: 1px solid #ff6666;
+      cursor: pointer;
+      outline: none;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+      box-shadow: 0 0 25px rgba(204, 0, 0, 0.6);
+    }
+
+    .btn-start:hover {
+      background: linear-gradient(135deg, #ff1a1a 0%, #b30000 100%);
+      transform: scale(1.05);
+      box-shadow: 0 0 40px rgba(255, 51, 51, 0.9);
+      color: #fff;
+    }
+
+    .btn-start:active {
+      transform: scale(0.98);
+    }
+
+    /* Footer Info Panels */
+    .bottom-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+      align-items: end;
+    }
+
+    .info-card {
+      background: rgba(10, 15, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem;
+      border-radius: 4px;
+      backdrop-filter: blur(5px);
+    }
+
+    .info-card h4 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      color: #ff4d4d;
+      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    .info-card p {
+      font-size: 0.95rem;
+      color: #a0b0c0;
+      line-height: 1.3;
+    }
+
+    .hazard-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      background: rgba(255, 77, 77, 0.15);
+      border: 1px solid rgba(255, 77, 77, 0.4);
+      color: #ff9999;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+    }
+
+    /* Animations */
+    @keyframes pulseText {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Effects Canvas -->
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- CRT Scanline & Vignette Overlay -->
+  <div class="overlay"></div>
+
+  <!-- HUD Interface -->
+  <div class="lobby-container">
+    
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="badge-day">DAY 1 - PHASE 3</div>
+      <div class="system-status">
+        <div class="status-item">DATABASE: <span>CONNECTED</span></div>
+        <div class="status-item">CATACLYSM ARCHIVE: <span>SYNCED</span></div>
+        <div class="status-item">MEMORY NEURAL LINK: <span>READY</span></div>
+      </div>
+    </header>
+
+    <!-- Main Section -->
+    <main class="main-content">
+      <div class="title-sub">GAMES 3 // MEMORY DRILL</div>
+      <h1 class="title-main">CATACLYSM MEMORY</h1>
+      
+      <div class="game-brief">
+        <p><strong>PETUNJUK SIMULASI:</strong></p>
+        <p>Hafalkan nama-nama bencana alam & krisis global secepat mungkin sebelum sinyal memori menghilang. Uji ketajaman ingatan Anda pada tahap evaluasi berikutnya!</p>
+      </div>
+
+      <button class="btn-start" onclick="startGame()">MULAI SIMULASI</button>
+    </main>
+
+    <!-- Bottom Info -->
+    <footer class="bottom-bar">
+      <div class="info-card">
+        <h4>METODE EKSEKUSI</h4>
+        <p>1. Fase Observasi Rapid (Ingat detail nama bencana)<br>2. Fase Uji Memori & Kecepatan Respons</p>
+      </div>
+
+      <div class="info-card" style="text-align: center;">
+        <h4>KONDISI LOBBY</h4>
+        <p style="color: #ffcc00; font-weight: bold;">IDLE MODE - WAITING FOR OPERATOR</p>
+      </div>
+
+      <div class="info-card">
+        <h4>TARGET ARSIP BENCANA</h4>
+        <div class="hazard-tags">
+          <span class="tag">TSUNAMI</span>
+          <span class="tag">SUPERVOLCANO</span>
+          <span class="tag">SOLAR FLARE</span>
+          <span class="tag">MEGATHRUST</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Canvas Background Particles & Flash Effect
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    let particles = [];
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Particle Class (Dust & Fire Ember)
+    class EmberParticle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = height + Math.random() * 100;
+        this.size = Math.random() * 2.5 + 0.5;
+        this.speedY = Math.random() * 1.5 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.8;
+        this.opacity = Math.random() * 0.8 + 0.2;
+        this.color = Math.random() > 0.4 ? '#ff3333' : '#ff9933';
+      }
+
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        this.opacity -= 0.002;
+
+        if (this.y < -10 || this.opacity <= 0) {
+          this.reset();
+        }
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.opacity;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // Initialize Particles
+    for (let i = 0; i < 90; i++) {
+      particles.push(new EmberParticle());
+    }
+
+    // Lightning Flash Effect Variables
+    let flashOpacity = 0;
+
+    function render() {
+      // Clear with dark overlay trail
+      ctx.fillStyle = 'rgba(5, 7, 10, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Random Lightning/Crisis Alert Flash
+      if (Math.random() < 0.008) {
+        flashOpacity = Math.random() * 0.15 + 0.05;
+      }
+      
+      if (flashOpacity > 0) {
+        ctx.fillStyle = `rgba(255, 51, 51, ${flashOpacity})`;
+        ctx.fillRect(0, 0, width, height);
+        flashOpacity -= 0.01;
+      }
+
+      // Update & Draw Particles
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+
+    function startGame() {
+      alert("Menghubungkan ke Modul Cataclysm Memory... Persiapkan hafalan Anda!");
+      // Tambahkan logika transisi ke game di sini
+    }
+  </script>
+</body>
+</html>

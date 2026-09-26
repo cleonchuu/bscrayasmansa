@@ -7,8 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Poppins:wght@400;600;800&family=Share+Tech+Mono&family=Teko:wght@600;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
+    * { box-sizing: border-box; }
 
     html, body {
       height: 100%; width: 100%;
@@ -89,17 +92,235 @@
     .glow-cyan { box-shadow: 0 0 60px rgba(6, 182, 212, 0.4); }
     .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
     .glow-amber { box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); }
+
+    /* ═══════════════════════════════════════════════════════════
+       BGM BADGE
+       ═══════════════════════════════════════════════════════════ */
+    .bgm-badge {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      font-size: 10px; font-family: monospace;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #94a3b8;
+      z-index: 200;
+      pointer-events: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bgm-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #64748b;
+    }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.muted { background: #f43f5e; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ═══════════════════════════════════════════════════════════
+       AUDIO UNLOCK OVERLAY
+       ═══════════════════════════════════════════════════════════ */
+    #audioUnlockOverlay {
+      position: fixed; inset: 0;
+      background: rgba(5, 2, 2, 0.92);
+      backdrop-filter: blur(10px);
+      z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+    #audioUnlockOverlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    #audioUnlockOverlay .unlock-icon { animation: unlockBounce 1.6s ease-in-out infinite; }
+    @keyframes unlockBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.08); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       IDLE VIEW — FIRE LAB THEME
+       ═══════════════════════════════════════════════════════════ */
+    #viewIdle {
+      position: absolute; inset: 0;
+      background-color: #050202;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* Ambient Background Canvas (Fire Ember) */
+    #lab-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    /* CRT Monitor Overlay & Lab Grid */
+    .lab-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      background:
+        linear-gradient(rgba(255, 30, 0, 0.03) 50%, rgba(0, 0, 0, 0.4) 50%),
+        radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.88) 100%),
+        linear-gradient(90deg, rgba(255, 68, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 68, 0, 0.03) 1px, transparent 1px);
+      background-size: 100% 4px, 100% 100%, 40px 40px, 40px 40px;
+      pointer-events: none;
+    }
+
+    /* Emergency Light */
+    .emergency-light {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 3;
+      background: radial-gradient(circle at 50% -20%, rgba(255, 50, 0, 0.25), transparent 70%);
+      pointer-events: none;
+      animation: alarmPulse 3s infinite ease-in-out;
+    }
+    @keyframes alarmPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.85; }
+    }
+
+    /* Hazard Tape Bars */
+    .hazard-stripe-top, .hazard-stripe-bottom {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 14px;
+      z-index: 10;
+      background: repeating-linear-gradient(
+        -45deg,
+        #ff2a00,
+        #ff2a00 20px,
+        #110503 20px,
+        #110503 40px
+      );
+      box-shadow: 0 0 15px rgba(255, 42, 0, 0.6);
+    }
+    .hazard-stripe-top { top: 0; }
+    .hazard-stripe-bottom { bottom: 0; }
+
+    /* Lobby Content */
+    .lobby-wrapper {
+      position: relative;
+      z-index: 5;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+    }
+
+    /* Meta Badges */
+    .meta-badges {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .badge-box {
+      background: rgba(20, 5, 3, 0.85);
+      border: 1px solid #ff3300;
+      padding: 0.6rem 1.6rem;
+      border-radius: 2px;
+      box-shadow: 0 0 15px rgba(255, 51, 0, 0.25), inset 0 0 10px rgba(255, 51, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      backdrop-filter: blur(4px);
+    }
+    .badge-label {
+      font-size: 0.85rem;
+      color: #ff8866;
+      letter-spacing: 2px;
+    }
+    .badge-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 0 8px #ff3300;
+    }
+
+    /* Title Frame */
+    .title-frame {
+      position: relative;
+      background: rgba(12, 3, 2, 0.8);
+      border: 2px solid rgba(255, 68, 0, 0.6);
+      padding: 2.5rem 4rem;
+      border-radius: 4px;
+      box-shadow:
+        0 0 30px rgba(255, 51, 0, 0.3),
+        inset 0 0 25px rgba(255, 51, 0, 0.15);
+      text-align: center;
+      backdrop-filter: blur(6px);
+    }
+    .title-frame::before, .title-frame::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      border: 3px solid #ff5500;
+    }
+    .title-frame::before { top: -6px; left: -6px; border-right: none; border-bottom: none; }
+    .title-frame::after { bottom: -6px; right: -6px; border-left: none; border-top: none; }
+
+    /* Title */
+    .main-title {
+      font-family: 'Teko', sans-serif;
+      font-size: 6rem;
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: 6px;
+      color: #fff;
+      text-transform: uppercase;
+      text-shadow:
+        0 0 10px rgba(255, 68, 0, 0.8),
+        0 0 25px rgba(255, 30, 0, 0.6),
+        0 0 50px rgba(255, 0, 0, 0.4);
+    }
+    .main-title span { color: #ff3300; }
+
+    @media (max-width: 768px) {
+      .main-title { font-size: 3.5rem; letter-spacing: 3px; }
+      .title-frame { padding: 1.5rem 2rem; }
+    }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
-  <!-- AUDIO -->
+  <!-- ═══════════════════════════════════════════════════════════
+       AUDIO
+       ═══════════════════════════════════════════════════════════ -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
   <audio id="beepSound"
          src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"
          preload="auto"></audio>
 
-  <!-- OVERLAY TIMEUP (untuk fase menghafal berakhir) -->
+  <!-- AUDIO UNLOCK OVERLAY -->
+  <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
+    <div class="text-center space-y-6 px-8">
+      <div class="unlock-icon text-8xl">🔊</div>
+      <div>
+        <h2 class="text-4xl font-black text-white mb-3 font-math">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+      </div>
+      <div class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold px-6 py-3 rounded-xl">
+        <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
+      </div>
+    </div>
+  </div>
+
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
+  </div>
+
+  <!-- OVERLAY TIMEUP -->
   <div id="timeupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center pointer-events-none bg-rose-950/70 backdrop-blur-md">
     <div class="text-center">
       <div class="text-[120px] leading-none mb-4">⏰</div>
@@ -113,20 +334,43 @@
   <div class="w-full h-full relative">
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 0: IDLE (kosong) — default ketika tidak ada sesi    -->
+    <!-- VIEW 0: IDLE (FIRE LAB THEME)                            -->
     <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewIdle" class="stage-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center space-y-6">
-        <div class="w-24 h-24 bg-purple-500/10 border-2 border-purple-500/30 rounded-3xl flex items-center justify-center mx-auto">
-          <i class="fas fa-hourglass-half text-5xl text-purple-400 animate-pulse"></i>
+    <div id="viewIdle" class="stage-view absolute inset-0">
+      <!-- Fire & Smoke Canvas -->
+      <canvas id="lab-canvas"></canvas>
+
+      <!-- Visual Filters -->
+      <div class="lab-overlay"></div>
+      <div class="emergency-light"></div>
+
+      <!-- Hazard Bars -->
+      <div class="hazard-stripe-top"></div>
+      <div class="hazard-stripe-bottom"></div>
+
+      <!-- Content -->
+      <div class="lobby-wrapper">
+        <!-- Info Badges: Hari & Game -->
+        <div class="meta-badges">
+          <div class="badge-box">
+            <span class="badge-label">HARI</span>
+            <span class="badge-value">01</span>
+          </div>
+          <div class="badge-box">
+            <span class="badge-label">GAME</span>
+            <span class="badge-value">03</span>
+          </div>
         </div>
-        <h1 class="text-6xl font-black font-math text-slate-500 tracking-widest">CATACLYSM MEMORY</h1>
-        <p class="text-slate-600 text-xl">Menunggu instruksi dari panitia...</p>
+
+        <!-- Title -->
+        <div class="title-frame">
+          <h1 class="main-title">CATACLYSM <span>MEMORY</span></h1>
+        </div>
       </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 0B: MEMORIZE PHASE (15 menit countdown)             -->
+    <!-- VIEW 0B: MEMORIZE PHASE                                  -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewMemorizePhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-8">
@@ -174,7 +418,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2: DISASTER MEMORIZE (rotate kartu bencana)         -->
+    <!-- VIEW 2: DISASTER MEMORIZE                                -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewDisasterPhase" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
       <div id="disasterContainer" class="w-full max-w-6xl"></div>
@@ -201,7 +445,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 4: TEAM STANDINGS (reveal peringkat / semua)        -->
+    <!-- VIEW 4: TEAM STANDINGS                                   -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewTeamStandings" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-6">
@@ -217,7 +461,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 5: LEADERBOARD (individu top 10 / semua)            -->
+    <!-- VIEW 5: LEADERBOARD                                      -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-6">
@@ -244,11 +488,33 @@
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
-    const DEFAULT_MEMORIZE_DURATION = 900; // 15 menit
+    const DEFAULT_MEMORIZE_DURATION = 900;
 
     const TEAM_NAMES = {
       1: 'TIM MERAH', 2: 'TIM BIRU', 3: 'TIM HIJAU', 4: 'TIM KUNING', 5: 'TIM UNGU',
       6: 'TIM PINK', 7: 'TIM LIME', 8: 'TIM LANGIT', 9: 'TIM ORANYE', 10: 'TIM FUCHSIA'
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ BGM CONFIG — ISI NAMA FILE SESUAI BUCKET SUPABASE
+    // ═══════════════════════════════════════════════════════════
+    const BGM = {
+      baseUrl: `${SUPABASE_URL}/storage/v1/object/public/bgm/`,
+      // 🎵 GANTI NAMA FILE DI BAWAH INI SESUAI BUCKET BGM ANDA
+      tracks: {
+        idle:             'CATACLYSMMEMORY.mp3',    // <-- BGM untuk tampilan idle
+        memorize_phase:   'TEGANG.mp3',   // <-- BGM untuk fase menghafal
+        team_assignment:  'TENANG.mp3',   // <-- BGM untuk pembagian tim
+        disaster_phase:   'TEGANG.mp3',   // <-- BGM untuk fase bencana
+        answer_phase:     'TEGANG.mp3',   // <-- BGM untuk fase mengerjakan
+        team_standings:   'WINNER.mp3',   // <-- BGM untuk peringkat tim
+        leaderboard:      'WINNER.mp3'    // <-- BGM untuk global leaderboard
+      },
+      current: null,
+      player: null,
+      unlocked: false,
+      volume: 0.5,
+      pendingTrack: null
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -283,30 +549,18 @@
     ];
 
     const DISASTER_IMAGES = {
-      1:  'gempabumishanxi.jpeg',
-      2:  'letusangunungtambora.jpeg',
-      3:  'sikloncoringa.jpeg',
-      4:  'topanhaipong.jpeg',
-      5:  'letusangunungkrakatau.jpeg',
-      6:  'banjirsungaikuning.jpeg',
-      7:  'letusangunungpelee.jpeg',
-      8:  'gempabumimesina.jpeg',
-      9:  'gempabumihaiyuan.jpeg',
-      10: 'gempabumikanto.jpeg',
-      11: 'banjirsungaiyangtze.jpeg',
-      12: 'gempabumivaldivia.jpeg',
-      13: 'siklonbhola.jpeg',
-      14: 'badainina.jpeg',
-      15: 'gempabumitangshan.jpeg',
-      16: 'letusangunungnevadodelruiz.jpeg',
-      17: 'badaimitch.jpeg',
-      18: 'longsorvargas.jpeg',
-      19: 'gempabumibam.jpeg',
-      20: 'gelombangpanaseropa.jpeg',
-      21: 'gempabumidantsunamisamudrahindia.jpeg',
-      22: 'siklonnargis.jpeg',
-      23: 'gempabumihaiti.jpeg',
-      24: 'gempabumijepang.jpeg',
+      1:  'gempabumishanxi.jpeg', 2:  'letusangunungtambora.jpeg',
+      3:  'sikloncoringa.jpeg', 4:  'topanhaipong.jpeg',
+      5:  'letusangunungkrakatau.jpeg', 6:  'banjirsungaikuning.jpeg',
+      7:  'letusangunungpelee.jpeg', 8:  'gempabumimesina.jpeg',
+      9:  'gempabumihaiyuan.jpeg', 10: 'gempabumikanto.jpeg',
+      11: 'banjirsungaiyangtze.jpeg', 12: 'gempabumivaldivia.jpeg',
+      13: 'siklonbhola.jpeg', 14: 'badainina.jpeg',
+      15: 'gempabumitangshan.jpeg', 16: 'letusangunungnevadodelruiz.jpeg',
+      17: 'badaimitch.jpeg', 18: 'longsorvargas.jpeg',
+      19: 'gempabumibam.jpeg', 20: 'gelombangpanaseropa.jpeg',
+      21: 'gempabumidantsunamisamudrahindia.jpeg', 22: 'siklonnargis.jpeg',
+      23: 'gempabumihaiti.jpeg', 24: 'gempabumijepang.jpeg',
       25: 'badaihaiyan.jpeg'
     };
 
@@ -327,12 +581,15 @@
     let cachedTeamStandings = [];
     let cachedGlobalScores = [];
 
-    // Guard
     let lastMemorizeSig = '';
     let memorizeActive = false;
 
+    // Idle canvas animation state
+    let idleCanvasRunning = false;
+    let idleCanvasRafId = null;
+
     // ═══════════════════════════════════════════════════════════
-    // AUDIO
+    // AUDIO — SFX
     // ═══════════════════════════════════════════════════════════
     function playBell() {
       const bell = document.getElementById('bellSound');
@@ -354,6 +611,204 @@
         setTimeout(() => playBeep(), i * gapMs);
       }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ BGM MANAGER
+    // ═══════════════════════════════════════════════════════════
+    function initBGM() {
+      BGM.player = document.getElementById('bgmPlayer');
+      if (!BGM.player) return;
+
+      BGM.player.volume = BGM.volume;
+      BGM.player.loop = true;
+      BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+      BGM.current = 'idle';
+
+      BGM.player.play()
+        .then(() => {
+          BGM.unlocked = true;
+          updateBGMBadge('playing', 'idle');
+        })
+        .catch(() => {
+          showUnlockOverlay();
+          updateBGMBadge('blocked', 'idle');
+        });
+
+      const unlock = () => {
+        if (BGM.unlocked) return;
+        BGM.unlocked = true;
+
+        const target = BGM.pendingTrack || BGM.current || 'idle';
+        BGM.pendingTrack = null;
+        BGM.player.src = BGM.baseUrl + BGM.tracks[target];
+        BGM.player.currentTime = 0;
+        BGM.current = target;
+
+        BGM.player.play()
+          .then(() => updateBGMBadge('playing', target))
+          .catch(() => {});
+
+        hideUnlockOverlay();
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('keydown', unlock);
+      };
+
+      document.addEventListener('click', unlock);
+      document.addEventListener('touchstart', unlock);
+      document.addEventListener('keydown', unlock);
+
+      const overlay = document.getElementById('audioUnlockOverlay');
+      if (overlay) overlay.addEventListener('click', unlock);
+    }
+
+    function showUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.remove('hidden');
+    }
+    function hideUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.add('hidden');
+    }
+
+    function updateBGMBadge(status, trackName) {
+      const dot = document.getElementById('bgmDot');
+      const label = document.getElementById('bgmLabel');
+      if (dot) {
+        if (status === 'playing') dot.className = 'dot playing';
+        else if (status === 'muted') dot.className = 'dot muted';
+        else dot.className = 'dot';
+      }
+      if (label) label.textContent = `BGM: ${trackName}`;
+    }
+
+    function playBGM(viewName) {
+      if (!BGM.player) return;
+
+      const filename = BGM.tracks[viewName];
+      if (!filename) return;
+
+      // Guard: track sama
+      if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
+
+      if (!BGM.unlocked) {
+        BGM.pendingTrack = viewName;
+        BGM.current = viewName;
+        updateBGMBadge('blocked', viewName);
+        return;
+      }
+
+      const newSrc = BGM.baseUrl + filename;
+      if (BGM.player.src === newSrc) {
+        BGM.current = viewName;
+        return;
+      }
+
+      BGM.current = viewName;
+      try { BGM.player.pause(); } catch (e) {}
+
+      BGM.player.src = newSrc;
+      BGM.player.currentTime = 0;
+
+      setTimeout(() => {
+        BGM.player.load();
+        BGM.player.play()
+          .then(() => updateBGMBadge('playing', viewName))
+          .catch(() => {
+            updateBGMBadge('blocked', viewName);
+            BGM.pendingTrack = viewName;
+            BGM.unlocked = false;
+            showUnlockOverlay();
+          });
+      }, 80);
+    }
+
+    function unlockAudio() {
+      BGM.unlocked = true;
+      hideUnlockOverlay();
+      const target = BGM.pendingTrack || BGM.current || 'idle';
+      BGM.pendingTrack = null;
+      BGM.current = null;
+      playBGM(target);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // IDLE CANVAS ANIMATION (Fire Ember)
+    // ═══════════════════════════════════════════════════════════
+    const labCanvas = document.getElementById('lab-canvas');
+    const labCtx = labCanvas ? labCanvas.getContext('2d') : null;
+
+    let labW, labH;
+    let labParticles = [];
+
+    class Ember {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * labW;
+        this.y = labH + Math.random() * 50;
+        this.size = Math.random() * 3 + 1;
+        this.speedY = Math.random() * 2 + 1;
+        this.speedX = (Math.random() - 0.5) * 1.5;
+        this.opacity = Math.random() * 0.9 + 0.1;
+        const colors = ['#ff1a00', '#ff5500', '#ffaa00', '#cc0000'];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+      }
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX + Math.sin(this.y * 0.02) * 0.5;
+        this.opacity -= 0.003;
+        if (this.y < -10 || this.opacity <= 0) this.reset();
+      }
+      draw() {
+        if (!labCtx) return;
+        labCtx.beginPath();
+        labCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        labCtx.fillStyle = this.color;
+        labCtx.globalAlpha = this.opacity;
+        labCtx.shadowBlur = 12;
+        labCtx.shadowColor = this.color;
+        labCtx.fill();
+        labCtx.globalAlpha = 1;
+        labCtx.shadowBlur = 0;
+      }
+    }
+
+    function resizeLab() {
+      if (!labCanvas) return;
+      labW = labCanvas.width = window.innerWidth;
+      labH = labCanvas.height = window.innerHeight;
+    }
+
+    function startIdleCanvas() {
+      if (idleCanvasRunning || !labCtx) return;
+      idleCanvasRunning = true;
+
+      resizeLab();
+      if (labParticles.length === 0) {
+        for (let i = 0; i < 110; i++) labParticles.push(new Ember());
+      } else {
+        labParticles.forEach(p => p.reset());
+      }
+
+      const render = () => {
+        if (!idleCanvasRunning || !labCtx) return;
+        labCtx.fillStyle = 'rgba(8, 2, 2, 0.25)';
+        labCtx.fillRect(0, 0, labW, labH);
+        labParticles.forEach(p => { p.update(); p.draw(); });
+        idleCanvasRafId = requestAnimationFrame(render);
+      };
+      render();
+    }
+
+    function stopIdleCanvas() {
+      idleCanvasRunning = false;
+      if (idleCanvasRafId) cancelAnimationFrame(idleCanvasRafId);
+      idleCanvasRafId = null;
+    }
+
+    window.addEventListener('resize', () => {
+      if (idleCanvasRunning) resizeLab();
+    });
 
     // ═══════════════════════════════════════════════════════════
     // FETCH TEAMS
@@ -381,7 +836,8 @@
       if (currentView === 'team_assignment') startTeamRotation();
     }
 
-    // ═══════════════════════════════════════════════════════════    // TEAM ASSIGNMENT
+    // ═══════════════════════════════════════════════════════════
+    // TEAM ASSIGNMENT
     // ═══════════════════════════════════════════════════════════
     function renderTeamContainer(containerId, teamNum) {
       const container = document.getElementById(containerId);
@@ -463,11 +919,10 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // MEMORIZE PHASE (15 menit)
+    // MEMORIZE PHASE
     // ═══════════════════════════════════════════════════════════
     async function startMemorizeTimer(startTime, duration) {
       if (memorizeTimerInterval) clearInterval(memorizeTimerInterval);
-
       const display = document.getElementById('memorizeTimerDisplay');
       if (!display) return;
 
@@ -477,15 +932,12 @@
       const tick = () => {
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
         const remaining = Math.max(0, duration - elapsed);
-
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
         display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
         if (remaining <= 30) {
           display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
-        } else if (remaining <= 60) {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
         } else {
           display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
         }
@@ -509,10 +961,8 @@
     async function handleMemorizeTimeout() {
       console.log('[STAGE] ⏰ Memorize timeout — kembali ke idle');
 
-      // 1) Bunyi beep 3x
       playBeepTimes(3, 400);
 
-      // 2) Overlay "WAKTU MENGHAFAL HABIS"
       const overlay = document.getElementById('timeupOverlay');
       if (overlay) {
         overlay.classList.remove('hidden');
@@ -523,7 +973,6 @@
         }, 3500);
       }
 
-      // 3) Update DB: is_memorize_active = false
       try {
         await supabaseClient
           .from('system_cataclysm_memory')
@@ -535,7 +984,6 @@
           .eq('id', 1);
       } catch (e) { console.warn('Update memorize_end gagal', e); }
 
-      // 4) Set layout ke idle (kosong)
       try {
         await supabaseClient
           .from('admin_layout_cataclysm_memory')
@@ -697,7 +1145,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // TEAM STANDINGS — poin rata-rata per tim
+    // TEAM STANDINGS
     // ═══════════════════════════════════════════════════════════
     async function fetchTeamStandings() {
       const { data: teams } = await supabaseClient
@@ -709,13 +1157,11 @@
         .select('user_unique_id, score_obtained')
         .eq('game_name', GAME_NAME);
 
-      // Buat map: unique_id → total skor
       const scoreMap = {};
       (scores || []).forEach(s => {
         scoreMap[s.user_unique_id] = (scoreMap[s.user_unique_id] || 0) + (s.score_obtained || 0);
       });
 
-      // Group members per tim
       const teamTotals = {};
       for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
 
@@ -732,29 +1178,25 @@
         }
       });
 
-      // Hitung rata-rata (bukan total!)
       cachedTeamStandings = Object.keys(teamTotals)
         .map(tn => {
           const t = teamTotals[tn];
           const avg = t.count > 0 ? (t.sum / t.count) : 0;
           return {
             team: parseInt(tn),
-            average: Math.round(avg * 10) / 10,  // 1 desimal
+            average: Math.round(avg * 10) / 10,
             sum: t.sum,
             count: t.count,
             members: t.members.sort((a, b) => b.score - a.score)
           };
         })
         .sort((a, b) => b.average - a.average);
-
-      console.log('[STAGE] Team standings (rata-rata):', cachedTeamStandings.map(t => `${TEAM_NAMES[t.team]}=${t.average}`).join(', '));
     }
 
     function renderTeamStandingReveal(rank) {
       const container = document.getElementById('teamStandingReveal');
       if (!container) return;
 
-      // rank === -1 → tampilkan SEMUA tim
       if (rank === -1) {
         if (cachedTeamStandings.length === 0) {
           container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data tim.</p>`;
@@ -795,13 +1237,11 @@
         return;
       }
 
-      // rank === 0 → kosong
       if (rank === 0 || cachedTeamStandings.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>`;
         return;
       }
 
-      // rank > 0 → tampilkan 1 tim
       const targetIdx = rank - 1;
       const target = cachedTeamStandings[targetIdx];
 
@@ -819,10 +1259,10 @@
       else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
       else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; }
 
-      const memberHtml = target.members.slice(0, 12).map((m, idx) => {
+      const memberHtml = target.members.slice(0, 12).map((m) => {
         const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
         return `
-          <div class="flex flex-col items-center" style="animation-delay: ${idx * 60}ms">
+          <div class="flex flex-col items-center">
             <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-1 mb-1">
               <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
             </div>
@@ -873,7 +1313,6 @@
       const container = document.getElementById('leaderboardReveal');
       if (!container) return;
 
-      // rank === -1 → tampilkan SEMUA
       if (rank === -1) {
         if (cachedGlobalScores.length === 0) {
           container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data nilai.</p>`;
@@ -917,13 +1356,11 @@
         return;
       }
 
-      // rank === 0 → kosong
       if (rank === 0 || cachedGlobalScores.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>`;
         return;
       }
 
-      // rank > 0 → 1 orang
       const targetIdx = rank - 1;
       const player = cachedGlobalScores[targetIdx];
 
@@ -973,6 +1410,7 @@
       stopDisasterRotation();
       stopAnswerTimer();
       stopMemorizeTimer();
+      stopIdleCanvas();
     }
 
     function handleViewSwitch(viewName, revealedRank) {
@@ -988,7 +1426,6 @@
         leaderboard: document.getElementById('viewLeaderboard')
       };
 
-      // Kalau view sama & rank sama → skip, tapi khusus leaderboard/standings tetap update rank
       const isSameView = (currentView === viewName);
       const isSameRank = (lastRevealedRank === revealedRank);
 
@@ -1003,7 +1440,6 @@
         return;
       }
 
-      // View sama tapi rank beda
       if (isSameView && !isSameRank) {
         lastRevealedRank = revealedRank;
         if (viewName === 'leaderboard') {
@@ -1014,7 +1450,6 @@
         return;
       }
 
-      // View beda → switch penuh
       Object.values(views).forEach(v => {
         if (v) { v.classList.add('hidden-view'); v.classList.remove('active-view'); }
       });
@@ -1028,8 +1463,14 @@
         views[viewName].classList.add('active-view');
       }
 
+      // ⭐ BGM auto-play per view
+      playBGM(viewName);
+
       // Handle specific view
-      if (viewName === 'team_assignment') {
+      if (viewName === 'idle') {
+        // Start fire canvas animation
+        setTimeout(() => startIdleCanvas(), 100);
+      } else if (viewName === 'team_assignment') {
         fetchTeams().then(() => startTeamRotation());
       } else if (viewName === 'disaster_phase') {
         startDisasterRotation();
@@ -1042,7 +1483,6 @@
       } else if (viewName === 'leaderboard') {
         fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
       }
-      // idle → kosong, tidak perlu apa-apa
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1073,10 +1513,8 @@
       if (data && data.is_memorize_active && data.memorize_start_time) {
         startMemorizeTimer(data.memorize_start_time, data.memorize_duration || DEFAULT_MEMORIZE_DURATION);
       } else {
-        // Tidak aktif → balik ke idle
         const display = document.getElementById('memorizeTimerDisplay');
         if (display) display.textContent = '--:--';
-        console.warn('[STAGE] Memorize tidak aktif, tapi view memorize_phase dipanggil');
       }
     }
 
@@ -1136,7 +1574,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME: SYSTEM (memorize + answer)
+    // REALTIME: SYSTEM
     // ═══════════════════════════════════════════════════════════
     function subscribeSystem() {
       supabaseClient
@@ -1149,12 +1587,10 @@
           if (!payload.new) return;
           const sys = payload.new;
 
-          // ⭐ Memorize phase
           if (sys.is_memorize_active && sys.memorize_start_time) {
             const sig = `${sys.memorize_start_time}|${sys.memorize_duration}`;
             if (sig !== lastMemorizeSig) {
               lastMemorizeSig = sig;
-              // Kalau view sekarang bukan memorize_phase → switch
               if (currentView !== 'memorize_phase') {
                 handleViewSwitch('memorize_phase', 0);
               } else {
@@ -1162,9 +1598,7 @@
               }
             }
           } else {
-            // is_memorize_active = false
             if (memorizeActive) {
-              console.log('[STAGE] Memorize dimatikan dari admin');
               stopMemorizeTimer();
               if (currentView === 'memorize_phase') {
                 handleViewSwitch('idle', 0);
@@ -1172,7 +1606,6 @@
             }
           }
 
-          // Answer phase
           if (currentView === 'answer_phase' && sys.is_active && sys.session_start_time) {
             startAnswerTimer(sys.session_start_time, sys.session_duration || 300);
           }
@@ -1185,6 +1618,8 @@
     // ═══════════════════════════════════════════════════════════
     async function init() {
       console.log('[STAGE] Init Cataclysm Memory...');
+
+      initBGM();
 
       const { data: layout } = await supabaseClient
         .from('admin_layout_cataclysm_memory')

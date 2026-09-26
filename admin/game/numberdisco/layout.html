@@ -2,43 +2,91 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Number Disco - Stage Display Engine</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💿</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&family=Montserrat:ital,wght@0,700;0,900;1,900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            montserrat: ['Montserrat', 'sans-serif']
+          },
+          colors: {
+            disco: {
+              bg: '#0a0814',
+              cyan: '#00f0ff',
+              magenta: '#ff007f',
+              purple: '#7000ff',
+              amber: '#ffb700'
+            }
+          },
+          animation: {
+            'beam-spin': 'beamSpin 20s linear infinite',
+            'beam-spin-rev': 'beamSpinRev 25s linear infinite',
+            'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite',
+            'wave-bar': 'waveBar 1.2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            beamSpin: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' }
+            },
+            beamSpinRev: {
+              '0%': { transform: 'rotate(360deg)' },
+              '100%': { transform: 'rotate(0deg)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { filter: 'drop-shadow(0 0 25px rgba(0, 240, 255, 0.4)) drop-shadow(0 0 50px rgba(255, 0, 127, 0.3))', transform: 'scale(1)' },
+              '50%': { filter: 'drop-shadow(0 0 45px rgba(0, 240, 255, 0.7)) drop-shadow(0 0 70px rgba(255, 0, 127, 0.6))', transform: 'scale(1.02)' }
+            },
+            waveBar: {
+              '0%': { height: '20%' },
+              '100%': { height: '100%' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&display=swap');
-
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #030712;
-      color: #ffffff;
+    html, body {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      margin: 0; padding: 0;
       overflow: hidden;
+      user-select: none; -webkit-user-select: none;
+      touch-action: none;
+      background-color: #0a0814;
+      color: #ffffff;
+      font-family: 'Poppins', sans-serif;
     }
 
-    .font-math {
-      font-family: 'Orbitron', sans-serif;
-    }
+    .font-math { font-family: 'Orbitron', sans-serif; }
 
     .glow-blue {
       box-shadow: 0 0 35px rgba(59, 130, 246, 0.3);
       border: 3px solid #1e40af;
     }
-
     .glow-red {
       box-shadow: 0 0 35px rgba(239, 68, 68, 0.3);
       border: 3px solid #991b1b;
     }
-
     .active-speaking-blue {
       box-shadow: 0 0 80px rgba(59, 130, 246, 0.9) !important;
       border-color: #3b82f6 !important;
       background-color: rgba(30, 58, 138, 0.3) !important;
       transform: scale(1.02);
     }
-
     .active-speaking-red {
       box-shadow: 0 0 80px rgba(239, 68, 68, 0.9) !important;
       border-color: #ef4444 !important;
@@ -46,21 +94,23 @@
       transform: scale(1.02);
     }
 
-    /* SYSTEM STAGE VIEW SWITCHER ENGINE */
-    .stage-view {
-      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+    /* ═══════════════════════════════════════════════════════════
+       STAGE VIEW SWITCHER
+       ═══════════════════════════════════════════════════════════ */
+    .stage-view { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
     .stage-view.hidden-view {
       opacity: 0;
       transform: scale(0.92);
       pointer-events: none;
       position: absolute;
       inset: 0;
+      visibility: hidden;
     }
     .stage-view.active-view {
       opacity: 1;
       transform: scale(1);
       position: relative;
+      visibility: visible;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 6px; }
@@ -71,22 +121,18 @@
       0% { opacity: 0; transform: scale(0.7) translateY(40px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .animate-card-pop {
-      animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
+    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
     .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.3); }
     .glow-indigo { box-shadow: 0 0 45px rgba(99, 102, 241, 0.35); }
 
     /* ═══════════════════════════════════════════════════════════
-       BGM BADGE — indikator kecil di pojok
+       BGM BADGE
        ═══════════════════════════════════════════════════════════ */
     .bgm-badge {
       position: fixed;
-      bottom: 12px;
-      right: 12px;
-      font-size: 10px;
-      font-family: monospace;
+      bottom: 12px; right: 12px;
+      font-size: 10px; font-family: monospace;
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
@@ -94,32 +140,79 @@
       color: #94a3b8;
       z-index: 100;
       pointer-events: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: flex; align-items: center; gap: 6px;
     }
     .bgm-badge .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
+      width: 6px; height: 6px; border-radius: 50%;
       background: #64748b;
     }
     .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
     .bgm-badge .dot.muted { background: #f43f5e; }
-    @keyframes bgmPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ═══════════════════════════════════════════════════════════
+       IDLE VIEW — DISCO THEME
+       ═══════════════════════════════════════════════════════════ */
+    .disco-glass {
+      background: rgba(18, 12, 38, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .text-glow-title {
+      text-shadow:
+        0 0 10px rgba(0, 240, 255, 0.8),
+        0 0 30px rgba(255, 0, 127, 0.6),
+        0 0 60px rgba(112, 0, 255, 0.4);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 15px rgba(0, 240, 255, 0.8), 0 0 30px rgba(0, 240, 255, 0.4);
+    }
+
+    /* Light Beams FX */
+    .beam-container {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 200vmax; height: 200vmax;
+      margin-top: -100vmax; margin-left: -100vmax;
+      pointer-events: none;
+    }
+    .spotlight-beam {
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(0, 240, 255, 0.08) 15deg,
+        transparent 30deg,
+        transparent 120deg,
+        rgba(255, 0, 127, 0.08) 135deg,
+        transparent 150deg,
+        transparent 240deg,
+        rgba(112, 0, 255, 0.08) 255deg,
+        transparent 270deg
+      );
+    }
+    .spotlight-beam-2 {
+      background: conic-gradient(
+        from 60deg,
+        transparent 0deg,
+        rgba(255, 183, 0, 0.06) 20deg,
+        transparent 40deg,
+        transparent 180deg,
+        rgba(0, 240, 255, 0.06) 200deg,
+        transparent 220deg
+      );
     }
   </style>
 </head>
-<body class="min-h-screen p-6 flex flex-col justify-between bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
+<body class="fixed inset-0 w-screen h-screen overflow-hidden select-none">
 
   <!-- ═══════════════════════════════════════════════════════════
-       AUDIO ELEMENT — DI LUAR SEMUA CONTAINER RENDER
+       AUDIO
        ═══════════════════════════════════════════════════════════ -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
 
-  <!-- OVERLAY UNTUK UNLOCK AUDIO BROWSER -->
+  <!-- OVERLAY UNLOCK AUDIO -->
   <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
     <div class="p-6 bg-indigo-600/20 rounded-full border border-indigo-500/40 text-indigo-400 mb-4 animate-bounce">
       <i class="fas fa-power-off text-4xl"></i>
@@ -134,37 +227,81 @@
     <span id="bgmLabel">BGM: --</span>
   </div>
 
-  <!-- HEADER STAGE -->
-  <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-20 relative">
-    <div class="flex items-center gap-3">
-      <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
-        <i class="fas fa-compact-disc fa-spin text-2xl"></i>
-      </div>
-      <div>
-        <h1 class="text-2xl font-black tracking-wider text-white font-math uppercase">NUMBER DISCO</h1>
-        <p id="stageStatus" class="text-xs text-slate-400">MENUNGGU SINYAL ADMIN...</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-3">
-      <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
-        <span class="flex h-2.5 w-2.5 relative">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+  <!-- ═══════════════════════════════════════════════════════════
+       1. VIEW: IDLE LOBBY (DISCO)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view hidden-view fixed inset-0 flex flex-col items-center justify-between p-6 sm:p-10">
+    <!-- Ambient Particle Canvas -->
+    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+    <!-- Rotating Disco Spotlight Beams -->
+    <div class="beam-container spotlight-beam animate-beam-spin z-0 opacity-80"></div>
+    <div class="beam-container spotlight-beam-2 animate-beam-spin-rev z-0 opacity-60"></div>
+
+    <!-- Background Vignette -->
+    <div class="absolute inset-0 bg-radial gradient from-transparent via-[#0a0814]/70 to-[#0a0814] pointer-events-none z-0"></div>
+
+    <!-- TOP HEADER / DAY & GAME BADGE -->
+    <header class="relative z-10 w-full flex items-center justify-center">
+      <div class="disco-glass px-6 sm:px-8 py-2.5 sm:py-3 rounded-full border border-cyan-400/30 flex items-center gap-3.5 shadow-[0_0_25px_rgba(0,240,255,0.25)]">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-400"></span>
         </span>
-        <span class="text-amber-400 font-bold text-xs tracking-wider uppercase font-math">MENGULANGI</span>
+        <span class="font-orbitron font-extrabold text-xs sm:text-sm tracking-[0.25em] text-cyan-300 uppercase">
+          DAY 1 &bull; GAME 2
+        </span>
       </div>
-      <div class="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2">
-        <i class="fas fa-stopwatch text-emerald-400 text-xs"></i>
-        <span id="timerDisplay" class="text-xs font-bold text-emerald-400 font-mono">05:00</span>
-      </div>
+    </header>
+
+    <!-- CENTER PIECE: ANIMATED DISCO BALL -->
+    <div class="relative z-10 w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] md:w-[460px] md:h-[460px] flex items-center justify-center my-auto animate-pulse-glow">
+      <canvas id="discoCanvas" class="w-full h-full relative z-10"></canvas>
     </div>
-  </header>
 
-  <!-- CONTAINER UTAMA WIDGET STAGE -->
-  <div class="w-full max-w-7xl mx-auto my-auto relative z-10">
+    <!-- FOOTER / MAIN TITLE -->
+    <footer class="relative z-10 w-full flex flex-col items-center justify-center text-center space-y-4">
+      <h1 class="font-montserrat font-black text-4xl sm:text-6xl md:text-7xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-amber-300 italic text-glow-title uppercase">
+        NUMBER DISCO
+      </h1>
+      <p class="text-slate-400 text-xs sm:text-sm font-orbitron tracking-[0.3em] uppercase">
+        Menunggu Admin Memulai Permainan
+      </p>
+    </footer>
+  </div>
 
-    <!-- 1. LAYAR UTAMA DISPLAY GAME -->
-    <main id="viewGame" class="stage-view active-view grid grid-cols-2 gap-8 h-[68vh] w-full">
+  <!-- ═══════════════════════════════════════════════════════════
+       2. VIEW: GAME (Blue/Red Teams)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewGame" class="stage-view hidden-view fixed inset-0 flex flex-col justify-between p-6">
+    <!-- HEADER STAGE -->
+    <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-20 relative">
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+          <i class="fas fa-compact-disc fa-spin text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-black tracking-wider text-white font-math uppercase">NUMBER DISCO</h1>
+          <p id="stageStatus" class="text-xs text-slate-400">MENUNGGU SINYAL ADMIN...</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+          <span class="flex h-2.5 w-2.5 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+          </span>
+          <span class="text-amber-400 font-bold text-xs tracking-wider uppercase font-math">MENGULANGI</span>
+        </div>
+        <div class="bg-slate-950/80 px-4 py-2 rounded-2xl border border-slate-800 flex items-center gap-2">
+          <i class="fas fa-stopwatch text-emerald-400 text-xs"></i>
+          <span id="timerDisplay" class="text-xs font-bold text-emerald-400 font-mono">05:00</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN DISPLAY -->
+    <main class="grid grid-cols-2 gap-8 flex-1 w-full max-w-7xl mx-auto my-auto relative z-10">
       <div id="containerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center glow-blue transition-all duration-300 relative">
         <span class="absolute top-6 left-6 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
           <i class="fas fa-venus"></i> TIM BIRU (FEMALE)
@@ -183,49 +320,59 @@
         </div>
       </div>
     </main>
+  </div>
 
-    <!-- 2. VIEW PAPAN PERINGKAT TOP 10 -->
-    <div id="viewLeaderboard" class="stage-view hidden-view bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
-      <div class="mb-6">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
-          FINAL STANDINGS
-        </span>
-        <h2 class="text-3xl md:text-5xl font-black text-white mt-3 tracking-wide flex items-center justify-center gap-3">
-          <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
-        </h2>
-      </div>
-
-      <div class="relative max-w-lg mx-auto min-h-[420px] flex items-center justify-center">
-        <div class="absolute -left-12 md:-left-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
-          <i class="fas fa-chevron-left"></i>
+  <!-- ═══════════════════════════════════════════════════════════
+       3. VIEW: LEADERBOARD
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view hidden-view fixed inset-0 flex items-center justify-center p-6">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-slate-950 to-black pointer-events-none"></div>
+    <div class="w-full max-w-3xl relative z-10">
+      <div class="bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
+        <div class="mb-6">
+          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+            FINAL STANDINGS
+          </span>
+          <h2 class="text-3xl md:text-5xl font-black text-white mt-3 tracking-wide flex items-center justify-center gap-3">
+            <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
+          </h2>
         </div>
 
-        <div id="stageLeaderboardGrid" class="w-full">
-          <p class="text-slate-500 text-lg py-12 font-medium">Menunggu Admin Menekan Tombol Peringkat...</p>
-        </div>
-
-        <div class="absolute -right-12 md:-right-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
-          <i class="fas fa-chevron-right"></i>
+        <div class="relative max-w-lg mx-auto min-h-[420px] flex items-center justify-center">
+          <div class="absolute -left-12 md:-left-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
+            <i class="fas fa-chevron-left"></i>
+          </div>
+          <div id="stageLeaderboardGrid" class="w-full">
+            <p class="text-slate-500 text-lg py-12 font-medium">Menunggu Admin Menekan Tombol Peringkat...</p>
+          </div>
+          <div class="absolute -right-12 md:-right-20 text-4xl text-amber-500/40 animate-pulse pointer-events-none hidden sm:block">
+            <i class="fas fa-chevron-right"></i>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- 3. VIEW SELURUH PESERTA -->
-    <div id="viewAllPlayers" class="stage-view hidden-view bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md glow-indigo">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
-          TOTAL SCORE LIST
-        </span>
-        <h2 class="text-3xl md:text-4xl font-black text-white mt-2 tracking-wide flex items-center justify-center gap-3">
-          <i class="fas fa-users text-indigo-400"></i> REKAP POIN SELURUH PESERTA
-        </h2>
-      </div>
-
-      <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
-        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+  <!-- ═══════════════════════════════════════════════════════════
+       4. VIEW: ALL PLAYERS
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewAllPlayers" class="stage-view hidden-view fixed inset-0 flex items-center justify-center p-6">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-950/30 via-slate-950 to-black pointer-events-none"></div>
+    <div class="w-full max-w-5xl relative z-10">
+      <div class="bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md glow-indigo">
+        <div class="text-center mb-6">
+          <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+            TOTAL SCORE LIST
+          </span>
+          <h2 class="text-3xl md:text-4xl font-black text-white mt-2 tracking-wide flex items-center justify-center gap-3">
+            <i class="fas fa-users text-indigo-400"></i> REKAP POIN SELURUH PESERTA
+          </h2>
+        </div>
+        <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
+          <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
       </div>
     </div>
-
   </div>
 
   <script>
@@ -257,6 +404,7 @@
     let currentRevealedRank = -1;
     let lastRevealedRank = -1;
     let autoScrollInterval = null;
+    let currentView = 'idle';
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO HELPERS
@@ -265,7 +413,6 @@
       const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
       return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
     }
-
     function getSoundEffectUrl(filename) {
       return `${STORAGE_BASE_URL}/sounds_effect/${filename}`;
     }
@@ -274,22 +421,27 @@
     const SOUND_BEEP = getSoundEffectUrl('beep.mp3');
 
     // ═══════════════════════════════════════════════════════════
-    // ⭐ BGM MANAGER — HANYA LOBBY & WINNER
-    // - Saat view = game → BGM DIMATIKAN (melatih pendengaran)
-    // - Saat view = leaderboard → WINNER.mp3
-    // - Saat view = all_players → LOBBY.mp3
-    // - Anti-refresh: guard track sama → skip
+    // ⭐ BGM MANAGER — VARIABEL TERPUSAT (ISI NAMA FILE DI SINI)
+    //
+    // Mode game = MUTE (silent, untuk latihan pendengaran)
+    // - idle        → track idle (default: LOBBY.mp3)
+    // - leaderboard → WINNER.mp3
+    // - all_players → LOBBY.mp3
+    // - game        → null (mute)
     // ═══════════════════════════════════════════════════════════
     const BGM = {
       baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+      // 🎵 GANTI NAMA FILE DI BAWAH INI SESUAI BUCKET BGM ANDA
       tracks: {
-        lobby:  'LOBBY.mp3',
-        winner: 'WINNER.mp3'
+        idle:        'NUMBERDISCO.mp3',    // <-- BGM untuk tampilan idle
+        leaderboard: 'WINNER.mp3',   // <-- BGM untuk tampilan papan peringkat
+        all_players: 'LOBBY.mp3',    // <-- BGM untuk tampilan semua peserta
+        game:        null            // <-- null = MUTE (game latihan pendengaran)
       },
-      current: null,     // track yang sedang diputar
+      current: null,
       player: null,
       volume: 0.5,
-      pendingTrack: null // untuk diputar setelah unlock
+      pendingTrack: null
     };
 
     function initBGM() {
@@ -302,22 +454,31 @@
       BGM.player.volume = BGM.volume;
       BGM.player.loop = true;
 
-      // Set src awal tapi JANGAN play dulu — tunggu unlock dari user
-      BGM.player.src = BGM.baseUrl + BGM.tracks.lobby;
-      BGM.current = 'lobby';
+      BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+      BGM.current = 'idle';
 
-      updateBGMBadge('idle', 'lobby');
+      updateBGMBadge('idle', 'idle');
       LOG.info('BGM', 'Initialized (menunggu unlock)');
     }
 
     /**
-     * ⭐ Ganti track BGM — anti-refresh dengan 4 guard
+     * ⭐ Ganti track BGM — auto-play saat view switch
+     * Kalau track null → stop (mute)
      */
     function playBGM(trackName) {
       if (!BGM.player) return;
 
-      // GUARD 1: track sama → skip total
+      // Guard 1: track sama → skip
       if (BGM.current === trackName) return;
+
+      // ⭐ Kalau track null → MUTE
+      if (BGM.tracks[trackName] === null) {
+        try { BGM.player.pause(); } catch(e){}
+        BGM.current = trackName;
+        updateBGMBadge('muted', 'silent');
+        LOG.info('BGM', `⏸ Muted untuk view: ${trackName}`);
+        return;
+      }
 
       const filename = BGM.tracks[trackName];
       if (!filename) {
@@ -325,7 +486,7 @@
         return;
       }
 
-      // GUARD 2: belum unlock → simpan sebagai pending
+      // Guard 2: belum unlock → simpan pending
       if (!audioUnlocked) {
         BGM.pendingTrack = trackName;
         BGM.current = trackName;
@@ -336,20 +497,18 @@
 
       const newSrc = BGM.baseUrl + filename;
 
-      // GUARD 3: src sudah sama (double check)
+      // Guard 3: src sudah sama
       if (BGM.player.src === newSrc) {
         BGM.current = trackName;
         return;
       }
 
-      // LAKUKAN GANTI TRACK
       BGM.current = trackName;
 
       try { BGM.player.pause(); } catch(e){}
       BGM.player.src = newSrc;
       BGM.player.currentTime = 0;
 
-      // Delay kecil untuk hindari ERR_SSL_PROTOCOL_ERROR
       setTimeout(() => {
         BGM.player.load();
         BGM.player.play()
@@ -364,18 +523,6 @@
       }, 80);
     }
 
-    /**
-     * ⭐ Stop BGM — saat masuk mode game (melatih pendengaran)
-     */
-    function stopBGM() {
-      if (BGM.player) {
-        try { BGM.player.pause(); } catch(e){}
-        BGM.current = null;
-        updateBGMBadge('muted', 'silent');
-        LOG.info('BGM', '⏸ Stopped (mode game = silent)');
-      }
-    }
-
     function updateBGMBadge(status, trackName) {
       const dot = document.getElementById('bgmDot');
       const label = document.getElementById('bgmLabel');
@@ -386,6 +533,211 @@
       }
       if (label) label.textContent = `BGM: ${trackName}`;
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // IDLE CANVAS ANIMATION
+    // ═══════════════════════════════════════════════════════════
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
+    const discoCanvas = document.getElementById('discoCanvas');
+    const dCtx = discoCanvas ? discoCanvas.getContext('2d') : null;
+
+    let bgW, bgH;
+    let bgAnimId = null;
+    let discoAnimId = null;
+    let idleRunning = false;
+    let rotationAngle = 0;
+
+    const bgParticles = [];
+    const colors = ['#00f0ff', '#ff007f', '#7000ff', '#ffb700'];
+
+    class BgParticle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * bgW;
+        this.y = Math.random() * bgH;
+        this.size = Math.random() * 3 + 1;
+        this.speedY = -(Math.random() * 0.8 + 0.2);
+        this.speedX = (Math.random() - 0.5) * 0.4;
+        this.alpha = Math.random() * 0.7 + 0.1;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+        this.pulseSpeed = Math.random() * 0.03 + 0.01;
+      }
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+        this.alpha += Math.sin(Date.now() * this.pulseSpeed) * 0.01;
+        if (this.y < -10 || this.x < -10 || this.x > bgW + 10) this.reset();
+      }
+      draw() {
+        if (!bgCtx) return;
+        bgCtx.save();
+        bgCtx.globalAlpha = Math.max(0.1, Math.min(1, this.alpha));
+        bgCtx.fillStyle = this.color;
+        bgCtx.shadowColor = this.color;
+        bgCtx.shadowBlur = 10;
+        bgCtx.beginPath();
+        bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        bgCtx.fill();
+        bgCtx.restore();
+      }
+    }
+
+    function resizeBg() {
+      if (!bgCanvas) return;
+      bgW = bgCanvas.width = window.innerWidth;
+      bgH = bgCanvas.height = window.innerHeight;
+    }
+
+    function resizeDiscoCanvas() {
+      if (!discoCanvas) return;
+      const rect = discoCanvas.getBoundingClientRect();
+      if (!rect.width) return;
+      discoCanvas.width = rect.width * window.devicePixelRatio;
+      discoCanvas.height = rect.height * window.devicePixelRatio;
+    }
+
+    function drawDiscoBall() {
+      if (!dCtx || !discoCanvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const w = discoCanvas.width / dpr;
+      const h = discoCanvas.height / dpr;
+      if (!w || !h) return;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) * 0.28;
+
+      dCtx.save();
+      dCtx.scale(dpr, dpr);
+      dCtx.clearRect(0, 0, w, h);
+
+      rotationAngle += 0.012;
+
+      const numBars = 48;
+      for (let i = 0; i < numBars; i++) {
+        const angle = (i / numBars) * Math.PI * 2 + rotationAngle * 0.5;
+        const waveHeight = Math.sin(i * 0.5 + rotationAngle * 4) * 12;
+        const barRadiusInner = radius + 14;
+        const barRadiusOuter = barRadiusInner + Math.max(4, waveHeight);
+
+        const x1 = cx + Math.cos(angle) * barRadiusInner;
+        const y1 = cy + Math.sin(angle) * barRadiusInner;
+        const x2 = cx + Math.cos(angle) * barRadiusOuter;
+        const y2 = cy + Math.sin(angle) * barRadiusOuter;
+
+        dCtx.beginPath();
+        dCtx.moveTo(x1, y1);
+        dCtx.lineTo(x2, y2);
+        dCtx.lineWidth = 3;
+        dCtx.strokeStyle = (i % 2 === 0) ? '#00f0ff' : '#ff007f';
+        dCtx.shadowColor = dCtx.strokeStyle;
+        dCtx.shadowBlur = 10;
+        dCtx.stroke();
+      }
+
+      const aura = dCtx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius * 1.5);
+      aura.addColorStop(0, 'rgba(0, 240, 255, 0.25)');
+      aura.addColorStop(0.5, 'rgba(255, 0, 127, 0.15)');
+      aura.addColorStop(1, 'rgba(10, 8, 20, 0)');
+
+      dCtx.beginPath();
+      dCtx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
+      dCtx.fillStyle = aura;
+      dCtx.fill();
+
+      const sphereGrad = dCtx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
+      sphereGrad.addColorStop(0, '#ffffff');
+      sphereGrad.addColorStop(0.3, '#38bdf8');
+      sphereGrad.addColorStop(0.7, '#1e1b4b');
+      sphereGrad.addColorStop(1, '#090514');
+
+      dCtx.beginPath();
+      dCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      dCtx.fillStyle = sphereGrad;
+      dCtx.shadowColor = '#00f0ff';
+      dCtx.shadowBlur = 25;
+      dCtx.fill();
+
+      const rows = 14;
+      const cols = 22;
+
+      for (let r = 0; r < rows; r++) {
+        const lat = (r / rows - 0.5) * Math.PI;
+        const rY = Math.sin(lat) * radius;
+        const rRow = Math.cos(lat) * radius;
+
+        for (let c = 0; c < cols; c++) {
+          const lon = (c / cols) * Math.PI * 2 + rotationAngle;
+          const tileX = cx + Math.cos(lon) * rRow;
+          const tileY = cy + rY;
+
+          if (Math.sin(lon) > -0.2) {
+            const shine = Math.pow(Math.max(0, Math.sin(lon + rotationAngle * 2) * Math.cos(lat)), 3);
+            dCtx.fillStyle = shine > 0.6 ? '#ffffff' : (c % 2 === 0 ? '#00f0ff' : '#ff007f');
+            dCtx.globalAlpha = 0.2 + shine * 0.7;
+            dCtx.fillRect(tileX - 2.5, tileY - 2.5, 4.5, 4.5);
+          }
+        }
+      }
+      dCtx.globalAlpha = 1.0;
+
+      dCtx.beginPath();
+      dCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      dCtx.lineWidth = 2;
+      dCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      dCtx.shadowBlur = 0;
+      dCtx.stroke();
+
+      dCtx.restore();
+    }
+
+    function animateBgLoop() {
+      if (!idleRunning) return;
+      if (bgCtx) {
+        bgCtx.clearRect(0, 0, bgW, bgH);
+        bgParticles.forEach(p => { p.update(); p.draw(); });
+      }
+      bgAnimId = requestAnimationFrame(animateBgLoop);
+    }
+
+    function animateDiscoLoop() {
+      if (!idleRunning) return;
+      drawDiscoBall();
+      discoAnimId = requestAnimationFrame(animateDiscoLoop);
+    }
+
+    function startIdleAnimation() {
+      if (idleRunning) return;
+      idleRunning = true;
+
+      resizeBg();
+      resizeDiscoCanvas();
+
+      if (bgParticles.length === 0) {
+        for (let i = 0; i < 60; i++) bgParticles.push(new BgParticle());
+      } else {
+        bgParticles.forEach(p => p.reset());
+      }
+
+      animateBgLoop();
+      animateDiscoLoop();
+      LOG.info('IDLE', '🎬 Idle animation started');
+    }
+
+    function stopIdleAnimation() {
+      idleRunning = false;
+      if (bgAnimId) cancelAnimationFrame(bgAnimId);
+      if (discoAnimId) cancelAnimationFrame(discoAnimId);
+      bgAnimId = null;
+      discoAnimId = null;
+    }
+
+    window.addEventListener('resize', () => {
+      if (idleRunning) {
+        resizeBg();
+        resizeDiscoCanvas();
+      }
+    });
 
     // ═══════════════════════════════════════════════════════════
     // LAYOUT VIEW SWITCHER
@@ -400,39 +752,53 @@
           LOG.info('REALTIME', 'Layout remote channel: ' + status);
         });
 
-      // Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('admin_layout_number_disco')
           .select('*')
           .eq('id', 1)
           .maybeSingle();
-
         if (data) handleViewSwitch(data.current_view, data.revealed_rank);
       }, 1000);
     }
 
     function handleViewSwitch(viewName, revealedRank) {
+      const idleView = document.getElementById('viewIdle');
       const gView = document.getElementById('viewGame');
       const lbView = document.getElementById('viewLeaderboard');
       const allView = document.getElementById('viewAllPlayers');
 
-      if (!gView || !lbView || !allView) return;
+      if (!idleView || !gView || !lbView || !allView) return;
+
+      const sig = `${viewName}|${revealedRank || 0}`;
+      if (sig === window._lastLayoutSig) return;
+      window._lastLayoutSig = sig;
+
+      currentView = viewName;
 
       stopAutoScroll();
+      stopIdleAnimation();
 
-      gView.classList.add('hidden-view'); gView.classList.remove('active-view');
-      lbView.classList.add('hidden-view'); lbView.classList.remove('active-view');
-      allView.classList.add('hidden-view'); allView.classList.remove('active-view');
+      [idleView, gView, lbView, allView].forEach(v => {
+        v.classList.add('hidden-view');
+        v.classList.remove('active-view');
+      });
 
       const newRank = revealedRank || 0;
 
-      if (viewName === 'leaderboard') {
+      if (viewName === 'idle') {
+        idleView.classList.remove('hidden-view');
+        idleView.classList.add('active-view');
+        lastRevealedRank = -1;
+
+        playBGM('idle');
+        setTimeout(() => startIdleAnimation(), 100);
+
+      } else if (viewName === 'leaderboard') {
         lbView.classList.remove('hidden-view');
         lbView.classList.add('active-view');
 
-        // ⭐ WINNER BGM saat papan peringkat
-        playBGM('winner');
+        playBGM('leaderboard');
 
         if (newRank !== lastRevealedRank) {
           currentRevealedRank = newRank;
@@ -444,23 +810,22 @@
         allView.classList.add('active-view');
         lastRevealedRank = -1;
 
-        // ⭐ LOBBY BGM saat rekap peserta
-        playBGM('lobby');
-
+        playBGM('all_players');
         fetchAndRenderStageScores(true);
       } else {
-        // ⭐ viewName === 'game'
+        // game → MUTE
         gView.classList.remove('hidden-view');
         gView.classList.add('active-view');
         lastRevealedRank = -1;
 
-        // 🔇 MATIKAN BGM — game melatih pendengaran
-        stopBGM();
+        playBGM('game');   // → null → mute
       }
+
+      LOG.info('VIEW', `Switch → ${viewName}`);
     }
 
     // ═══════════════════════════════════════════════════════════
-    // WEB AUDIO ENGINE (Preload & Memory Caching)
+    // WEB AUDIO ENGINE
     // ═══════════════════════════════════════════════════════════
     class WebAudioEngine {
       constructor() {
@@ -543,7 +908,7 @@
         }
 
         // ⭐ Pastikan BGM mati saat game mulai
-        stopBGM();
+        playBGM('game');
 
         this.isPlaying = true;
         this.resetDisplay();
@@ -702,7 +1067,6 @@
 
           if (this.remainingSeconds <= 0) {
             this.stopTimer();
-            // ⭐ TIMEUP: play beep 3x, lalu reset
             this.playTimeupBeep().then(() => this.reset());
           }
         }, 1000);
@@ -762,9 +1126,6 @@
 
         const statusEl = document.getElementById('stageStatus');
         if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
-
-        // ⭐ Kembali ke BGM Lobby setelah reset
-        playBGM('lobby');
       }
 
       delay(ms) {
@@ -782,10 +1143,9 @@
       if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
       LOG.ok('AUDIO', 'Audio unlocked');
 
-      // ⭐ Play BGM Lobby setelah unlock (atau track yang pending)
-      const trackToPlay = BGM.pendingTrack || 'lobby';
+      const trackToPlay = BGM.pendingTrack || BGM.current || 'idle';
       BGM.pendingTrack = null;
-      BGM.current = null;  // reset biar playBGM tidak skip
+      BGM.current = null;
       playBGM(trackToPlay);
     }
 
@@ -809,7 +1169,6 @@
           .select('action, trigger_id, updated_at')
           .eq('id', 1)
           .maybeSingle();
-
         if (data) handleControlAction(data);
       }, 1500);
     }
@@ -824,16 +1183,32 @@
       if (data.action === 'START_GAME') {
         if (!audioUnlocked) unlockAudio();
 
+        // ⭐ Auto-switch layout ke 'game' biar stage pindah dari idle
+        try {
+          await supabaseClient
+            .from('admin_layout_number_disco')
+            .update({
+              current_view: 'game',
+              revealed_rank: 0,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', 1);
+          LOG.ok('CONTROL', 'Auto-switch layout → game');
+        } catch (e) {
+          LOG.warn('CONTROL', 'Gagal auto-switch layout', e);
+        }
+
         // ⭐ Reset dulu, baru start
         await engine.reset();
         await engine.start();
+
       } else if (data.action === 'RESET') {
         await engine.reset();
       }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FETCH SCORES (Leaderboard & All Players)
+    // FETCH SCORES
     // ═══════════════════════════════════════════════════════════
     async function fetchAndRenderStageScores(isAllPlayersView) {
       const { data, error } = await supabaseClient
@@ -985,10 +1360,8 @@
     async function initStage() {
       LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
 
-      // ⭐ Init BGM manager
       initBGM();
 
-      // ⭐ Preload beep & bell sejak awal
       try {
         await engine.audioEngine.downloadAllAudioFiles([SOUND_BEEP, SOUND_BELL]);
         LOG.ok('AUDIO', 'Beep & bell preloaded');
@@ -996,14 +1369,24 @@
         LOG.warn('AUDIO', 'Preload gagal', e);
       }
 
-      // Fetch layout awal
+      // ⭐ Fetch layout awal — kalau kosong pakai idle
       const { data: layoutData } = await supabaseClient
         .from('admin_layout_number_disco')
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
-      if (layoutData) handleViewSwitch(layoutData.current_view, layoutData.revealed_rank);
+      let initialView = 'idle';
+      let initialRank = 0;
+
+      if (layoutData && layoutData.current_view) {
+        initialView = layoutData.current_view;
+        initialRank = layoutData.revealed_rank || 0;
+      }
+
+      window._lastLayoutSig = `${initialView}|${initialRank}`;
+      currentView = initialView;
+      handleViewSwitch(initialView, initialRank);
 
       // Fetch control state awal
       const { data: controlData } = await supabaseClient

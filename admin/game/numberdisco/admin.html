@@ -126,17 +126,20 @@
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung (Stage Display)
       </h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 hover:border-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-display"></i> Mode Game (Blue/Red)
-        </button>
-        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-trophy text-amber-400"></i> Mode Papan Peringkat
-        </button>
-        <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-users text-emerald-400"></i> Mode Semua Peserta
-        </button>
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+    <i class="fas fa-compact-disc text-cyan-400"></i> Mode Idle (Lobby)
+  </button>
+  <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 hover:border-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+    <i class="fas fa-display"></i> Mode Game (Blue/Red)
+  </button>
+  <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+    <i class="fas fa-trophy text-amber-400"></i> Mode Papan Peringkat
+  </button>
+  <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+    <i class="fas fa-users text-emerald-400"></i> Mode Semua Peserta
+  </button>
+</div>
 
       <!-- KONTROL BUKA PERINGKAT (1 PER 1) -->
       <div class="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4">
@@ -615,28 +618,30 @@
   }
 
   function updateActiveViewUI(viewName, rank = 0) {
-    const btnGame = document.getElementById('btnViewGame');
-    const btnLb = document.getElementById('btnViewLeaderboard');
-    const btnAll = document.getElementById('btnViewAll');
-    const badge = document.getElementById('activeViewBadge');
+  const btnIdle = document.getElementById('btnViewIdle');
+  const btnGame = document.getElementById('btnViewGame');
+  const btnLb = document.getElementById('btnViewLeaderboard');
+  const btnAll = document.getElementById('btnViewAll');
+  const badge = document.getElementById('activeViewBadge');
 
-    if (!btnGame) return;
+  if (!btnGame) return;
 
-    btnGame.classList.remove('view-btn-active');
-    btnLb.classList.remove('view-btn-active');
-    btnAll.classList.remove('view-btn-active');
+  [btnIdle, btnGame, btnLb, btnAll].forEach(b => b && b.classList.remove('view-btn-active'));
 
-    if (viewName === 'leaderboard') {
-      btnLb.classList.add('view-btn-active');
-      badge.textContent = rank > 0 ? `VIEW: PERINGKAT #${rank}` : `VIEW: PAPAN PERINGKAT`;
-    } else if (viewName === 'all_players') {
-      btnAll.classList.add('view-btn-active');
-      badge.textContent = `VIEW: SEMUA PESERTA`;
-    } else {
-      btnGame.classList.add('view-btn-active');
-      badge.textContent = `VIEW: MODE GAME`;
-    }
+  if (viewName === 'idle') {
+    btnIdle.classList.add('view-btn-active');
+    badge.textContent = `VIEW: MODE IDLE`;
+  } else if (viewName === 'leaderboard') {
+    btnLb.classList.add('view-btn-active');
+    badge.textContent = rank > 0 ? `VIEW: PERINGKAT #${rank}` : `VIEW: PAPAN PERINGKAT`;
+  } else if (viewName === 'all_players') {
+    btnAll.classList.add('view-btn-active');
+    badge.textContent = `VIEW: SEMUA PESERTA`;
+  } else {
+    btnGame.classList.add('view-btn-active');
+    badge.textContent = `VIEW: MODE GAME`;
   }
+}
 
   // ═══════════════════════════════════════════════════════════
   // LIVE TARGET ANSWERS
