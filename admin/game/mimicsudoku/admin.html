@@ -153,7 +153,10 @@
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung (Stage Display)
       </h2>
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-moon text-cyan-400"></i> Mode Idle (Arena Lobby)
+        </button>
         <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 hover:border-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
           <i class="fas fa-display"></i> Mode Game (Papan Sudoku)
         </button>
@@ -645,23 +648,24 @@ pickUniqueIndices(n, max) {
   }
 
   function updateActiveViewUI(viewName, rank = 0) {
-    const btnGame = document.getElementById('btnViewGame');
-    const btnLb = document.getElementById('btnViewLeaderboard');
-    const btnAll = document.getElementById('btnViewAll');
-    if (!btnGame || !btnLb || !btnAll) return;
+  const btnIdle = document.getElementById('btnViewIdle');
+  const btnGame = document.getElementById('btnViewGame');
+  const btnLb = document.getElementById('btnViewLeaderboard');
+  const btnAll = document.getElementById('btnViewAll');
+  if (!btnGame) return;
 
-    [btnGame, btnLb, btnAll].forEach(b => {
-      b.classList.remove('border-purple-500', 'bg-purple-900/40');
-    });
+  [btnIdle, btnGame, btnLb, btnAll].forEach(b => b && b.classList.remove('border-purple-500', 'bg-purple-900/40'));
 
-    if (viewName === 'leaderboard') {
-      btnLb.classList.add('border-purple-500', 'bg-purple-900/40');
-    } else if (viewName === 'all_players') {
-      btnAll.classList.add('border-purple-500', 'bg-purple-900/40');
-    } else {
-      btnGame.classList.add('border-purple-500', 'bg-purple-900/40');
-    }
+  if (viewName === 'idle') {
+    btnIdle.classList.add('border-purple-500', 'bg-purple-900/40');
+  } else if (viewName === 'leaderboard') {
+    btnLb.classList.add('border-purple-500', 'bg-purple-900/40');
+  } else if (viewName === 'all_players') {
+    btnAll.classList.add('border-purple-500', 'bg-purple-900/40');
+  } else {
+    btnGame.classList.add('border-purple-500', 'bg-purple-900/40');
   }
+}
 
   // ═══════════════════════════════════════════════════════════
   // PILIH LEVEL

@@ -7,8 +7,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;800&family=Reem+Kufi:wght@500;700;800&family=Scheherazade+New:wght@600;700&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
+    :root {
+      --sand-cream: #F4E0B9;
+      --desert-gold: #E6C594;
+      --gold-bright: #FFD700;
+      --gold-deep: #B8860B;
+      --sunset-orange: #FF5E36;
+      --dusk-purple: #2A103D;
+    }
+
+    * { box-sizing: border-box; }
 
     html, body {
       height: 100%; width: 100%;
@@ -16,20 +29,31 @@
     }
     body {
       font-family: 'Poppins', sans-serif;
-      background: #030712;
+      background: #120318;
       color: #fff;
     }
     .font-display { font-family: 'Orbitron', sans-serif; }
 
-    .stage-view { transition: opacity 0.5s ease, transform 0.5s ease; }
+    /* ═══════════════════════════════════════════════════════
+       STAGE VIEW SWITCHER — FULL ABSOLUTE FIXED
+       ═══════════════════════════════════════════════════════ */
+    .stage-view {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+    }
     .stage-view.hidden-view {
-      opacity: 0; transform: scale(0.96);
-      pointer-events: none; visibility: hidden;
-      position: absolute; inset: 0;
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      visibility: hidden;
     }
     .stage-view.active-view {
-      opacity: 1; transform: scale(1);
-      visibility: visible; position: relative;
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 8px; }
@@ -69,225 +93,788 @@
 
     .glow-emerald { box-shadow: 0 0 60px rgba(16, 185, 129, 0.4); }
 
-    /* Grid scroll container — auto-scroll controlled by JS */
-    #memorizeGridScroll {
-      scroll-behavior: auto; /* manual control via rAF */
+    #memorizeGridScroll { scroll-behavior: auto; }
+
+    /* BGM Badge */
+    .bgm-badge {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      font-size: 10px; font-family: monospace;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #94a3b8;
+      z-index: 999;
+      pointer-events: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bgm-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.blocked { background: #f59e0b; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Audio Unlock Overlay */
+    #audioUnlockOverlay {
+      position: fixed; inset: 0;
+      background: rgba(3, 2, 7, 0.9);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+    #audioUnlockOverlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    #audioUnlockOverlay .unlock-icon { animation: unlockBounce 1.6s ease-in-out infinite; }
+    @keyframes unlockBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.08); }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       IDLE VIEW — FORSAKEN CITY (Silk Road Fantasy Persia)
+       ═══════════════════════════════════════════════════════ */
+    #viewIdle {
+      background-color: #120318;
+      overflow: hidden;
+    }
+
+    /* Sky */
+    #viewIdle .sky-background {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        #180324 0%,
+        #2A103D 20%,
+        #5C1D40 45%,
+        #C8522A 70%,
+        #E88D37 85%,
+        #F3C37A 100%);
+      z-index: 1;
+      background-size: 100% 120%;
+      animation: skyShift 16s ease-in-out infinite alternate;
+    }
+    @keyframes skyShift {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 0% 100%; }
+    }
+
+    /* Sunburst Halo */
+    #viewIdle .sunburst-halo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(500px, 60vw, 950px);
+      height: clamp(500px, 60vw, 950px);
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255, 230, 150, 0.9) 0%,
+        rgba(255, 140, 26, 0.6) 35%,
+        rgba(200, 82, 42, 0.25) 60%,
+        rgba(42, 16, 61, 0) 75%);
+      z-index: 2;
+      filter: blur(2px);
+      animation: sunPulse 7s ease-in-out infinite alternate;
+    }
+    @keyframes sunPulse {
+      0% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+    }
+
+    /* Astrolabe Ring */
+    #viewIdle .astrolabe-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(520px, 65vw, 1000px);
+      height: clamp(520px, 65vw, 1000px);
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.45;
+      animation: rotateAstrolabe 90s linear infinite;
+    }
+    @keyframes rotateAstrolabe {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Clouds */
+    #viewIdle .cloud-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0.65;
+    }
+    #viewIdle .cloud-1 {
+      background:
+        radial-gradient(ellipse at 20% 35%, rgba(255, 180, 100, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 30%, rgba(200, 82, 42, 0.35) 0%, transparent 45%);
+      animation: cloudFloat1 25s ease-in-out infinite alternate;
+    }
+    #viewIdle .cloud-2 {
+      background:
+        radial-gradient(ellipse at 50% 25%, rgba(255, 220, 150, 0.5) 0%, transparent 40%),
+        radial-gradient(ellipse at 90% 40%, rgba(255, 100, 50, 0.3) 0%, transparent 50%);
+      animation: cloudFloat2 32s ease-in-out infinite alternate;
+    }
+    @keyframes cloudFloat1 {
+      0% { transform: translateX(-30px) translateY(0); }
+      100% { transform: translateX(30px) translateY(-15px); }
+    }
+    @keyframes cloudFloat2 {
+      0% { transform: translateX(40px) translateY(0); }
+      100% { transform: translateX(-20px) translateY(-20px); }
+    }
+
+    /* Particle Canvas */
+    #viewIdle #particleCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    /* Royal Arch Frame */
+    #viewIdle .royal-arch-frame {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      pointer-events: none;
+      box-shadow: inset 0 0 100px rgba(18, 3, 24, 0.85);
+    }
+
+    /* Top Banner */
+    #viewIdle .arch-top-banner {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: clamp(60px, 8vw, 110px);
+      z-index: 22;
+      background: linear-gradient(180deg, rgba(20, 4, 26, 0.95) 0%, rgba(20, 4, 26, 0.7) 70%, transparent 100%);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* Hanging Lamps */
+    #viewIdle .hanging-lamp {
+      position: absolute;
+      top: 0;
+      width: clamp(24px, 3.5vw, 48px);
+      z-index: 23;
+      transform-origin: top center;
+      filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+    }
+    #viewIdle .lamp-left-1 { left: 8vw; animation: swingLamp 6s ease-in-out infinite alternate; }
+    #viewIdle .lamp-left-2 { left: 18vw; animation: swingLamp 7.5s ease-in-out infinite alternate-reverse; }
+    #viewIdle .lamp-right-1 { right: 8vw; animation: swingLamp 6.8s ease-in-out infinite alternate-reverse; }
+    #viewIdle .lamp-right-2 { right: 18vw; animation: swingLamp 8s ease-in-out infinite alternate; }
+    @keyframes swingLamp {
+      0% { transform: rotate(-4deg); }
+      100% { transform: rotate(4deg); }
+    }
+
+    /* ⭐ TORANJ — DIPERBESAR & POSISI LEBIH KELUAR */
+    #viewIdle .toranj-container {
+      position: absolute;
+      width: clamp(400px, 55vw, 800px);
+      height: clamp(400px, 55vw, 800px);
+      z-index: 18;
+      pointer-events: none;
+      filter: drop-shadow(0 0 35px rgba(229, 169, 60, 0.85)) drop-shadow(0 0 70px rgba(255, 94, 54, 0.5));
+    }
+    #viewIdle .toranj-left {
+      bottom: -18vw;
+      left: -18vw;
+    }
+    #viewIdle .toranj-right {
+      bottom: -18vw;
+      right: -18vw;
+    }
+    #viewIdle .toranj-svg {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+    }
+    #viewIdle .rotate-clockwise { animation: spinToranj 40s linear infinite; }
+    #viewIdle .rotate-counter   { animation: spinReverseToranj 50s linear infinite; }
+    @keyframes spinToranj {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spinReverseToranj {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    /* ⭐ HEADER — DI TENGAH LAYAR */
+    #viewIdle .header-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 1400px;
+      text-align: center;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem;
+      pointer-events: none;
+    }
+
+    /* Crest Subtag */
+    #viewIdle .crest-subtag-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      animation: fadeInDown 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #viewIdle .sub-tag-badge {
+      font-family: 'Reem Kufi', sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.4em;
+      color: #FFF2D6;
+      text-transform: uppercase;
+      font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+      background: linear-gradient(90deg, rgba(42, 16, 61, 0.85), rgba(110, 30, 70, 0.95), rgba(42, 16, 61, 0.85));
+      padding: 10px 40px;
+      border-radius: 4px;
+      border: 1.5px solid #FFD700;
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.7), inset 0 0 12px rgba(255, 215, 0, 0.4);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 215, 0, 0.8);
+    }
+    #viewIdle .crest-jewel {
+      position: absolute;
+      width: 14px; height: 14px;
+      background: radial-gradient(circle, #FFD700, #B8860B);
+      border: 2px solid #FFF;
+      transform: rotate(45deg);
+      box-shadow: 0 0 10px #FFD700;
+    }
+    #viewIdle .crest-jewel-left { left: -7px; }
+    #viewIdle .crest-jewel-right { right: -7px; }
+
+    /* Grand Title */
+    #viewIdle .title-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    #viewIdle .main-title {
+      font-family: 'Cinzel Decorative', serif;
+      font-weight: 900;
+      font-size: clamp(2.5rem, 7vw, 7rem);
+      line-height: 1.08;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FFF3D1 30%, #F4E0B9 55%, #E6C594 75%, #A8761E 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter:
+        drop-shadow(0px 6px 18px rgba(0, 0, 0, 0.95))
+        drop-shadow(0px 0px 45px rgba(230, 197, 148, 0.7));
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      animation: zoomRoyal 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #viewIdle .title-subtext {
+      font-family: 'Scheherazade New', serif;
+      font-size: clamp(1rem, 2.2vw, 2rem);
+      color: #F4E0B9;
+      letter-spacing: 0.25em;
+      text-shadow: 0 0 12px rgba(230, 197, 148, 0.8), 0 2px 6px rgba(0,0,0,0.9);
+      margin-top: 8px;
+      font-weight: 700;
+    }
+
+    /* Ornament */
+    #viewIdle .title-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      margin-top: 14px;
+    }
+    #viewIdle .ornament-line {
+      height: 2px;
+      width: clamp(80px, 16vw, 240px);
+      background: linear-gradient(90deg, transparent, #FFD700, #E6C594, transparent);
+    }
+    #viewIdle .ornament-center-star {
+      width: 18px;
+      height: 18px;
+      position: relative;
+    }
+
+    /* Standby badge (pengganti tombol PLAY) */
+    #viewIdle .standby-badge {
+      position: absolute;
+      top: 68%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 32px;
+      background: rgba(28, 8, 38, 0.85);
+      border: 2px solid #FFD700;
+      border-radius: 14px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 215, 0, 0.15);
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-25px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes zoomRoyal {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* City Glow */
+    #viewIdle .city-glow {
+      position: absolute;
+      bottom: 40px;
+      left: 0;
+      width: 100%;
+      height: 220px;
+      z-index: 5;
+      background: radial-gradient(ellipse at 50% 100%, rgba(255, 215, 0, 0.5) 0%, rgba(255, 94, 54, 0.3) 50%, transparent 80%);
+      animation: glowPulseCity 3.5s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes glowPulseCity {
+      0% { opacity: 0.65; }
+      100% { opacity: 1; }
+    }
+
+    /* Silhouette City */
+    #viewIdle .silhouette-layer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 8;
+      pointer-events: none;
+    }
+    #viewIdle .window-glow-1 { animation: windowFlicker 3s ease-in-out infinite alternate; }
+    #viewIdle .window-glow-2 { animation: windowFlicker 4.5s ease-in-out infinite alternate-reverse; }
+    @keyframes windowFlicker {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
     }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
-  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
+  <!-- AUDIO -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+
+  <!-- AUDIO UNLOCK OVERLAY -->
+  <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
+    <div class="text-center space-y-6 px-8">
+      <div class="unlock-icon text-8xl">🔊</div>
+      <div>
+        <h2 class="text-4xl font-black text-white mb-3 font-display">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+      </div>
+      <div class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold px-6 py-3 rounded-xl">
+        <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
+      </div>
+    </div>
+  </div>
+
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
+  </div>
 
   <div id="notifToastContainer" class="fixed top-6 right-6 z-50 space-y-3 max-w-sm"></div>
 
-  <div class="w-full h-full relative">
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 1: IDLE — FORSAKEN CITY SILK ROAD                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view active-view">
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 1: IDLE                                              -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewIdle" class="stage-view active-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center space-y-8">
-        <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
-          <i class="fas fa-city text-6xl text-amber-400"></i>
-        </div>
-        <div>
-          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-5 py-2 rounded-full uppercase tracking-widest">
-            <i class="fas fa-hourglass-half mr-1"></i> SIAPKAN DIRI
-          </span>
-          <h1 class="text-6xl md:text-7xl font-black text-white mt-6 font-display tracking-wider">
-            FORSAKEN CITY
-          </h1>
-          <h2 class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 font-display tracking-widest">
-            RECALL
-          </h2>
-          <p class="text-slate-400 text-lg mt-6 max-w-2xl mx-auto">
-            Menunggu panitia memulai sesi menghafal. Siapkan fokusmu — 30 kota bersejarah akan muncul.
-          </p>
-        </div>
-        <div class="flex items-center justify-center gap-3 text-slate-500 text-sm">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-          <span>Standby...</span>
-        </div>
+    <!-- Sky & Celestial -->
+    <div class="sky-background"></div>
+    <div class="sunburst-halo"></div>
+
+    <!-- Astrolabe Ring -->
+    <svg class="astrolabe-ring" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="250" cy="250" r="240" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="8 6"/>
+      <circle cx="250" cy="250" r="220" stroke="#E6C594" stroke-width="1"/>
+      <circle cx="250" cy="250" r="190" stroke="#FF5E36" stroke-width="1" stroke-dasharray="12 12"/>
+      <polygon points="250,10 275,225 490,250 275,275 250,490 225,275 10,250 225,225" stroke="#FFD700" stroke-width="1" fill="none"/>
+      <polygon points="250,60 268,232 440,250 268,268 250,440 232,268 60,250 232,232" stroke="#E6C594" stroke-width="1" fill="none" transform="rotate(45 250 250)"/>
+    </svg>
+
+    <!-- Clouds -->
+    <div class="cloud-layer cloud-1"></div>
+    <div class="cloud-layer cloud-2"></div>
+
+    <!-- Particles -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Top Royal Arch Banner -->
+    <div class="royal-arch-frame">
+      <div class="arch-top-banner">
+        <svg width="100%" height="100%" viewBox="0 0 1200 80" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 0 H1200 V40 Q1050 75 900 40 T600 70 T300 40 T0 40 Z" fill="#1C0626"/>
+          <path d="M0 0 H1200 V35 Q1050 68 900 35 T600 62 T300 35 T0 35 Z" fill="#2A103D" opacity="0.8"/>
+          <path d="M0 35 Q1050 68 900 35 T600 62 T300 35 T0 35" stroke="#FFD700" stroke-width="2.5" fill="none"/>
+        </svg>
+
+        <!-- Hanging Lamps -->
+        <svg class="hanging-lamp lamp-left-1" viewBox="0 0 40 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="20" y1="0" x2="20" y2="40" stroke="#FFD700" stroke-width="2"/>
+          <polygon points="20,40 32,55 28,80 12,80 8,55" fill="#120318" stroke="#FFD700" stroke-width="2"/>
+          <circle cx="20" cy="62" r="8" fill="#FFD700" opacity="0.9"/>
+        </svg>
+        <svg class="hanging-lamp lamp-left-2" viewBox="0 0 40 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="20" y1="0" x2="20" y2="50" stroke="#E6C594" stroke-width="1.5"/>
+          <polygon points="20,50 30,62 25,85 15,85 10,62" fill="#120318" stroke="#E6C594" stroke-width="1.5"/>
+          <circle cx="20" cy="70" r="6" fill="#FF8C1A" opacity="0.95"/>
+        </svg>
+        <svg class="hanging-lamp lamp-right-1" viewBox="0 0 40 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="20" y1="0" x2="20" y2="40" stroke="#FFD700" stroke-width="2"/>
+          <polygon points="20,40 32,55 28,80 12,80 8,55" fill="#120318" stroke="#FFD700" stroke-width="2"/>
+          <circle cx="20" cy="62" r="8" fill="#FFD700" opacity="0.9"/>
+        </svg>
+        <svg class="hanging-lamp lamp-right-2" viewBox="0 0 40 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="20" y1="0" x2="20" y2="50" stroke="#E6C594" stroke-width="1.5"/>
+          <polygon points="20,50 30,62 25,85 15,85 10,62" fill="#120318" stroke="#E6C594" stroke-width="1.5"/>
+          <circle cx="20" cy="70" r="6" fill="#FF8C1A" opacity="0.95"/>
+        </svg>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2A: MEMORIZE SEQUENTIAL (6 per batch × 5 batch)     -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewMemorizeSeq" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
-
-      <!-- HEADER -->
-      <div class="flex items-center justify-between mb-4 flex-shrink-0">
-        <div class="flex items-center gap-3">
-          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
-            <i class="fas fa-brain mr-1"></i> FASE MENGHAPAL
-          </span>
-          <span class="text-xs text-slate-400">Mode: 6 Gambar per Batch (3 + 3)</span>
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
-            <div class="text-[10px] text-slate-500 uppercase font-bold">Sisa Waktu</div>
-            <div id="memorizeSeqTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
-          </div>
-          <div class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-2.5 text-center">
-            <div class="text-[10px] text-slate-500 uppercase font-bold">Batch</div>
-            <div class="text-3xl font-mono font-black text-white">
-              <span id="currentBatchNo">1</span><span class="text-slate-500">/5</span>
-            </div>
-          </div>
-        </div>
+    <!-- Header: Judul di TENGAH -->
+    <header class="header-content">
+      <div class="crest-subtag-wrapper">
+        <div class="crest-jewel crest-jewel-left"></div>
+        <div class="sub-tag-badge">DAY 2 &bull; GAME 3</div>
+        <div class="crest-jewel crest-jewel-right"></div>
       </div>
 
-      <!-- KONTAINER GAMBAR (terpisah) -->
-      <div class="flex-1 bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 overflow-hidden relative min-h-0">
-        <div id="seqBatchContainer" class="h-full w-full flex flex-col justify-center gap-4"></div>
+      <div class="title-wrapper">
+        <h1 class="main-title">Forsaken City Recall</h1>
+        <div class="title-subtext">THE TALE OF SILK ROAD &bull; PERSIA FANTASY</div>
       </div>
 
-      <!-- ⭐ KONTAINER BARU: INFO DI BAWAH (terpisah dari kotak gambar) -->
-      <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
-            <i class="fas fa-images mr-1"></i> Menampilkan Batch <span id="currentBatchLabel">1</span> / 5
-          </span>
-          <span class="text-sm text-slate-400 font-mono">
-            Gambar <span id="currentImgLabel">1-6</span> / 30
-          </span>
+      <div class="title-ornament">
+        <div class="ornament-line"></div>
+        <div class="ornament-center-star">
+          <svg viewBox="0 0 24 24" fill="#FFD700">
+            <path d="M12 0L15 9L24 12L15 15L12 24L9 15L0 12L9 9Z"/>
+          </svg>
         </div>
-        <div class="bg-slate-800 rounded-full h-2.5 overflow-hidden">
-          <div id="memorizeSeqProgress" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-500" style="width: 0%"></div>
-        </div>
+        <div class="ornament-line"></div>
       </div>
+    </header>
+
+    <!-- Standby badge (pengganti tombol PLAY) -->
+    <div class="standby-badge">
+      <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFD700] opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-[#FFD700]"></span>
+      </span>
+      <span class="text-sm sm:text-base font-bold tracking-[0.3em] text-[#F4E0B9] uppercase font-['Reem_Kufi']">
+        Standby — Menunggu Panitia
+      </span>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2B: MEMORIZE GRID (container 16:6, auto-scroll)      -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewMemorizeGrid" class="stage-view hidden-view absolute inset-0 flex flex-col p-6">
+    <!-- City Glow -->
+    <div class="city-glow"></div>
 
-      <!-- HEADER -->
-      <div class="flex items-center justify-between mb-4 flex-shrink-0">
-        <div class="flex items-center gap-3">
-          <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
-            <i class="fas fa-th mr-1"></i> FASE MENGHAPAL — GRID
-          </span>
-          <span class="text-xs text-slate-400">Semua 30 kota · auto-scroll</span>
-        </div>
+    <!-- Silhouette City + Camel Caravan -->
+    <div class="silhouette-layer">
+      <svg viewBox="0 0 1440 380" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: auto; display: block;">
+        <path d="M0,240 Q380,170 720,230 T1440,200 L1440,380 L0,380 Z" fill="#230B2E" opacity="0.9"/>
+
+        <path d="M40,320 L40,250 C40,220 70,200 90,190 C110,200 140,220 140,250 L140,320 Z" fill="#15041C"/>
+        <rect x="87" y="140" width="6" height="50" fill="#15041C"/>
+        <circle cx="90" cy="135" r="4" fill="#FFD700"/>
+
+        <rect x="25" y="210" width="12" height="110" fill="#15041C"/>
+        <polygon points="25,210 31,190 37,210" fill="#15041C"/>
+        <rect x="150" y="220" width="10" height="100" fill="#15041C"/>
+
+        <rect class="window-glow-1" x="75" y="230" width="8" height="14" rx="4" fill="#FFD700"/>
+        <rect class="window-glow-2" x="95" y="230" width="8" height="14" rx="4" fill="#FF8C1A"/>
+        <rect class="window-glow-1" x="85" y="255" width="10" height="18" rx="5" fill="#FFD700"/>
+
+        <path d="M500,380 L500,220 C500,160 560,120 620,110 C680,120 740,160 740,220 L740,380 Z" fill="#0D0212"/>
+        <path d="M540,170 C540,90 620,50 620,50 C620,50 700,90 700,170 Z" fill="#0D0212"/>
+        <rect x="617" y="15" width="6" height="35" fill="#0D0212"/>
+        <circle cx="620" cy="10" r="5" fill="#FFD700"/>
+
+        <path d="M580,380 L580,270 C580,240 620,220 620,220 C620,220 660,240 660,270 L660,380 Z" fill="#FFD700" opacity="0.85"/>
+        <path d="M590,380 L590,280 C590,255 620,240 620,240 C620,240 650,255 650,280 L650,380 Z" fill="#FF5E36"/>
+
+        <rect x="470" y="160" width="18" height="220" fill="#0D0212"/>
+        <polygon points="465,160 479,130 493,160" fill="#0D0212"/>
+        <rect x="752" y="160" width="18" height="220" fill="#0D0212"/>
+        <polygon points="747,160 761,130 775,160" fill="#0D0212"/>
+
+        <rect class="window-glow-1" x="471" y="180" width="16" height="6" fill="#FFD700"/>
+        <rect class="window-glow-2" x="753" y="180" width="16" height="6" fill="#FFD700"/>
+
+        <path d="M850,380 Q1100,240 1440,280 L1440,380 Z" fill="#0A010E"/>
+
+        <!-- Camel Caravan -->
+        <g id="camel-caravan-group" transform="translate(1020, 195) scale(0.95)">
+          <path d="M-60,70 Q70,35 250,55" stroke="#0A010E" stroke-width="14" fill="none"/>
+          <g transform="translate(185, 12)">
+            <path d="M5,15 L3,42 M7,15 L9,42" stroke="#0A010E" stroke-width="2.5"/>
+            <path d="M0,12 L12,12 L9,30 L1,30 Z" fill="#0A010E"/>
+            <circle cx="6" cy="6" r="5" fill="#0A010E"/>
+            <path d="M10,18 L22,5" stroke="#0A010E" stroke-width="2"/>
+          </g>
+          <g transform="translate(130, 0)">
+            <path d="M10,28 L8,50 M15,28 L17,50 M30,28 L28,50 M35,28 L37,50" stroke="#0A010E" stroke-width="3"/>
+            <ellipse cx="22" cy="24" rx="16" ry="11" fill="#0A010E"/>
+            <circle cx="22" cy="11" r="8" fill="#0A010E"/>
+            <path d="M10,22 C4,16 1,8 4,2 C8,-3 15,0 13,6 C11,12 13,20 15,22" fill="#0A010E"/>
+            <path d="M36,22 L40,34" stroke="#0A010E" stroke-width="2"/>
+          </g>
+          <g transform="translate(65, 8)">
+            <path d="M10,28 L8,50 M15,28 L17,50 M30,28 L28,50 M35,28 L37,50" stroke="#0A010E" stroke-width="3"/>
+            <ellipse cx="22" cy="24" rx="16" ry="11" fill="#0A010E"/>
+            <circle cx="22" cy="11" r="8" fill="#0A010E"/>
+            <path d="M10,22 C4,16 1,8 4,2 C8,-3 15,0 13,6 C11,12 13,20 15,22" fill="#0A010E"/>
+            <path d="M36,22 L40,34" stroke="#0A010E" stroke-width="2"/>
+          </g>
+          <g transform="translate(0, 16)">
+            <path d="M10,28 L8,50 M15,28 L17,50 M30,28 L28,50 M35,28 L37,50" stroke="#0A010E" stroke-width="3"/>
+            <ellipse cx="22" cy="24" rx="16" ry="11" fill="#0A010E"/>
+            <circle cx="22" cy="11" r="8" fill="#0A010E"/>
+            <path d="M10,22 C4,16 1,8 4,2 C8,-3 15,0 13,6 C11,12 13,20 15,22" fill="#0A010E"/>
+            <path d="M36,22 L40,34" stroke="#0A010E" stroke-width="2"/>
+          </g>
+          <path d="M40,26 Q60,38 75,18 M105,18 Q125,30 140,10" stroke="#0A010E" stroke-width="1" fill="none" stroke-dasharray="2 2"/>
+        </g>
+
+        <path d="M0,300 Q450,250 900,310 T1440,270 L1440,380 L0,380 Z" fill="#050008"/>
+      </svg>
+    </div>
+
+    <!-- ⭐ TORANJ KIRI (gede, keluar layar) -->
+    <div class="toranj-container toranj-left">
+      <svg class="toranj-svg rotate-clockwise" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="95" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="4, 4"/>
+        <circle cx="100" cy="100" r="88" stroke="#E6C594" stroke-width="2"/>
+        <g stroke="#FFD700" stroke-width="1.5" fill="rgba(255, 215, 0, 0.05)">
+          <path d="M100,10 C118,45 152,45 190,100 C152,155 118,155 100,190 C82,155 48,155 10,100 C48,45 82,45 100,10 Z"/>
+          <path d="M100,10 C118,45 152,45 190,100 C152,155 118,155 100,190 C82,155 48,155 10,100 C48,45 82,45 100,10 Z" transform="rotate(30 100 100)"/>
+          <path d="M100,10 C118,45 152,45 190,100 C152,155 118,155 100,190 C82,155 48,155 10,100 C48,45 82,45 100,10 Z" transform="rotate(60 100 100)"/>
+        </g>
+        <circle cx="100" cy="100" r="48" stroke="#FF5E36" stroke-width="2"/>
+        <polygon points="100,55 114,86 145,100 114,114 100,145 86,114 55,100 86,86" fill="rgba(230, 197, 148, 0.2)" stroke="#FFD700" stroke-width="2"/>
+        <polygon points="100,55 114,86 145,100 114,114 100,145 86,114 55,100 86,86" fill="none" stroke="#FFD700" stroke-width="2" transform="rotate(45 100 100)"/>
+        <circle cx="100" cy="100" r="14" fill="#E6C594" stroke="#2A103D" stroke-width="2.5"/>
+        <circle cx="100" cy="100" r="6" fill="#FFD700"/>
+      </svg>
+    </div>
+
+    <!-- ⭐ TORANJ KANAN -->
+    <div class="toranj-container toranj-right">
+      <svg class="toranj-svg rotate-counter" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="95" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="6, 3"/>
+        <circle cx="100" cy="100" r="88" stroke="#E6C594" stroke-width="2"/>
+        <g stroke="#FFD700" stroke-width="1.5" fill="rgba(244, 224, 185, 0.08)">
+          <rect x="42" y="42" width="116" height="116" rx="6" transform="rotate(0 100 100)"/>
+          <rect x="42" y="42" width="116" height="116" rx="6" transform="rotate(30 100 100)"/>
+          <rect x="42" y="42" width="116" height="116" rx="6" transform="rotate(60 100 100)"/>
+        </g>
+        <circle cx="100" cy="100" r="52" stroke="#FF5E36" stroke-width="2"/>
+        <circle cx="100" cy="100" r="32" stroke="#FFD700" stroke-width="1.5" stroke-dasharray="3, 3"/>
+        <path d="M100,75 Q112,88 100,100 Q88,88 100,75 Z" fill="#FFD700"/>
+        <path d="M100,75 Q112,88 100,100 Q88,88 100,75 Z" fill="#FFD700" transform="rotate(72 100 100)"/>
+        <path d="M100,75 Q112,88 100,100 Q88,88 100,75 Z" fill="#FFD700" transform="rotate(144 100 100)"/>
+        <path d="M100,75 Q112,88 100,100 Q88,88 100,75 Z" fill="#FFD700" transform="rotate(216 100 100)"/>
+        <path d="M100,75 Q112,88 100,100 Q88,88 100,75 Z" fill="#FFD700" transform="rotate(288 100 100)"/>
+        <circle cx="100" cy="100" r="8" fill="#2A103D" stroke="#FFD700" stroke-width="2"/>
+      </svg>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 2A: MEMORIZE SEQUENTIAL                              -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewMemorizeSeq" class="stage-view hidden-view flex flex-col p-6">
+    <div class="flex items-center justify-between mb-4 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+          <i class="fas fa-brain mr-1"></i> FASE MENGHAPAL
+        </span>
+        <span class="text-xs text-slate-400">Mode: 6 Gambar per Batch (3 + 3)</span>
+      </div>
+      <div class="flex items-center gap-4">
         <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
           <div class="text-[10px] text-slate-500 uppercase font-bold">Sisa Waktu</div>
-          <div id="memorizeGridTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
+          <div id="memorizeSeqTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
         </div>
-      </div>
-
-      <!-- KONTAINER GAMBAR GRID -->
-      <div class="flex-1 flex items-center justify-center min-h-0">
-        <div class="w-full max-w-[266.67vh] aspect-[16/6] bg-slate-900 border-2 border-amber-500/40 rounded-3xl overflow-hidden relative">
-          <!-- Scroll Area -->
-          <div id="memorizeGridScroll" class="absolute inset-0 overflow-y-auto custom-scroll p-4">
-            <div id="memorizeGridContainer" class="grid grid-cols-5 gap-3 w-full">
-              <!-- Diisi JS -->
-            </div>
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl px-6 py-2.5 text-center">
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Batch</div>
+          <div class="text-3xl font-mono font-black text-white">
+            <span id="currentBatchNo">1</span><span class="text-slate-500">/5</span>
           </div>
-          <!-- Badge total (di dalam kotak) -->
-          <div class="absolute top-3 right-3 bg-slate-950/90 border border-amber-500/30 rounded-2xl px-4 py-2 text-center z-20 pointer-events-none">
-            <div class="text-[9px] text-slate-500 uppercase font-bold">Total</div>
-            <div id="gridTotalCount" class="text-xl font-mono font-black text-amber-400">30</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ⭐ KONTAINER BARU: INFO DI BAWAH (terpisah dari kotak gambar) -->
-      <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
-        <div class="flex items-center justify-between">
-          <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
-            <i class="fas fa-arrows-up-down mr-1"></i> Auto-scroll aktif
-          </span>
-          <span id="gridScrollStatus" class="text-sm text-slate-400 font-mono">ke bawah...</span>
         </div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 3: ANSWER PHASE                                      -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewAnswerPhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-8">
-        <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-pen-to-square mr-1"></i> WAKTU MENGERJAKAN
-        </span>
-        <h1 class="text-5xl md:text-6xl font-black text-white mt-4 font-display tracking-wider">
-          KERJAKAN SOAL!
-        </h1>
-        <p class="text-slate-400 text-lg mt-2">Isi 6 gambar per sesi sesuai urutan yang tadi ditampilkan</p>
-      </div>
+    <div class="flex-1 bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 overflow-hidden relative min-h-0">
+      <div id="seqBatchContainer" class="h-full w-full flex flex-col justify-center gap-4"></div>
+    </div>
 
-      <div class="bg-slate-900 border-4 border-emerald-500/40 rounded-3xl p-16 glow-emerald">
-        <div id="answerPhaseTimer" class="text-[160px] md:text-[220px] font-black font-display text-emerald-400 leading-none animate-timer-pulse">
-          15:00
+    <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
+          <i class="fas fa-images mr-1"></i> Menampilkan Batch <span id="currentBatchLabel">1</span> / 5
+        </span>
+        <span class="text-sm text-slate-400 font-mono">
+          Gambar <span id="currentImgLabel">1-6</span> / 30
+        </span>
+      </div>
+      <div class="bg-slate-800 rounded-full h-2.5 overflow-hidden">
+        <div id="memorizeSeqProgress" class="h-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 2B: MEMORIZE GRID                                    -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewMemorizeGrid" class="stage-view hidden-view flex flex-col p-6">
+    <div class="flex items-center justify-between mb-4 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-4 py-1.5 rounded-full uppercase tracking-wider">
+          <i class="fas fa-th mr-1"></i> FASE MENGHAPAL — GRID
+        </span>
+        <span class="text-xs text-slate-400">Semua 30 kota · auto-scroll</span>
+      </div>
+      <div class="bg-slate-900 border border-amber-500/30 rounded-2xl px-6 py-2.5 text-center">
+        <div class="text-[10px] text-slate-500 uppercase font-bold">Sisa Waktu</div>
+        <div id="memorizeGridTimer" class="text-3xl font-mono font-black text-amber-400">30:00</div>
+      </div>
+    </div>
+
+    <div class="flex-1 flex items-center justify-center min-h-0">
+      <div class="w-full max-w-[266.67vh] aspect-[16/6] bg-slate-900 border-2 border-amber-500/40 rounded-3xl overflow-hidden relative">
+        <div id="memorizeGridScroll" class="absolute inset-0 overflow-y-auto custom-scroll p-4">
+          <div id="memorizeGridContainer" class="grid grid-cols-5 gap-3 w-full"></div>
+        </div>
+        <div class="absolute top-3 right-3 bg-slate-950/90 border border-amber-500/30 rounded-2xl px-4 py-2 text-center z-20 pointer-events-none">
+          <div class="text-[9px] text-slate-500 uppercase font-bold">Total</div>
+          <div id="gridTotalCount" class="text-xl font-mono font-black text-amber-400">30</div>
         </div>
       </div>
+    </div>
 
-      <p class="text-slate-400 text-xl mt-8">
-        <i class="fas fa-info-circle mr-2"></i>Selesaikan sebelum waktu habis
+    <div class="mt-4 bg-slate-950 border-2 border-amber-500/30 rounded-2xl px-6 py-3 flex-shrink-0">
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-amber-400 font-bold uppercase tracking-wider">
+          <i class="fas fa-arrows-up-down mr-1"></i> Auto-scroll aktif
+        </span>
+        <span id="gridScrollStatus" class="text-sm text-slate-400 font-mono">ke bawah...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 3: ANSWER PHASE                                      -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewAnswerPhase" class="stage-view hidden-view flex flex-col items-center justify-center p-8">
+    <div class="text-center mb-8">
+      <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-pen-to-square mr-1"></i> WAKTU MENGERJAKAN
+      </span>
+      <h1 class="text-5xl md:text-6xl font-black text-white mt-4 font-display tracking-wider">
+        KERJAKAN SOAL!
+      </h1>
+      <p class="text-slate-400 text-lg mt-2">Isi 6 gambar per sesi sesuai urutan yang tadi ditampilkan</p>
+    </div>
+
+    <div class="bg-slate-900 border-4 border-emerald-500/40 rounded-3xl p-16 glow-emerald">
+      <div id="answerPhaseTimer" class="text-[160px] md:text-[220px] font-black font-display text-emerald-400 leading-none animate-timer-pulse">
+        15:00
+      </div>
+    </div>
+
+    <p class="text-slate-400 text-xl mt-8">
+      <i class="fas fa-info-circle mr-2"></i>Selesaikan sebelum waktu habis
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 4: COMBO REVEAL                                      -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewComboReveal" class="stage-view hidden-view flex flex-col items-center justify-center p-8">
+    <div class="text-center mb-6">
+      <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-award mr-1"></i> PESERTA COMBO PERFECT
+      </span>
+      <h1 id="comboRevealTitle" class="text-5xl font-black text-white mt-4 font-display tracking-wider">
+        SESI 1
+      </h1>
+    </div>
+    <div id="comboRevealContainer" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center">
+      <p class="text-slate-500 text-xl">Memuat data peserta...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 5: ELIMINATION                                       -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewElimination" class="stage-view hidden-view flex flex-col items-center justify-center p-8">
+    <div class="text-center space-y-6 max-w-3xl">
+      <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
+        <i class="fas fa-skull-crossbones text-6xl text-rose-400"></i>
+      </div>
+      <span class="bg-rose-500/10 border border-rose-500/30 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-hourglass-half mr-1"></i> TAHAP ELIMINASI
+      </span>
+      <h1 class="text-5xl font-black text-white font-display tracking-wider">
+        SISTEM ELIMINASI
+      </h1>
+      <p class="text-slate-400 text-lg leading-relaxed">
+        Menunggu panitia menentukan sistem eliminasi.<br>
+        Kontrol akan tersedia setelah konfigurasi selesai.
       </p>
     </div>
+  </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 4: COMBO REVEAL                                      -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewComboReveal" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-award mr-1"></i> PESERTA COMBO PERFECT
-        </span>
-        <h1 id="comboRevealTitle" class="text-5xl font-black text-white mt-4 font-display tracking-wider">
-          SESI 1
-        </h1>
-      </div>
-      <div id="comboRevealContainer" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center">
-        <p class="text-slate-500 text-xl">Memuat data peserta...</p>
-      </div>
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 6: LEADERBOARD                                       -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view hidden-view flex flex-col items-center justify-center p-8">
+    <div class="text-center mb-6">
+      <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-trophy mr-1"></i> KLASEMEN AKHIR
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-display tracking-wider">
+        FORSAKEN CITY RECALL
+      </h1>
+      <p id="leaderboardSubtitle" class="text-slate-400 mt-2">Akumulasi seluruh sesi (Recall Type 1–5)</p>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 5: ELIMINATION                                       -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center space-y-6 max-w-3xl">
-        <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
-          <i class="fas fa-skull-crossbones text-6xl text-rose-400"></i>
-        </div>
-        <span class="bg-rose-500/10 border border-rose-500/30 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-hourglass-half mr-1"></i> TAHAP ELIMINASI
-        </span>
-        <h1 class="text-5xl font-black text-white font-display tracking-wider">
-          SISTEM ELIMINASI
-        </h1>
-        <p class="text-slate-400 text-lg leading-relaxed">
-          Menunggu panitia menentukan sistem eliminasi.<br>
-          Kontrol akan tersedia setelah konfigurasi selesai.
-        </p>
-      </div>
+    <div id="leaderboardContainer" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
+      <p class="text-slate-500 text-xl">Memuat klasemen...</p>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 6: LEADERBOARD                                       -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-6">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-trophy mr-1"></i> KLASEMEN AKHIR
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-display tracking-wider">
-          FORSAKEN CITY RECALL
-        </h1>
-        <p id="leaderboardSubtitle" class="text-slate-400 mt-2">Akumulasi seluruh sesi (Recall Type 1–5)</p>
-      </div>
-      <div id="leaderboardContainer" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
-        <p class="text-slate-500 text-xl">Memuat klasemen...</p>
-      </div>
-    </div>
-
   </div>
 
   <script>
@@ -299,22 +886,39 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const IMAGE_BASE_PATH = `${SUPABASE_URL}/storage/v1/object/public/forsaken_city/`;
+    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
 
     const SYS_TABLE = 'system_forsaken_city_recall';
     const LAYOUT_TABLE = 'admin_layout_forsaken_city_recall';
     const NOTIF_TABLE = 'recall_notifications';
 
-    // ⭐ MODE A: 6 per batch, total 5 batch (30 gambar)
     const SEQ_BATCH_SIZE = 6;
     const SEQ_BATCH_DURATION = 3000;
-    const TOTAL_BATCHES_A = 5;
 
-    // ⭐ MODE B: auto-scroll speed (px/detik)
-    const GRID_SCROLL_SPEED_PPS = 42;   // atur di sini
-    const GRID_PAUSE_TOP = 800;         // jeda di atas (ms)
-    const GRID_PAUSE_BOTTOM = 800;      // jeda di bawah (ms)
+    const GRID_SCROLL_SPEED_PPS = 42;
+    const GRID_PAUSE_TOP = 800;
+    const GRID_PAUSE_BOTTOM = 800;
 
-    // State
+    // ═══════════════════════════════════════════════════════════
+    // BGM CONFIG — ISI NAMA FILE SESUAI BUCKET SUPABASE
+    // ═══════════════════════════════════════════════════════════
+    const BGM = {
+      baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+      tracks: {
+        idle:          'LOBBY.mp3',
+        memorize:      'TEGANG.mp3',
+        answer_phase:  'TEGANG.mp3',
+        combo_reveal:  'WINNER.mp3',
+        elimination:   'TEGANG.mp3',
+        leaderboard:   'WINNER.mp3'
+      },
+      current: null,
+      player: null,
+      unlocked: false,
+      volume: 0.5,
+      pendingTrack: null
+    };
+
     let currentView = 'idle';
     let currentSequence = [];
     let lastLayoutSignature = '';
@@ -327,14 +931,19 @@
     let memorizeTimerInt = null;
     let answerTimerInt = null;
 
-    // ⭐ Auto-scroll state (pakai rAF)
     let gridScrollRAF = null;
     let gridScrollLastTs = 0;
-    let gridScrollDirection = 1;   // 1 turun, -1 naik
+    let gridScrollDirection = 1;
     let gridScrollPaused = false;
     let gridScrollPauseUntil = 0;
 
     let memorizeMode = 'sequential';
+
+    // Idle canvas
+    let idleCanvas, idleCtx, idleW, idleH;
+    let idleCanvasRunning = false;
+    let idleCanvasRafId = null;
+    let idleParticles = [];
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
@@ -343,6 +952,202 @@
       const bell = document.getElementById('bellSound');
       if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // BGM MANAGER
+    // ═══════════════════════════════════════════════════════════
+    function initBGM() {
+      BGM.player = document.getElementById('bgmPlayer');
+      if (!BGM.player) return;
+
+      BGM.player.volume = BGM.volume;
+      BGM.player.loop = true;
+      BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+      BGM.current = 'idle';
+
+      BGM.player.play()
+        .then(() => {
+          BGM.unlocked = true;
+          updateBGMBadge('playing', 'idle');
+        })
+        .catch(() => {
+          showUnlockOverlay();
+          updateBGMBadge('blocked', 'idle');
+        });
+
+      const unlock = () => {
+        if (BGM.unlocked) return;
+        BGM.unlocked = true;
+
+        const target = BGM.pendingTrack || BGM.current || 'idle';
+        BGM.pendingTrack = null;
+        BGM.player.src = BGM.baseUrl + BGM.tracks[target];
+        BGM.player.currentTime = 0;
+        BGM.current = target;
+
+        BGM.player.play()
+          .then(() => updateBGMBadge('playing', target))
+          .catch(() => {});
+
+        hideUnlockOverlay();
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('keydown', unlock);
+      };
+
+      document.addEventListener('click', unlock);
+      document.addEventListener('touchstart', unlock);
+      document.addEventListener('keydown', unlock);
+
+      const overlay = document.getElementById('audioUnlockOverlay');
+      if (overlay) overlay.addEventListener('click', unlock);
+    }
+
+    function showUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.remove('hidden');
+    }
+    function hideUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.add('hidden');
+    }
+
+    function updateBGMBadge(status, trackName) {
+      const dot = document.getElementById('bgmDot');
+      const label = document.getElementById('bgmLabel');
+      if (dot) {
+        dot.className = 'dot ' + (status === 'playing' ? 'playing' : (status === 'blocked' ? 'blocked' : ''));
+      }
+      if (label) label.textContent = `BGM: ${trackName}`;
+    }
+
+    function playBGM(viewName) {
+      if (!BGM.player) return;
+
+      const filename = BGM.tracks[viewName];
+      if (!filename) return;
+
+      if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
+
+      if (!BGM.unlocked) {
+        BGM.pendingTrack = viewName;
+        BGM.current = viewName;
+        updateBGMBadge('blocked', viewName);
+        return;
+      }
+
+      const newSrc = BGM.baseUrl + filename;
+      if (BGM.player.src === newSrc) {
+        BGM.current = viewName;
+        return;
+      }
+
+      BGM.current = viewName;
+      try { BGM.player.pause(); } catch (e) {}
+
+      BGM.player.src = newSrc;
+      BGM.player.currentTime = 0;
+
+      setTimeout(() => {
+        BGM.player.load();
+        BGM.player.play()
+          .then(() => updateBGMBadge('playing', viewName))
+          .catch(() => {
+            updateBGMBadge('blocked', viewName);
+            BGM.pendingTrack = viewName;
+            BGM.unlocked = false;
+            showUnlockOverlay();
+          });
+      }, 80);
+    }
+
+    function unlockAudio() {
+      BGM.unlocked = true;
+      hideUnlockOverlay();
+      const target = BGM.pendingTrack || BGM.current || 'idle';
+      BGM.pendingTrack = null;
+      BGM.current = null;
+      playBGM(target);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // IDLE CANVAS — Golden Dust Particles
+    // ═══════════════════════════════════════════════════════════
+    class GoldenDust {
+      constructor() { this.reset(true); }
+      reset(initial = false) {
+        this.x = Math.random() * idleW;
+        this.y = initial ? (Math.random() * idleH) : (idleH + Math.random() * 100);
+        this.size = Math.random() * 3 + 0.8;
+        this.speedY = Math.random() * 1.2 + 0.4;
+        this.speedX = (Math.random() - 0.5) * 0.6;
+        this.opacity = Math.random() * 0.8 + 0.2;
+        const c = Math.random();
+        if (c > 0.6) this.color = '#FFD700';
+        else if (c > 0.2) this.color = '#FF5E36';
+        else this.color = '#FFF2D6';
+      }
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        if (this.y < -20 || this.x < -20 || this.x > idleW + 20) this.reset();
+      }
+      draw() {
+        if (!idleCtx) return;
+        idleCtx.save();
+        idleCtx.globalAlpha = this.opacity;
+        idleCtx.beginPath();
+        idleCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        idleCtx.fillStyle = this.color;
+        idleCtx.shadowBlur = 10;
+        idleCtx.shadowColor = this.color;
+        idleCtx.fill();
+        idleCtx.restore();
+      }
+    }
+
+    function resizeIdleCanvas() {
+      if (!idleCanvas) return;
+      idleW = idleCanvas.width = window.innerWidth;
+      idleH = idleCanvas.height = window.innerHeight;
+    }
+
+    function startIdleCanvas() {
+      idleCanvas = document.getElementById('particleCanvas');
+      if (!idleCanvas) return;
+      idleCtx = idleCanvas.getContext('2d');
+      if (idleCanvasRunning) return;
+      idleCanvasRunning = true;
+
+      resizeIdleCanvas();
+
+      if (idleParticles.length === 0) {
+        for (let i = 0; i < 110; i++) idleParticles.push(new GoldenDust());
+      } else {
+        idleParticles.forEach(p => p.reset(true));
+      }
+
+      const loop = () => {
+        if (!idleCanvasRunning || !idleCtx) return;
+        idleCtx.clearRect(0, 0, idleW, idleH);
+        idleParticles.forEach(p => { p.update(); p.draw(); });
+        idleCanvasRafId = requestAnimationFrame(loop);
+      };
+      loop();
+    }
+
+    function stopIdleCanvas() {
+      idleCanvasRunning = false;
+      if (idleCanvasRafId) cancelAnimationFrame(idleCanvasRafId);
+      idleCanvasRafId = null;
+    }
+
+    window.addEventListener('resize', () => {
+      if (idleCanvasRunning) {
+        resizeIdleCanvas();
+        idleParticles.forEach(p => p.reset(true));
+      }
+    });
 
     // ═══════════════════════════════════════════════════════════
     // HELPER
@@ -362,8 +1167,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // MODE A: SEQUENTIAL — 6 per batch (3 atas, 3 bawah)
-    // Total 30 gambar → 5 batch
+    // MODE A: SEQUENTIAL
     // ═══════════════════════════════════════════════════════════
     function renderSeqBatch(batchIdx) {
       const container = document.getElementById('seqBatchContainer');
@@ -382,7 +1186,6 @@
         batchItems.push({ index: i, filename: currentSequence[i] });
       }
 
-      // ⭐ 3 atas, 3 bawah
       const topRow = batchItems.slice(0, 3);
       const bottomRow = batchItems.slice(3, 6);
 
@@ -433,7 +1236,6 @@
 
     function startSequentialAutoScroll() {
       stopSequential();
-
       const totalBatch = Math.ceil(currentSequence.length / SEQ_BATCH_SIZE);
       if (totalBatch === 0) return;
 
@@ -444,9 +1246,7 @@
 
       sequentialTimer = setInterval(() => {
         sequentialBatchIndex++;
-        // Loop balik ke batch 1
         if (sequentialBatchIndex >= totalBatch) sequentialBatchIndex = 0;
-
         renderSeqBatch(sequentialBatchIndex);
         updateSeqBatchIndicator(sequentialBatchIndex);
         playBell();
@@ -458,7 +1258,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // MODE B: GRID — 30 gambar, auto-scroll
+    // MODE B: GRID
     // ═══════════════════════════════════════════════════════════
     function renderMemorizeGrid() {
       const container = document.getElementById('memorizeGridContainer');
@@ -492,18 +1292,13 @@
 
       const totalEl = document.getElementById('gridTotalCount');
       if (totalEl) totalEl.textContent = currentSequence.length;
-
-      console.log('[STAGE] Rendered', currentSequence.length, 'grid images');
     }
 
-    // ⭐ Auto-scroll dengan requestAnimationFrame — FIX STUCK BUG
     function startGridAutoScroll() {
       stopGridAutoScroll();
-
       const scrollEl = document.getElementById('memorizeGridScroll');
       if (!scrollEl) return;
 
-      // Reset state
       gridScrollDirection = 1;
       gridScrollPaused = false;
       gridScrollLastTs = 0;
@@ -517,11 +1312,8 @@
           gridScrollRAF = requestAnimationFrame(loop);
           return;
         }
-
         const dt = ts - gridScrollLastTs;
         gridScrollLastTs = ts;
-
-        // Clamp dt biar tidak lompat kalau tab ke-throttle
         const dtClamped = Math.min(dt, 100);
 
         if (gridScrollPaused) {
@@ -539,36 +1331,27 @@
           return;
         }
 
-        // Gerakkan pixel berdasarkan dt
         const pixelsToMove = (GRID_SCROLL_SPEED_PPS * dtClamped) / 1000;
         let newScroll = scrollEl.scrollTop + (pixelsToMove * gridScrollDirection);
-
-        // Clamp
         if (newScroll < 0) newScroll = 0;
         if (newScroll > maxScroll) newScroll = maxScroll;
         scrollEl.scrollTop = newScroll;
 
-        // ⭐ FIX: Cek pakai posisi & maxScroll (bukan threshold -1)
-        // Sampai bawah → pause + balik arah
         if (gridScrollDirection === 1 && newScroll >= maxScroll - 0.5) {
           scrollEl.scrollTop = maxScroll;
           gridScrollPaused = true;
           gridScrollDirection = -1;
           gridScrollPauseUntil = ts + GRID_PAUSE_BOTTOM;
           updateGridScrollStatus('tahan di bawah...');
-        }
-        // Sampai atas → pause + balik arah
-        else if (gridScrollDirection === -1 && newScroll <= 0.5) {
+        } else if (gridScrollDirection === -1 && newScroll <= 0.5) {
           scrollEl.scrollTop = 0;
           gridScrollPaused = true;
           gridScrollDirection = 1;
           gridScrollPauseUntil = ts + GRID_PAUSE_TOP;
           updateGridScrollStatus('tahan di atas...');
         }
-
         gridScrollRAF = requestAnimationFrame(loop);
       };
-
       gridScrollRAF = requestAnimationFrame(loop);
     }
 
@@ -648,7 +1431,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // COMBO REVEAL — Top 5 (karena 5 batch total)
+    // COMBO REVEAL
     // ═══════════════════════════════════════════════════════════
     async function fetchComboData(sessionNum) {
       const { data: scores } = await supabaseClient
@@ -668,7 +1451,6 @@
       Object.keys(userScoresMap).forEach(uid => {
         let isPerfect = true;
         for (let s = 1; s <= sessionNum; s++) {
-          // ⭐ Perfect = 6 gambar benar (perubahan dari 25 → 30)
           if (userScoresMap[uid][`Recall Type ${s}`] !== 30) {
             isPerfect = false;
             break;
@@ -868,7 +1650,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // NOTIFIKASI TOAST
+    // NOTIF TOAST
     // ═══════════════════════════════════════════════════════════
     async function showSubmitToast(userUniqueId, message) {
       const container = document.getElementById('notifToastContainer');
@@ -885,7 +1667,7 @@
           fullName = u.full_name || userUniqueId;
           avatarUrl = u.avatar_url || '';
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {}
 
       if (!avatarUrl) {
         avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(userUniqueId)}`;
@@ -922,6 +1704,7 @@
       stopGridAutoScroll();
       stopMemorizeTimer();
       stopAnswerTimer();
+      stopIdleCanvas();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -930,8 +1713,6 @@
     async function handleViewSwitch(viewName, revealedRank, comboSession) {
       revealedRank = revealedRank ?? 0;
       comboSession = comboSession ?? 1;
-
-      console.log('[STAGE] handleViewSwitch →', viewName, 'rank:', revealedRank, 'comboSes:', comboSession);
 
       const isSameView = (currentView === viewName);
       const isSameRank = (lastRank === revealedRank);
@@ -968,6 +1749,18 @@
       lastRank = revealedRank;
       lastComboSession = comboSession;
 
+      playBGM(viewName);
+
+      if (viewName === 'idle') {
+        const idleEl = document.getElementById('viewIdle');
+        if (idleEl) {
+          idleEl.classList.remove('hidden-view');
+          idleEl.classList.add('active-view');
+        }
+        setTimeout(() => startIdleCanvas(), 100);
+        return;
+      }
+
       if (viewName === 'memorize') {
         const { data } = await supabaseClient
           .from(SYS_TABLE)
@@ -999,14 +1792,13 @@
       }
 
       const views = {
-        idle: 'viewIdle',
         answer_phase: 'viewAnswerPhase',
         combo_reveal: 'viewComboReveal',
         elimination: 'viewElimination',
         leaderboard: 'viewLeaderboard'
       };
 
-      const targetId = views[viewName] || views.idle;
+      const targetId = views[viewName] || 'viewIdle';
       const target = document.getElementById(targetId);
       if (target) {
         target.classList.remove('hidden-view');
@@ -1114,7 +1906,7 @@
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-      console.log('[STAGE] Forsaken City Recall init...');
+      initBGM();
 
       const { data: sys } = await supabaseClient
         .from(SYS_TABLE)
@@ -1125,7 +1917,6 @@
       if (sys) {
         currentSequence = sys.sequence_filenames || [];
         memorizeMode = sys.memorize_mode || 'sequential';
-        console.log('[STAGE] Sequence:', currentSequence.length, 'items, mode:', memorizeMode);
       }
 
       const { data: layout } = await supabaseClient
