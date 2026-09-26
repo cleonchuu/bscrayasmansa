@@ -10,55 +10,16 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&family=Montserrat:ital,wght@0,700;0,900;1,900&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            orbitron: ['Orbitron', 'sans-serif'],
-            montserrat: ['Montserrat', 'sans-serif']
-          },
-          colors: {
-            disco: {
-              bg: '#0a0814',
-              cyan: '#00f0ff',
-              magenta: '#ff007f',
-              purple: '#7000ff',
-              amber: '#ffb700'
-            }
-          },
-          animation: {
-            'beam-spin': 'beamSpin 20s linear infinite',
-            'beam-spin-rev': 'beamSpinRev 25s linear infinite',
-            'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite',
-            'wave-bar': 'waveBar 1.2s ease-in-out infinite alternate',
-          },
-          keyframes: {
-            beamSpin: {
-              '0%': { transform: 'rotate(0deg)' },
-              '100%': { transform: 'rotate(360deg)' }
-            },
-            beamSpinRev: {
-              '0%': { transform: 'rotate(360deg)' },
-              '100%': { transform: 'rotate(0deg)' }
-            },
-            pulseGlow: {
-              '0%, 100%': { filter: 'drop-shadow(0 0 25px rgba(0, 240, 255, 0.4)) drop-shadow(0 0 50px rgba(255, 0, 127, 0.3))', transform: 'scale(1)' },
-              '50%': { filter: 'drop-shadow(0 0 45px rgba(0, 240, 255, 0.7)) drop-shadow(0 0 70px rgba(255, 0, 127, 0.6))', transform: 'scale(1.02)' }
-            },
-            waveBar: {
-              '0%': { height: '20%' },
-              '100%': { height: '100%' }
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800&family=Montserrat:ital,wght@0,700;0,900;1,900&family=Outfit:wght@300;400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --primary-blue: #2541BE;
+      --neon-blue: #00d2ff;
+      --neon-red: #ff2a6d;
+      --disco-purple: #3a0066;
+    }
+
     html, body {
       position: fixed; top: 0; left: 0;
       width: 100vw; height: 100vh;
@@ -66,12 +27,14 @@
       overflow: hidden;
       user-select: none; -webkit-user-select: none;
       touch-action: none;
-      background-color: #0a0814;
+      background-color: #050515;
       color: #ffffff;
       font-family: 'Poppins', sans-serif;
     }
 
     .font-math { font-family: 'Orbitron', sans-serif; }
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+    .pixel-font { font-family: 'Press Start 2P', cursive; }
 
     .glow-blue {
       box-shadow: 0 0 35px rgba(59, 130, 246, 0.3);
@@ -95,22 +58,22 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       STAGE VIEW SWITCHER
+       STAGE VIEW SWITCHER — FULL FIXED
        ═══════════════════════════════════════════════════════════ */
-    .stage-view { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-    .stage-view.hidden-view {
-      opacity: 0;
-      transform: scale(0.92);
-      pointer-events: none;
-      position: absolute;
+    .stage-view {
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100vh;
       visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
     }
     .stage-view.active-view {
       opacity: 1;
-      transform: scale(1);
-      position: relative;
       visibility: visible;
+      pointer-events: auto;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 6px; }
@@ -151,58 +114,269 @@
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
     /* ═══════════════════════════════════════════════════════════
-       IDLE VIEW — DISCO THEME
+       IDLE VIEW — DISCO ROOM
        ═══════════════════════════════════════════════════════════ */
-    .disco-glass {
-      background: rgba(18, 12, 38, 0.55);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+    #viewIdle {
+      background: radial-gradient(circle at 50% 30%, #1a0b36 0%, #08071e 60%, #020208 100%);
     }
 
-    .text-glow-title {
-      text-shadow:
-        0 0 10px rgba(0, 240, 255, 0.8),
-        0 0 30px rgba(255, 0, 127, 0.6),
-        0 0 60px rgba(112, 0, 255, 0.4);
-    }
-    .text-glow-cyan {
-      text-shadow: 0 0 15px rgba(0, 240, 255, 0.8), 0 0 30px rgba(0, 240, 255, 0.4);
-    }
-
-    /* Light Beams FX */
-    .beam-container {
+    /* Grid Floor */
+    .disco-floor {
       position: absolute;
-      top: 50%; left: 50%;
-      width: 200vmax; height: 200vmax;
-      margin-top: -100vmax; margin-left: -100vmax;
+      bottom: 0;
+      width: 100%;
+      height: 35vh;
+      background:
+        linear-gradient(rgba(37, 65, 190, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 65, 190, 0.3) 1px, transparent 1px);
+      background-size: 40px 40px;
+      transform: perspective(300px) rotateX(60deg);
+      transform-origin: bottom center;
+      box-shadow: 0 -50px 100px rgba(37, 65, 190, 0.4) inset;
       pointer-events: none;
     }
-    .spotlight-beam {
-      background: conic-gradient(
-        from 0deg,
-        transparent 0deg,
-        rgba(0, 240, 255, 0.08) 15deg,
-        transparent 30deg,
-        transparent 120deg,
-        rgba(255, 0, 127, 0.08) 135deg,
-        transparent 150deg,
-        transparent 240deg,
-        rgba(112, 0, 255, 0.08) 255deg,
-        transparent 270deg
-      );
+
+    /* Light Beams */
+    @keyframes sweepBeamLeft {
+      0%, 100% { transform: rotate(-35deg) scaleY(1); opacity: 0.6; }
+      50% { transform: rotate(-10deg) scaleY(1.2); opacity: 0.9; }
     }
-    .spotlight-beam-2 {
-      background: conic-gradient(
-        from 60deg,
-        transparent 0deg,
-        rgba(255, 183, 0, 0.06) 20deg,
-        transparent 40deg,
-        transparent 180deg,
-        rgba(0, 240, 255, 0.06) 200deg,
-        transparent 220deg
-      );
+    @keyframes sweepBeamRight {
+      0%, 100% { transform: rotate(35deg) scaleY(1); opacity: 0.6; }
+      50% { transform: rotate(10deg) scaleY(1.2); opacity: 0.9; }
     }
+    .light-beam-left {
+      position: absolute;
+      top: -50px;
+      left: 20%;
+      width: 120px;
+      height: 120vh;
+      background: linear-gradient(180deg, rgba(255, 42, 109, 0.7) 0%, rgba(255, 42, 109, 0) 80%);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      transform-origin: top center;
+      animation: sweepBeamLeft 4s ease-in-out infinite;
+      filter: blur(8px);
+      pointer-events: none;
+    }
+    .light-beam-right {
+      position: absolute;
+      top: -50px;
+      right: 20%;
+      width: 120px;
+      height: 120vh;
+      background: linear-gradient(180deg, rgba(255, 42, 109, 0.7) 0%, rgba(255, 42, 109, 0) 80%);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      transform-origin: top center;
+      animation: sweepBeamRight 4.5s ease-in-out infinite;
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    /* Disco Ball */
+    .disco-ball-container {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+    }
+    .disco-string {
+      width: 2px;
+      height: 50px;
+      background: linear-gradient(to bottom, #888, #333);
+      margin: 0 auto;
+    }
+    .disco-ball {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ff7597, #ff2a6d 60%, #800020 100%);
+      box-shadow: 0 0 30px #ff2a6d, inset 0 0 15px rgba(255, 255, 255, 0.8);
+      position: relative;
+      animation: spinBall 10s linear infinite;
+    }
+    @keyframes spinBall {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DISCO DOOR — Dibelakang, subtle, lalu maju saat trigger
+       ═══════════════════════════════════════════════════════════ */
+    .door-container {
+      position: absolute;
+      bottom: 22vh;
+      left: 50%;
+      transform: translateX(-50%) scale(0.55);
+      z-index: 5;
+      opacity: 0.25;
+      filter: blur(1.5px) brightness(0.6);
+      transition: all 1.8s cubic-bezier(0.7, 0, 0.3, 1);
+      pointer-events: none;
+    }
+
+    /* Door Maju ke Depan — saat trigger */
+    .door-container.door-forward {
+      transform: translateX(-50%) scale(1);
+      z-index: 40;
+      opacity: 1;
+      filter: blur(0) brightness(1);
+    }
+
+    .disco-door {
+      width: 110px;
+      height: 180px;
+      background: linear-gradient(180deg, #101b52 0%, #050a24 100%);
+      border: 4px solid #00d2ff;
+      border-radius: 12px 12px 0 0;
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.6), inset 0 0 15px rgba(0, 210, 255, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .door-frame {
+      position: absolute;
+      inset: -8px;
+      border: 2px solid #ff2a6d;
+      border-radius: 16px 16px 0 0;
+      pointer-events: none;
+      box-shadow: 0 0 15px #ff2a6d;
+    }
+
+    .door-panels {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      transition: transform 1.2s ease-in-out;
+    }
+
+    .door-panel-left, .door-panel-right {
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(135deg, #1b2a78 0%, #0d1540 100%);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1);
+      position: relative;
+    }
+
+    .door-light-inside {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, #ffffff 10%, #00d2ff 50%, #2541BE 100%);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      box-shadow: 0 0 50px #ffffff;
+    }
+
+    /* Door Terbuka */
+    .door-open .door-panel-left { transform: translateX(-100%); }
+    .door-open .door-panel-right { transform: translateX(100%); }
+    .door-open .door-light-inside { opacity: 1; }
+
+    /* Door Zoom Warp */
+    .zoom-into-door {
+      transform: translateX(-50%) scale(45) translateY(20px) !important;
+      z-index: 100 !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       LOADING OVERLAY — Bouncing Numbers
+       ═══════════════════════════════════════════════════════════ */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      background: rgba(5, 5, 21, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #loadingOverlay.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    #bounceCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    /* Spinner */
+    @keyframes spinCW { to { transform: rotate(360deg); } }
+    @keyframes spinCCW { to { transform: rotate(-360deg); } }
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+    .loader-rings {
+      position: relative;
+      width: 120px; height: 120px;
+      margin: 0 auto 28px;
+    }
+    .loader-rings > div {
+      position: absolute;
+      border-radius: 50%;
+      border-style: solid;
+      border-color: transparent;
+    }
+    .loader-rings .r1 {
+      inset: 0;
+      border-width: 5px;
+      border-top-color: #00d2ff;
+      border-right-color: #2541BE;
+      animation: spinCW 1.2s linear infinite;
+    }
+    .loader-rings .r2 {
+      inset: 10px;
+      border-width: 5px;
+      border-bottom-color: #ff2a6d;
+      border-left-color: #2541BE;
+      animation: spinCCW 1.5s linear infinite;
+    }
+    .loader-rings .r3 {
+      inset: 24px;
+      border-width: 3px;
+      border-color: #00d2ff;
+      animation: ringPulse 1.5s ease-in-out infinite;
+    }
+
+    /* Progress Bar */
+    .progress-track {
+      width: 320px; max-width: 100%;
+      height: 14px;
+      background: #050515;
+      border: 2px solid rgba(0, 210, 255, 0.5);
+      border-radius: 12px;
+      padding: 2px;
+      box-shadow: 0 0 15px rgba(37, 65, 190, 0.5), inset 0 0 8px rgba(0, 210, 255, 0.2);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2541BE, #00d2ff, #ff2a6d);
+      border-radius: 8px;
+      transition: width 0.3s ease;
+    }
+
+    /* Text glow */
+    .neon-text-blue {
+      text-shadow: 0 0 10px #00d2ff, 0 0 20px #00d2ff, 0 0 40px #2541BE;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PULSE
+       ═══════════════════════════════════════════════════════════ */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.03); }
+    }
+    .pulse-element { animation: pulseGlow 2s infinite ease-in-out; }
   </style>
 </head>
 <body class="fixed inset-0 w-screen h-screen overflow-hidden select-none">
@@ -211,9 +385,13 @@
        AUDIO
        ═══════════════════════════════════════════════════════════ -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
   <!-- OVERLAY UNLOCK AUDIO -->
-  <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
+  <div id="audioUnlockOverlay" onclick="unlockAudio()" class="fixed inset-0 z-[9000] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
     <div class="p-6 bg-indigo-600/20 rounded-full border border-indigo-500/40 text-indigo-400 mb-4 animate-bounce">
       <i class="fas fa-power-off text-4xl"></i>
     </div>
@@ -228,53 +406,76 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
-       1. VIEW: IDLE LOBBY (DISCO)
+       1. VIEW: IDLE LOBBY (DISCO ROOM)
        ═══════════════════════════════════════════════════════════ -->
-  <div id="viewIdle" class="stage-view hidden-view fixed inset-0 flex flex-col items-center justify-between p-6 sm:p-10">
-    <!-- Ambient Particle Canvas -->
-    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+  <div id="viewIdle" class="stage-view active-view flex flex-col justify-between items-center p-3 md:p-6 relative">
 
-    <!-- Rotating Disco Spotlight Beams -->
-    <div class="beam-container spotlight-beam animate-beam-spin z-0 opacity-80"></div>
-    <div class="beam-container spotlight-beam-2 animate-beam-spin-rev z-0 opacity-60"></div>
+    <!-- Background Particles Canvas -->
+    <canvas id="particleCanvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
-    <!-- Background Vignette -->
-    <div class="absolute inset-0 bg-radial gradient from-transparent via-[#0a0814]/70 to-[#0a0814] pointer-events-none z-0"></div>
+    <!-- Grid Floor -->
+    <div class="disco-floor z-[1]"></div>
 
-    <!-- TOP HEADER / DAY & GAME BADGE -->
-    <header class="relative z-10 w-full flex items-center justify-center">
-      <div class="disco-glass px-6 sm:px-8 py-2.5 sm:py-3 rounded-full border border-cyan-400/30 flex items-center gap-3.5 shadow-[0_0_25px_rgba(0,240,255,0.25)]">
-        <span class="relative flex h-3 w-3">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-400"></span>
-        </span>
-        <span class="font-orbitron font-extrabold text-xs sm:text-sm tracking-[0.25em] text-cyan-300 uppercase">
-          DAY 1 &bull; GAME 2
-        </span>
-      </div>
-    </header>
+    <!-- Light Beams -->
+    <div class="light-beam-left z-[2]"></div>
+    <div class="light-beam-right z-[2]"></div>
 
-    <!-- CENTER PIECE: ANIMATED DISCO BALL -->
-    <div class="relative z-10 w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] md:w-[460px] md:h-[460px] flex items-center justify-center my-auto animate-pulse-glow">
-      <canvas id="discoCanvas" class="w-full h-full relative z-10"></canvas>
+    <!-- Disco Ball -->
+    <div class="disco-ball-container z-20">
+      <div class="disco-string"></div>
+      <div class="disco-ball"></div>
     </div>
 
-    <!-- FOOTER / MAIN TITLE -->
-    <footer class="relative z-10 w-full flex flex-col items-center justify-center text-center space-y-4">
-      <h1 class="font-montserrat font-black text-4xl sm:text-6xl md:text-7xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-amber-300 italic text-glow-title uppercase">
+    <!-- ⭐ DISCO DOOR — di belakang, subtle, siap maju saat trigger -->
+    <div id="doorWrapper" class="door-container">
+      <div id="discoDoor" class="disco-door">
+        <div class="door-frame"></div>
+        <div class="door-light-inside"></div>
+        <div class="door-panels">
+          <div class="door-panel-left flex items-center justify-end pr-1">
+            <div class="w-1.5 h-6 bg-cyan-400 rounded-full shadow-[0_0_8px_#00d2ff]"></div>
+          </div>
+          <div class="door-panel-right flex items-center justify-start pl-1">
+            <div class="w-1.5 h-6 bg-cyan-400 rounded-full shadow-[0_0_8px_#00d2ff]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-20 top-8 text-center px-4 flex flex-col items-center pointer-events-none">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-950/80 border border-blue-500/40 backdrop-blur-md mb-3 shadow-[0_0_15px_rgba(37,65,190,0.5)]">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+        <span class="pixel-font text-xs tracking-wider text-cyan-300">DAY 1, GAME 2</span>
+      </div>
+
+      <h1 class="text-5xl md:text-7xl font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-indigo-200 neon-text-blue drop-shadow-lg">
         NUMBER DISCO
       </h1>
-      <p class="text-slate-400 text-xs sm:text-sm font-orbitron tracking-[0.3em] uppercase">
-        Menunggu Admin Memulai Permainan
+      <p class="text-slate-300 text-sm md:text-base mt-2 font-light tracking-widest max-w-md">
+        Masuk ke Arena Angka Interaktif
       </p>
+    </header>
+
+    <!-- Footer / Status Bar -->
+    <footer class="relative z-20 bottom-6 w-full max-w-xl px-4 flex flex-col items-center gap-3 pointer-events-none">
+      <div class="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-slate-950/80 border border-blue-500/30 backdrop-blur-lg shadow-2xl">
+        <div class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+        </div>
+        <span id="statusText" class="text-xs md:text-sm font-medium text-slate-200 tracking-wide">
+          Menunggu Arahan Realtime (Supabase)...
+        </span>
+      </div>
     </footer>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
        2. VIEW: GAME (Blue/Red Teams)
        ═══════════════════════════════════════════════════════════ -->
-  <div id="viewGame" class="stage-view hidden-view fixed inset-0 flex flex-col justify-between p-6">
-    <!-- HEADER STAGE -->
+  <div id="viewGame" class="stage-view flex flex-col justify-between p-6">
+    <!-- Header Stage -->
     <header class="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl flex items-center justify-between shadow-2xl backdrop-blur-md z-20 relative">
       <div class="flex items-center gap-3">
         <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
@@ -300,7 +501,7 @@
       </div>
     </header>
 
-    <!-- MAIN DISPLAY -->
+    <!-- Main Display -->
     <main class="grid grid-cols-2 gap-8 flex-1 w-full max-w-7xl mx-auto my-auto relative z-10">
       <div id="containerBlue" class="bg-slate-900/60 rounded-3xl p-8 flex flex-col items-center justify-center glow-blue transition-all duration-300 relative">
         <span class="absolute top-6 left-6 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full uppercase">
@@ -325,7 +526,7 @@
   <!-- ═══════════════════════════════════════════════════════════
        3. VIEW: LEADERBOARD
        ═══════════════════════════════════════════════════════════ -->
-  <div id="viewLeaderboard" class="stage-view hidden-view fixed inset-0 flex items-center justify-center p-6">
+  <div id="viewLeaderboard" class="stage-view flex items-center justify-center p-6">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-slate-950 to-black pointer-events-none"></div>
     <div class="w-full max-w-3xl relative z-10">
       <div class="bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-md glow-gold text-center relative">
@@ -356,7 +557,7 @@
   <!-- ═══════════════════════════════════════════════════════════
        4. VIEW: ALL PLAYERS
        ═══════════════════════════════════════════════════════════ -->
-  <div id="viewAllPlayers" class="stage-view hidden-view fixed inset-0 flex items-center justify-center p-6">
+  <div id="viewAllPlayers" class="stage-view flex items-center justify-center p-6">
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-950/30 via-slate-950 to-black pointer-events-none"></div>
     <div class="w-full max-w-5xl relative z-10">
       <div class="bg-slate-900/90 border border-indigo-500/30 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-md glow-indigo">
@@ -375,1037 +576,1111 @@
     </div>
   </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // LOGGER
-    // ═══════════════════════════════════════════════════════════
-    const DEBUG = true;
-    const LOG = {
-      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
-      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
-      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
-      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
-      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
-    };
+  <!-- ═══════════════════════════════════════════════════════════
+       LOADING OVERLAY — Bouncing Numbers
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="loadingOverlay">
+    <canvas id="bounceCanvas"></canvas>
 
-    // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI
-    // ═══════════════════════════════════════════════════════════
-    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <div class="relative z-10 flex flex-col items-center text-center px-4">
+      <div class="loader-rings">
+        <div class="r1"></div>
+        <div class="r2"></div>
+        <div class="r3"></div>
+      </div>
 
-    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-    const SILENCE_OFFSET = 1;
-    const TOTAL_TIME_SECONDS = 300;  // 5 menit
+      <h2 class="text-2xl md:text-3xl font-black tracking-wider text-white neon-text-blue mb-2 font-outfit">
+        MEMUAT ARENA DISKO...
+      </h2>
+      <p class="text-xs md:text-sm text-cyan-300/80 font-mono tracking-widest animate-pulse mb-6">
+        Menyiapkan Partikel & Matrix Angka
+      </p>
 
-    let audioUnlocked = false;
-    let cachedScores = [];
-    let currentRevealedRank = -1;
-    let lastRevealedRank = -1;
-    let autoScrollInterval = null;
-    let currentView = 'idle';
+      <div class="progress-track">
+        <div id="progressBar" class="progress-fill"></div>
+      </div>
 
-    // ═══════════════════════════════════════════════════════════
-    // AUDIO HELPERS
-    // ═══════════════════════════════════════════════════════════
-    function getAudioUrl(gender, filename) {
-      const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
-      return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
-    }
-    function getSoundEffectUrl(filename) {
-      return `${STORAGE_BASE_URL}/sounds_effect/${filename}`;
-    }
+      <span id="loadingPercent" class="pixel-font text-sm text-cyan-300 mt-4">0%</span>
+    </div>
+  </div>
 
-    const SOUND_BELL = getSoundEffectUrl('bell.mp3');
-    const SOUND_BEEP = getSoundEffectUrl('beep.mp3');
+<script>
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const DEBUG = true;
+const LOG = {
+  ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+  info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+  warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+  error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+  step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+};
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ BGM MANAGER — VARIABEL TERPUSAT (ISI NAMA FILE DI SINI)
-    //
-    // Mode game = MUTE (silent, untuk latihan pendengaran)
-    // - idle        → track idle (default: LOBBY.mp3)
-    // - leaderboard → WINNER.mp3
-    // - all_players → LOBBY.mp3
-    // - game        → null (mute)
-    // ═══════════════════════════════════════════════════════════
-    const BGM = {
-      baseUrl: `${STORAGE_BASE_URL}/bgm/`,
-      // 🎵 GANTI NAMA FILE DI BAWAH INI SESUAI BUCKET BGM ANDA
-      tracks: {
-        idle:        'NUMBERDISCO.mp3',    // <-- BGM untuk tampilan idle
-        leaderboard: 'WINNER.mp3',   // <-- BGM untuk tampilan papan peringkat
-        all_players: 'LOBBY.mp3',    // <-- BGM untuk tampilan semua peserta
-        game:        null            // <-- null = MUTE (game latihan pendengaran)
-      },
-      current: null,
-      player: null,
-      volume: 0.5,
-      pendingTrack: null
-    };
+// ═══════════════════════════════════════════════════════════
+// KONFIGURASI
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function initBGM() {
-      BGM.player = document.getElementById('bgmPlayer');
-      if (!BGM.player) {
-        LOG.err('BGM', 'Elemen #bgmPlayer tidak ditemukan');
-        return;
-      }
+const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+const SILENCE_OFFSET = 1;
+const TOTAL_TIME_SECONDS = 300;
 
-      BGM.player.volume = BGM.volume;
-      BGM.player.loop = true;
+let audioUnlocked = false;
+let cachedScores = [];
+let currentRevealedRank = -1;
+let lastRevealedRank = -1;
+let autoScrollInterval = null;
+let currentView = 'idle';
 
-      BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
-      BGM.current = 'idle';
+// ═══════════════════════════════════════════════════════════
+// AUDIO HELPERS
+// ═══════════════════════════════════════════════════════════
+function getAudioUrl(gender, filename) {
+  const bucketName = gender === 'female' ? 'voice_female' : 'voice_male';
+  return `${STORAGE_BASE_URL}/${bucketName}/${filename}`;
+}
+function getSoundEffectUrl(filename) {
+  return `${STORAGE_BASE_URL}/sounds_effect/${filename}`;
+}
 
-      updateBGMBadge('idle', 'idle');
-      LOG.info('BGM', 'Initialized (menunggu unlock)');
-    }
+const SOUND_BELL = getSoundEffectUrl('bell.mp3');
+const SOUND_BEEP = getSoundEffectUrl('beep.mp3');
 
-    /**
-     * ⭐ Ganti track BGM — auto-play saat view switch
-     * Kalau track null → stop (mute)
-     */
-    function playBGM(trackName) {
-      if (!BGM.player) return;
+// ═══════════════════════════════════════════════════════════
+// BGM CONFIG
+// ═══════════════════════════════════════════════════════════
+const BGM = {
+  baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+  tracks: {
+    idle:        'NUMBERDISCO.mp3',
+    leaderboard: 'WINNER.mp3',
+    all_players: 'LOBBY.mp3',
+    game:        null
+  },
+  current: null,
+  player: null,
+  volume: 0.5,
+  pendingTrack: null
+};
 
-      // Guard 1: track sama → skip
-      if (BGM.current === trackName) return;
+function initBGM() {
+  BGM.player = document.getElementById('bgmPlayer');
+  if (!BGM.player) return;
 
-      // ⭐ Kalau track null → MUTE
-      if (BGM.tracks[trackName] === null) {
-        try { BGM.player.pause(); } catch(e){}
-        BGM.current = trackName;
-        updateBGMBadge('muted', 'silent');
-        LOG.info('BGM', `⏸ Muted untuk view: ${trackName}`);
-        return;
-      }
+  BGM.player.volume = BGM.volume;
+  BGM.player.loop = true;
+  BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+  BGM.current = 'idle';
 
-      const filename = BGM.tracks[trackName];
-      if (!filename) {
-        LOG.warn('BGM', 'Track tidak dikenal: ' + trackName);
-        return;
-      }
+  updateBGMBadge('idle', 'idle');
+  LOG.info('BGM', 'Initialized');
+}
 
-      // Guard 2: belum unlock → simpan pending
-      if (!audioUnlocked) {
-        BGM.pendingTrack = trackName;
-        BGM.current = trackName;
+function playBGM(trackName) {
+  if (!BGM.player) return;
+  if (BGM.current === trackName) return;
+
+  if (BGM.tracks[trackName] === null) {
+    try { BGM.player.pause(); } catch(e){}
+    BGM.current = trackName;
+    updateBGMBadge('muted', 'silent');
+    LOG.info('BGM', `⏸ Muted untuk view: ${trackName}`);
+    return;
+  }
+
+  const filename = BGM.tracks[trackName];
+  if (!filename) return;
+
+  if (!audioUnlocked) {
+    BGM.pendingTrack = trackName;
+    BGM.current = trackName;
+    updateBGMBadge('idle', trackName);
+    return;
+  }
+
+  const newSrc = BGM.baseUrl + filename;
+  if (BGM.player.src === newSrc) {
+    BGM.current = trackName;
+    return;
+  }
+
+  BGM.current = trackName;
+
+  try { BGM.player.pause(); } catch(e){}
+  BGM.player.src = newSrc;
+  BGM.player.currentTime = 0;
+
+  setTimeout(() => {
+    BGM.player.load();
+    BGM.player.play()
+      .then(() => {
+        LOG.ok('BGM', `▶ ${trackName}`);
+        updateBGMBadge('playing', trackName);
+      })
+      .catch(err => {
+        LOG.warn('BGM', 'Play ditolak: ' + err.message);
         updateBGMBadge('idle', trackName);
-        LOG.info('BGM', `Pending: ${trackName}`);
-        return;
+      });
+  }, 80);
+}
+
+function updateBGMBadge(status, trackName) {
+  const dot = document.getElementById('bgmDot');
+  const label = document.getElementById('bgmLabel');
+  if (dot) {
+    if (status === 'playing') dot.className = 'dot playing';
+    else if (status === 'muted') dot.className = 'dot muted';
+    else dot.className = 'dot';
+  }
+  if (label) label.textContent = `BGM: ${trackName}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// IDLE — PARTICLES CANVAS (angka melayang)
+// ═══════════════════════════════════════════════════════════
+const particleCanvas = document.getElementById('particleCanvas');
+const particleCtx = particleCanvas ? particleCanvas.getContext('2d') : null;
+
+let pcW, pcH;
+let pcAnimId = null;
+let pcRunning = false;
+let pcParticles = [];
+
+const PC_COLORS = ['#00d2ff', '#94a3b8', '#ff2a6d'];
+
+class NumberParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * pcW;
+    this.y = Math.random() * pcH;
+    this.digit = Math.floor(Math.random() * 10).toString();
+    this.size = Math.random() * 22 + 14;
+    this.vx = (Math.random() - 0.5) * 0.8;
+    this.vy = (Math.random() - 0.5) * 0.8 - 0.3;
+    this.color = PC_COLORS[Math.floor(Math.random() * PC_COLORS.length)];
+    this.alpha = Math.random() * 0.7 + 0.3;
+    this.glow = Math.random() * 10 + 5;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.x < -20) this.x = pcW + 20;
+    if (this.x > pcW + 20) this.x = -20;
+    if (this.y < -20) this.y = pcH + 20;
+    if (this.y > pcH + 20) this.y = -20;
+  }
+  changeColor() {
+    const idx = PC_COLORS.indexOf(this.color);
+    const next = (idx + 1 + Math.floor(Math.random() * 2)) % PC_COLORS.length;
+    this.color = PC_COLORS[next];
+  }
+  draw() {
+    if (!particleCtx) return;
+    particleCtx.save();
+    particleCtx.font = `700 ${this.size}px 'Outfit', sans-serif`;
+    particleCtx.fillStyle = this.color;
+    particleCtx.globalAlpha = this.alpha;
+    particleCtx.shadowColor = this.color;
+    particleCtx.shadowBlur = this.glow;
+    particleCtx.fillText(this.digit, this.x, this.y);
+    particleCtx.restore();
+  }
+}
+
+function resizeParticleCanvas() {
+  if (!particleCanvas) return;
+  pcW = particleCanvas.width = window.innerWidth;
+  pcH = particleCanvas.height = window.innerHeight;
+}
+
+function startParticleCanvas() {
+  if (pcRunning || !particleCtx) return;
+  pcRunning = true;
+  resizeParticleCanvas();
+
+  if (pcParticles.length === 0) {
+    for (let i = 0; i < 65; i++) pcParticles.push(new NumberParticle());
+  } else {
+    pcParticles.forEach(p => p.reset());
+  }
+
+  const loop = () => {
+    if (!pcRunning || !particleCtx) return;
+    particleCtx.clearRect(0, 0, pcW, pcH);
+    pcParticles.forEach(p => { p.update(); p.draw(); });
+    pcAnimId = requestAnimationFrame(loop);
+  };
+  loop();
+
+  LOG.info('IDLE', '🎬 Particle canvas started');
+}
+
+function stopParticleCanvas() {
+  pcRunning = false;
+  if (pcAnimId) cancelAnimationFrame(pcAnimId);
+  pcAnimId = null;
+}
+
+// Color transition tiap 3 detik
+setInterval(() => {
+  if (!pcRunning) return;
+  pcParticles.forEach(p => {
+    if (Math.random() > 0.2) p.changeColor();
+  });
+}, 3000);
+
+// ═══════════════════════════════════════════════════════════
+// LOADING OVERLAY — Bouncing Numbers Canvas
+// ═══════════════════════════════════════════════════════════
+const bounceCanvas = document.getElementById('bounceCanvas');
+const bounceCtx = bounceCanvas ? bounceCanvas.getContext('2d') : null;
+
+let bcW, bcH;
+let bcAnimId = null;
+let bcRunning = false;
+let bounceNumbers = [];
+
+class BouncingNumber {
+  constructor() { this.reset(true); }
+  reset(initial = false) {
+    this.x = Math.random() * bcW;
+    this.y = initial ? Math.random() * bcH : -60;
+    this.vy = Math.random() * 3 + 2;   // kecepatan jatuh
+    this.vx = (Math.random() - 0.5) * 1.5;
+    this.size = 22 + Math.random() * 26;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.08;
+    this.color = PC_COLORS[Math.floor(Math.random() * PC_COLORS.length)];
+    this.digit = Math.floor(Math.random() * 10).toString();
+    this.bounceCount = 0;
+    this.gravity = 0.15;
+    this.bounceDamping = 0.85;
+  }
+  update() {
+    // Fisika: gravitasi + bounce dari bawah
+    this.vy += this.gravity;
+    this.y += this.vy;
+    this.x += this.vx;
+    this.rotation += this.rotSpeed;
+
+    // Bounce dari bawah
+    if (this.y + this.size > bcH) {
+      this.y = bcH - this.size;
+      this.vy *= -this.bounceDamping;
+      this.bounceCount++;
+      // Kalau bounce udah melemah, reset ke atas
+      if (Math.abs(this.vy) < 1 || this.bounceCount > 6) {
+        this.reset(false);
       }
-
-      const newSrc = BGM.baseUrl + filename;
-
-      // Guard 3: src sudah sama
-      if (BGM.player.src === newSrc) {
-        BGM.current = trackName;
-        return;
-      }
-
-      BGM.current = trackName;
-
-      try { BGM.player.pause(); } catch(e){}
-      BGM.player.src = newSrc;
-      BGM.player.currentTime = 0;
-
-      setTimeout(() => {
-        BGM.player.load();
-        BGM.player.play()
-          .then(() => {
-            LOG.ok('BGM', `▶ ${trackName}`);
-            updateBGMBadge('playing', trackName);
-          })
-          .catch(err => {
-            LOG.warn('BGM', 'Play ditolak: ' + err.message);
-            updateBGMBadge('idle', trackName);
-          });
-      }, 80);
     }
-
-    function updateBGMBadge(status, trackName) {
-      const dot = document.getElementById('bgmDot');
-      const label = document.getElementById('bgmLabel');
-      if (dot) {
-        if (status === 'playing') dot.className = 'dot playing';
-        else if (status === 'muted') dot.className = 'dot muted';
-        else dot.className = 'dot';
-      }
-      if (label) label.textContent = `BGM: ${trackName}`;
+    // Bounce dari atas (kalau angka mental tinggi)
+    if (this.y < 0) {
+      this.y = 0;
+      this.vy = Math.abs(this.vy) * this.bounceDamping;
     }
-
-    // ═══════════════════════════════════════════════════════════
-    // IDLE CANVAS ANIMATION
-    // ═══════════════════════════════════════════════════════════
-    const bgCanvas = document.getElementById('bgCanvas');
-    const bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
-    const discoCanvas = document.getElementById('discoCanvas');
-    const dCtx = discoCanvas ? discoCanvas.getContext('2d') : null;
-
-    let bgW, bgH;
-    let bgAnimId = null;
-    let discoAnimId = null;
-    let idleRunning = false;
-    let rotationAngle = 0;
-
-    const bgParticles = [];
-    const colors = ['#00f0ff', '#ff007f', '#7000ff', '#ffb700'];
-
-    class BgParticle {
-      constructor() { this.reset(); }
-      reset() {
-        this.x = Math.random() * bgW;
-        this.y = Math.random() * bgH;
-        this.size = Math.random() * 3 + 1;
-        this.speedY = -(Math.random() * 0.8 + 0.2);
-        this.speedX = (Math.random() - 0.5) * 0.4;
-        this.alpha = Math.random() * 0.7 + 0.1;
-        this.color = colors[Math.floor(Math.random() * colors.length)];
-        this.pulseSpeed = Math.random() * 0.03 + 0.01;
-      }
-      update() {
-        this.y += this.speedY;
-        this.x += this.speedX;
-        this.alpha += Math.sin(Date.now() * this.pulseSpeed) * 0.01;
-        if (this.y < -10 || this.x < -10 || this.x > bgW + 10) this.reset();
-      }
-      draw() {
-        if (!bgCtx) return;
-        bgCtx.save();
-        bgCtx.globalAlpha = Math.max(0.1, Math.min(1, this.alpha));
-        bgCtx.fillStyle = this.color;
-        bgCtx.shadowColor = this.color;
-        bgCtx.shadowBlur = 10;
-        bgCtx.beginPath();
-        bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        bgCtx.fill();
-        bgCtx.restore();
-      }
+    // Bounce dari samping
+    if (this.x < 0 || this.x > bcW) {
+      this.vx *= -1;
+      this.x = Math.max(0, Math.min(bcW, this.x));
     }
+  }
+  draw() {
+    if (!bounceCtx) return;
+    bounceCtx.save();
+    bounceCtx.translate(this.x, this.y);
+    bounceCtx.rotate(this.rotation);
+    bounceCtx.font = `900 ${this.size}px 'Outfit', sans-serif`;
+    bounceCtx.fillStyle = this.color;
+    bounceCtx.shadowColor = this.color;
+    bounceCtx.shadowBlur = 15;
+    bounceCtx.textAlign = 'center';
+    bounceCtx.textBaseline = 'middle';
+    bounceCtx.fillText(this.digit, 0, 0);
+    bounceCtx.restore();
+  }
+}
 
-    function resizeBg() {
-      if (!bgCanvas) return;
-      bgW = bgCanvas.width = window.innerWidth;
-      bgH = bgCanvas.height = window.innerHeight;
-    }
+function resizeBounceCanvas() {
+  if (!bounceCanvas) return;
+  bcW = bounceCanvas.width = window.innerWidth;
+  bcH = bounceCanvas.height = window.innerHeight;
+}
 
-    function resizeDiscoCanvas() {
-      if (!discoCanvas) return;
-      const rect = discoCanvas.getBoundingClientRect();
-      if (!rect.width) return;
-      discoCanvas.width = rect.width * window.devicePixelRatio;
-      discoCanvas.height = rect.height * window.devicePixelRatio;
-    }
+function startBounceCanvas() {
+  if (bcRunning || !bounceCtx) return;
+  bcRunning = true;
+  resizeBounceCanvas();
+  bounceNumbers = [];
+  for (let i = 0; i < 60; i++) bounceNumbers.push(new BouncingNumber());
 
-    function drawDiscoBall() {
-      if (!dCtx || !discoCanvas) return;
-      const dpr = window.devicePixelRatio || 1;
-      const w = discoCanvas.width / dpr;
-      const h = discoCanvas.height / dpr;
-      if (!w || !h) return;
-      const cx = w / 2;
-      const cy = h / 2;
-      const radius = Math.min(w, h) * 0.28;
+  const loop = () => {
+    if (!bcRunning || !bounceCtx) return;
+    // trail effect
+    bounceCtx.fillStyle = 'rgba(5, 5, 21, 0.15)';
+    bounceCtx.fillRect(0, 0, bcW, bcH);
+    bounceNumbers.forEach(n => { n.update(); n.draw(); });
+    bcAnimId = requestAnimationFrame(loop);
+  };
+  loop();
+}
 
-      dCtx.save();
-      dCtx.scale(dpr, dpr);
-      dCtx.clearRect(0, 0, w, h);
+function stopBounceCanvas() {
+  bcRunning = false;
+  if (bcAnimId) cancelAnimationFrame(bcAnimId);
+  bcAnimId = null;
+  bounceNumbers = [];
+}
 
-      rotationAngle += 0.012;
+// ═══════════════════════════════════════════════════════════
+// LOADING OVERLAY CONTROL
+// ═══════════════════════════════════════════════════════════
+const LOADING_MESSAGES = [
+  "SYNCING REALTIME MATRIX...",
+  "DECODING NUMBER PROTOCOLS...",
+  "CALIBRATING DISCO ARENA...",
+  "ESTABLISHING PEER CONNECTIONS...",
+  "GAME ARENA READY!"
+];
 
-      const numBars = 48;
-      for (let i = 0; i < numBars; i++) {
-        const angle = (i / numBars) * Math.PI * 2 + rotationAngle * 0.5;
-        const waveHeight = Math.sin(i * 0.5 + rotationAngle * 4) * 12;
-        const barRadiusInner = radius + 14;
-        const barRadiusOuter = barRadiusInner + Math.max(4, waveHeight);
+async function showLoadingScreen(duration = 2200) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const percentEl = document.getElementById('loadingPercent');
 
-        const x1 = cx + Math.cos(angle) * barRadiusInner;
-        const y1 = cy + Math.sin(angle) * barRadiusInner;
-        const x2 = cx + Math.cos(angle) * barRadiusOuter;
-        const y2 = cy + Math.sin(angle) * barRadiusOuter;
+    if (!overlay) return resolve();
 
-        dCtx.beginPath();
-        dCtx.moveTo(x1, y1);
-        dCtx.lineTo(x2, y2);
-        dCtx.lineWidth = 3;
-        dCtx.strokeStyle = (i % 2 === 0) ? '#00f0ff' : '#ff007f';
-        dCtx.shadowColor = dCtx.strokeStyle;
-        dCtx.shadowBlur = 10;
-        dCtx.stroke();
+    overlay.classList.add('show');
+    if (progressBar) progressBar.style.width = '0%';
+    if (percentEl) percentEl.innerText = '0%';
+
+    startBounceCanvas();
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 10) + 5;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          overlay.classList.remove('show');
+          stopBounceCanvas();
+          resolve();
+        }, 400);
       }
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (percentEl) percentEl.innerText = `${progress}%`;
+    }, duration / 15);
+  });
+}
 
-      const aura = dCtx.createRadialGradient(cx, cy, radius * 0.5, cx, cy, radius * 1.5);
-      aura.addColorStop(0, 'rgba(0, 240, 255, 0.25)');
-      aura.addColorStop(0.5, 'rgba(255, 0, 127, 0.15)');
-      aura.addColorStop(1, 'rgba(10, 8, 20, 0)');
+// ═══════════════════════════════════════════════════════════
+// DOOR INTRO ANIMATION (dari idle)
+// ═══════════════════════════════════════════════════════════
+async function playDoorIntro() {
+  const door = document.getElementById('discoDoor');
+  const wrapper = document.getElementById('doorWrapper');
+  const statusText = document.getElementById('statusText');
 
-      dCtx.beginPath();
-      dCtx.arc(cx, cy, radius * 1.5, 0, Math.PI * 2);
-      dCtx.fillStyle = aura;
-      dCtx.fill();
+  if (!door || !wrapper) return;
 
-      const sphereGrad = dCtx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.1, cx, cy, radius);
-      sphereGrad.addColorStop(0, '#ffffff');
-      sphereGrad.addColorStop(0.3, '#38bdf8');
-      sphereGrad.addColorStop(0.7, '#1e1b4b');
-      sphereGrad.addColorStop(1, '#090514');
+  // Update status
+  if (statusText) {
+    statusText.innerText = "Sinyal Diterima! Membuka Pintu...";
+    statusText.classList.add("text-cyan-300", "font-bold");
+  }
 
-      dCtx.beginPath();
-      dCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-      dCtx.fillStyle = sphereGrad;
-      dCtx.shadowColor = '#00f0ff';
-      dCtx.shadowBlur = 25;
-      dCtx.fill();
+  // Step 1: Door maju ke depan + kontras naik
+  wrapper.classList.add('door-forward');
+  await delay(700);
 
-      const rows = 14;
-      const cols = 22;
+  // Step 2: Door terbuka (panel slide)
+  door.classList.add('door-open');
+  await delay(900);
 
-      for (let r = 0; r < rows; r++) {
-        const lat = (r / rows - 0.5) * Math.PI;
-        const rY = Math.sin(lat) * radius;
-        const rRow = Math.cos(lat) * radius;
+  // Step 3: Zoom masuk ke pintu
+  wrapper.classList.add('zoom-into-door');
+  await delay(900);
+}
 
-        for (let c = 0; c < cols; c++) {
-          const lon = (c / cols) * Math.PI * 2 + rotationAngle;
-          const tileX = cx + Math.cos(lon) * rRow;
-          const tileY = cy + rY;
+function resetDoorIntro() {
+  const door = document.getElementById('discoDoor');
+  const wrapper = document.getElementById('doorWrapper');
+  if (door) door.classList.remove('door-open');
+  if (wrapper) {
+    wrapper.classList.remove('door-forward');
+    wrapper.classList.remove('zoom-into-door');
+  }
+}
 
-          if (Math.sin(lon) > -0.2) {
-            const shine = Math.pow(Math.max(0, Math.sin(lon + rotationAngle * 2) * Math.cos(lat)), 3);
-            dCtx.fillStyle = shine > 0.6 ? '#ffffff' : (c % 2 === 0 ? '#00f0ff' : '#ff007f');
-            dCtx.globalAlpha = 0.2 + shine * 0.7;
-            dCtx.fillRect(tileX - 2.5, tileY - 2.5, 4.5, 4.5);
-          }
-        }
-      }
-      dCtx.globalAlpha = 1.0;
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
-      dCtx.beginPath();
-      dCtx.arc(cx, cy, radius, 0, Math.PI * 2);
-      dCtx.lineWidth = 2;
-      dCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      dCtx.shadowBlur = 0;
-      dCtx.stroke();
+// ═══════════════════════════════════════════════════════════
+// WEB AUDIO ENGINE (SFX)
+// ═══════════════════════════════════════════════════════════
+class WebAudioEngine {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.cache = new Map();
+    this.activeSource = null;
+  }
 
-      dCtx.restore();
+  async fetchAndCacheAudio(url) {
+    if (this.cache.has(url)) return this.cache.get(url);
+    try {
+      const res = await fetch(url);
+      const arrayBuffer = await res.arrayBuffer();
+      const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+      this.cache.set(url, audioBuffer);
+      return audioBuffer;
+    } catch (e) {
+      LOG.warn('AUDIO', `Gagal memuat: ${url}`);
+      return null;
     }
+  }
 
-    function animateBgLoop() {
-      if (!idleRunning) return;
-      if (bgCtx) {
-        bgCtx.clearRect(0, 0, bgW, bgH);
-        bgParticles.forEach(p => { p.update(); p.draw(); });
-      }
-      bgAnimId = requestAnimationFrame(animateBgLoop);
-    }
+  async downloadAllAudioFiles(urls) {
+    const uniqueUrls = [...new Set(urls)];
+    await Promise.all(uniqueUrls.map(u => this.fetchAndCacheAudio(u)));
+  }
 
-    function animateDiscoLoop() {
-      if (!idleRunning) return;
-      drawDiscoBall();
-      discoAnimId = requestAnimationFrame(animateDiscoLoop);
-    }
+  playBuffer(buffer, offsetTrim = SILENCE_OFFSET) {
+    return new Promise((resolve) => {
+      if (!buffer) return resolve();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
 
-    function startIdleAnimation() {
-      if (idleRunning) return;
-      idleRunning = true;
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.ctx.destination);
+      this.activeSource = source;
 
-      resizeBg();
-      resizeDiscoCanvas();
+      const isSFX = buffer.duration < 1.0;
+      const playDuration = isSFX ? buffer.duration : Math.max(0.1, buffer.duration - offsetTrim);
 
-      if (bgParticles.length === 0) {
-        for (let i = 0; i < 60; i++) bgParticles.push(new BgParticle());
-      } else {
-        bgParticles.forEach(p => p.reset());
-      }
-
-      animateBgLoop();
-      animateDiscoLoop();
-      LOG.info('IDLE', '🎬 Idle animation started');
-    }
-
-    function stopIdleAnimation() {
-      idleRunning = false;
-      if (bgAnimId) cancelAnimationFrame(bgAnimId);
-      if (discoAnimId) cancelAnimationFrame(discoAnimId);
-      bgAnimId = null;
-      discoAnimId = null;
-    }
-
-    window.addEventListener('resize', () => {
-      if (idleRunning) {
-        resizeBg();
-        resizeDiscoCanvas();
-      }
+      source.start(0);
+      setTimeout(resolve, playDuration * 1000);
     });
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // LAYOUT VIEW SWITCHER
-    // ═══════════════════════════════════════════════════════════
-    function subscribeAdminLayoutRemote() {
-      supabaseClient
-        .channel('layout_remote_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
-          if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
-        })
-        .subscribe((status) => {
-          LOG.info('REALTIME', 'Layout remote channel: ' + status);
-        });
+  async playSequence(urls) {
+    for (const url of urls) {
+      const buffer = await this.fetchAndCacheAudio(url);
+      await this.playBuffer(buffer);
+    }
+  }
 
-      setInterval(async () => {
-        const { data } = await supabaseClient
-          .from('admin_layout_number_disco')
-          .select('*')
-          .eq('id', 1)
-          .maybeSingle();
-        if (data) handleViewSwitch(data.current_view, data.revealed_rank);
-      }, 1000);
+  stop() {
+    if (this.activeSource) {
+      try { this.activeSource.stop(); } catch(e){}
+      this.activeSource = null;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAGE ENGINE
+// ═══════════════════════════════════════════════════════════
+class StageEngine {
+  constructor() {
+    this.isPlaying = false;
+    this.femaleTotal = 0;
+    this.maleTotal = 0;
+    this.historySteps = [];
+    this.timerInterval = null;
+    this.remainingSeconds = TOTAL_TIME_SECONDS;
+    this.audioEngine = new WebAudioEngine();
+  }
+
+  async start() {
+    if (this.isPlaying) return;
+
+    playBGM('game');
+
+    this.isPlaying = true;
+    this.resetDisplay();
+    this.historySteps = [];
+
+    document.getElementById('stageStatus').textContent = "MEMBACA SOAL DARI DATABASE...";
+    LOG.step('GAME', 'Baca soal dari DB...');
+
+    const { data, error } = await supabaseClient
+      .from('system_number_disco_question')
+      .select('blue_steps, red_steps, blue_answer, red_answer, updated_at')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error || !data || !data.blue_steps || !data.red_steps) {
+      LOG.error('GAME', 'Gagal baca soal dari DB', error);
+      document.getElementById('stageStatus').textContent = "GAGAL BACA SOAL! Hubungi admin.";
+      this.isPlaying = false;
+      return;
     }
 
-    function handleViewSwitch(viewName, revealedRank) {
-      const idleView = document.getElementById('viewIdle');
-      const gView = document.getElementById('viewGame');
-      const lbView = document.getElementById('viewLeaderboard');
-      const allView = document.getElementById('viewAllPlayers');
+    LOG.ok('GAME', `Soal: Blue=${data.blue_answer}, Red=${data.red_answer}`);
 
-      if (!idleView || !gView || !lbView || !allView) return;
+    this.historySteps = this.buildHistoryStepsFromDB(data);
+    this.femaleTotal = data.blue_answer;
+    this.maleTotal = data.red_answer;
 
-      const sig = `${viewName}|${revealedRank || 0}`;
-      if (sig === window._lastLayoutSig) return;
-      window._lastLayoutSig = sig;
+    const allAudioUrls = [];
+    this.historySteps.forEach(step => allAudioUrls.push(...step.audioUrls));
+    allAudioUrls.push(SOUND_BELL, SOUND_BEEP);
 
-      currentView = viewName;
+    document.getElementById('stageStatus').textContent = "MENGUNDUH FILE SUARA...";
+    await this.audioEngine.downloadAllAudioFiles(allAudioUrls);
 
-      stopAutoScroll();
-      stopIdleAnimation();
+    await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
 
-      [idleView, gView, lbView, allView].forEach(v => {
-        v.classList.add('hidden-view');
-        v.classList.remove('active-view');
-      });
+    document.getElementById('stageStatus').textContent = "GAME BERJALAN";
+    LOG.ok('GAME', 'Game started');
 
-      const newRank = revealedRank || 0;
+    const startMs = new Date(data.updated_at).getTime();
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const remaining = Math.max(0, TOTAL_TIME_SECONDS - elapsed);
 
-      if (viewName === 'idle') {
-        idleView.classList.remove('hidden-view');
-        idleView.classList.add('active-view');
-        lastRevealedRank = -1;
+    this.start5MinTimer(remaining);
 
-        playBGM('idle');
-        setTimeout(() => startIdleAnimation(), 100);
+    for (const step of this.historySteps) {
+      if (!this.isPlaying) return;
 
-      } else if (viewName === 'leaderboard') {
-        lbView.classList.remove('hidden-view');
-        lbView.classList.add('active-view');
+      await this.updateLiveState(step.team, step.display, true);
+      await this.audioEngine.playSequence(step.audioUrls);
+      await this.updateLiveState(step.team, step.display, false);
 
-        playBGM('leaderboard');
+      await delay(200);
+    }
 
-        if (newRank !== lastRevealedRank) {
-          currentRevealedRank = newRank;
-          lastRevealedRank = newRank;
-          fetchAndRenderStageScores(false);
-        }
-      } else if (viewName === 'all_players') {
-        allView.classList.remove('hidden-view');
-        allView.classList.add('active-view');
-        lastRevealedRank = -1;
+    if (this.isPlaying && this.remainingSeconds > 0) {
+      await this.audioEngine.playSequence([SOUND_BELL]);
+    }
 
-        playBGM('all_players');
-        fetchAndRenderStageScores(true);
+    await this.enterRepeatMode();
+  }
+
+  buildHistoryStepsFromDB(data) {
+    const blueSteps = Array.isArray(data.blue_steps) ? data.blue_steps : [];
+    const redSteps = Array.isArray(data.red_steps) ? data.red_steps : [];
+
+    const interleaved = [];
+    const maxLen = Math.max(blueSteps.length, redSteps.length);
+
+    for (let i = 0; i < maxLen; i++) {
+      if (blueSteps[i]) {
+        const step = blueSteps[i];
+        interleaved.push({
+          team: 'blue',
+          display: step.display,
+          audioUrls: (step.audioFiles || []).map(f => getAudioUrl('female', f))
+        });
+      }
+      if (redSteps[i]) {
+        const step = redSteps[i];
+        interleaved.push({
+          team: 'red',
+          display: step.display,
+          audioUrls: (step.audioFiles || []).map(f => getAudioUrl('male', f))
+        });
+      }
+    }
+
+    return interleaved;
+  }
+
+  async enterRepeatMode() {
+    const repeatIndicator = document.getElementById('repeatIndicator');
+    if (repeatIndicator) repeatIndicator.classList.replace('hidden', 'flex');
+
+    while (this.isPlaying && this.remainingSeconds > 0) {
+      for (const step of this.historySteps) {
+        if (!this.isPlaying || this.remainingSeconds <= 0) break;
+
+        await this.updateLiveState(step.team, step.display, true);
+        await this.audioEngine.playSequence(step.audioUrls);
+        await this.updateLiveState(step.team, step.display, false);
+
+        await delay(200);
+      }
+
+      if (this.isPlaying && this.remainingSeconds > 0) {
+        await this.audioEngine.playSequence([SOUND_BELL]);
+      }
+    }
+  }
+
+  async updateLiveState(team, text, isSpeaking) {
+    const containerId = team === 'blue' ? 'containerBlue' : 'containerRed';
+    const displayId = team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted';
+
+    const container = document.getElementById(containerId);
+    const display = document.getElementById(displayId);
+
+    if (display) display.textContent = text;
+    if (container) {
+      if (isSpeaking) {
+        container.classList.add(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
       } else {
-        // game → MUTE
-        gView.classList.remove('hidden-view');
-        gView.classList.add('active-view');
-        lastRevealedRank = -1;
-
-        playBGM('game');   // → null → mute
-      }
-
-      LOG.info('VIEW', `Switch → ${viewName}`);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // WEB AUDIO ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class WebAudioEngine {
-      constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.cache = new Map();
-        this.activeSource = null;
-      }
-
-      async fetchAndCacheAudio(url) {
-        if (this.cache.has(url)) return this.cache.get(url);
-        try {
-          const res = await fetch(url);
-          const arrayBuffer = await res.arrayBuffer();
-          const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-          this.cache.set(url, audioBuffer);
-          return audioBuffer;
-        } catch (e) {
-          LOG.warn('AUDIO', `Gagal memuat: ${url}`);
-          return null;
-        }
-      }
-
-      async downloadAllAudioFiles(urls) {
-        const uniqueUrls = [...new Set(urls)];
-        await Promise.all(uniqueUrls.map(u => this.fetchAndCacheAudio(u)));
-      }
-
-      playBuffer(buffer, offsetTrim = SILENCE_OFFSET) {
-        return new Promise((resolve) => {
-          if (!buffer) return resolve();
-          if (this.ctx.state === 'suspended') this.ctx.resume();
-
-          const source = this.ctx.createBufferSource();
-          source.buffer = buffer;
-          source.connect(this.ctx.destination);
-          this.activeSource = source;
-
-          const isSFX = buffer.duration < 1.0;
-          const playDuration = isSFX ? buffer.duration : Math.max(0.1, buffer.duration - offsetTrim);
-
-          source.start(0);
-          setTimeout(resolve, playDuration * 1000);
-        });
-      }
-
-      async playSequence(urls) {
-        for (const url of urls) {
-          const buffer = await this.fetchAndCacheAudio(url);
-          await this.playBuffer(buffer);
-        }
-      }
-
-      stop() {
-        if (this.activeSource) {
-          try { this.activeSource.stop(); } catch(e){}
-          this.activeSource = null;
-        }
+        container.classList.remove(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
       }
     }
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // STAGE ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class StageEngine {
-      constructor() {
-        this.isPlaying = false;
-        this.femaleTotal = 0;
-        this.maleTotal = 0;
-        this.historySteps = [];
-        this.timerInterval = null;
-        this.remainingSeconds = TOTAL_TIME_SECONDS;
-        this.audioEngine = new WebAudioEngine();
-        this.currentQuestionSig = '';
-      }
+  async upsertTargetAnswers(femaleAnswer, maleAnswer) {
+    try {
+      await supabaseClient.from('system_number_disco').upsert([
+        { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
+        { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
+      ]);
+    } catch (err) {
+      LOG.error('GAME', 'Error updating target answers', err);
+    }
+  }
 
-      async start() {
-        if (this.isPlaying) {
-          LOG.warn('GAME', 'Already playing, stop dulu...');
-          return;
-        }
+  start5MinTimer(initialSeconds = TOTAL_TIME_SECONDS) {
+    this.stopTimer();
+    this.remainingSeconds = initialSeconds;
+    this.updateTimerUI();
 
-        // ⭐ Pastikan BGM mati saat game mulai
-        playBGM('game');
+    this.timerInterval = setInterval(() => {
+      this.remainingSeconds--;
+      this.updateTimerUI();
 
-        this.isPlaying = true;
-        this.resetDisplay();
-        this.historySteps = [];
-
-        document.getElementById('stageStatus').textContent = "MEMBACA SOAL DARI DATABASE...";
-        LOG.step('GAME', 'Baca soal dari DB...');
-
-        const { data, error } = await supabaseClient
-          .from('system_number_disco_question')
-          .select('blue_steps, red_steps, blue_answer, red_answer, updated_at')
-          .eq('id', 1)
-          .maybeSingle();
-
-        if (error || !data || !data.blue_steps || !data.red_steps) {
-          LOG.error('GAME', 'Gagal baca soal dari DB', error);
-          document.getElementById('stageStatus').textContent = "GAGAL BACA SOAL! Hubungi admin.";
-          this.isPlaying = false;
-          return;
-        }
-
-        LOG.ok('GAME', `Soal dari DB: Blue=${data.blue_answer}, Red=${data.red_answer}`);
-
-        this.historySteps = this.buildHistoryStepsFromDB(data);
-        this.femaleTotal = data.blue_answer;
-        this.maleTotal = data.red_answer;
-
-        const allAudioUrls = [];
-        this.historySteps.forEach(step => allAudioUrls.push(...step.audioUrls));
-        allAudioUrls.push(SOUND_BELL, SOUND_BEEP);
-
-        document.getElementById('stageStatus').textContent = "MENGUNDUH FILE SUARA...";
-        LOG.step('GAME', `Download ${allAudioUrls.length} audio files...`);
-        await this.audioEngine.downloadAllAudioFiles(allAudioUrls);
-
-        await this.upsertTargetAnswers(this.femaleTotal, this.maleTotal);
-
-        document.getElementById('stageStatus').textContent = "GAME BERJALAN";
-        LOG.ok('GAME', 'Game started');
-
-        const startMs = new Date(data.updated_at).getTime();
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
-        const remaining = Math.max(0, TOTAL_TIME_SECONDS - elapsed);
-
-        LOG.info('GAME', `Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
-
-        this.start5MinTimer(remaining);
-
-        for (const step of this.historySteps) {
-          if (!this.isPlaying) return;
-
-          await this.updateLiveState(step.team, step.display, true);
-          await this.audioEngine.playSequence(step.audioUrls);
-          await this.updateLiveState(step.team, step.display, false);
-
-          await this.delay(200);
-        }
-
-        if (this.isPlaying && this.remainingSeconds > 0) {
-          await this.audioEngine.playSequence([SOUND_BELL]);
-        }
-
-        await this.enterRepeatMode();
-      }
-
-      buildHistoryStepsFromDB(data) {
-        const blueSteps = Array.isArray(data.blue_steps) ? data.blue_steps : [];
-        const redSteps = Array.isArray(data.red_steps) ? data.red_steps : [];
-
-        const interleaved = [];
-        const maxLen = Math.max(blueSteps.length, redSteps.length);
-
-        for (let i = 0; i < maxLen; i++) {
-          if (blueSteps[i]) {
-            const step = blueSteps[i];
-            interleaved.push({
-              team: 'blue',
-              display: step.display,
-              audioUrls: (step.audioFiles || []).map(f => getAudioUrl('female', f))
-            });
-          }
-          if (redSteps[i]) {
-            const step = redSteps[i];
-            interleaved.push({
-              team: 'red',
-              display: step.display,
-              audioUrls: (step.audioFiles || []).map(f => getAudioUrl('male', f))
-            });
-          }
-        }
-
-        LOG.info('GAME', `Interleaved steps: ${interleaved.length} (Blue: ${blueSteps.length}, Red: ${redSteps.length})`);
-        return interleaved;
-      }
-
-      async enterRepeatMode() {
-        const repeatIndicator = document.getElementById('repeatIndicator');
-        if (repeatIndicator) repeatIndicator.classList.replace('hidden', 'flex');
-
-        LOG.info('GAME', 'Enter repeat mode');
-
-        while (this.isPlaying && this.remainingSeconds > 0) {
-          for (const step of this.historySteps) {
-            if (!this.isPlaying || this.remainingSeconds <= 0) break;
-
-            await this.updateLiveState(step.team, step.display, true);
-            await this.audioEngine.playSequence(step.audioUrls);
-            await this.updateLiveState(step.team, step.display, false);
-
-            await this.delay(200);
-          }
-
-          if (this.isPlaying && this.remainingSeconds > 0) {
-            await this.audioEngine.playSequence([SOUND_BELL]);
-          }
-        }
-      }
-
-      async updateLiveState(team, text, isSpeaking) {
-        const containerId = team === 'blue' ? 'containerBlue' : 'containerRed';
-        const displayId = team === 'blue' ? 'displayBlueFormatted' : 'displayRedFormatted';
-
-        const container = document.getElementById(containerId);
-        const display = document.getElementById(displayId);
-
-        if (display) display.textContent = text;
-        if (container) {
-          if (isSpeaking) {
-            container.classList.add(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
-          } else {
-            container.classList.remove(team === 'blue' ? 'active-speaking-blue' : 'active-speaking-red');
-          }
-        }
-      }
-
-      async upsertTargetAnswers(femaleAnswer, maleAnswer) {
-        try {
-          await supabaseClient.from('system_number_disco').upsert([
-            { id: 1, team_gender: 'female', target_answer: femaleAnswer, updated_at: new Date() },
-            { id: 2, team_gender: 'male', target_answer: maleAnswer, updated_at: new Date() }
-          ]);
-          LOG.ok('GAME', `Target answers saved: Blue=${femaleAnswer}, Red=${maleAnswer}`);
-        } catch (err) {
-          LOG.error('GAME', 'Error updating target answers', err);
-        }
-      }
-
-      start5MinTimer(initialSeconds = TOTAL_TIME_SECONDS) {
+      if (this.remainingSeconds <= 0) {
         this.stopTimer();
-        this.remainingSeconds = initialSeconds;
-        this.updateTimerUI();
-
-        this.timerInterval = setInterval(() => {
-          this.remainingSeconds--;
-          this.updateTimerUI();
-
-          if (this.remainingSeconds <= 0) {
-            this.stopTimer();
-            this.playTimeupBeep().then(() => this.reset());
-          }
-        }, 1000);
+        this.playTimeupBeep().then(() => this.reset());
       }
+    }, 1000);
+  }
 
-      stopTimer() {
-        if (this.timerInterval) {
-          clearInterval(this.timerInterval);
-          this.timerInterval = null;
-        }
-      }
-
-      async playTimeupBeep() {
-        LOG.warn('AUDIO', '⏰ Timeup! Play beep...');
-        try {
-          for (let i = 0; i < 3; i++) {
-            await this.audioEngine.playSequence([SOUND_BEEP]);
-            await this.delay(200);
-          }
-        } catch (e) {
-          LOG.error('AUDIO', 'Beep error', e);
-        }
-      }
-
-      updateTimerUI() {
-        const mins = Math.floor(this.remainingSeconds / 60);
-        const secs = this.remainingSeconds % 60;
-        const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        const timerElem = document.getElementById('timerDisplay');
-        if (timerElem) timerElem.textContent = formatted;
-      }
-
-      resetDisplay() {
-        const blueEl = document.getElementById('displayBlueFormatted');
-        const redEl = document.getElementById('displayRedFormatted');
-        if (blueEl) blueEl.textContent = "--";
-        if (redEl) redEl.textContent = "--";
-
-        const repeatIndicator = document.getElementById('repeatIndicator');
-        if (repeatIndicator) repeatIndicator.classList.replace('flex', 'hidden');
-
-        const blueContainer = document.getElementById('containerBlue');
-        const redContainer = document.getElementById('containerRed');
-        if (blueContainer) blueContainer.classList.remove('active-speaking-blue');
-        if (redContainer) redContainer.classList.remove('active-speaking-red');
-      }
-
-      async reset() {
-        LOG.warn('GAME', 'Reset stage');
-        this.audioEngine.stop();
-        this.stopTimer();
-
-        this.isPlaying = false;
-        this.resetDisplay();
-        this.remainingSeconds = TOTAL_TIME_SECONDS;
-        this.updateTimerUI();
-
-        const statusEl = document.getElementById('stageStatus');
-        if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
-      }
-
-      delay(ms) {
-        return new Promise(r => setTimeout(r, ms));
-      }
+  stopTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
     }
+  }
 
-    const engine = new StageEngine();
-
-    function unlockAudio() {
-      audioUnlocked = true;
-      const overlay = document.getElementById('audioUnlockOverlay');
-      if (overlay) overlay.classList.add('hidden');
-      const statusEl = document.getElementById('stageStatus');
-      if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
-      LOG.ok('AUDIO', 'Audio unlocked');
-
-      const trackToPlay = BGM.pendingTrack || BGM.current || 'idle';
-      BGM.pendingTrack = null;
-      BGM.current = null;
-      playBGM(trackToPlay);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME SIGNAL LISTENER DARI ADMIN
-    // ═══════════════════════════════════════════════════════════
-    let lastControlSig = '';
-
-    function listenToControl() {
-      supabaseClient.channel('stage_control_channel')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
-          if (payload.new) handleControlAction(payload.new);
-        })
-        .subscribe((status) => {
-          LOG.info('REALTIME', 'Stage control channel: ' + status);
-        });
-
-      setInterval(async () => {
-        const { data } = await supabaseClient
-          .from('system_number_disco_control')
-          .select('action, trigger_id, updated_at')
-          .eq('id', 1)
-          .maybeSingle();
-        if (data) handleControlAction(data);
-      }, 1500);
-    }
-
-    async function handleControlAction(data) {
-      const sig = `${data.action}|${data.trigger_id}|${data.updated_at}`;
-      if (sig === lastControlSig) return;
-      lastControlSig = sig;
-
-      LOG.step('CONTROL', `Action: ${data.action}, trigger: ${data.trigger_id}`);
-
-      if (data.action === 'START_GAME') {
-        if (!audioUnlocked) unlockAudio();
-
-        // ⭐ Auto-switch layout ke 'game' biar stage pindah dari idle
-        try {
-          await supabaseClient
-            .from('admin_layout_number_disco')
-            .update({
-              current_view: 'game',
-              revealed_rank: 0,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', 1);
-          LOG.ok('CONTROL', 'Auto-switch layout → game');
-        } catch (e) {
-          LOG.warn('CONTROL', 'Gagal auto-switch layout', e);
-        }
-
-        // ⭐ Reset dulu, baru start
-        await engine.reset();
-        await engine.start();
-
-      } else if (data.action === 'RESET') {
-        await engine.reset();
+  async playTimeupBeep() {
+    try {
+      for (let i = 0; i < 3; i++) {
+        await this.audioEngine.playSequence([SOUND_BEEP]);
+        await delay(200);
       }
+    } catch (e) {}
+  }
+
+  updateTimerUI() {
+    const mins = Math.floor(this.remainingSeconds / 60);
+    const secs = this.remainingSeconds % 60;
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    const timerElem = document.getElementById('timerDisplay');
+    if (timerElem) timerElem.textContent = formatted;
+  }
+
+  resetDisplay() {
+    const blueEl = document.getElementById('displayBlueFormatted');
+    const redEl = document.getElementById('displayRedFormatted');
+    if (blueEl) blueEl.textContent = "--";
+    if (redEl) redEl.textContent = "--";
+
+    const repeatIndicator = document.getElementById('repeatIndicator');
+    if (repeatIndicator) repeatIndicator.classList.replace('flex', 'hidden');
+
+    const blueContainer = document.getElementById('containerBlue');
+    const redContainer = document.getElementById('containerRed');
+    if (blueContainer) blueContainer.classList.remove('active-speaking-blue');
+    if (redContainer) redContainer.classList.remove('active-speaking-red');
+  }
+
+  async reset() {
+    this.audioEngine.stop();
+    this.stopTimer();
+
+    this.isPlaying = false;
+    this.resetDisplay();
+    this.remainingSeconds = TOTAL_TIME_SECONDS;
+    this.updateTimerUI();
+
+    const statusEl = document.getElementById('stageStatus');
+    if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
+  }
+}
+
+const engine = new StageEngine();
+
+function unlockAudio() {
+  audioUnlocked = true;
+  const overlay = document.getElementById('audioUnlockOverlay');
+  if (overlay) overlay.classList.add('hidden');
+  const statusEl = document.getElementById('stageStatus');
+  if (statusEl) statusEl.textContent = "STAGE DISPLAY ENGINE (READY)";
+  LOG.ok('AUDIO', 'Audio unlocked');
+
+  const trackToPlay = BGM.pendingTrack || BGM.current || 'idle';
+  BGM.pendingTrack = null;
+  BGM.current = null;
+  playBGM(trackToPlay);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ⭐ VIEW SWITCHER — dengan loading transition
+// ═══════════════════════════════════════════════════════════
+let isTransitioning = false;
+
+async function handleViewSwitch(viewName, revealedRank) {
+  const sig = `${viewName}|${revealedRank || 0}`;
+  if (sig === window._lastLayoutSig) return;
+  window._lastLayoutSig = sig;
+
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  LOG.info('VIEW', `Switch → ${viewName}`);
+
+  try {
+    // ⭐ Kalau dari IDLE → view lain → mainkan door intro + loading
+    if (currentView === 'idle' && viewName !== 'idle') {
+      await playDoorIntro();
+      await showLoadingScreen(2200);
+      resetDoorIntro();
+    } else if (viewName !== 'idle') {
+      // View lain → view lain → loading saja
+      await showLoadingScreen(1500);
     }
+    // View → idle: langsung tanpa loading
 
-    // ═══════════════════════════════════════════════════════════
-    // FETCH SCORES
-    // ═══════════════════════════════════════════════════════════
-    async function fetchAndRenderStageScores(isAllPlayersView) {
-      const { data, error } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained, game_name')
-        .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
+    applyViewSwitch(viewName, revealedRank);
+  } finally {
+    isTransitioning = false;
+  }
+}
 
-      if (error || !data) {
-        LOG.error('SCORES', 'Gagal fetch', error);
-        return;
-      }
+function applyViewSwitch(viewName, revealedRank) {
+  const idleView = document.getElementById('viewIdle');
+  const gView = document.getElementById('viewGame');
+  const lbView = document.getElementById('viewLeaderboard');
+  const allView = document.getElementById('viewAllPlayers');
 
-      let scoreMap = {};
-      data.forEach(row => {
-        const uid = row.user_unique_id || 'Tanpa Nama';
-        scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-      });
+  if (!idleView || !gView || !lbView || !allView) return;
 
-      cachedScores = Object.keys(scoreMap)
-        .map(uid => ({ uid, total: scoreMap[uid] }))
-        .sort((a, b) => b.total - a.total);
+  currentView = viewName;
 
-      if (isAllPlayersView) {
-        renderAllPlayersList();
-        startAutoScroll();
-      } else {
-        renderStageLeaderboard();
-      }
+  stopAutoScroll();
+  stopParticleCanvas();
+
+  [idleView, gView, lbView, allView].forEach(v => {
+    v.classList.remove('active-view');
+  });
+
+  const newRank = revealedRank || 0;
+
+  if (viewName === 'idle') {
+    idleView.classList.add('active-view');
+    lastRevealedRank = -1;
+
+    playBGM('idle');
+    setTimeout(() => startParticleCanvas(), 100);
+
+  } else if (viewName === 'leaderboard') {
+    lbView.classList.add('active-view');
+
+    playBGM('leaderboard');
+
+    if (newRank !== lastRevealedRank) {
+      currentRevealedRank = newRank;
+      lastRevealedRank = newRank;
+      fetchAndRenderStageScores(false);
     }
+  } else if (viewName === 'all_players') {
+    allView.classList.add('active-view');
+    lastRevealedRank = -1;
 
-    function renderStageLeaderboard() {
-      const container = document.getElementById('stageLeaderboardGrid');
+    playBGM('all_players');
+    fetchAndRenderStageScores(true);
+  } else {
+    gView.classList.add('active-view');
+    lastRevealedRank = -1;
 
-      if (currentRevealedRank === 0 || cachedScores.length === 0) {
-        container.innerHTML = `<p class="text-slate-500 text-lg py-12 font-medium">Siap-siap... Pengumuman Pemenang!</p>`;
-        return;
-      }
+    playBGM('game');   // → mute
+  }
 
-      const targetIdx = currentRevealedRank - 1;
-      const targetPlayer = cachedScores[targetIdx];
+  LOG.info('VIEW', `Applied → ${viewName}`);
+}
 
-      if (!targetPlayer) {
-        container.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada data untuk Peringkat #${currentRevealedRank}</p>`;
-        return;
-      }
+function subscribeAdminLayoutRemote() {
+  supabaseClient
+    .channel('layout_remote_channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_number_disco' }, (payload) => {
+      if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+    })
+    .subscribe();
 
-      let cardTheme = "from-slate-800 to-slate-900 border-slate-700/80 text-white";
-      let badgeLabel = `PERINGKAT #${currentRevealedRank}`;
-      let badgeBg = "bg-slate-700/60 text-slate-300 border-slate-600";
-      let glowEffect = "shadow-slate-900/50";
+  setInterval(async () => {
+    const { data } = await supabaseClient
+      .from('admin_layout_number_disco')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+  }, 1000);
+}
 
-      if (currentRevealedRank === 1) {
-        cardTheme = "from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80 text-amber-100";
-        badgeLabel = "👑 JUARA 1 (WINNER)";
-        badgeBg = "bg-amber-400 text-slate-950 border-amber-300 font-black";
-        glowEffect = "shadow-2xl shadow-amber-500/30";
-      } else if (currentRevealedRank === 2) {
-        cardTheme = "from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80 text-slate-100";
-        badgeLabel = "🥈 JUARA 2 (RUNNER UP)";
-        badgeBg = "bg-slate-200 text-slate-950 border-white font-black";
-        glowEffect = "shadow-xl shadow-slate-300/20";
-      } else if (currentRevealedRank === 3) {
-        cardTheme = "from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80 text-amber-200";
-        badgeLabel = "🥉 JUARA 3";
-        badgeBg = "bg-amber-600 text-white border-amber-500 font-black";
-        glowEffect = "shadow-xl shadow-amber-700/20";
-      }
+// ═══════════════════════════════════════════════════════════
+// REALTIME CONTROL LISTENER
+// ═══════════════════════════════════════════════════════════
+let lastControlSig = '';
 
-      const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}`;
+function listenToControl() {
+  supabaseClient.channel('stage_control_channel')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'system_number_disco_control' }, (payload) => {
+      if (payload.new) handleControlAction(payload.new);
+    })
+    .subscribe();
 
-      container.innerHTML = `
-        <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 md:p-10 ${glowEffect} flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
-          <div class="px-5 py-2 rounded-full border text-xs md:text-sm font-black tracking-widest uppercase ${badgeBg}">
-            ${badgeLabel}
-          </div>
+  setInterval(async () => {
+    const { data } = await supabaseClient
+      .from('system_number_disco_control')
+      .select('action, trigger_id, updated_at')
+      .eq('id', 1)
+      .maybeSingle();
+    if (data) handleControlAction(data);
+  }, 1500);
+}
 
-          <div class="relative">
-            <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden shadow-inner flex items-center justify-center p-2">
-              <img src="${avatarUrl}" alt="${targetPlayer.uid}" class="w-full h-full object-contain" />
-            </div>
-          </div>
+async function handleControlAction(data) {
+  const sig = `${data.action}|${data.trigger_id}|${data.updated_at}`;
+  if (sig === lastControlSig) return;
+  lastControlSig = sig;
 
-          <div class="space-y-2">
-            <h3 class="text-2xl md:text-4xl font-black truncate max-w-xs md:max-w-md mx-auto tracking-wide">
-              ${targetPlayer.uid}
-            </h3>
-            <div class="inline-block text-xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
-              +${targetPlayer.total} PTS
-            </div>
-          </div>
-        </div>
-      `;
-    }
+  LOG.step('CONTROL', `Action: ${data.action}, trigger: ${data.trigger_id}`);
 
-    function renderAllPlayersList() {
-      const container = document.getElementById('allPlayersGrid');
-      container.innerHTML = '';
+  if (data.action === 'START_GAME') {
+    if (!audioUnlocked) unlockAudio();
 
-      if (cachedScores.length === 0) {
-        container.innerHTML = `<p class="col-span-2 text-center text-slate-500 py-10">Belum ada peserta terdaftar.</p>`;
-        return;
-      }
-
-      cachedScores.forEach((item, idx) => {
-        const rankNumber = idx + 1;
-        const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}`;
-
-        const card = document.createElement('div');
-        card.className = "p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between";
-        card.innerHTML = `
-          <div class="flex items-center gap-3 overflow-hidden">
-            <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900/80 rounded-lg text-slate-400 border border-slate-700">#${rankNumber}</span>
-            <img src="${avatarUrl}" class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700" />
-            <span class="text-sm font-semibold text-slate-200 truncate">${item.uid}</span>
-          </div>
-          <span class="text-sm font-mono font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">+${item.total} PTS</span>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function startAutoScroll() {
-      stopAutoScroll();
-      const scrollElem = document.getElementById('scrollContainer');
-      if (!scrollElem) return;
-      let isWaiting = false;
-
-      autoScrollInterval = setInterval(() => {
-        if (isWaiting) return;
-        scrollElem.scrollTop += 1.5;
-
-        if (scrollElem.scrollTop + scrollElem.clientHeight >= scrollElem.scrollHeight - 2) {
-          isWaiting = true;
-          setTimeout(() => {
-            scrollElem.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => { isWaiting = false; }, 1200);
-          }, 2000);
-        }
-      }, 30);
-    }
-
-    function stopAutoScroll() {
-      if (autoScrollInterval) clearInterval(autoScrollInterval);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════
-    async function initStage() {
-      LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
-
-      initBGM();
-
-      try {
-        await engine.audioEngine.downloadAllAudioFiles([SOUND_BEEP, SOUND_BELL]);
-        LOG.ok('AUDIO', 'Beep & bell preloaded');
-      } catch (e) {
-        LOG.warn('AUDIO', 'Preload gagal', e);
-      }
-
-      // ⭐ Fetch layout awal — kalau kosong pakai idle
-      const { data: layoutData } = await supabaseClient
+    // Auto-switch layout ke game (handleViewSwitch yang trigger transisi)
+    try {
+      await supabaseClient
         .from('admin_layout_number_disco')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
-
-      let initialView = 'idle';
-      let initialRank = 0;
-
-      if (layoutData && layoutData.current_view) {
-        initialView = layoutData.current_view;
-        initialRank = layoutData.revealed_rank || 0;
-      }
-
-      window._lastLayoutSig = `${initialView}|${initialRank}`;
-      currentView = initialView;
-      handleViewSwitch(initialView, initialRank);
-
-      // Fetch control state awal
-      const { data: controlData } = await supabaseClient
-        .from('system_number_disco_control')
-        .select('action, trigger_id, updated_at')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (controlData) {
-        lastControlSig = `${controlData.action}|${controlData.trigger_id}|${controlData.updated_at}`;
-      }
-
-      subscribeAdminLayoutRemote();
-      listenToControl();
-
-      LOG.ok('INIT', '══════════ STAGE READY ══════════');
+        .update({
+          current_view: 'game',
+          revealed_rank: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+      LOG.ok('CONTROL', 'Auto-switch layout → game');
+    } catch (e) {
+      LOG.warn('CONTROL', 'Gagal auto-switch layout', e);
     }
 
-    initStage();
-  </script>
+    // Delay start biar transisi kelar dulu
+    await delay(2500);
+    await engine.reset();
+    await engine.start();
+
+  } else if (data.action === 'RESET') {
+    await engine.reset();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// FETCH SCORES
+// ═══════════════════════════════════════════════════════════
+async function fetchAndRenderStageScores(isAllPlayersView) {
+  const { data, error } = await supabaseClient
+    .from('game_scores')
+    .select('user_unique_id, score_obtained, game_name')
+    .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
+
+  if (error || !data) return;
+
+  let scoreMap = {};
+  data.forEach(row => {
+    const uid = row.user_unique_id || 'Tanpa Nama';
+    scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
+  });
+
+  cachedScores = Object.keys(scoreMap)
+    .map(uid => ({ uid, total: scoreMap[uid] }))
+    .sort((a, b) => b.total - a.total);
+
+  if (isAllPlayersView) {
+    renderAllPlayersList();
+    startAutoScroll();
+  } else {
+    renderStageLeaderboard();
+  }
+}
+
+function renderStageLeaderboard() {
+  const container = document.getElementById('stageLeaderboardGrid');
+
+  if (currentRevealedRank === 0 || cachedScores.length === 0) {
+    container.innerHTML = `<p class="text-slate-500 text-lg py-12 font-medium">Siap-siap... Pengumuman Pemenang!</p>`;
+    return;
+  }
+
+  const targetIdx = currentRevealedRank - 1;
+  const targetPlayer = cachedScores[targetIdx];
+
+  if (!targetPlayer) {
+    container.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada data untuk Peringkat #${currentRevealedRank}</p>`;
+    return;
+  }
+
+  let cardTheme = "from-slate-800 to-slate-900 border-slate-700/80 text-white";
+  let badgeLabel = `PERINGKAT #${currentRevealedRank}`;
+  let badgeBg = "bg-slate-700/60 text-slate-300 border-slate-600";
+  let glowEffect = "shadow-slate-900/50";
+
+  if (currentRevealedRank === 1) {
+    cardTheme = "from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80 text-amber-100";
+    badgeLabel = "👑 JUARA 1 (WINNER)";
+    badgeBg = "bg-amber-400 text-slate-950 border-amber-300 font-black";
+    glowEffect = "shadow-2xl shadow-amber-500/30";
+  } else if (currentRevealedRank === 2) {
+    cardTheme = "from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80 text-slate-100";
+    badgeLabel = "🥈 JUARA 2 (RUNNER UP)";
+    badgeBg = "bg-slate-200 text-slate-950 border-white font-black";
+    glowEffect = "shadow-xl shadow-slate-300/20";
+  } else if (currentRevealedRank === 3) {
+    cardTheme = "from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80 text-amber-200";
+    badgeLabel = "🥉 JUARA 3";
+    badgeBg = "bg-amber-600 text-white border-amber-500 font-black";
+    glowEffect = "shadow-xl shadow-amber-700/20";
+  }
+
+  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}`;
+
+  container.innerHTML = `
+    <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 md:p-10 ${glowEffect} flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+      <div class="px-5 py-2 rounded-full border text-xs md:text-sm font-black tracking-widest uppercase ${badgeBg}">
+        ${badgeLabel}
+      </div>
+
+      <div class="relative">
+        <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden shadow-inner flex items-center justify-center p-2">
+          <img src="${avatarUrl}" alt="${targetPlayer.uid}" class="w-full h-full object-contain" />
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="text-2xl md:text-4xl font-black truncate max-w-xs md:max-w-md mx-auto tracking-wide">
+          ${targetPlayer.uid}
+        </h3>
+        <div class="inline-block text-xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
+          +${targetPlayer.total} PTS
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAllPlayersList() {
+  const container = document.getElementById('allPlayersGrid');
+  container.innerHTML = '';
+
+  if (cachedScores.length === 0) {
+    container.innerHTML = `<p class="col-span-2 text-center text-slate-500 py-10">Belum ada peserta terdaftar.</p>`;
+    return;
+  }
+
+  cachedScores.forEach((item, idx) => {
+    const rankNumber = idx + 1;
+    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}`;
+
+    const card = document.createElement('div');
+    card.className = "p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between";
+    card.innerHTML = `
+      <div class="flex items-center gap-3 overflow-hidden">
+        <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900/80 rounded-lg text-slate-400 border border-slate-700">#${rankNumber}</span>
+        <img src="${avatarUrl}" class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700" />
+        <span class="text-sm font-semibold text-slate-200 truncate">${item.uid}</span>
+      </div>
+      <span class="text-sm font-mono font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">+${item.total} PTS</span>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function startAutoScroll() {
+  stopAutoScroll();
+  const scrollElem = document.getElementById('scrollContainer');
+  if (!scrollElem) return;
+  let isWaiting = false;
+
+  autoScrollInterval = setInterval(() => {
+    if (isWaiting) return;
+    scrollElem.scrollTop += 1.5;
+
+    if (scrollElem.scrollTop + scrollElem.clientHeight >= scrollElem.scrollHeight - 2) {
+      isWaiting = true;
+      setTimeout(() => {
+        scrollElem.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => { isWaiting = false; }, 1200);
+      }, 2000);
+    }
+  }, 30);
+}
+
+function stopAutoScroll() {
+  if (autoScrollInterval) clearInterval(autoScrollInterval);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function initStage() {
+  LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+
+  initBGM();
+
+  try {
+    await engine.audioEngine.downloadAllAudioFiles([SOUND_BEEP, SOUND_BELL]);
+    LOG.ok('AUDIO', 'Beep & bell preloaded');
+  } catch (e) {
+    LOG.warn('AUDIO', 'Preload gagal', e);
+  }
+
+  // Fetch layout awal
+  const { data: layoutData } = await supabaseClient
+    .from('admin_layout_number_disco')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
+
+  let initialView = 'idle';
+  let initialRank = 0;
+
+  if (layoutData && layoutData.current_view) {
+    initialView = layoutData.current_view;
+    initialRank = layoutData.revealed_rank || 0;
+  }
+
+  window._lastLayoutSig = `${initialView}|${initialRank}`;
+  currentView = initialView;
+  applyViewSwitch(initialView, initialRank);
+
+  // Fetch control state
+  const { data: controlData } = await supabaseClient
+    .from('system_number_disco_control')
+    .select('action, trigger_id, updated_at')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (controlData) {
+    lastControlSig = `${controlData.action}|${controlData.trigger_id}|${controlData.updated_at}`;
+  }
+
+  subscribeAdminLayoutRemote();
+  listenToControl();
+
+  LOG.ok('INIT', '══════════ STAGE READY ══════════');
+}
+
+initStage();
+</script>
 </body>
 </html>

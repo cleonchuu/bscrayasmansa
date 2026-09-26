@@ -1,1095 +1,1775 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Layout Stage — Hiding Block</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mimic Sudoku - Stage Display Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Poppins:wght@400;600;800&family=Inter:wght@400;600;800;900&family=Fira+Code:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            mono: ['Fira Code', 'Share Tech Mono', 'monospace'],
+            inter: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            neonCyan: '#00f3ff',
+            neonPurple: '#b026ff',
+            neonGold: '#ffd700',
+            cyberDark: '#080b14',
+          },
+          animation: {
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'bounce-jump': 'jump 0.6s infinite alternate cubic-bezier(0.5, 0.05, 1, 0.5)',
+          },
+          keyframes: {
+            jump: {
+              '0%': { transform: 'translateY(0) scale(1, 0.8)' },
+              '50%': { transform: 'translateY(-24px) scale(0.9, 1.1)' },
+              '100%': { transform: 'translateY(0) scale(1, 0.8)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
     html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
+
     body {
       font-family: 'Poppins', sans-serif;
-      background: #020617;
+      background-color: #030712;
       color: #fff;
     }
+
     .font-math { font-family: 'Orbitron', sans-serif; }
 
-    /* View transitions */
-    .stage-view {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column;
-      transition: opacity 0.6s ease, transform 0.6s ease;
+    /* Glow effects */
+    .glow-cyan {
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.7), 0 0 20px rgba(0, 243, 255, 0.4), 0 0 30px rgba(0, 243, 255, 0.2);
     }
-    .stage-view.hidden-view {
-      opacity: 0;
-      transform: scale(0.94);
-      pointer-events: none;
+    .glow-purple {
+      text-shadow: 0 0 10px rgba(176, 38, 255, 0.7), 0 0 20px rgba(176, 38, 255, 0.4);
+    }
+    .glow-gold {
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 25px rgba(255, 215, 0, 0.5);
+    }
+
+    .grid-border-glow {
+      box-shadow: 0 0 25px -5px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(176, 38, 255, 0.2);
+    }
+
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+
+    .glass-panel {
+      background: rgba(12, 17, 29, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+    }
+
+    /* Sub-grid borders */
+    .border-subgrid-r { border-right: 2px solid rgba(129, 140, 248, 0.6) !important; }
+    .border-subgrid-b { border-bottom: 2px solid rgba(129, 140, 248, 0.6) !important; }
+
+    /* Stage view */
+    .stage-view {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
       visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
     }
     .stage-view.active-view {
       opacity: 1;
-      transform: scale(1);
       visibility: visible;
+      pointer-events: auto;
     }
 
-    /* Idle animation */
-    @keyframes floaty {
-      0%,100% { transform: translateY(0) rotate(0deg); }
-      50%     { transform: translateY(-20px) rotate(3deg); }
-    }
-    .floaty   { animation: floaty 6s ease-in-out infinite; }
-    .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
-    .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.5); border-radius: 10px; }
 
-    @keyframes gradientShift {
-      0%,100% { background-position: 0% 50%; }
-      50%     { background-position: 100% 50%; }
-    }
-    .animated-gradient {
-      background: linear-gradient(270deg, #4338ca, #7c3aed, #db2777, #f59e0b, #4338ca);
-      background-size: 400% 400%;
-      animation: gradientShift 12s ease infinite;
-    }
-    .animated-gradient-text {
-      background: linear-gradient(270deg, #818cf8, #c084fc, #f472b6, #fbbf24, #818cf8);
-      background-size: 400% 400%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: gradientShift 12s ease infinite;
-    }
-
-    /* Glow */
-    .glow-gold    { box-shadow: 0 0 80px rgba(245, 158, 11, 0.35); }
-    .glow-indigo  { box-shadow: 0 0 80px rgba(99, 102, 241, 0.35); }
-    .glow-emerald { box-shadow: 0 0 80px rgba(16, 185, 129, 0.30); }
-    .glow-rose    { box-shadow: 0 0 80px rgba(244, 63, 94, 0.35); }
-
-    /* Card pop */
-    @keyframes cardPop {
-      0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
+    /* Animations */
+    @keyframes cardZoomIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(40px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .animate-card-pop { animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    /* Elimination */
-    @keyframes elimShake {
-      0%,100% { transform: translateX(0) scale(1); filter: brightness(1); }
-      20%     { transform: translateX(-12px) scale(1.02); filter: brightness(1.3) hue-rotate(-20deg); }
-      40%     { transform: translateX(12px) scale(1.02); }
-      60%     { transform: translateX(-8px) scale(1.02); }
-      80%     { transform: translateX(8px) scale(1.02); }
+    @keyframes pulseAmber {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
     }
-    .elim-shake { animation: elimShake 0.7s ease-in-out; }
+    .animate-target-pulse { animation: pulseAmber 1.5s ease-in-out infinite; }
 
-    @keyframes fadeGrey {
-      to { filter: grayscale(1) brightness(0.35); opacity: 0.5; }
+    @keyframes balloonPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); }
+      100% { transform: scale(1); }
     }
-    .elim-faded { animation: fadeGrey 1.2s ease-in forwards; }
+    .animate-balloon { animation: balloonPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-    /* Pulse ring */
-    @keyframes pulseRing {
-      0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-      70%  { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
-    .pulse-ring { animation: pulseRing 1.8s infinite; }
+    .loading-ring {
+      border: 6px solid rgba(0, 243, 255, 0.2);
+      border-top: 6px solid #00f3ff;
+      border-radius: 50%;
+      width: 80px; height: 80px;
+      animation: spinRing 1s linear infinite;
+    }
 
-    /* Particle drift */
-    @keyframes drift {
-      0%   { transform: translate(0,0) rotate(0deg); opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); opacity: 0; }
+    @keyframes loadingPulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.1); opacity: 1; }
     }
-    .drift {
+    .loading-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #00f3ff;
+      animation: loadingPulse 1s ease-in-out infinite;
+    }
+
+    /* BGM Badge */
+    .bgm-badge {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      font-size: 10px; font-family: monospace;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #67e8f9;
+      z-index: 200;
+      pointer-events: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bgm-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.blocked { background: #f59e0b; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Audio Unlock Overlay */
+    #audioUnlockOverlay {
+      position: fixed; inset: 0;
+      background: rgba(3, 8, 20, 0.9);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+    #audioUnlockOverlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    #audioUnlockOverlay .unlock-icon { animation: unlockBounce 1.6s ease-in-out infinite; }
+    @keyframes unlockBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.08); }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       IDLE VIEW — CYBER GRID ARENA
+       ═══════════════════════════════════════════════════════ */
+    #viewIdle {
+      background: #030814;
+      overflow: hidden;
+    }
+
+    #physicsCanvas {
       position: absolute;
-      animation: drift var(--dur) linear infinite;
-      animation-delay: var(--delay);
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    /* Custom scroll */
-    .custom-scroll::-webkit-scrollbar { width: 8px; }
-    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+    /* Cyber grid pattern overlay */
+    .cyber-grid-overlay {
+      background-image:
+        linear-gradient(to right, rgba(0, 242, 254, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 242, 254, 0.05) 1px, transparent 1px);
+      background-size: 30px 30px;
+      position: absolute; inset: 0;
+      z-index: 0; pointer-events: none;
+    }
 
-    /* Live timer bar */
-    @keyframes smoothBar {
-      from { width: 100%; }
-      to   { width: 0%; }
+    /* Laser scanner */
+    @keyframes scanlineSweep {
+      0% { top: -10%; }
+      100% { top: 110%; }
+    }
+    .laser-scanner {
+      position: absolute;
+      left: 0; width: 100%;
+      height: 12px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 135, 0.8), rgba(0, 242, 254, 1), rgba(0, 255, 135, 0.8), transparent);
+      box-shadow: 0 0 25px #00f2fe, 0 0 50px #00ff87;
+      animation: scanlineSweep 6s infinite linear;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    /* HUD Glass */
+    .hud-glass {
+      background: rgba(3, 8, 20, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 2px solid rgba(0, 242, 254, 0.5);
+      box-shadow: 0 0 40px rgba(0, 242, 254, 0.3), inset 0 0 20px rgba(0, 255, 135, 0.15);
+    }
+
+    /* Fullscreen Giant Grid */
+    .sudoku-master-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      width: 100vw; height: 100vh;
+      gap: 2px;
+      background: rgba(0, 242, 254, 0.15);
+      padding: 6px;
+      box-shadow: inset 0 0 100px rgba(0, 242, 254, 0.2);
+    }
+
+    .sudoku-cell {
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(10, 17, 40, 0.88);
+      border: 1px solid rgba(0, 242, 254, 0.12);
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    .cell-border-right {
+      border-right: 3px solid rgba(0, 255, 135, 0.8) !important;
+      box-shadow: 2px 0 10px rgba(0, 255, 135, 0.3);
+    }
+    .cell-border-bottom {
+      border-bottom: 3px solid rgba(0, 255, 135, 0.8) !important;
+      box-shadow: 0 2px 10px rgba(0, 255, 135, 0.3);
+    }
+
+    .title-letter-cell {
+      background: rgba(0, 242, 254, 0.15) !important;
+      border: 1px solid rgba(0, 255, 135, 0.6) !important;
+      box-shadow: inset 0 0 20px rgba(0, 242, 254, 0.3);
+    }
+
+    .title-text {
+      color: #ffffff;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2rem, 5vw, 4.5rem);
+      text-shadow:
+        0 0 10px #ffffff,
+        0 0 20px #00f2fe,
+        0 0 40px #00ff87,
+        0 0 80px #00f2fe;
+      z-index: 10;
+    }
+
+    .dim-cell-text {
+      color: rgba(0, 242, 254, 0.22);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(1rem, 2.5vw, 2.2rem);
+      font-weight: 700;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+
+    @keyframes cyberGlitch {
+      0%, 86%, 100% { transform: translate(0, 0) skew(0deg); filter: hue-rotate(0deg); }
+      88% { transform: translate(-4px, 2px) skew(-4deg); filter: hue-rotate(90deg); text-shadow: 3px 0 #00f2fe, -3px 0 #00ff87; }
+      90% { transform: translate(4px, -2px) skew(4deg); filter: hue-rotate(-90deg); text-shadow: -3px 0 #00f2fe, 3px 0 #00ff87; }
+      92% { transform: translate(-2px, -3px); }
+      94% { transform: translate(2px, 3px); }
+    }
+    .glitch-anim { animation: cyberGlitch 3.2s infinite ease-in-out; }
+
+    /* Corner target decors */
+    .target-corner {
+      position: absolute;
+      width: 24px; height: 24px;
+      border-color: #00ff87;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    /* Loading screen (portal transition) */
+    #loadingScreen {
+      position: fixed; inset: 0;
+      z-index: 5000;
+      background: #080b14;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+    #loadingScreen.show {
+      opacity: 1; pointer-events: auto;
     }
   </style>
 </head>
-<body>
+<body class="h-full w-full bg-cyberDark font-inter relative overflow-hidden">
 
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════
+       AUDIO
+       ═══════════════════════════════════════════════════════ -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
+
   <!-- AUDIO UNLOCK OVERLAY -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <div id="audioUnlockOverlay"
-       onclick="unlockAudio()"
-       class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
-    <div class="p-8 bg-indigo-600/20 rounded-full border-2 border-indigo-500/50 text-indigo-400 mb-6 animate-bounce">
-      <i class="fas fa-volume-high text-6xl"></i>
+  <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
+    <div class="text-center space-y-6 px-8">
+      <div class="unlock-icon text-8xl">🔊</div>
+      <div>
+        <h2 class="text-4xl font-black text-white mb-3 font-orbitron">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-cyan-300/70 text-lg font-mono">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+      </div>
+      <div class="inline-block bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-bold px-6 py-3 rounded-xl shadow-[0_0_25px_rgba(0,243,255,0.4)]">
+        <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
+      </div>
     </div>
-    <h2 class="text-3xl font-black font-math tracking-wider text-white mb-2">KLIK UNTUK MENGAKTIFKAN STAGE</h2>
-    <p class="text-sm text-slate-400">Diperlukan interaksi awal agar browser mengizinkan audio & animasi</p>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 1. VIEW: IDLE -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewIdle" class="stage-view active-view">
-    <!-- Animated background -->
-    <div class="absolute inset-0 animated-gradient opacity-20"></div>
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
+  </div>
 
-    <!-- Floating blocks -->
-    <div class="absolute inset-0 pointer-events-none overflow-hidden">
-      <div class="absolute top-[10%] left-[8%] w-24 h-24 bg-indigo-500/30 rounded-2xl floaty backdrop-blur-sm border border-indigo-400/30"></div>
-      <div class="absolute top-[70%] left-[15%] w-16 h-16 bg-purple-500/30 rounded-xl floaty-2 border border-purple-400/30"></div>
-      <div class="absolute top-[20%] right-[12%] w-32 h-32 bg-amber-500/25 rounded-3xl floaty-3 border border-amber-400/30"></div>
-      <div class="absolute top-[65%] right-[20%] w-20 h-20 bg-pink-500/25 rounded-2xl floaty border border-pink-400/30"></div>
-      <div class="absolute bottom-[15%] left-1/2 w-14 h-14 bg-emerald-500/30 rounded-xl floaty-2 border border-emerald-400/30"></div>
-    </div>
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: IDLE — CYBER GRID ARENA
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view active-view">
 
-    <!-- Content -->
-    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
-      <div class="mb-6">
-        <div class="inline-flex items-center gap-3 px-6 py-2.5 bg-indigo-500/20 border border-indigo-400/40 rounded-full backdrop-blur-md">
-          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span class="text-sm font-bold text-indigo-200 tracking-widest uppercase">Spatial Challenge</span>
-        </div>
-      </div>
+    <!-- Physics canvas (floating numbers) -->
+    <canvas id="physicsCanvas" class="absolute inset-0 z-0 pointer-events-none"></canvas>
 
-      <h1 class="text-[10rem] lg:text-[14rem] font-math font-black leading-none mb-4">
-        <span class="animated-gradient-text">HIDING</span>
-      </h1>
-      <h1 class="text-[10rem] lg:text-[14rem] font-math font-black leading-none mb-12">
-        <span class="text-white">BLOCK</span>
-      </h1>
+    <!-- Cyber grid overlay -->
+    <div class="cyber-grid-overlay"></div>
 
-      <p class="text-2xl lg:text-3xl text-slate-300 font-semibold mb-12 max-w-2xl leading-relaxed">
-        Latih <span class="text-indigo-400 font-black">spasial 3D</span> & ketajaman <span class="text-amber-400 font-black">visual</span> kamu!
-      </p>
-
-      <div class="flex items-center gap-8 text-center">
-        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
-          <div class="text-4xl lg:text-5xl font-math font-black text-amber-400">5</div>
-          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Level</div>
-        </div>
-        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
-          <div class="text-4xl lg:text-5xl font-math font-black text-emerald-400">10</div>
-          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Gambar</div>
-        </div>
-        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
-          <div class="text-4xl lg:text-5xl font-math font-black text-rose-400">30</div>
-          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Menit</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="relative z-10 py-8 text-center">
-      <div class="inline-flex items-center gap-3 text-slate-500 text-sm">
-        <i class="fas fa-hourglass-start"></i>
-        <span>Menunggu panitia memulai sesi...</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 2. VIEW: SIMULASI -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewSimulasi" class="stage-view hidden-view">
-    <div class="absolute inset-0 bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950"></div>
-
-    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
-      <div class="inline-flex items-center gap-3 px-6 py-3 bg-purple-500/20 border-2 border-purple-400/50 rounded-full mb-8 animate-pulse">
-        <i class="fas fa-flask text-purple-300 text-2xl"></i>
-        <span class="text-lg font-black text-purple-200 tracking-widest uppercase">Mode Simulasi</span>
-      </div>
-
-      <h2 class="text-7xl lg:text-9xl font-math font-black text-white mb-4">LATIHAN</h2>
-      <p class="text-2xl text-purple-200/80 mb-16 max-w-2xl">
-        Pahami mekanisme permainan. Poin tidak dihitung!
-      </p>
-
-      <!-- Global Countdown -->
-      <div class="bg-slate-950/70 border-4 border-purple-500/40 rounded-[2.5rem] p-12 glow-indigo backdrop-blur-sm">
-        <div class="text-xs text-purple-400 uppercase tracking-[0.3em] mb-3">Sisa Waktu Simulasi</div>
-        <div id="simulasiCountdown" class="text-[8rem] lg:text-[12rem] font-math font-black text-white leading-none">
-          10:00
-        </div>
-      </div>
-
-      <p class="mt-12 text-slate-400 text-lg">
-        <i class="fas fa-info-circle text-purple-400"></i>
-        Simulasi hanya dapat dimainkan <b class="text-purple-300">1x</b> per sesi.
-      </p>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 3. VIEW: GAME -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewGame" class="stage-view hidden-view">
-    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950"></div>
+    <!-- Laser scanner -->
+    <div class="laser-scanner"></div>
 
     <!-- Header -->
-    <div class="relative z-10 pt-8 pb-4 px-10 flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <div class="w-16 h-16 bg-amber-500/20 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center text-amber-400 text-3xl">
-          <i class="fas fa-bolt"></i>
+    <header class="absolute top-0 left-0 right-0 z-20 pt-8 px-4 text-center transition-all duration-700" id="mainHeader">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 mb-3 backdrop-blur-md">
+        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+        <span class="text-xs font-mono text-cyan-300 uppercase tracking-widest font-semibold">Realtime Sync Active</span>
+      </div>
+
+      <h1 class="text-5xl sm:text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-amber-300 glow-cyan font-mono mb-2">
+        MIMIC SUDOKU
+      </h1>
+
+      <p class="text-lg sm:text-2xl font-bold font-mono text-amber-400 tracking-wider glow-gold flex items-center justify-center gap-2">
+        <i class="fa-solid fa-gamepad text-xs"></i> DAY 2, GAME 1
+      </p>
+    </header>
+
+    <!-- Center: 9x9 Sudoku fullscreen grid -->
+    <main class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+      <div id="sudokuGrid" class="sudoku-master-grid"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="absolute bottom-0 left-0 right-0 z-30 pb-6 px-4 flex flex-col items-center gap-3 transition-all duration-500" id="mainFooter">
+      <div class="hud-glass px-8 py-3.5 rounded-2xl flex items-center gap-6 border-2 border-neonCyan/80">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-fire-flame-curved text-neonMint text-xl animate-bounce"></i>
+          <span class="font-orbitron text-xl sm:text-2xl font-black text-white tracking-widest">HARI 2</span>
         </div>
-        <div>
-          <div class="text-xs text-amber-400 uppercase tracking-widest font-bold">Mode Aktif</div>
-          <div class="text-3xl font-math font-black text-white">GAME ON</div>
+
+        <div class="h-6 w-[2px] bg-neonCyan/60"></div>
+
+        <div class="flex items-center gap-3">
+          <span class="font-orbitron text-xl sm:text-2xl font-black text-neonCyan tracking-widest">GAME 1</span>
+          <i class="fa-solid fa-gamepad text-neonCyan text-xl"></i>
         </div>
       </div>
 
-      <div class="flex items-center gap-6">
-        <div class="text-right">
-          <div class="text-xs text-slate-400 uppercase tracking-widest">Peserta Bermain</div>
-          <div id="gamePlayerCount" class="text-3xl font-math font-black text-indigo-400">0</div>
-        </div>
-        <div class="w-px h-12 bg-slate-700"></div>
-        <div class="text-right">
-          <div class="text-xs text-slate-400 uppercase tracking-widest">Global Timer</div>
-          <div id="gameGlobalTimer" class="text-3xl font-math font-black text-rose-400">--:--</div>
-        </div>
+      <div class="text-center text-slate-400 text-xs sm:text-sm font-mono flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+        <i class="fa-solid fa-spinner animate-spin text-cyan-400"></i>
+        <span>Awaiting server payload event...</span>
+      </div>
+    </footer>
+
+    <!-- Corner target decors -->
+    <div class="target-corner top-2 left-2 border-t-2 border-l-2"></div>
+    <div class="target-corner top-2 right-2 border-t-2 border-r-2"></div>
+    <div class="target-corner bottom-2 left-2 border-b-2 border-l-2"></div>
+    <div class="target-corner bottom-2 right-2 border-b-2 border-r-2"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: LOADING (untuk fase loading dari MimicLayout)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewLoading" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,243,255,0.1),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="relative z-10 flex flex-col items-center text-center">
+      <div class="loading-ring mb-8"></div>
+      <h2 class="text-3xl font-black font-orbitron text-cyan-400 glow-cyan tracking-wider mb-2">MEMPROSES DATA...</h2>
+      <p class="text-cyan-200/60 text-sm mb-6 font-mono">Menyiapkan papan soal dari server</p>
+      <div class="flex items-center gap-3">
+        <div class="loading-dot" style="animation-delay: 0s"></div>
+        <div class="loading-dot" style="animation-delay: 0.2s"></div>
+        <div class="loading-dot" style="animation-delay: 0.4s"></div>
+      </div>
+      <div class="mt-8 text-xs font-mono text-cyan-300/60">
+        FASE PERSIAPAN: <span id="loadingCountdown" class="text-amber-400 font-bold">5</span> detik
       </div>
     </div>
+  </div>
 
-    <!-- Grid Peserta -->
-    <div class="relative z-10 flex-1 px-10 pb-8 overflow-hidden">
-      <div id="gamePlayersGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full">
-        <p class="col-span-full text-center text-slate-500 text-xl py-20">
-          <i class="fas fa-spinner fa-spin"></i> Menunggu peserta membuka gambar...
-        </p>
-      </div>
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: GAME (Papan soal + target cells)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewGame" class="stage-view flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,243,255,0.08),_transparent_70%)] pointer-events-none"></div>
+    <div id="gridWrapper" class="flex flex-col relative z-10">
+      <div id="columnHeaders" class="grid gap-1.5 mb-1.5"></div>
+      <div id="gridQuestionArea" class="grid gap-1.5"></div>
+      <div id="columnClues" class="grid gap-1.5 mt-1.5"></div>
     </div>
-  </section>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 4. VIEW: LEADERBOARD TOP 10 -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewLeaderboard" class="stage-view hidden-view">
-    <div class="absolute inset-0 bg-gradient-to-br from-amber-950/30 via-slate-950 to-yellow-950/20"></div>
-
-    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
-      <div class="mb-8">
-        <span class="bg-amber-500/20 border-2 border-amber-400/50 text-amber-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em]">
-          <i class="fas fa-trophy"></i> Final Standings
-        </span>
-      </div>
-
-      <h2 class="text-6xl lg:text-7xl font-math font-black text-white mb-12">
-        PAPAN PERINGKAT <span class="text-amber-400">TOP 10</span>
-      </h2>
-
-      <!-- Card Reveal Container -->
-      <div class="relative w-full max-w-2xl min-h-[520px] flex items-center justify-center">
-        <!-- Left arrow decoration -->
-        <div class="absolute -left-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
-          <i class="fas fa-chevron-left"></i>
+    <!-- Sidebar info -->
+    <aside class="absolute left-4 top-4 bottom-4 w-[280px] flex flex-col gap-4 pointer-events-none z-20">
+      <div id="levelIndicator" class="hidden flex-col gap-2 bg-purple-500/10 border-2 border-purple-500/40 p-4 rounded-2xl backdrop-blur-md">
+        <div class="flex items-center gap-2 text-purple-300">
+          <i class="fas fa-layer-group text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest font-mono">LEVEL AKTIF</span>
         </div>
+        <div id="levelText" class="text-xl font-black text-white font-orbitron">LEVEL 1</div>
+      </div>
 
-        <div id="leaderboardCard" class="w-full">
-          <p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>
+      <div class="bg-slate-950/90 border-2 border-emerald-500/40 p-4 rounded-2xl backdrop-blur-md shadow-[0_0_25px_rgba(16,185,129,0.3)]">
+        <div class="flex items-center gap-2 text-emerald-400 mb-2">
+          <i class="fas fa-stopwatch text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest font-mono">SISA WAKTU</span>
         </div>
+        <div id="timerDisplay" class="text-5xl font-black text-emerald-400 font-mono tracking-wider">--:--</div>
+      </div>
 
-        <!-- Right arrow decoration -->
-        <div class="absolute -right-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
-          <i class="fas fa-chevron-right"></i>
+      <div class="bg-slate-950/90 border-2 border-amber-500/40 p-4 rounded-2xl backdrop-blur-md shadow-[0_0_25px_rgba(245,158,11,0.3)] text-center">
+        <div class="flex items-center justify-center gap-2 text-amber-400 mb-2">
+          <i class="fas fa-crosshairs text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest font-mono">TARGET CELL</span>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 5. VIEW: ELIMINASI -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewEliminasi" class="stage-view hidden-view">
-    <div class="absolute inset-0 bg-gradient-to-br from-rose-950/40 via-slate-950 to-black"></div>
-
-    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
-      <div class="mb-6">
-        <span class="bg-rose-500/20 border-2 border-rose-400/50 text-rose-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em] animate-pulse">
-          <i class="fas fa-skull-crossbones"></i> Round Complete
-        </span>
+        <div id="targetCellDisplay" class="text-4xl font-black text-amber-400 font-orbitron animate-target-pulse">--</div>
       </div>
 
-      <h2 class="text-7xl lg:text-8xl font-math font-black text-rose-500 mb-4">ELIMINASI</h2>
-      <p class="text-2xl text-slate-400 mb-12">5 Peserta dengan poin terendah tereliminasi</p>
-
-      <!-- Eliminated List -->
-      <div id="eliminasiList" class="grid grid-cols-1 lg:grid-cols-5 gap-4 max-w-6xl w-full">
-        <p class="col-span-full text-slate-500 text-xl py-12">
-          <i class="fas fa-spinner fa-spin"></i> Menghitung hasil...
-        </p>
-      </div>
-
-      <!-- Survivor Banner -->
-      <div id="eliminasiSurvivorBanner" class="hidden mt-12 opacity-0 transition-opacity duration-1000">
-        <div class="inline-flex items-center gap-4 px-8 py-4 bg-emerald-500/20 border-2 border-emerald-400/50 rounded-2xl">
-          <i class="fas fa-medal text-emerald-400 text-3xl"></i>
-          <div class="text-left">
-            <div class="text-xs text-emerald-300 uppercase tracking-widest">Lolos ke Final</div>
-            <div id="eliminasiSurvivorCount" class="text-3xl font-math font-black text-white">5 Peserta</div>
+      <div class="bg-slate-950/90 border border-slate-800 p-4 rounded-2xl backdrop-blur-md flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2 text-slate-400">
+            <i class="fas fa-info-circle text-sm"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest font-mono">STATUS</span>
           </div>
+          <span id="statusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
+        </div>
+        <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
+
+        <div id="loopTimerDisplay" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-3">
+          <i class="fas fa-sync-alt fa-spin text-amber-400 text-xs"></i>
+          <span class="text-amber-400 font-bold text-xs tracking-widest font-mono">GANTI PAPAN...</span>
+        </div>
+
+        <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-auto">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+          </span>
+          <span class="text-amber-400 font-bold text-xs tracking-widest uppercase font-mono">AKTIF</span>
         </div>
       </div>
+    </aside>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: BLANK (fallback)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewBlank" class="stage-view flex items-center justify-center p-4">
+    <div class="text-center">
+      <h2 class="text-4xl font-black font-orbitron text-cyan-400/40 tracking-widest glow-cyan">MIMIC SUDOKU</h2>
+      <p class="text-cyan-300/30 text-lg mt-2 font-mono">Menunggu instruksi dari panitia...</p>
     </div>
-  </section>
+  </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 6. VIEW: ALL PLAYERS -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <section id="viewAllPlayers" class="stage-view hidden-view">
-    <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-slate-950 to-emerald-950/20"></div>
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: LEADERBOARD
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(245,158,11,0.1),_transparent_70%)] pointer-events-none"></div>
 
-    <div class="relative z-10 flex-1 flex flex-col px-10 py-8">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/20 border-2 border-indigo-400/50 text-indigo-300 font-black text-xs px-5 py-1.5 rounded-full uppercase tracking-[0.2em]">
-          <i class="fas fa-users"></i> Full Roster
-        </span>
-        <h2 class="text-5xl lg:text-6xl font-math font-black text-white mt-4">
-          REKAP SEMUA PESERTA
-        </h2>
-      </div>
+    <div class="text-center mb-6 relative z-10">
+      <span class="bg-amber-500/10 border border-amber-500/40 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest font-mono">
+        FINAL STANDINGS
+      </span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3 font-orbitron">
+        <i class="fas fa-trophy text-amber-400 glow-gold"></i> PAPAN PERINGKAT TOP 10
+      </h2>
+    </div>
 
-      <div id="allPlayersScroll" class="flex-1 overflow-y-auto custom-scroll pr-2">
-        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto"></div>
+    <div id="stageLeaderboardGrid" class="w-full max-w-lg min-h-[400px] flex items-center justify-center relative z-10">
+      <p class="text-slate-500 text-lg font-mono">Menunggu pengumuman...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW: ALL PLAYERS
+       ═══════════════════════════════════════════════════════ -->
+  <div id="viewAllPlayers" class="stage-view flex flex-col items-center p-8 overflow-hidden">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(176,38,255,0.08),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-6 relative z-10">
+      <span class="bg-purple-500/10 border border-purple-500/40 text-purple-300 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest font-mono">
+        TOTAL SCORE
+      </span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3 font-orbitron">
+        <i class="fas fa-users text-purple-400 glow-purple"></i> REKAP POIN
+      </h2>
+    </div>
+
+    <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2 relative z-10">
+      <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       LOADING SCREEN — Portal transition
+       ═══════════════════════════════════════════════════════ -->
+  <div id="loadingScreen">
+    <div class="relative mb-8">
+      <!-- Outer pulsing glow -->
+      <div class="absolute -inset-6 rounded-full bg-cyan-500/20 animate-pulse-fast blur-xl"></div>
+
+      <!-- Jumping numbers -->
+      <div class="flex items-center gap-3 sm:gap-6 font-mono text-4xl sm:text-6xl font-black text-cyan-400 glow-cyan">
+        <span class="animate-bounce-jump" style="animation-delay: 0s;">3</span>
+        <span class="animate-bounce-jump text-purple-400 glow-purple" style="animation-delay: 0.15s;">9</span>
+        <span class="animate-bounce-jump text-amber-400 glow-gold" style="animation-delay: 0.3s;">1</span>
+        <span class="animate-bounce-jump text-cyan-300" style="animation-delay: 0.45s;">7</span>
+        <span class="animate-bounce-jump text-purple-300" style="animation-delay: 0.6s;">5</span>
       </div>
     </div>
-  </section>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- BGM AUDIO (hidden) -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <audio id="bgmPlayer" loop preload="auto"></audio>
+    <h2 class="text-2xl sm:text-3xl font-bold font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-amber-300 to-purple-400 mb-2 uppercase">
+      Entering Game...
+    </h2>
 
-  <!-- DEBUG BADGE -->
-  <div id="dbgBadge"
-       class="fixed bottom-2 left-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
-    <span id="dbgState">boot</span> · <span id="dbgBGM">-</span> · <span id="dbgRT">--</span> · <span id="dbgPlayers">0</span>
+    <p class="font-mono text-slate-400 text-sm tracking-wider flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+      SYNCHRONIZING SUDOKU STATE
+    </p>
+
+    <div class="w-64 h-1.5 bg-slate-900 rounded-full mt-8 overflow-hidden border border-slate-800">
+      <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-amber-400 w-0 transition-all duration-3000 ease-out"></div>
+    </div>
   </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// KONFIG
-// ═══════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const TAG = '[LAYOUT-HB]';
-const BANK_GAME_SEC = 1800;
-const BANK_SIM_SEC  = 600;
-
-// ═══════════════════════════════════════════════════════════
-// BGM URLs (bucket: bgm)
-// ═══════════════════════════════════════════════════════════
-const BGM = {
-  lobby:    `${SUPABASE_URL}/storage/v1/object/public/bgm/LOBBY.mp3`,
-  tegang:   `${SUPABASE_URL}/storage/v1/object/public/bgm/TEGANG.mp3`,
-  opening:  `${SUPABASE_URL}/storage/v1/object/public/bgm/OPENING.mp3`,
-  tenang:   `${SUPABASE_URL}/storage/v1/object/public/bgm/TENANG.mp3`,
-  run:      `${SUPABASE_URL}/storage/v1/object/public/bgm/RUN.mp3`
-};
-
-// ═══════════════════════════════════════════════════════════
-// LOGGER
-// ═══════════════════════════════════════════════════════════
-const LOG = {
-  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
-  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
-  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
-  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
-};
-
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-const STATE = {
-  audioUnlocked: false,
-  currentView: 'idle',
-  currentMode: 'idle',
-  isPaused: false,
-
-  revealedRank: 0,
-  lastView: '',
-  lastMode: '',
-
-  // Cache
-  participants: [],
-  scores: [],
-  panitiaMap: {},   // peserta → panitia
-
-  // BGM
-  currentBGM: null,
-  bgmLocked: false,
-
-  // Timers
-  tickInterval: null,
-
-  realtimeConnected: false
-};
-
-// ═══════════════════════════════════════════════════════════
-// UI HELPERS
-// ═══════════════════════════════════════════════════════════
-const UI = {
-  el: id => document.getElementById(id),
-  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
-  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
-  dbg(state, bgm, rt, players) {
-    UI.txt('dbgState', state);
-    if (bgm !== undefined) UI.txt('dbgBGM', bgm || '-');
-    if (rt !== undefined) UI.txt('dbgRT', rt || '--');
-    if (players !== undefined) UI.txt('dbgPlayers', players);
+  // ═══════════════════════════════════════════════════════
+  // SAFE HELPERS
+  // ═══════════════════════════════════════════════════════
+  function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
   }
-};
-
-// ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE (BGM)
-// ═══════════════════════════════════════════════════════════
-function unlockAudio() {
-  STATE.audioUnlocked = true;
-  const overlay = UI.el('audioUnlockOverlay');
-  if (overlay) overlay.classList.add('hidden');
-  LOG.ok('Audio unlocked');
-
-  // Langsung putar BGM sesuai mode
-  playBGM(STATE.currentMode === 'simulasi' || STATE.currentMode === 'game' ? 'tegang' : 'lobby');
-}
-
-async function playBGM(track) {
-  if (!STATE.audioUnlocked) {
-    LOG.warn(`Audio belum unlock — skip BGM ${track}`);
-    return;
+  function safeSetClass(id, className) {
+    const el = document.getElementById(id);
+    if (el) el.className = className;
   }
-  if (STATE.currentBGM === track) {
-    LOG.info(`BGM ${track} sudah diputar`);
-    return;
+  function safeReplaceClass(id, from, to) {
+    const el = document.getElementById(id);
+    if (el) el.classList.replace(from, to);
   }
 
-  const player = UI.el('bgmPlayer');
-  if (!player) return;
-
-  const url = BGM[track];
-  if (!url) { LOG.warn(`Track ${track} tidak ditemukan`); return; }
-
-  try {
-    player.pause();
-    player.src = url;
-    player.volume = 0.6;
-    player.loop = true;
-
-    await player.play().catch(err => {
-      LOG.warn(`Play BGM ${track} gagal: ${err.message}`);
-      return null;
-    });
-
-    STATE.currentBGM = track;
-    UI.txt('dbgBGM', track);
-    LOG.ok(`🎵 BGM → ${track}`);
-  } catch (e) {
-    LOG.err(`playBGM exception: ${track}`, e);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// VIEW SWITCHER
-// ═══════════════════════════════════════════════════════════
-function switchView(viewName, revealedRank = 0) {
-  // Signature check
-  const sig = `${viewName}|${revealedRank}`;
-  if (sig === STATE.lastView) {
-    LOG.info(`Skip view (sama): ${sig}`);
-    return;
-  }
-  STATE.lastView = sig;
-
-  LOG.info(`Switch view → ${viewName}, rank: ${revealedRank}`);
-
-  // Hide all
-  ['viewIdle','viewSimulasi','viewGame','viewLeaderboard','viewEliminasi','viewAllPlayers']
-    .forEach(id => {
-      const el = UI.el(id);
-      if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
-    });
-
-  // Show target
-  const map = {
-    idle: 'viewIdle',
-    simulasi: 'viewSimulasi',
-    game: 'viewGame',
-    leaderboard: 'viewLeaderboard',
-    eliminasi: 'viewEliminasi',
-    all_players: 'viewAllPlayers'
+  // ═══════════════════════════════════════════════════════
+  // LOGGER
+  // ═══════════════════════════════════════════════════════
+  const DEBUG = true;
+  const LOG = {
+    ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+    info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+    warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+    error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+    step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
   };
 
-  const targetId = map[viewName] || 'viewIdle';
-  const target = UI.el(targetId);
-  if (target) {
-    target.classList.remove('hidden-view');
-    target.classList.add('active-view');
+  // ═══════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+  const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
+
+  const LOADING_DURATION_SEC = 5;
+
+  let audioUnlocked = false;
+  let clockOffset = 0;
+
+  // ═══════════════════════════════════════════════════════
+  // BGM CONFIG
+  // ═══════════════════════════════════════════════════════
+  const BGM = {
+    baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+    tracks: {
+      idle:        'LOBBY.mp3',
+      loading:     'TEGANG.mp3',
+      game:        'TEGANG.mp3',
+      blank:       'TENANG.mp3',
+      leaderboard: 'WINNER.mp3',
+      all_players: 'TENANG.mp3'
+    },
+    current: null,
+    player: null,
+    unlocked: false,
+    volume: 0.5,
+    pendingTrack: null
+  };
+
+  function initBGM() {
+    BGM.player = document.getElementById('bgmPlayer');
+    if (!BGM.player) return;
+
+    BGM.player.volume = BGM.volume;
+    BGM.player.loop = true;
+    BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+    BGM.current = 'idle';
+
+    BGM.player.play()
+      .then(() => {
+        BGM.unlocked = true;
+        updateBGMBadge('playing', 'idle');
+      })
+      .catch(() => {
+        showUnlockOverlay();
+        updateBGMBadge('blocked', 'idle');
+      });
+
+    const unlock = () => {
+      if (BGM.unlocked) return;
+      BGM.unlocked = true;
+
+      const target = BGM.pendingTrack || BGM.current || 'idle';
+      BGM.pendingTrack = null;
+      BGM.player.src = BGM.baseUrl + BGM.tracks[target];
+      BGM.player.currentTime = 0;
+      BGM.current = target;
+
+      BGM.player.play()
+        .then(() => updateBGMBadge('playing', target))
+        .catch(() => {});
+
+      hideUnlockOverlay();
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('keydown', unlock);
+    };
+
+    document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
+    document.addEventListener('keydown', unlock);
+
+    const overlay = document.getElementById('audioUnlockOverlay');
+    if (overlay) overlay.addEventListener('click', unlock);
   }
 
-  STATE.currentView = viewName;
-  STATE.revealedRank = revealedRank;
-
-  // BGM selection per view
-  if (viewName === 'idle')            playBGM('lobby');
-  else if (viewName === 'simulasi')   playBGM('tegang');
-  else if (viewName === 'game')       playBGM('tegang');
-  else if (viewName === 'leaderboard') playBGM('opening');
-  else if (viewName === 'eliminasi')  playBGM('opening');
-  else if (viewName === 'all_players') playBGM('tenang');
-
-  // Special handlers
-  if (viewName === 'leaderboard') {
-    fetchAndRenderLeaderboard(revealedRank);
-  } else if (viewName === 'eliminasi') {
-    fetchAndRenderElimination();
-  } else if (viewName === 'all_players') {
-    fetchAndRenderAllPlayers();
-  } else if (viewName === 'game') {
-    renderGameGrid();
+  function showUnlockOverlay() {
+    const el = document.getElementById('audioUnlockOverlay');
+    if (el) el.classList.remove('hidden');
+  }
+  function hideUnlockOverlay() {
+    const el = document.getElementById('audioUnlockOverlay');
+    if (el) el.classList.add('hidden');
   }
 
-  UI.dbg(viewName, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
-}
-
-// ═══════════════════════════════════════════════════════════
-// DATA FETCHERS
-// ═══════════════════════════════════════════════════════════
-async function loadScores() {
-  const { data, error } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained')
-    .eq('game_name', 'Hiding Block');
-
-  if (error) { LOG.warn('loadScores', error.message); return; }
-
-  const map = {};
-  (data || []).forEach(r => {
-    if (!r.user_unique_id) return;
-    map[r.user_unique_id] = (map[r.user_unique_id] || 0) + (r.score_obtained || 0);
-  });
-
-  STATE.scores = Object.keys(map)
-    .map(uid => ({ uid, total: map[uid] }))
-    .sort((a, b) => b.total - a.total);
-}
-
-async function loadParticipants() {
-  const { data, error } = await supabaseClient
-    .from('system_hiding_block_login')
-    .select('*')
-    .order('joined_at', { ascending: true });
-
-  if (error) { LOG.warn('loadParticipants', error.message); return; }
-  STATE.participants = data || [];
-
-  // Map peserta → panitia
-  const { data: panitiaData } = await supabaseClient
-    .from('hiding_block_panitia')
-    .select('peserta_unique_id, panitia_unique_id');
-  STATE.panitiaMap = {};
-  (panitiaData || []).forEach(r => {
-    STATE.panitiaMap[r.peserta_unique_id] = r.panitia_unique_id;
-  });
-}
-
-async function loadProgressFor(userId) {
-  const { data, error } = await supabaseClient
-    .from('hiding_block_progress')
-    .select('*')
-    .eq('user_unique_id', userId);
-
-  if (error) return [];
-  return data || [];
-}
-
-// ═══════════════════════════════════════════════════════════
-// GAME VIEW — GRID PESERTA + COUNTDOWN PER PESERTA
-// ═══════════════════════════════════════════════════════════
-async function renderGameGrid() {
-  const c = UI.el('gamePlayersGrid');
-  if (!c) return;
-
-  const playing = STATE.participants.filter(p => p.status === 'playing' || p.status === 'ready');
-
-  UI.txt('gamePlayerCount', playing.length);
-
-  if (playing.length === 0) {
-    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">
-      <i class="fas fa-spinner fa-spin"></i> Menunggu peserta bergabung...</p>`;
-    return;
+  function updateBGMBadge(status, trackName) {
+    const dot = document.getElementById('bgmDot');
+    const label = document.getElementById('bgmLabel');
+    if (dot) {
+      dot.className = 'dot ' + (status === 'playing' ? 'playing' : (status === 'blocked' ? 'blocked' : ''));
+    }
+    if (label) label.textContent = `BGM: ${trackName}`;
   }
 
-  c.innerHTML = '';
+  function playBGM(viewName) {
+    if (!BGM.player) return;
 
-  // Parallel: fetch progress per peserta
-  const progressList = await Promise.all(playing.map(p => loadProgressFor(p.user_unique_id)));
+    const filename = BGM.tracks[viewName];
+    if (!filename) return;
 
-  playing.forEach((p, i) => {
-    const progress = progressList[i] || [];
-    const locked = progress.filter(x => x.status === 'locked');
-    const lastAttempt = progress.sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
 
-    let bankSec = BANK_GAME_SEC;
-    if (p.bank_started_at) {
-      const elapsed = Math.floor((Date.now() - new Date(p.bank_started_at).getTime()) / 1000);
-      bankSec = Math.max(0, BANK_GAME_SEC - elapsed);
-    }
-    const mm = String(Math.floor(bankSec / 60)).padStart(2, '0');
-    const ss = String(bankSec % 60).padStart(2, '0');
-
-    let statusText = 'Menunggu buka gambar';
-    let statusColor = 'slate';
-    let statusIcon = 'fa-hourglass-start';
-
-    if (lastAttempt) {
-      if (lastAttempt.status === 'in_progress') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · mengerjakan`;
-        statusColor = 'indigo';
-        statusIcon = 'fa-pen-to-square';
-      } else if (lastAttempt.status === 'waiting_verdict') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · MENUNGGU PANITIA`;
-        statusColor = 'amber';
-        statusIcon = 'fa-bell';
-      } else if (lastAttempt.status === 'locked') {
-        statusText = `✓ Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} SELESAI`;
-        statusColor = 'emerald';
-        statusIcon = 'fa-lock';
-      } else if (lastAttempt.status === 'wrong_continued') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · salah, lanjut`;
-        statusColor = 'rose';
-        statusIcon = 'fa-forward';
-      }
-    }
-
-    if (p.status === 'finished' || p.status === 'eliminated') {
-      statusText = 'SELESAI';
-      statusColor = 'slate';
-      statusIcon = 'fa-flag-checkered';
-    }
-
-    const totalPoin = locked.reduce((s, x) => s + (x.points_awarded || 0), 0);
-
-    const card = document.createElement('div');
-    card.className = `bg-slate-900/80 border-2 border-slate-700/60 rounded-2xl p-5 backdrop-blur-md animate-card-pop flex flex-col justify-between ${bankSec < 300 ? 'border-rose-500/60' : ''}`;
-    card.innerHTML = `
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400">#${i+1}</span>
-          <span class="text-[10px] font-mono ${bankSec < 300 ? 'text-rose-400 animate-pulse' : 'text-slate-400'}">${mm}:${ss}</span>
-        </div>
-        <div class="text-xl font-black text-white mb-1 truncate">${p.user_unique_id}</div>
-        <div class="text-[10px] text-slate-500 mb-3">Panitia: ${STATE.panitiaMap[p.user_unique_id] || '-'}</div>
-
-        <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-${statusColor}-500/10 border border-${statusColor}-500/30 mb-3">
-          <i class="fas ${statusIcon} text-${statusColor}-400 text-xs"></i>
-          <span class="text-[11px] font-bold text-${statusColor}-300 truncate">${statusText}</span>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
-        <div>
-          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
-          <div class="text-2xl font-math font-black text-amber-400">${totalPoin}</div>
-        </div>
-        <div class="text-right">
-          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Selesai</div>
-          <div class="text-2xl font-math font-black text-emerald-400">${locked.length}<span class="text-slate-500 text-base">/10</span></div>
-        </div>
-      </div>
-    `;
-    c.appendChild(card);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// SIMULASI VIEW — GLOBAL COUNTDOWN
-// ═══════════════════════════════════════════════════════════
-function startSimulasiCountdown(startedAt) {
-  if (STATE.tickInterval) clearInterval(STATE.tickInterval);
-
-  const tick = () => {
-    if (!startedAt) {
-      UI.txt('simulasiCountdown', '10:00');
+    if (!BGM.unlocked) {
+      BGM.pendingTrack = viewName;
+      BGM.current = viewName;
+      updateBGMBadge('blocked', viewName);
       return;
     }
-    const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
-    const remaining = Math.max(0, BANK_SIM_SEC - elapsed);
-    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-    const ss = String(remaining % 60).padStart(2, '0');
-    UI.txt('simulasiCountdown', `${mm}:${ss}`);
-  };
 
-  tick();
-  STATE.tickInterval = setInterval(tick, 500);
-}
-
-// ═══════════════════════════════════════════════════════════
-// LEADERBOARD VIEW — REVEAL PER RANK
-// ═══════════════════════════════════════════════════════════
-async function fetchAndRenderLeaderboard(revealedRank) {
-  await loadScores();
-  renderLeaderboardCard(revealedRank);
-}
-
-function renderLeaderboardCard(rank) {
-  const c = UI.el('leaderboardCard');
-  if (!c) return;
-
-  if (!rank || rank === 0) {
-    c.innerHTML = `<p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>`;
-    return;
-  }
-
-  const p = STATE.scores[rank - 1];
-  if (!p) {
-    c.innerHTML = `<p class="text-slate-400 text-2xl py-20">Belum ada peserta di peringkat #${rank}</p>`;
-    return;
-  }
-
-  const themeMap = {
-    1: {
-      bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20',
-      border: 'border-amber-400',
-      badge: 'bg-amber-400 text-slate-950',
-      label: '👑 JUARA 1',
-      glow: 'glow-gold'
-    },
-    2: {
-      bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30',
-      border: 'border-slate-300',
-      badge: 'bg-slate-200 text-slate-950',
-      label: '🥈 JUARA 2',
-      glow: ''
-    },
-    3: {
-      bg: 'from-amber-800/30 via-orange-800/15 to-slate-900/30',
-      border: 'border-amber-700',
-      badge: 'bg-amber-700 text-white',
-      label: '🥉 JUARA 3',
-      glow: ''
+    const newSrc = BGM.baseUrl + filename;
+    if (BGM.player.src === newSrc) {
+      BGM.current = viewName;
+      return;
     }
-  };
-  const theme = themeMap[rank] || {
-    bg: 'from-indigo-900/30 via-slate-900/40 to-slate-950',
-    border: 'border-slate-600',
-    badge: 'bg-slate-700 text-slate-200',
-    label: `PERINGKAT #${rank}`,
-    glow: ''
-  };
 
-  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    BGM.current = viewName;
+    try { BGM.player.pause(); } catch (e) {}
 
-  c.innerHTML = `
-    <div class="animate-card-pop bg-gradient-to-br ${theme.bg} border-4 ${theme.border} rounded-[2.5rem] p-12 ${theme.glow} flex flex-col items-center gap-6">
-      <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">
-        ${theme.label}
-      </div>
+    BGM.player.src = newSrc;
+    BGM.player.currentTime = 0;
 
-      <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
-        <img src="${avatar}" class="w-full h-full object-contain" alt="${p.uid}" />
-      </div>
-
-      <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
-
-      <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
-        +${p.total} PTS
-      </div>
-    </div>
-  `;
-}
-
-// ═══════════════════════════════════════════════════════════
-// ELIMINASI VIEW
-// ═══════════════════════════════════════════════════════════
-async function fetchAndRenderElimination() {
-  await loadScores();
-
-  const c = UI.el('eliminasiList');
-  if (!c) return;
-
-  const scores = STATE.scores;
-  if (scores.length === 0) {
-    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">
-      <i class="fas fa-spinner fa-spin"></i> Menghitung...</p>`;
-    return;
-  }
-
-  // Ambil 5 terendah (dari 10 peserta)
-  const total = scores.length;
-  const eliminatedCount = Math.max(0, total - 5);
-  const eliminated = scores.slice(-eliminatedCount).reverse();
-  const survivors = scores.slice(0, total - eliminatedCount);
-
-  c.innerHTML = '';
-
-  // Eliminated cards (animasi shake + faded)
-  eliminated.forEach((p, idx) => {
-    const card = document.createElement('div');
-    card.className = `elim-shake bg-rose-950/60 border-2 border-rose-700/60 rounded-3xl p-6 flex flex-col items-center gap-3 animate-card-pop`;
-    card.style.animationDelay = `${idx * 0.2}s`;
-    card.innerHTML = `
-      <div class="px-4 py-1.5 rounded-full bg-rose-700/80 text-white font-math font-black text-sm uppercase">
-        ❌ ELIMINATED
-      </div>
-      <div class="text-2xl font-black text-white text-center truncate w-full">${p.uid}</div>
-      <div class="text-2xl font-math font-black text-rose-400">${p.total} PTS</div>
-    `;
-    c.appendChild(card);
-
-    // Trigger fade setelah shake
     setTimeout(() => {
-      card.classList.add('elim-faded');
-      card.classList.remove('elim-shake');
-    }, 800 + idx * 200);
-  });
-
-  // Survivor banner
-  const sb = UI.el('eliminasiSurvivorBanner');
-  if (sb) {
-    UI.txt('eliminasiSurvivorCount', `${survivors.length} Peserta`);
-    setTimeout(() => {
-      sb.classList.remove('hidden');
-      sb.style.opacity = '1';
-    }, 1800 + eliminated.length * 200);
+      BGM.player.load();
+      BGM.player.play()
+        .then(() => updateBGMBadge('playing', viewName))
+        .catch(() => {
+          updateBGMBadge('blocked', viewName);
+          BGM.pendingTrack = viewName;
+          BGM.unlocked = false;
+          showUnlockOverlay();
+        });
+    }, 80);
   }
 
-  LOG.ok(`Eliminasi: ${eliminated.length} tereliminasi, ${survivors.length} lolos`);
-}
+  function unlockAudio() {
+    audioUnlocked = true;
+    BGM.unlocked = true;
+    hideUnlockOverlay();
 
-// ═══════════════════════════════════════════════════════════
-// ALL PLAYERS VIEW
-// ═══════════════════════════════════════════════════════════
-async function fetchAndRenderAllPlayers() {
-  await loadScores();
-
-  const c = UI.el('allPlayersGrid');
-  if (!c) return;
-
-  if (STATE.scores.length === 0) {
-    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">Belum ada peserta.</p>`;
-    return;
+    const target = BGM.pendingTrack || BGM.current || 'idle';
+    BGM.pendingTrack = null;
+    BGM.current = null;
+    playBGM(target);
   }
 
-  c.innerHTML = '';
-  STATE.scores.forEach((p, i) => {
-    const rank = i + 1;
-    const rankColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+  // ═══════════════════════════════════════════════════════
+  // PHYSICS CANVAS — Floating Numbers (idle)
+  // ═══════════════════════════════════════════════════════
+  const STATE = {
+    IDLE: 'IDLE',
+    PORTAL_GATHER: 'PORTAL_GATHER',
+    ZOOMING: 'ZOOMING',
+    LOADING: 'LOADING'
+  };
+  let currentAnimState = STATE.IDLE;
 
-    const card = document.createElement('div');
-    card.className = `p-4 rounded-2xl border bg-slate-900/60 backdrop-blur-sm flex items-center gap-3 border-${rankColor}-500/30 animate-card-pop`;
-    card.style.animationDelay = `${i * 0.05}s`;
-    card.innerHTML = `
-      <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">
-        ${rank}
-      </div>
-      <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0" />
-      <div class="flex-1 min-w-0">
-        <div class="font-bold text-white truncate">${p.uid}</div>
-        <div class="text-[10px] text-slate-500 font-mono">Panitia: ${STATE.panitiaMap[p.uid] || '-'}</div>
-      </div>
-      <div class="text-right">
-        <div class="font-math font-black text-amber-400 text-xl">${p.total}</div>
-        <div class="text-[9px] text-slate-500 uppercase">PTS</div>
-      </div>
-    `;
-    c.appendChild(card);
-  });
-}
+  const canvas = document.getElementById('physicsCanvas');
+  const ctx = canvas ? canvas.getContext('2d') : null;
+  let width, height;
 
-// ═══════════════════════════════════════════════════════════
-// STATE SYNC (mode & pause)
-// ═══════════════════════════════════════════════════════════
-async function syncState() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('system_hiding_block_state')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+  let particles = [];
+  const NUM_FLOATING = 45;
 
-    if (error || !data) return;
+  let portalAngle = 0;
+  let zoomFactor = 1;
+  let portalCenterX = 0;
+  let portalCenterY = 0;
 
-    STATE.currentMode = data.mode || 'idle';
-    STATE.isPaused = !!data.is_paused;
+  function resizeCanvas() {
+    if (!canvas) return;
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    portalCenterX = width / 2;
+    portalCenterY = height / 2;
+  }
+  window.addEventListener('resize', resizeCanvas);
 
-    LOG.info(`State: mode=${STATE.currentMode}, paused=${STATE.isPaused}`);
+  class FloatingNumber {
+    constructor(isGridParticle = false, initialX = 0, initialY = 0, val = null) {
+      this.isGridParticle = isGridParticle;
+      this.x = isGridParticle ? initialX : Math.random() * width;
+      this.y = isGridParticle ? initialY : Math.random() * height;
+      this.vx = (Math.random() - 0.5) * 2.5;
+      this.vy = (Math.random() - 0.5) * 2.5;
+      this.size = isGridParticle ? 18 : Math.random() * 20 + 16;
+      this.val = val !== null ? val : Math.floor(Math.random() * 9) + 1;
 
-    // Kalau pause → matikan BGM, tampilkan overlay pause
-    if (STATE.isPaused) {
-      const player = UI.el('bgmPlayer');
-      if (player) player.pause();
-      STATE.currentBGM = 'pause';
-      // Optional: play TENANG.mp3 saat pause
-      // playBGM('tenang');
-    } else {
-      // Resume BGM sesuai view
-      if (STATE.currentBGM === 'pause') {
-        STATE.currentBGM = null;
+      const colors = ['#00f3ff', '#b026ff', '#ffd700', '#38bdf8', '#c084fc'];
+      this.color = colors[Math.floor(Math.random() * colors.length)];
+      this.alpha = isGridParticle ? 1 : Math.random() * 0.6 + 0.4;
+
+      this.glitchTimer = Math.floor(Math.random() * 60);
+
+      this.targetRadius = 80 + Math.random() * 70;
+      this.angle = Math.random() * Math.PI * 2;
+      this.angularSpeed = (Math.random() - 0.5) * 0.08 + 0.03;
+    }
+
+    update() {
+      if (currentAnimState === STATE.IDLE) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x - this.size < 0 || this.x + this.size > width) this.vx *= -1;
+        if (this.y - this.size < 0 || this.y + this.size > height) this.vy *= -1;
+
+        this.glitchTimer++;
+        if (this.glitchTimer % 40 === 0 && Math.random() < 0.3) {
+          this.val = Math.floor(Math.random() * 9) + 1;
+        }
+      } else if (currentAnimState === STATE.PORTAL_GATHER || currentAnimState === STATE.ZOOMING) {
+        this.angle += this.angularSpeed;
+        const targetX = portalCenterX + Math.cos(this.angle) * this.targetRadius;
+        const targetY = portalCenterY + Math.sin(this.angle) * this.targetRadius;
+
+        this.x += (targetX - this.x) * 0.08;
+        this.y += (targetY - this.y) * 0.08;
+
+        if (currentAnimState === STATE.ZOOMING) {
+          this.targetRadius *= 0.94;
+          this.size *= 1.02;
+        }
       }
     }
 
-    // Auto-switch view ke mode kalau perlu
-    if (STATE.currentMode === 'simulasi' && STATE.currentView !== 'simulasi' && !STATE.isPaused) {
-      const { data: state } = await supabaseClient
-        .from('system_hiding_block_state')
-        .select('started_at')
-        .eq('id', 1)
+    draw() {
+      if (!ctx) return;
+      ctx.save();
+      ctx.font = `bold ${this.size * (currentAnimState === STATE.ZOOMING ? zoomFactor : 1)}px 'Fira Code', monospace`;
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 10;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.val, this.x, this.y);
+      ctx.restore();
+    }
+  }
+
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < NUM_FLOATING; i++) {
+      particles.push(new FloatingNumber());
+    }
+  }
+
+  function animatePhysics() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, width, height);
+
+    // Portal rings
+    if (currentAnimState === STATE.PORTAL_GATHER || currentAnimState === STATE.ZOOMING) {
+      portalAngle += 0.02;
+
+      ctx.save();
+      ctx.translate(portalCenterX, portalCenterY);
+      ctx.rotate(portalAngle);
+
+      const gradient = ctx.createRadialGradient(0, 0, 40, 0, 0, 160);
+      gradient.addColorStop(0, 'rgba(0, 243, 255, 0.4)');
+      gradient.addColorStop(0.5, 'rgba(176, 38, 255, 0.3)');
+      gradient.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, 160 * (currentAnimState === STATE.ZOOMING ? zoomFactor : 1), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (currentAnimState === STATE.ZOOMING) {
+        zoomFactor *= 1.08;
+      }
+    }
+
+    particles.forEach(p => {
+      p.update();
+      p.draw();
+    });
+
+    requestAnimationFrame(animatePhysics);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // IDLE 9x9 SUDOKU GRID
+  // ═══════════════════════════════════════════════════════
+  let idleGridBuilt = false;
+  let idleFlickerInterval = null;
+  const idleDimCells = [];
+
+  function buildIdleSudokuGrid() {
+    if (idleGridBuilt) return;
+    const sudokuGrid = document.getElementById('sudokuGrid');
+    if (!sudokuGrid) return;
+    sudokuGrid.innerHTML = '';
+
+    const wordMap = {
+      '3,2': 'M', '3,3': 'I', '3,4': 'M', '3,5': 'I', '3,6': 'C',
+      '4,1': 'S', '4,2': 'U', '4,3': 'D', '4,4': 'O', '4,5': 'K', '4,6': 'U'
+    };
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'sudoku-cell';
+
+        if ((c + 1) % 3 === 0 && c < 8) cell.classList.add('cell-border-right');
+        if ((r + 1) % 3 === 0 && r < 8) cell.classList.add('cell-border-bottom');
+
+        const key = `${r},${c}`;
+
+        if (wordMap[key]) {
+          cell.classList.add('title-letter-cell');
+          cell.innerHTML = `
+            <span class="title-text glitch-anim">${wordMap[key]}</span>
+            <div class="absolute inset-0 bg-neonCyan/10 animate-pulse"></div>
+          `;
+        } else {
+          const initialNum = Math.floor(Math.random() * 9) + 1;
+          const span = document.createElement('span');
+          span.className = 'dim-cell-text';
+          span.innerText = initialNum;
+          cell.appendChild(span);
+          idleDimCells.push(span);
+        }
+
+        sudokuGrid.appendChild(cell);
+      }
+    }
+
+    idleGridBuilt = true;
+  }
+
+  function startIdleFlicker() {
+    if (idleFlickerInterval) return;
+    idleFlickerInterval = setInterval(() => {
+      const updates = Math.floor(Math.random() * 5) + 8;
+      for (let i = 0; i < updates; i++) {
+        const elem = idleDimCells[Math.floor(Math.random() * idleDimCells.length)];
+        if (!elem) continue;
+        elem.innerText = Math.floor(Math.random() * 9) + 1;
+        elem.style.opacity = (Math.random() * 0.35 + 0.15).toFixed(2);
+        if (Math.random() > 0.8) {
+          elem.style.color = Math.random() > 0.5 ? '#00ff87' : '#00f2fe';
+        } else {
+          elem.style.color = 'rgba(0, 242, 254, 0.22)';
+        }
+      }
+    }, 120);
+  }
+
+  function stopIdleFlicker() {
+    if (idleFlickerInterval) {
+      clearInterval(idleFlickerInterval);
+      idleFlickerInterval = null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // CLOCK SYNC
+  // ═══════════════════════════════════════════════════════
+  async function syncClockOffset() {
+    try {
+      const t0 = Date.now();
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('updated_at')
+        .eq('id', 5)
         .maybeSingle();
-      switchView('simulasi');
-      startSimulasiCountdown(state?.started_at);
-    } else if (STATE.currentMode === 'game' && STATE.currentView !== 'game' && !STATE.isPaused) {
-      switchView('game');
-    } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle' && STATE.currentView !== 'leaderboard' && STATE.currentView !== 'eliminasi' && STATE.currentView !== 'all_players') {
-      switchView('idle');
+      const t1 = Date.now();
+
+      if (!data || !data.updated_at) { clockOffset = 0; return; }
+
+      const serverTs = new Date(data.updated_at).getTime();
+      const rtt = t1 - t0;
+      const localEstimate = t0 + (rtt / 2);
+      clockOffset = serverTs - localEstimate;
+      LOG.ok('CLOCK', `Offset: ${Math.round(clockOffset)}ms (RTT ${rtt}ms)`);
+    } catch (e) {
+      clockOffset = 0;
+    }
+  }
+  function now() { return Date.now() + clockOffset; }
+
+  // ═══════════════════════════════════════════════════════
+  // AUDIO ENGINE (SFX)
+  // ═══════════════════════════════════════════════════════
+  class WebAudioEngine {
+    constructor() {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.cache = new Map();
+    }
+    async fetchAndCache(url) {
+      if (this.cache.has(url)) return this.cache.get(url);
+      try {
+        const res = await fetch(url);
+        const buf = await res.arrayBuffer();
+        const audio = await this.ctx.decodeAudioData(buf);
+        this.cache.set(url, audio);
+        return audio;
+      } catch (e) {
+        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`);
+        return null;
+      }
+    }
+    async play(url) {
+      const buf = await this.fetchAndCache(url);
+      if (!buf) return;
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+    }
+  }
+  const audioEngine = new WebAudioEngine();
+
+  // ═══════════════════════════════════════════════════════
+  // PORTAL TRANSITION + LOADING SCREEN
+  // ═══════════════════════════════════════════════════════
+  function startPortalTransition() {
+    if (currentAnimState !== STATE.IDLE) return;
+    currentAnimState = STATE.PORTAL_GATHER;
+
+    // Convert grid cells → canvas particles
+    idleDimCells.forEach(cellElem => {
+      const rect = cellElem.getBoundingClientRect();
+      if (cellElem.textContent) {
+        particles.push(new FloatingNumber(
+          true,
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+          cellElem.textContent
+        ));
+      }
+    });
+
+    // Fade out UI
+    const mainHeader = document.getElementById('mainHeader');
+    const mainFooter = document.getElementById('mainFooter');
+    const sudokuContainer = document.getElementById('sudokuGrid');
+
+    if (sudokuContainer) {
+      sudokuContainer.style.transition = 'all 1s ease';
+      sudokuContainer.style.transform = 'scale(0) rotate(180deg)';
+      sudokuContainer.style.opacity = '0';
+    }
+    if (mainHeader) {
+      mainHeader.style.transition = 'all 0.7s ease';
+      mainHeader.style.opacity = '0';
+      mainHeader.style.transform = 'translateY(-50px)';
+    }
+    if (mainFooter) {
+      mainFooter.style.transition = 'all 0.7s ease';
+      mainFooter.style.opacity = '0';
     }
 
-  } catch (e) { LOG.err('syncState', e); }
-}
+    // Phase 2: Zoom
+    setTimeout(() => {
+      currentAnimState = STATE.ZOOMING;
 
-// ═══════════════════════════════════════════════════════════
-// LAYOUT VIEW SYNC (dari admin_layout_hiding_block)
-// ═══════════════════════════════════════════════════════════
-async function syncLayout() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('admin_layout_hiding_block')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+      // Phase 3: Loading screen
+      setTimeout(() => {
+        currentAnimState = STATE.LOADING;
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+          loadingScreen.classList.add('show');
+        }
+        setTimeout(() => {
+          const pb = document.getElementById('progressBar');
+          if (pb) pb.style.width = '100%';
+        }, 100);
+      }, 1200);
+    }, 1800);
+  }
 
+  function resetPortalTransition() {
+    currentAnimState = STATE.IDLE;
+    zoomFactor = 1;
+    portalAngle = 0;
+    particles = [];
+    initParticles();
+
+    const sudokuContainer = document.getElementById('sudokuGrid');
+    const mainHeader = document.getElementById('mainHeader');
+    const mainFooter = document.getElementById('mainFooter');
+
+    if (sudokuContainer) {
+      sudokuContainer.style.transition = 'all 0.5s ease';
+      sudokuContainer.style.transform = '';
+      sudokuContainer.style.opacity = '';
+    }
+    if (mainHeader) {
+      mainHeader.style.transition = 'all 0.5s ease';
+      mainHeader.style.opacity = '';
+      mainHeader.style.transform = '';
+    }
+    if (mainFooter) {
+      mainFooter.style.transition = 'all 0.5s ease';
+      mainFooter.style.opacity = '';
+    }
+
+    const loadingScreen = document.getElementById('loadingScreen');
+    if (loadingScreen) {
+      loadingScreen.classList.remove('show');
+      const pb = document.getElementById('progressBar');
+      if (pb) pb.style.width = '0%';
+    }
+
+    // Reset sudoku grid ke semula (rebuild karena cell tetap)
+    idleGridBuilt = false;
+    idleDimCells.length = 0;
+    buildIdleSudokuGrid();
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // MIMIC LAYOUT
+  // ═══════════════════════════════════════════════════════
+  class MimicLayout {
+    constructor() {
+      this.isPlaying = false;
+      this.isLoading = false;
+      this.currentLevel = null;
+      this.masterGrid = [];
+      this.questionGrid = [];
+      this.targetCells = [];
+      this.answerValue = 0;
+
+      this.lastQuestionSig = '';
+      this.lastStatusSig = '';
+      this.firstRenderDone = false;
+
+      this.sessionTick = null;
+      this.loadingTick = null;
+    }
+
+    subscribe() {
+      supabaseClient
+        .channel('stage_mimic_all')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_mimic_sudoku' }, (payload) => {
+          if (!payload.new) return;
+          const id = payload.new.id;
+          if (id === 5) this.onStatusUpdate(payload.new);
+          else if (id === 4) this.onQuestionUpdate(payload.new);
+          else if (id === 1 || id === 2 || id === 3) this.refreshMasterData();
+        })
+        .subscribe((status) => {
+          LOG.info('SUB', `Channel: ${status}`);
+          if (status === 'SUBSCRIBED') this.fetchAll();
+        });
+
+      setInterval(() => this.fetchAll(), 3000);
+    }
+
+    async fetchAll() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data, updated_at');
+      if (!data) return;
+
+      const statusRow = data.find(r => r.id === 5);
+      if (statusRow) this.onStatusUpdate(statusRow);
+
+      const questionRow = data.find(r => r.id === 4);
+      if (questionRow) this.onQuestionUpdate(questionRow);
+
+      this.onMasterDataUpdate(data);
+    }
+
+    async refreshMasterData() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data')
+        .in('id', [1, 2, 3]);
+      if (data) this.onMasterDataUpdate(data);
+    }
+
+    onStatusUpdate(row) {
+      if (!row || !row.grid_data) return;
+      const data = row.grid_data;
+      const sig = `${data.action}|${data.current_level}|${data.session_start_time}`;
+      if (sig === this.lastStatusSig) return;
+      this.lastStatusSig = sig;
+
+      if (data.action === 'START_GAME' && data.current_level) {
+        this.onStartGame(data);
+      } else if (data.action === 'RESET') {
+        this.onReset();
+      }
+    }
+
+    async onStartGame(status) {
+      LOG.ok('STAGE', `▶ START (${status.current_level})`);
+
+      // ⭐ Tampilkan portal transition dulu kalau masih di idle
+      if (currentView === 'idle' || !this.isPlaying) {
+        startPortalTransition();
+        await new Promise(r => setTimeout(r, 3500));
+      }
+
+      this.isPlaying = true;
+      this.isLoading = true;
+      this.currentLevel = status.current_level;
+      this.firstRenderDone = false;
+
+      this.targetCells = [];
+      this.answerValue = 0;
+      safeSetText('targetCellDisplay', '--');
+      safeSetText('timerDisplay', '--:--');
+
+      this.showView('loading');
+
+      let countdown = LOADING_DURATION_SEC;
+      safeSetText('loadingCountdown', countdown);
+      if (this.loadingTick) clearInterval(this.loadingTick);
+
+      const fetchPromise = this.fetchMasterAndQuestion();
+
+      this.loadingTick = setInterval(() => {
+        countdown--;
+        safeSetText('loadingCountdown', Math.max(0, countdown));
+        if (countdown <= 0) {
+          clearInterval(this.loadingTick);
+          this.loadingTick = null;
+        }
+      }, 1000);
+
+      await Promise.all([
+        new Promise(r => setTimeout(r, LOADING_DURATION_SEC * 1000)),
+        fetchPromise
+      ]);
+
+      this.isLoading = false;
+
+      safeSetText('stageStatus', `GAME BERJALAN — ${status.label || ''}`);
+      safeSetText('levelText', status.label || status.current_level);
+      const lvl = document.getElementById('levelIndicator');
+      if (lvl) { lvl.classList.remove('hidden'); lvl.classList.add('flex'); }
+
+      safeSetText('statusBadge', 'ACTIVE');
+      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
+      safeReplaceClass('repeatIndicator', 'hidden', 'flex');
+
+      this.showView('game');
+
+      if (this.questionGrid.length) this.renderQuestionBoard();
+      if (this.masterGrid.length && this.targetCells.length) this.renderTargetCell();
+
+      audioEngine.play(SOUND_BELL);
+
+      this.startLocalTimer(status.session_start_time, status.duration);
+    }
+
+    async fetchMasterAndQuestion() {
+      const { data } = await supabaseClient
+        .from('system_mimic_sudoku')
+        .select('id, grid_data')
+        .in('id', [1, 2, 3, 4]);
+
+      if (!data) return;
+
+      const row1 = data.find(r => r.id === 1);
+      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+          row1.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
+
+      const row2 = data.find(r => r.id === 2);
+      if (row2 && Array.isArray(row2.grid_data)) {
+        this.targetCells = row2.grid_data.map(idx => {
+          const i = idx - 1;
+          return { r: Math.floor(i / 9), c: i % 9 };
+        });
+      }
+
+      const row3 = data.find(r => r.id === 3);
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+        this.answerValue = row3.grid_data;
+      }
+
+      const row4 = data.find(r => r.id === 4);
+      if (row4 && Array.isArray(row4.grid_data) && row4.grid_data.length === 81) {
+        this.questionGrid = Array.from({ length: 9 }, (_, r) =>
+          row4.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
+    }
+
+    renderTargetCell() {
+      if (this.targetCells.length === 0) {
+        safeSetText('targetCellDisplay', '--');
+        return;
+      }
+      const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
+      safeSetText('targetCellDisplay', expr);
+    }
+
+    onReset() {
+      LOG.warn('STAGE', '🔄 RESET');
+      this.isPlaying = false;
+      this.isLoading = false;
+      this.currentLevel = null;
+      this.masterGrid = [];
+      this.questionGrid = [];
+      this.targetCells = [];
+      this.answerValue = 0;
+      this.firstRenderDone = false;
+
+      if (this.sessionTick) { clearInterval(this.sessionTick); this.sessionTick = null; }
+      if (this.loadingTick) { clearInterval(this.loadingTick); this.loadingTick = null; }
+
+      safeSetText('stageStatus', 'STAGE READY');
+      safeSetText('statusBadge', 'Ready');
+      safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5');
+      safeReplaceClass('repeatIndicator', 'flex', 'hidden');
+      const lvl = document.getElementById('levelIndicator');
+      if (lvl) { lvl.classList.remove('flex'); lvl.classList.add('hidden'); }
+      safeSetText('timerDisplay', '--:--');
+      safeSetText('targetCellDisplay', '--');
+
+      resetPortalTransition();
+      this.showView('idle');
+    }
+
+    onMasterDataUpdate(data) {
+      if (!Array.isArray(data)) return;
+
+      const row1 = data.find(r => r.id === 1);
+      const row2 = data.find(r => r.id === 2);
+      const row3 = data.find(r => r.id === 3);
+
+      if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
+        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
+          row1.grid_data.slice(r * 9, r * 9 + 9)
+        );
+      }
+
+      if (!this.isPlaying || this.isLoading) {
+        safeSetText('targetCellDisplay', '--');
+        return;
+      }
+
+      if (row2 && Array.isArray(row2.grid_data)) {
+        this.targetCells = row2.grid_data.map(idx => {
+          const i = idx - 1;
+          return { r: Math.floor(i / 9), c: i % 9 };
+        });
+        this.renderTargetCell();
+      }
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
+        this.answerValue = row3.grid_data;
+      }
+    }
+
+    onQuestionUpdate(row) {
+      if (!row || !Array.isArray(row.grid_data) || row.grid_data.length !== 81) return;
+
+      const sig = `${row.updated_at}`;
+      if (sig === this.lastQuestionSig) return;
+      this.lastQuestionSig = sig;
+
+      this.questionGrid = Array.from({ length: 9 }, (_, r) =>
+        row.grid_data.slice(r * 9, r * 9 + 9)
+      );
+
+      if (this.isLoading) return;
+
+      this.renderQuestionBoard();
+
+      if (this.isPlaying && this.firstRenderDone) {
+        audioEngine.play(SOUND_BELL);
+      }
+      this.firstRenderDone = true;
+    }
+
+    startLocalTimer(startTime, durationSec) {
+      if (this.sessionTick) clearInterval(this.sessionTick);
+
+      const startMs = (typeof startTime === 'number')
+        ? startTime
+        : new Date(startTime).getTime();
+
+      const compute = () => {
+        const elapsed = Math.floor((now() - startMs) / 1000);
+        const remaining = Math.max(0, durationSec - elapsed);
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        safeSetText('timerDisplay', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+        if (remaining <= 0) {
+          clearInterval(this.sessionTick);
+          this.sessionTick = null;
+        }
+      };
+      compute();
+      this.sessionTick = setInterval(compute, 500);
+    }
+
+    showView(viewName) {
+      const views = {
+        idle: document.getElementById('viewIdle'),
+        loading: document.getElementById('viewLoading'),
+        game: document.getElementById('viewGame'),
+        blank: document.getElementById('viewBlank'),
+        leaderboard: document.getElementById('viewLeaderboard'),
+        all_players: document.getElementById('viewAllPlayers')
+      };
+
+      Object.values(views).forEach(v => {
+        if (!v) return;
+        v.classList.add('hidden-view');
+        v.classList.remove('active-view');
+      });
+
+      if (views[viewName]) {
+        views[viewName].classList.remove('hidden-view');
+        views[viewName].classList.add('active-view');
+      }
+
+      playBGM(viewName);
+
+      if (viewName === 'idle') {
+        setTimeout(() => {
+          buildIdleSudokuGrid();
+          startIdleFlicker();
+        }, 50);
+      } else {
+        stopIdleFlicker();
+      }
+    }
+
+    _computeCellSize() {
+      const sidebar = document.querySelector('aside');
+      const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+      const availW = window.innerWidth - sidebarW - 60;
+      const availH = window.innerHeight - 100;
+      return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
+    }
+
+    renderQuestionBoard() {
+      if (!this.questionGrid.length) return;
+      const container = document.getElementById('gridQuestionArea');
+      const colHeaders = document.getElementById('columnHeaders');
+      const colClues = document.getElementById('columnClues');
+      if (!container) return;
+
+      const cellSize = this._computeCellSize();
+      const fontSize = Math.max(12, Math.floor(cellSize * 0.5));
+      const gridCols = `32px repeat(9, ${cellSize}px) 56px`;
+
+      container.style.gridTemplateColumns = gridCols;
+      if (colHeaders) colHeaders.style.gridTemplateColumns = gridCols;
+      if (colClues) colClues.style.gridTemplateColumns = gridCols;
+
+      if (colHeaders) {
+        colHeaders.innerHTML = '<div></div>';
+        for (let c = 0; c < 9; c++) {
+          const h = document.createElement('div');
+          h.className = `flex items-center justify-center font-bold text-cyan-400 text-xs ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          h.textContent = COL_LETTERS[c];
+          colHeaders.appendChild(h);
+        }
+        colHeaders.appendChild(document.createElement('div'));
+      }
+
+      const perfectRows = new Set();
+      const perfectCols = new Set();
+
+      for (let r = 0; r < 9; r++) {
+        let isPerfect = true;
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] !== this.masterGrid[r][c]) { isPerfect = false; break; }
+        }
+        if (isPerfect) perfectRows.add(r);
+      }
+      for (let c = 0; c < 9; c++) {
+        let isPerfect = true;
+        for (let r = 0; r < 9; r++) {
+          if (this.questionGrid[r][c] !== this.masterGrid[r][c]) { isPerfect = false; break; }
+        }
+        if (isPerfect) perfectCols.add(c);
+      }
+
+      const wrongCells = [];
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] && this.questionGrid[r][c] !== this.masterGrid[r][c]) {
+            wrongCells.push({ r, c });
+          }
+        }
+      }
+
+      let seed = 0;
+      for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++)
+          seed = (seed * 31 + this.questionGrid[r][c]) >>> 0;
+
+      const prng = () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        return seed / 4294967296;
+      };
+
+      for (let i = wrongCells.length - 1; i > 0; i--) {
+        const j = Math.floor(prng() * (i + 1));
+        [wrongCells[i], wrongCells[j]] = [wrongCells[j], wrongCells[i]];
+      }
+
+      const countToShowRed = Math.ceil(wrongCells.length / 3);
+      const highlightedWrongCells = new Set(
+        wrongCells.slice(0, countToShowRed).map(cell => `${cell.r},${cell.c}`)
+      );
+
+      container.innerHTML = '';
+      const targetSet = new Set(this.targetCells.map(t => `${t.r},${t.c}`));
+
+      for (let r = 0; r < 9; r++) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = `flex items-center justify-center font-bold text-cyan-400 text-xs ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowHeader.textContent = r + 1;
+        container.appendChild(rowHeader);
+
+        for (let c = 0; c < 9; c++) {
+          const val = this.questionGrid[r][c];
+          const cell = document.createElement('div');
+          let subgrid = '';
+          if (c === 2 || c === 5) subgrid += ' border-subgrid-r';
+          if (r === 2 || r === 5) subgrid += ' border-subgrid-b';
+
+          const isTargetCell = targetSet.has(`${r},${c}`);
+          const isRowPerfect = perfectRows.has(r);
+          const isColPerfect = perfectCols.has(c);
+          const isHighlightedWrong = highlightedWrongCells.has(`${r},${c}`);
+
+          let cellStyle = 'bg-slate-800/80 border border-slate-700/60 text-amber-400';
+          let animClass = '';
+
+          if (isTargetCell) {
+            cellStyle = 'bg-amber-500/40 border-4 border-amber-400 text-white font-black shadow-2xl shadow-amber-500/60 animate-pulse z-30 scale-110';
+          } else if (isRowPerfect || isColPerfect) {
+            cellStyle = 'bg-emerald-600/80 border-2 border-emerald-400 text-white font-black shadow-lg shadow-emerald-500/30';
+            animClass = 'animate-balloon';
+          } else if (isHighlightedWrong) {
+            cellStyle = 'bg-rose-600/90 border border-rose-400 text-yellow-300 font-black';
+          }
+
+          cell.style.width = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+          cell.style.fontSize = fontSize + 'px';
+          cell.className = `${cellStyle} ${animClass} rounded-lg flex items-center justify-center transition-all ${subgrid}`;
+          cell.textContent = val || '';
+          container.appendChild(cell);
+        }
+
+        const rowClue = document.createElement('div');
+        rowClue.id = `rowClueQ-${r}`;
+        rowClue.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 ${(r === 2 || r === 5) ? 'border-subgrid-b' : ''}`;
+        rowClue.style.minHeight = cellSize + 'px';
+        container.appendChild(rowClue);
+      }
+
+      if (colClues) {
+        colClues.innerHTML = '<div></div>';
+        for (let c = 0; c < 9; c++) {
+          const cc = document.createElement('div');
+          cc.id = `colClueQ-${c}`;
+          cc.className = `bg-slate-950/90 border border-slate-800 p-1 rounded-lg flex flex-wrap justify-center items-center gap-0.5 min-h-[44px] ${(c === 2 || c === 5) ? 'border-subgrid-r' : ''}`;
+          colClues.appendChild(cc);
+        }
+        colClues.appendChild(document.createElement('div'));
+      }
+
+      this.renderClues();
+    }
+
+    renderClues() {
+      for (let r = 0; r < 9; r++) {
+        let green = 0;
+        for (let c = 0; c < 9; c++) {
+          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+        }
+        const el = document.getElementById(`rowClueQ-${r}`);
+        if (el) el.innerHTML = this.renderDots(green, 9 - green);
+      }
+      for (let c = 0; c < 9; c++) {
+        let green = 0;
+        for (let r = 0; r < 9; r++) {
+          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
+        }
+        const el = document.getElementById(`colClueQ-${c}`);
+        if (el) el.innerHTML = this.renderDots(green, 9 - green);
+      }
+    }
+
+    renderDots(green, red) {
+      let html = '';
+      for (let i = 0; i < green; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>`;
+      for (let i = 0; i < red; i++) html += `<span class="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>`;
+      return html;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // VIEW SWITCHER dari admin
+  // ═══════════════════════════════════════════════════════
+  let cachedScores = [];
+  let currentRevealedRank = -1;
+  let lastRevealedRank = -1;
+  let autoScrollInterval = null;
+
+  function handleViewSwitch(viewName, revealedRank) {
+    if (viewName === 'game') {
+      if (layout.isLoading) layout.showView('loading');
+      else if (layout.isPlaying) layout.showView('game');
+      else {
+        resetPortalTransition();
+        layout.showView('idle');
+      }
+      lastRevealedRank = -1;
+      return;
+    }
+
+    if (viewName === 'idle') {
+      resetPortalTransition();
+      layout.showView('idle');
+      lastRevealedRank = -1;
+      return;
+    }
+
+    stopAutoScroll();
+    const newRank = revealedRank || 0;
+    if (viewName === 'leaderboard') {
+      layout.showView('leaderboard');
+      if (newRank !== lastRevealedRank) {
+        currentRevealedRank = newRank;
+        lastRevealedRank = newRank;
+        fetchAndRenderStageScores(false);
+      }
+    } else if (viewName === 'all_players') {
+      layout.showView('all_players');
+      lastRevealedRank = -1;
+      fetchAndRenderStageScores(true);
+    }
+  }
+
+  async function fetchAndRenderStageScores(isAll) {
+    const { data, error } = await supabaseClient.from('game_scores')
+      .select('user_unique_id, score_obtained, game_name')
+      .eq('game_name', 'Mimic Sudoku');
     if (error || !data) return;
-
-    const view = data.current_view || 'idle';
-    const rank = data.revealed_rank || 0;
-
-    switchView(view, rank);
-  } catch (e) { LOG.err('syncLayout', e); }
-}
-
-// ═══════════════════════════════════════════════════════════
-// REALTIME SUBSCRIPTIONS
-// ═══════════════════════════════════════════════════════════
-function setupRealtime() {
-  const channel = supabaseClient.channel('layout_hb_rt');
-
-  // State (mode, pause)
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'system_hiding_block_state' },
-    () => syncState());
-
-  // Layout (view, rank)
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'admin_layout_hiding_block' },
-    () => syncLayout());
-
-  // Peserta login
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'system_hiding_block_login' },
-    async () => {
-      await loadParticipants();
-      renderGameGrid();
+    let map = {};
+    data.forEach(r => {
+      const uid = r.user_unique_id || 'Tanpa Nama';
+      map[uid] = (map[uid] || 0) + (r.score_obtained || 0);
     });
+    cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a,b) => b.total - a.total);
+    if (isAll) renderAllPlayersList(); else renderStageLeaderboard();
+  }
 
-  // Progress
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'hiding_block_progress' },
-    () => { if (STATE.currentView === 'game') renderGameGrid(); });
-
-  // Scores
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'game_scores' },
-    () => {
-      if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(STATE.revealedRank);
-      else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
-      else if (STATE.currentView === 'eliminasi') fetchAndRenderElimination();
-    });
-
-  channel.subscribe(status => {
-    STATE.realtimeConnected = status === 'SUBSCRIBED';
-    LOG.info(`Realtime: ${status}`);
-    UI.dbg(STATE.currentView, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
-  });
-
-  // Polling fallback
-  setInterval(async () => {
-    await syncState();
-    await syncLayout();
-    await loadParticipants();
-    await loadScores();
-    if (STATE.currentView === 'game') renderGameGrid();
-    UI.dbg(STATE.currentView, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
-  }, 3000);
-
-  // Fast refresh untuk game view (countdown per peserta)
-  setInterval(() => {
-    if (STATE.currentView === 'game' && !STATE.isPaused) renderGameGrid();
-  }, 1500);
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO PROGRESS GLOBAL TIMER
-// ═══════════════════════════════════════════════════════════
-function startGlobalTimer() {
-  setInterval(async () => {
-    const { data } = await supabaseClient
-      .from('system_hiding_block_state')
-      .select('started_at')
-      .eq('id', 1)
-      .maybeSingle();
-
-    if (data?.started_at && STATE.currentMode === 'game') {
-      const elapsed = Math.floor((Date.now() - new Date(data.started_at).getTime()) / 1000);
-      const remaining = Math.max(0, BANK_GAME_SEC - elapsed);
-      const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-      const ss = String(remaining % 60).padStart(2, '0');
-      UI.txt('gameGlobalTimer', `${mm}:${ss}`);
-    } else {
-      UI.txt('gameGlobalTimer', '--:--');
+  function renderStageLeaderboard() {
+    const c = document.getElementById('stageLeaderboardGrid');
+    if (!c) return;
+    if (currentRevealedRank === 0 || cachedScores.length === 0) {
+      c.innerHTML = `<p class="text-slate-500 text-lg py-12 font-mono">Siap-siap... Pengumuman Pemenang!</p>`; return;
     }
-  }, 1000);
-}
+    const p = cachedScores[currentRevealedRank - 1];
+    if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12 font-mono">Belum ada #${currentRevealedRank}</p>`; return; }
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    c.innerHTML = `
+      <div class="animate-card-pop bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4 shadow-[0_0_40px_rgba(255,215,0,0.3)]">
+        <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase font-mono">PERINGKAT #${currentRevealedRank}</div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border-2 border-cyan-500/40 p-2 shadow-[0_0_25px_rgba(0,243,255,0.4)]"><img src="${avatar}" class="w-full h-full object-contain"/></div>
+        <h3 class="text-3xl font-black text-white font-orbitron">${p.uid}</h3>
+        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">+${p.total} PTS</div>
+      </div>`;
+  }
 
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-(async function init() {
-  LOG.ok('══════════ LAYOUT HIDING BLOCK BOOT ══════════');
-  UI.dbg('boot', '-', '-', 0);
+  function renderAllPlayersList() {
+    const c = document.getElementById('allPlayersGrid');
+    if (!c) return;
+    c.innerHTML = '';
+    cachedScores.forEach((it, idx) => {
+      const div = document.createElement('div');
+      div.className = 'p-3 rounded-xl border border-cyan-500/30 bg-slate-900/60 flex items-center justify-between backdrop-blur-md';
+      div.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-950 rounded-lg text-cyan-400 border border-cyan-500/30">#${idx+1}</span>
+          <span class="text-sm font-semibold text-slate-200 font-mono">${it.uid}</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-amber-400">+${it.total} PTS</span>`;
+      c.appendChild(div);
+    });
+  }
 
-  // Fetch awal
-  await loadParticipants();
-  await loadScores();
-  await syncState();
-  await syncLayout();
+  function startAutoScroll() {
+    stopAutoScroll();
+    const el = document.getElementById('scrollContainer');
+    if (!el) return;
+    let waiting = false;
+    autoScrollInterval = setInterval(() => {
+      if (waiting) return;
+      el.scrollTop += 1.5;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+        waiting = true;
+        setTimeout(() => { el.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => waiting = false, 1200); }, 2000);
+      }
+    }, 30);
+  }
+  function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
 
-  // Setup
-  setupRealtime();
-  startGlobalTimer();
+  // ═══════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════
+  const layout = new MimicLayout();
 
-  // Initial view
-  switchView('idle');
+  (async () => {
+    await syncClockOffset();
+    setInterval(syncClockOffset, 60000);
 
-  LOG.ok('══════════ READY ══════════');
-})();
+    initBGM();
 
-// Expose
-window.unlockAudio = unlockAudio;
-window.switchView = switchView;
+    resizeCanvas();
+    initParticles();
+    animatePhysics();
+
+    layout.subscribe();
+
+    supabaseClient.channel('stage_layout_remote')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
+        if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+      })
+      .subscribe();
+
+    const { data } = await supabaseClient
+      .from('admin_layout_mimic_sudoku').select('*').eq('id', 1).maybeSingle();
+    if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+    else handleViewSwitch('idle', 0);
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (layout.isPlaying && !layout.isLoading) layout.renderQuestionBoard();
+      }, 200);
+    });
+
+    LOG.ok('INIT', '══════════ STAGE READY ══════════');
+  })();
 </script>
 </body>
 </html>

@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Poppins:wght@400;600;800&family=Share+Tech+Mono&family=Teko:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Poppins:wght@400;600;800&family=Share+Tech+Mono&family=Teko:wght@600;700&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
 
@@ -19,36 +19,45 @@
     }
     body {
       font-family: 'Poppins', sans-serif;
-      background: #030712;
+      background: #050203;
       color: #fff;
     }
     .font-math { font-family: 'Orbitron', sans-serif; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
 
-    .stage-view { transition: opacity 0.5s ease, transform 0.5s ease; }
-    .stage-view.hidden-view {
-      opacity: 0; transform: scale(0.96);
-      pointer-events: none; visibility: hidden;
-      position: absolute; inset: 0;
+    /* ═══════════════════════════════════════════════════════
+       STAGE VIEW SWITCHER — FULL FIXED
+       ═══════════════════════════════════════════════════════ */
+    .stage-view {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
     }
     .stage-view.active-view {
-      opacity: 1; transform: scale(1);
-      visibility: visible; position: relative;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.5); border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.5); border-radius: 10px; }
 
-    /* Team colors */
+    /* Team colors — merah/oranye variant */
     .team-1 { background: linear-gradient(135deg, #7f1d1d, #991b1b); border-color: #f87171; }
-    .team-2 { background: linear-gradient(135deg, #164e63, #155e75); border-color: #22d3ee; }
-    .team-3 { background: linear-gradient(135deg, #064e3b, #065f46); border-color: #34d399; }
-    .team-4 { background: linear-gradient(135deg, #78350f, #92400e); border-color: #fbbf24; }
+    .team-2 { background: linear-gradient(135deg, #7c2d12, #9a3412); border-color: #fb923c; }
+    .team-3 { background: linear-gradient(135deg, #831843, #9d174d); border-color: #f472b6; }
+    .team-4 { background: linear-gradient(135deg, #713f12, #854d0e); border-color: #facc15; }
     .team-5 { background: linear-gradient(135deg, #581c87, #6b21a8); border-color: #a855f7; }
-    .team-6 { background: linear-gradient(135deg, #831843, #9d174d); border-color: #f472b6; }
+    .team-6 { background: linear-gradient(135deg, #7c2d12, #ea580c); border-color: #fb923c; }
     .team-7 { background: linear-gradient(135deg, #365314, #3f6212); border-color: #a3e635; }
-    .team-8 { background: linear-gradient(135deg, #0c4a6e, #075985); border-color: #38bdf8; }
-    .team-9 { background: linear-gradient(135deg, #7c2d12, #9a3412); border-color: #fb923c; }
-    .team-10 { background: linear-gradient(135deg, #701a75, #86198f); border-color: #e879f9; }
+    .team-8 { background: linear-gradient(135deg, #7f1d1d, #dc2626); border-color: #fca5a5; }
+    .team-9 { background: linear-gradient(135deg, #7c2d12, #c2410c); border-color: #fdba74; }
+    .team-10 { background: linear-gradient(135deg, #701a75, #a21caf); border-color: #e879f9; }
 
     /* Animations */
     @keyframes slideInUp {
@@ -76,8 +85,8 @@
     .animate-disaster { animation: disasterFade 0.6s ease-out forwards; }
 
     @keyframes memorizePulse {
-      0%, 100% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
-      50% { box-shadow: 0 0 80px rgba(245, 158, 11, 0.6); }
+      0%, 100% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.35); }
+      50% { box-shadow: 0 0 80px rgba(220, 38, 38, 0.65); }
     }
     .animate-memorize-pulse { animation: memorizePulse 2s ease-in-out infinite; }
 
@@ -88,10 +97,9 @@
     }
     .animate-timeup { animation: timeupFlash 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    .glow-purple { box-shadow: 0 0 60px rgba(168, 85, 247, 0.4); }
-    .glow-cyan { box-shadow: 0 0 60px rgba(6, 182, 212, 0.4); }
-    .glow-gold { box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
-    .glow-amber { box-shadow: 0 0 60px rgba(245, 158, 11, 0.5); }
+    .glow-red { box-shadow: 0 0 60px rgba(220, 38, 38, 0.5); }
+    .glow-orange { box-shadow: 0 0 60px rgba(249, 115, 22, 0.5); }
+    .glow-amber-red { box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
 
     /* ═══════════════════════════════════════════════════════════
        BGM BADGE
@@ -100,21 +108,18 @@
       position: fixed;
       bottom: 20px; right: 20px;
       font-size: 10px; font-family: monospace;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 68, 68, 0.3);
       border-radius: 8px;
       padding: 4px 8px;
-      color: #94a3b8;
+      color: #f87171;
       z-index: 200;
       pointer-events: none;
       display: flex; align-items: center; gap: 6px;
     }
-    .bgm-badge .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #64748b;
-    }
+    .bgm-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
     .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
-    .bgm-badge .dot.muted { background: #f43f5e; }
+    .bgm-badge .dot.muted { background: #ef4444; }
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
     /* ═══════════════════════════════════════════════════════════
@@ -122,9 +127,9 @@
        ═══════════════════════════════════════════════════════════ */
     #audioUnlockOverlay {
       position: fixed; inset: 0;
-      background: rgba(5, 2, 2, 0.92);
+      background: rgba(5, 2, 2, 0.94);
       backdrop-filter: blur(10px);
-      z-index: 999;
+      z-index: 9999;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
       transition: opacity 0.4s;
@@ -137,178 +142,93 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       IDLE VIEW — FIRE LAB THEME
+       IDLE VIEW — APOCALYPTIC BRAIN
        ═══════════════════════════════════════════════════════════ */
     #viewIdle {
-      position: absolute; inset: 0;
-      background-color: #050202;
-      font-family: 'Share Tech Mono', monospace;
+      background-color: #050203;
       overflow: hidden;
     }
 
-    /* Ambient Background Canvas (Fire Ember) */
-    #lab-canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 1;
+    /* Screen shakes */
+    @keyframes subtleShake {
+      0% { transform: translate(0px, 0px) rotate(0deg); }
+      20% { transform: translate(-2px, 3px) rotate(-0.3deg); }
+      40% { transform: translate(3px, -2px) rotate(0.3deg); }
+      60% { transform: translate(-3px, 1px) rotate(-0.2deg); }
+      80% { transform: translate(2px, 2px) rotate(0.4deg); }
+      100% { transform: translate(0px, 0px) rotate(0deg); }
+    }
+    .shake-subtle { animation: subtleShake 0.18s infinite ease-in-out; }
+
+    /* Pulsing brain glow */
+    @keyframes brainPulse {
+      0% {
+        filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6)) drop-shadow(0 0 35px rgba(220, 38, 38, 0.4));
+        transform: scale(1);
+      }
+      50% {
+        filter: drop-shadow(0 0 30px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 70px rgba(239, 68, 68, 0.8));
+        transform: scale(1.05);
+      }
+      100% {
+        filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6)) drop-shadow(0 0 35px rgba(220, 38, 38, 0.4));
+        transform: scale(1);
+      }
+    }
+    .brain-glow { animation: brainPulse 2.5s infinite ease-in-out; }
+
+    .text-glow-red {
+      text-shadow: 0 0 12px rgba(239, 68, 68, 0.9), 0 0 25px rgba(185, 28, 28, 0.8), 0 0 45px rgba(153, 27, 27, 0.6);
     }
 
-    /* CRT Monitor Overlay & Lab Grid */
-    .lab-overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 2;
-      background:
-        linear-gradient(rgba(255, 30, 0, 0.03) 50%, rgba(0, 0, 0, 0.4) 50%),
-        radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.88) 100%),
-        linear-gradient(90deg, rgba(255, 68, 0, 0.03) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(255, 68, 0, 0.03) 1px, transparent 1px);
-      background-size: 100% 4px, 100% 100%, 40px 40px, 40px 40px;
+    .vignette {
+      background: radial-gradient(circle, transparent 40%, rgba(10, 0, 2, 0.85) 80%, rgba(0, 0, 0, 0.98) 100%);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       LOADING SCREEN
+       ═══════════════════════════════════════════════════════════ */
+    #loadingScreen {
+      position: fixed; inset: 0;
+      z-index: 5000;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.7s ease;
+    }
+    #loadingScreen.show {
+      opacity: 1; pointer-events: auto;
+    }
+
+    /* Fire transition canvas */
+    #fireTransitionCanvas {
+      position: fixed; inset: 0;
+      z-index: 4500;
       pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
-
-    /* Emergency Light */
-    .emergency-light {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 3;
-      background: radial-gradient(circle at 50% -20%, rgba(255, 50, 0, 0.25), transparent 70%);
-      pointer-events: none;
-      animation: alarmPulse 3s infinite ease-in-out;
-    }
-    @keyframes alarmPulse {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.85; }
-    }
-
-    /* Hazard Tape Bars */
-    .hazard-stripe-top, .hazard-stripe-bottom {
-      position: absolute;
-      left: 0;
-      width: 100%;
-      height: 14px;
-      z-index: 10;
-      background: repeating-linear-gradient(
-        -45deg,
-        #ff2a00,
-        #ff2a00 20px,
-        #110503 20px,
-        #110503 40px
-      );
-      box-shadow: 0 0 15px rgba(255, 42, 0, 0.6);
-    }
-    .hazard-stripe-top { top: 0; }
-    .hazard-stripe-bottom { bottom: 0; }
-
-    /* Lobby Content */
-    .lobby-wrapper {
-      position: relative;
-      z-index: 5;
-      width: 100%; height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 3rem;
-    }
-
-    /* Meta Badges */
-    .meta-badges {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-    .badge-box {
-      background: rgba(20, 5, 3, 0.85);
-      border: 1px solid #ff3300;
-      padding: 0.6rem 1.6rem;
-      border-radius: 2px;
-      box-shadow: 0 0 15px rgba(255, 51, 0, 0.25), inset 0 0 10px rgba(255, 51, 0, 0.15);
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      backdrop-filter: blur(4px);
-    }
-    .badge-label {
-      font-size: 0.85rem;
-      color: #ff8866;
-      letter-spacing: 2px;
-    }
-    .badge-value {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #ffffff;
-      text-shadow: 0 0 8px #ff3300;
-    }
-
-    /* Title Frame */
-    .title-frame {
-      position: relative;
-      background: rgba(12, 3, 2, 0.8);
-      border: 2px solid rgba(255, 68, 0, 0.6);
-      padding: 2.5rem 4rem;
-      border-radius: 4px;
-      box-shadow:
-        0 0 30px rgba(255, 51, 0, 0.3),
-        inset 0 0 25px rgba(255, 51, 0, 0.15);
-      text-align: center;
-      backdrop-filter: blur(6px);
-    }
-    .title-frame::before, .title-frame::after {
-      content: '';
-      position: absolute;
-      width: 16px; height: 16px;
-      border: 3px solid #ff5500;
-    }
-    .title-frame::before { top: -6px; left: -6px; border-right: none; border-bottom: none; }
-    .title-frame::after { bottom: -6px; right: -6px; border-left: none; border-top: none; }
-
-    /* Title */
-    .main-title {
-      font-family: 'Teko', sans-serif;
-      font-size: 6rem;
-      font-weight: 700;
-      line-height: 0.95;
-      letter-spacing: 6px;
-      color: #fff;
-      text-transform: uppercase;
-      text-shadow:
-        0 0 10px rgba(255, 68, 0, 0.8),
-        0 0 25px rgba(255, 30, 0, 0.6),
-        0 0 50px rgba(255, 0, 0, 0.4);
-    }
-    .main-title span { color: #ff3300; }
-
-    @media (max-width: 768px) {
-      .main-title { font-size: 3.5rem; letter-spacing: 3px; }
-      .title-frame { padding: 1.5rem 2rem; }
-    }
+    #fireTransitionCanvas.show { opacity: 1; }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
-  <!-- ═══════════════════════════════════════════════════════════
-       AUDIO
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- AUDIO -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
-  <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
-  <audio id="beepSound"
-         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"
-         preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
   <!-- AUDIO UNLOCK OVERLAY -->
   <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
     <div class="text-center space-y-6 px-8">
       <div class="unlock-icon text-8xl">🔊</div>
       <div>
-        <h2 class="text-4xl font-black text-white mb-3 font-math">KLIK UNTUK AKTIFKAN STAGE</h2>
-        <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+        <h2 class="text-4xl font-black text-white mb-3 font-cinzel">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-red-300/70 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
       </div>
-      <div class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold px-6 py-3 rounded-xl">
+      <div class="inline-block bg-red-950/60 border border-red-500/40 text-red-300 font-bold px-6 py-3 rounded-xl shadow-[0_0_25px_rgba(220,38,38,0.4)]">
         <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
       </div>
     </div>
@@ -320,1327 +240,1718 @@
     <span id="bgmLabel">BGM: --</span>
   </div>
 
-  <!-- OVERLAY TIMEUP -->
-  <div id="timeupOverlay" class="fixed inset-0 z-50 hidden items-center justify-center pointer-events-none bg-rose-950/70 backdrop-blur-md">
-    <div class="text-center">
+  <!-- TIMEUP OVERLAY -->
+  <div id="timeupOverlay" class="fixed inset-0 z-[200] hidden items-center justify-center pointer-events-none bg-red-950/80 backdrop-blur-md">
+    <div class="text-center animate-timeup">
       <div class="text-[120px] leading-none mb-4">⏰</div>
-      <div class="text-6xl font-black text-rose-400 drop-shadow-[0_0_30px_rgba(244,63,94,0.9)] font-math">
+      <div class="text-5xl md:text-6xl font-black text-red-400 drop-shadow-[0_0_30px_rgba(239,68,68,1)] font-cinzel tracking-wider">
         WAKTU MENGHAFAL HABIS
       </div>
-      <div class="text-2xl text-white mt-4">Bersiap untuk mengerjakan soal!</div>
+      <div class="text-xl md:text-2xl text-white mt-4">Bersiap untuk mengerjakan soal!</div>
     </div>
   </div>
 
-  <div class="w-full h-full relative">
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 0: IDLE — APOCALYPTIC BRAIN
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view active-view">
+    <!-- Background Canvas: wind + embers + tsunami -->
+    <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 0: IDLE (FIRE LAB THEME)                            -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewIdle" class="stage-view absolute inset-0">
-      <!-- Fire & Smoke Canvas -->
-      <canvas id="lab-canvas"></canvas>
+    <!-- Vignette -->
+    <div class="vignette absolute inset-0 z-10 pointer-events-none"></div>
 
-      <!-- Visual Filters -->
-      <div class="lab-overlay"></div>
-      <div class="emergency-light"></div>
+    <!-- Main Scene (with shake) -->
+    <div id="mainScene" class="relative z-20 w-full h-full flex flex-col justify-between items-center p-6 md:p-10 shake-subtle">
 
-      <!-- Hazard Bars -->
-      <div class="hazard-stripe-top"></div>
-      <div class="hazard-stripe-bottom"></div>
+      <!-- HEADER HUD -->
+      <header class="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center gap-4 bg-black/50 backdrop-blur-md border border-red-900/50 p-4 rounded-xl shadow-[0_0_25px_rgba(185,28,28,0.25)]">
+        <div class="flex items-center space-x-3">
+          <div class="w-3 h-3 rounded-full bg-red-600 animate-ping"></div>
+          <span class="text-xs tracking-widest text-red-500 font-bold uppercase font-mono">SYSTEM STATUS: ACTIVE DESTRUCTION</span>
+        </div>
 
-      <!-- Content -->
-      <div class="lobby-wrapper">
-        <!-- Info Badges: Hari & Game -->
-        <div class="meta-badges">
-          <div class="badge-box">
-            <span class="badge-label">HARI</span>
-            <span class="badge-value">01</span>
-          </div>
-          <div class="badge-box">
-            <span class="badge-label">GAME</span>
-            <span class="badge-value">03</span>
+        <div class="flex items-center space-x-3 bg-red-950/60 border border-red-700/50 px-5 py-2 rounded-lg shadow-inner">
+          <i class="fa-solid font-bold text-red-400 fa-skull-crossbones animate-bounce"></i>
+          <span class="text-sm md:text-base font-extrabold text-red-200 tracking-wider font-cinzel">
+            DAY 1, GAME 3
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2 text-xs text-amber-400/90 font-mono bg-amber-950/30 px-3 py-1.5 rounded border border-amber-800/40">
+          <i class="fa-solid fa-satellite-dish animate-pulse"></i>
+          <span id="idleStatusText">SUPABASE REALTIME: STANDBY</span>
+        </div>
+      </header>
+
+      <!-- CENTERPIECE: BRAIN + TITLE -->
+      <main class="relative flex flex-col items-center justify-center my-auto text-center z-20">
+
+        <div class="relative mb-6" id="brainContainer">
+          <!-- Aura rings -->
+          <div class="absolute -inset-8 rounded-full bg-red-600/20 blur-xl animate-pulse"></div>
+          <div class="absolute -inset-16 rounded-full bg-orange-600/10 blur-2xl animate-ping" style="animation-duration: 4s;"></div>
+
+          <!-- Brain SVG -->
+          <div class="relative brain-glow w-48 h-48 md:w-64 md:h-64 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-red-500 stroke-red-600 filter drop-shadow-[0_0_25px_rgba(239,68,68,0.8)]" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
+              <path fill="url(#brainGradient)" d="M12,2C8.13,2,5,5.13,5,9c0,1.38,0.4,2.66,1.1,3.74C4.37,13.88,3,15.78,3,18c0,2.76,2.24,5,5,5c0.34,0,0.67-0.04,1-0.09c1.07,0.69,2.34,1.09,3.7,1.09s2.63-0.4,3.7-1.09c0.33,0.05,0.66,0.09,1,0.09c2.76,0,5-2.24,5-5c0-2.22-1.37-4.12-3.1-5.26C20.6,11.66,21,10.38,21,9C21,5.13,17.87,2,12,2z" />
+              <path stroke="#fca5a5" stroke-width="0.6" fill="none" d="M12 4c-2.5 0-4 1.5-4 3.5 0 2 1.5 3 3 4.5M12 4c2.5 0 4 1.5 4 3.5 0 2-1.5 3-3 4.5M7 9c-1.5 0-2 1-2 2s1 2 2.5 2M17 9c1.5 0 2 1 2 2s-1 2-2.5 2M8 15c-1 0-2 1-2 2s1.5 2.5 3 2.5M16 15c1 0 2 1 2 2s-1.5 2.5-3 2.5M12 12v9" />
+              <circle cx="9" cy="8" r="0.8" fill="#ffffff" class="animate-ping" />
+              <circle cx="15" cy="8" r="0.8" fill="#ffffff" class="animate-ping" style="animation-delay: 0.5s;" />
+              <circle cx="12" cy="14" r="1" fill="#ffedd5" class="animate-ping" style="animation-delay: 1s;" />
+              <defs>
+                <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#991b1b" />
+                  <stop offset="50%" stop-color="#dc2626" />
+                  <stop offset="100%" stop-color="#7f1d1d" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
         </div>
 
-        <!-- Title -->
-        <div class="title-frame">
-          <h1 class="main-title">CATACLYSM <span>MEMORY</span></h1>
+        <h1 class="font-cinzel text-4xl sm:text-6xl md:text-7xl font-black tracking-wider text-red-500 text-glow-red uppercase mb-2">
+          Cataclysm Memory
+        </h1>
+
+        <p class="text-red-300/80 text-xs sm:text-sm tracking-[0.3em] font-mono uppercase max-w-md">
+          Anomalous Apocalyptic Memory Core Synchronizer
+        </p>
+
+        <div class="mt-8 flex items-center space-x-3 bg-red-950/80 border border-red-600/60 px-6 py-3 rounded-full shadow-[0_0_25px_rgba(220,38,38,0.4)]">
+          <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+            <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+            <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce" style="animation-delay: 0.4s;"></div>
+          </div>
+          <span class="text-xs md:text-sm text-red-200 tracking-widest font-bold font-mono">
+            WAITING FOR SUPABASE SIGNAL...
+          </span>
         </div>
+      </main>
+
+      <!-- FOOTER -->
+      <footer class="w-full max-w-xl flex flex-col items-center gap-3 z-20">
+        <p class="text-[10px] text-red-400/60 font-mono text-center">
+          Listening to channel: <code class="text-red-300">cataclysm-lobby</code> | Event: <code class="text-red-300">START_GAME</code>
+        </p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- FIRE TRANSITION CANVAS (transisi ke loading) -->
+  <canvas id="fireTransitionCanvas"></canvas>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 0B: MEMORIZE PHASE
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewMemorizePhase" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.4),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-8 relative z-10">
+      <span class="bg-red-500/10 border border-red-500/40 text-red-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-brain"></i> WAKTU MENGHAFAL
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-cinzel tracking-wider">SIAPKAN FOKUSMU!</h1>
+      <p class="text-red-200/70 text-lg mt-2 font-mono">Hafalkan seluruh informasi yang ditampilkan</p>
+    </div>
+
+    <div class="bg-slate-950 border-4 border-red-500/60 rounded-3xl p-16 glow-red animate-memorize-pulse relative z-10">
+      <div id="memorizeTimerDisplay" class="text-[180px] md:text-[240px] font-black font-math text-red-400 leading-none animate-timer-pulse">
+        15:00
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 0B: MEMORIZE PHASE                                  -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewMemorizePhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-8">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-brain"></i> WAKTU MENGHAFAL
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-math">SIAPKAN FOKUSMU!</h1>
-        <p class="text-slate-400 text-lg mt-2">Hafalkan seluruh informasi yang ditampilkan</p>
+    <p class="text-red-300/70 text-xl mt-8 font-mono relative z-10">
+      <i class="fas fa-eye mr-2"></i>Fokus pada layar — waktu terus berjalan
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 1: TEAM ASSIGNMENT
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewTeamAssignment" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.2),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-8 relative z-10">
+      <span class="bg-red-500/10 border border-red-500/40 text-red-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-users-gear"></i> PEMBAGIAN TIM
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-cinzel tracking-wider">CATACLYSM MEMORY</h1>
+    </div>
+
+    <div class="grid grid-cols-2 gap-8 w-full max-w-7xl relative z-10">
+      <div id="teamContainerA" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
+      <div id="teamContainerB" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
+    </div>
+
+    <div class="flex items-center gap-2 mt-6 relative z-10">
+      <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+      <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+      <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+      <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+      <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 2: DISASTER PHASE
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewDisasterPhase" class="stage-view flex items-center justify-center p-6">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.15),_transparent_70%)] pointer-events-none"></div>
+    <div id="disasterContainer" class="w-full max-w-6xl relative z-10"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 3: ANSWER PHASE
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewAnswerPhase" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.3),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-8 relative z-10">
+      <span class="bg-orange-500/10 border border-orange-500/40 text-orange-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-pen-to-square"></i> WAKTU PENGERJAAN
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-cinzel tracking-wider">KERJAKAN SOAL!</h1>
+    </div>
+
+    <div class="bg-slate-950 border-4 border-orange-500/50 rounded-3xl p-16 glow-orange relative z-10">
+      <div id="answerTimerDisplay" class="text-[180px] md:text-[240px] font-black font-math text-orange-400 leading-none animate-timer-pulse">
+        00:00
+      </div>
+    </div>
+
+    <p class="text-red-300/70 text-xl mt-8 font-mono relative z-10">Selesaikan soal sebelum waktu habis</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 4: TEAM STANDINGS
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewTeamStandings" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.2),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-6 relative z-10">
+      <span class="bg-amber-500/10 border border-amber-500/40 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-shield-halved"></i> PERINGKAT TIM
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-cinzel tracking-wider">FINAL STANDINGS</h1>
+    </div>
+
+    <div id="teamStandingReveal" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center relative z-10">
+      <p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 5: LEADERBOARD
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view flex flex-col items-center justify-center p-8">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.25),_transparent_70%)] pointer-events-none"></div>
+
+    <div class="text-center mb-6 relative z-10">
+      <span class="bg-red-500/10 border border-red-500/40 text-red-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-trophy"></i> TOP 10 AKUMULASI
+      </span>
+      <h1 class="text-5xl font-black text-white mt-4 font-cinzel tracking-wider">GLOBAL LEADERBOARD</h1>
+    </div>
+
+    <div id="leaderboardReveal" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center relative z-10">
+      <p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LOADING SCREEN
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="loadingScreen">
+    <canvas id="loadingCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+
+    <div class="relative z-10 flex flex-col items-center max-w-md w-full text-center px-6">
+      <div class="w-20 h-20 mb-6 rounded-full bg-red-950/80 border-2 border-red-500/80 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.7)]">
+        <i class="fa-solid fa-wind text-3xl text-red-400 animate-spin" style="animation-duration: 3s;"></i>
       </div>
 
-      <div class="bg-slate-900 border-4 border-amber-500/50 rounded-3xl p-16 glow-amber animate-memorize-pulse">
-        <div id="memorizeTimerDisplay" class="text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse">
-          15:00
-        </div>
-      </div>
-
-      <p class="text-slate-400 text-xl mt-8">
-        <i class="fas fa-eye mr-2"></i>Fokus pada layar — waktu terus berjalan
+      <h2 class="font-cinzel text-2xl md:text-3xl font-black text-red-500 text-glow-red tracking-wider mb-2">
+        SYNCING MEMORY SYSTEM
+      </h2>
+      <p class="text-xs text-red-300/70 font-mono tracking-widest mb-8">
+        DAY 1, GAME 3 • INITIATING APOCALYPTIC PROTOCOL
       </p>
-    </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 1: TEAM ASSIGNMENT                                  -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewTeamAssignment" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-8">
-        <span class="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-users-gear"></i> PEMBAGIAN TIM
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-math">CATACLYSM MEMORY</h1>
+      <div class="w-full bg-red-950/60 border border-red-800/60 h-4 rounded-full p-0.5 overflow-hidden shadow-inner mb-4">
+        <div id="progressBar" class="h-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 rounded-full w-0 transition-all duration-100 shadow-[0_0_15px_rgba(249,115,22,0.8)]"></div>
       </div>
 
-      <div class="grid grid-cols-2 gap-8 w-full max-w-7xl">
-        <div id="teamContainerA" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
-        <div id="teamContainerB" class="bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden"></div>
-      </div>
-
-      <div class="flex items-center gap-2 mt-6">
-        <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
-        <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
-        <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
-        <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
-        <span class="rotate-dot w-3 h-3 rounded-full bg-slate-700"></span>
+      <div class="flex justify-between w-full text-[11px] font-mono text-red-400">
+        <span id="loadingStatusText">Stabilizing storm vectors...</span>
+        <span id="loadingPercent">0%</span>
       </div>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 2: DISASTER MEMORIZE                                -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewDisasterPhase" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
-      <div id="disasterContainer" class="w-full max-w-6xl"></div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 3: ANSWER PHASE                                     -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewAnswerPhase" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-8">
-        <span class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-pen-to-square"></i> WAKTU PENGERJAAN
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-math">KERJAKAN SOAL!</h1>
-      </div>
-
-      <div class="bg-slate-900 border-4 border-emerald-500/40 rounded-3xl p-16 glow-cyan">
-        <div id="answerTimerDisplay" class="text-[180px] md:text-[240px] font-black font-math text-emerald-400 leading-none animate-timer-pulse">
-          00:00
-        </div>
-      </div>
-
-      <p class="text-slate-400 text-xl mt-8">Selesaikan soal sebelum waktu habis</p>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 4: TEAM STANDINGS                                   -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewTeamStandings" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-shield-halved"></i> PERINGKAT TIM
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-math">FINAL STANDINGS</h1>
-      </div>
-
-      <div id="teamStandingReveal" class="w-full max-w-6xl min-h-[500px] flex items-center justify-center">
-        <p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- VIEW 5: LEADERBOARD                                      -->
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-6">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-trophy"></i> TOP 10 AKUMULASI
-        </span>
-        <h1 class="text-5xl font-black text-white mt-4 font-math">GLOBAL LEADERBOARD</h1>
-      </div>
-
-      <div id="leaderboardReveal" class="w-full max-w-5xl min-h-[500px] flex items-center justify-center">
-        <p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>
-      </div>
-    </div>
-
   </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI
-    // ═══════════════════════════════════════════════════════════
-    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIGURASI
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const GAME_NAME = 'Cataclysm Memory';
-    const TEAM_COUNT = 10;
-    const DEFAULT_MEMORIZE_DURATION = 900;
+const GAME_NAME = 'Cataclysm Memory';
+const TEAM_COUNT = 10;
+const DEFAULT_MEMORIZE_DURATION = 900;
 
-    const TEAM_NAMES = {
-      1: 'TIM MERAH', 2: 'TIM BIRU', 3: 'TIM HIJAU', 4: 'TIM KUNING', 5: 'TIM UNGU',
-      6: 'TIM PINK', 7: 'TIM LIME', 8: 'TIM LANGIT', 9: 'TIM ORANYE', 10: 'TIM FUCHSIA'
-    };
+const TEAM_NAMES = {
+  1: 'TIM MERAH', 2: 'TIM BIRU', 3: 'TIM HIJAU', 4: 'TIM KUNING', 5: 'TIM UNGU',
+  6: 'TIM PINK', 7: 'TIM LIME', 8: 'TIM LANGIT', 9: 'TIM ORANYE', 10: 'TIM FUCHSIA'
+};
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ BGM CONFIG — ISI NAMA FILE SESUAI BUCKET SUPABASE
-    // ═══════════════════════════════════════════════════════════
-    const BGM = {
-      baseUrl: `${SUPABASE_URL}/storage/v1/object/public/bgm/`,
-      // 🎵 GANTI NAMA FILE DI BAWAH INI SESUAI BUCKET BGM ANDA
-      tracks: {
-        idle:             'CATACLYSMMEMORY.mp3',    // <-- BGM untuk tampilan idle
-        memorize_phase:   'TEGANG.mp3',   // <-- BGM untuk fase menghafal
-        team_assignment:  'TENANG.mp3',   // <-- BGM untuk pembagian tim
-        disaster_phase:   'TEGANG.mp3',   // <-- BGM untuk fase bencana
-        answer_phase:     'TEGANG.mp3',   // <-- BGM untuk fase mengerjakan
-        team_standings:   'WINNER.mp3',   // <-- BGM untuk peringkat tim
-        leaderboard:      'WINNER.mp3'    // <-- BGM untuk global leaderboard
-      },
-      current: null,
-      player: null,
-      unlocked: false,
-      volume: 0.5,
-      pendingTrack: null
-    };
+// ═══════════════════════════════════════════════════════════
+// BGM CONFIG
+// ═══════════════════════════════════════════════════════════
+const BGM = {
+  baseUrl: `${SUPABASE_URL}/storage/v1/object/public/bgm/`,
+  tracks: {
+    idle:             'CATACLYSMMEMORY.mp3',
+    memorize_phase:   'TEGANG.mp3',
+    team_assignment:  'TENANG.mp3',
+    disaster_phase:   'TEGANG.mp3',
+    answer_phase:     'TEGANG.mp3',
+    team_standings:   'WINNER.mp3',
+    leaderboard:      'WINNER.mp3'
+  },
+  current: null,
+  player: null,
+  unlocked: false,
+  volume: 0.5,
+  pendingTrack: null
+};
 
-    // ═══════════════════════════════════════════════════════════
-    // DATA BENCANA
-    // ═══════════════════════════════════════════════════════════
-    const DISASTERS = [
-      { no: 1, nama: 'Gempa Bumi Shaanxi', tanggal: '23 Januari 1556', lokasi: 'Provinsi Shaanxi, Tiongkok (Dinasti Ming)', korban: '± 830.000 jiwa', penyebab: 'Gempa tektonik magnitudo 8,0–8,3', deskripsi: 'Gempa bumi paling mematikan dalam sejarah manusia. Sebagian besar penduduk tinggal di Yaodong (rumah gua) yang langsung runtuh dan mengubur penghuninya.' },
-      { no: 2, nama: 'Letusan Gunung Tambora', tanggal: '5–15 April 1815', lokasi: 'Pulau Sumbawa, NTB, Indonesia', korban: '> 71.000 jiwa langsung', penyebab: 'Erupsi super-kolosal VEI 7', deskripsi: 'Letusan terbesar dalam sejarah modern. Miliaran ton abu menghalangi sinar matahari, memicu "Year Without a Summer" 1816 yang menyebabkan gagal panen global.' },
-      { no: 3, nama: 'Siklon Coringa', tanggal: '25 November 1839', lokasi: 'Coringa, Andhra Pradesh, India', korban: '± 300.000 jiwa', penyebab: 'Siklon tropis + storm surge 12 meter', deskripsi: 'Gelombang badai raksasa menghancurkan kota pelabuhan Coringa, menyapu 20.000 kapal, dan kota tidak pernah dibangun kembali ke kejayaannya.' },
-      { no: 4, nama: 'Topan Haiphong', tanggal: '8 Oktober 1881', lokasi: 'Haiphong, Vietnam Utara (Teluk Tonkin)', korban: '± 300.000 jiwa', penyebab: 'Topan + gelombang pasang ekstrem', deskripsi: 'Gelombang laut raksasa menenggelamkan kota pelabuhan di dataran rendah delta, memicu kelaparan dan wabah penyakit yang melipatgandakan korban.' },
-      { no: 5, nama: 'Letusan Gunung Krakatau', tanggal: '26–27 Agustus 1883', lokasi: 'Selat Sunda, Indonesia', korban: '± 36.000 jiwa', penyebab: 'Erupsi kataklismik + tsunami 40 meter', deskripsi: 'Suara ledakan terdengar ribuan km. Tsunami menghancurkan ratusan desa di Banten & Lampung. Abu menurunkan suhu global selama beberapa tahun.' },
-      { no: 6, nama: 'Banjir Sungai Kuning', tanggal: 'September–Oktober 1887', lokasi: 'Sepanjang Sungai Kuning (Huang He), Tiongkok', korban: '900.000 – 2 juta jiwa', penyebab: 'Hujan lebat + jebolnya tanggul Huankou', deskripsi: 'Salah satu banjir paling mematikan. Luapan air merendam area 130.000 km², menghancurkan ratusan kota, memicu kelaparan dan wabah berskala besar.' },
-      { no: 7, nama: 'Letusan Gunung Pelée', tanggal: '8 Mei 1902', lokasi: 'Martinique, Kepulauan Karibia', korban: '± 28.000 – 30.000 jiwa', penyebab: 'Awan panas (nuée ardente) + piroklastik', deskripsi: 'Awan panas gas beracun menyapu Kota Saint-Pierre dalam hitungan menit. Kota hancur total, hanya 2 orang selamat.' },
-      { no: 8, nama: 'Gempa Bumi Messina', tanggal: '28 Desember 1908', lokasi: 'Selat Messina (Sisilia & Calabria), Italia', korban: '± 75.000 – 100.000 jiwa', penyebab: 'Gempa 7,1 M + tsunami 12 meter', deskripsi: 'Bencana terburuk Eropa modern. Guncangan dini hari meruntuhkan 90% bangunan Messina & Reggio Calabria, disusul tsunami yang meratakan garis pantai.' },
-      { no: 9, nama: 'Gempa Bumi Haiyuan', tanggal: '16 Desember 1920', lokasi: 'Kabupaten Haiyuan, Ningxia, Tiongkok', korban: '± 200.000 – 273.000 jiwa', penyebab: 'Pergeseran sesar Haiyuan 7,8–8,5 M', deskripsi: 'Gempa besar akibat pergeseran sesar Haiyuan yang memicu kerusakan masif di wilayah Ningxia.' },
-      { no: 10, nama: 'Gempa Bumi Kanto', tanggal: '1 September 1923', lokasi: 'Wilayah Kanto (Tokyo & Yokohama), Jepang', korban: '± 142.000 – 143.000 jiwa', penyebab: 'Gempa 7,9 M + tsunami + firestorm', deskripsi: 'Gempa melanda saat jam makan siang ketika kompor menyala. Angin kencang menyebarkan api membakar Tokyo dan Yokohama.' },
-      { no: 11, nama: 'Banjir Sungai Yangtze', tanggal: 'Juli–Agustus 1931', lokasi: 'Sungai Yangtze & Huai, Tiongkok', korban: '2 – 4 juta jiwa', penyebab: 'Hujan ekstrem + 7 siklon tropis', deskripsi: 'Bencana alam paling mematikan dalam sejarah modern. Menenggelamkan wilayah seluas pulau Inggris, memicu wabah kolera & tifus.' },
-      { no: 12, nama: 'Gempa Bumi Valdivia', tanggal: '22 Mei 1960', lokasi: 'Valdivia, Chile', korban: '± 1.600 – 6.000 jiwa', penyebab: 'Subduksi Lempeng Nazca 9,5 M', deskripsi: 'Gempa terbesar yang pernah tercatat (9,5 M). Memicu tsunami lintas Pasifik yang mencapai Hawaii, Jepang, dan Filipina.' },
-      { no: 13, nama: 'Siklon Bhola', tanggal: '12 November 1970', lokasi: 'Pakistan Timur (kini Bangladesh)', korban: '± 300.000 – 500.000 jiwa', penyebab: 'Siklon Kategori 3 + storm surge 6-10 m', deskripsi: 'Menyapu pulau-pulau rendah di delta Gangga. Lambatnya bantuan memicu ketegangan politik yang berujung Perang Kemerdekaan Bangladesh.' },
-      { no: 14, nama: 'Badai Nina', tanggal: '30 Juli – 8 Agustus 1975', lokasi: 'Henan, Tiongkok', korban: '± 26.000 – 229.000 jiwa', penyebab: 'Siklon Kategori 4 + jebolnya Bendungan Banqiao', deskripsi: 'Bencana kegagalan bendungan paling mematikan. Gelombang air raksasa menerjang wilayah hilir, memutus akses logistik skala besar.' },
-      { no: 15, nama: 'Gempa Bumi Tangshan', tanggal: '28 Juli 1976', lokasi: 'Tangshan, Provinsi Hebei, Tiongkok', korban: '242.419 jiwa (resmi)', penyebab: 'Gempa dangkal 7,5–7,8 M (Patahan Cangdong)', deskripsi: 'Gempa mengguncang pukul 03.42 saat warga tidur. Karena tidak dirancang tahan gempa, 85% bangunan runtuh seketika.' },
-      { no: 16, nama: 'Letusan Nevado del Ruiz', tanggal: '13 November 1985', lokasi: 'Armero, Tolima, Kolombia', korban: '± 23.000 jiwa', penyebab: 'Erupsi piroklastik + lahar dingin', deskripsi: 'Aliran lumpur dan batu menerjang Lembah Armero di tengah malam. Kota tertimbun lumpur, tragedi vulkanik terburuk kedua abad ke-20.' },
-      { no: 17, nama: 'Badai Mitch', tanggal: '22 Oktober – 5 November 1998', lokasi: 'Amerika Tengah (Honduras & Nikaragua)', korban: '> 11.000 jiwa', penyebab: 'Siklon Kategori 5 bergerak lambat', deskripsi: 'Badai Atlantik paling mematikan dalam 200 tahun. Banjir bandang dan tanah longsor melumpuhkan ekonomi Honduras dan Nikaragua.' },
-      { no: 18, nama: 'Longsor Vargas', tanggal: '14–16 Desember 1999', lokasi: 'Negara Bagian Vargas, Venezuela', korban: '± 10.000 – 30.000 jiwa', penyebab: 'Hujan rekor di Pegunungan Avila + debris flow', deskripsi: 'Lereng gunung runtuh membawa lumpur, batu raksasa, dan pohon menyapu kota pesisir. Puluhan ribu rumah rusak, garis pantai berubah.' },
-      { no: 19, nama: 'Gempa Bumi Bam', tanggal: '26 Desember 2003', lokasi: 'Bam, Provinsi Kerman, Iran', korban: '± 26.000 – 30.000 jiwa', penyebab: 'Gempa dangkal 6,6 M', deskripsi: 'Gempa pagi hari. Bangunan tradisional mud-brick runtuh seketika, meruntuhkan situs warisan dunia Arg-e Bam.' },
-      { no: 20, nama: 'Gelombang Panas Eropa', tanggal: 'Juli–Agustus 2003', lokasi: 'Eropa Barat & Tengah (terparah Prancis)', korban: '> 70.000 jiwa', penyebab: 'Antisiklon mengunci udara panas Afrika', deskripsi: 'Musim panas terpanas sejak 1540. Suhu ekstrem memicu dehidrasi, heatstroke, gagal panen, dan krisis layanan kesehatan.' },
-      { no: 21, nama: 'Gempa & Tsunami Samudra Hindia', tanggal: '26 Desember 2004', lokasi: 'Lepas pantai Sumatra, Indonesia (14 negara)', korban: '> 230.000 jiwa (Aceh ± 170.000)', penyebab: 'Megathrust 9,1–9,3 M', deskripsi: 'Gempa terbesar ketiga dunia. Tsunami 30 meter menghantam Aceh, Thailand, Sri Lanka, hingga Afrika Timur.' },
-      { no: 22, nama: 'Siklon Nargis', tanggal: '2–3 Mei 2008', lokasi: 'Myanmar (Delta Ayeyarwady)', korban: '± 138.000 jiwa', penyebab: 'Siklon Kategori 4 + storm surge', deskripsi: 'Badai paling mematikan dalam sejarah Myanmar. Merendam delta padat penduduk, memusnahkan pertanian, memicu krisis kemanusiaan.' },
-      { no: 23, nama: 'Gempa Bumi Haiti', tanggal: '12 Januari 2010', lokasi: 'Dekat Léogâne, 25 km dari Port-au-Prince', korban: '± 100.000 – 316.000 jiwa', penyebab: 'Gempa dangkal 7,0 M (Patahan Enriquillo)', deskripsi: 'Melumpuhkan Haiti karena pusat dekat area padat. Konstruksi buruk membuat rumah sakit, istana presiden, dan permukiman rata dengan tanah.' },
-      { no: 24, nama: 'Gempa Bumi Jepang (Tohoku)', tanggal: '11 Maret 2011', lokasi: 'Lepas pantai timur Tohoku, Jepang', korban: '± 18.000 – 20.000 jiwa', penyebab: 'Megathrust 9,0–9,1 M + tsunami 40 m', deskripsi: 'Gempa terkuat dalam sejarah Jepang. Tsunami menerjang Tohoku, memicu krisis nuklir Fukushima Daiichi.' },
-      { no: 25, nama: 'Badai Haiyan (Yolanda)', tanggal: '3–11 November 2013', lokasi: 'Filipina, Vietnam, Tiongkok', korban: '± 6.300 – 7.350 jiwa', penyebab: 'Siklon Kategori 5, angin 315 km/jam', deskripsi: 'Salah satu topan terkuat dengan landfall tercatat. Storm surge 5-6 m menerjang Tacloban, meratakan pemukiman, memicu krisis kemanusiaan.' }
-    ];
+// ═══════════════════════════════════════════════════════════
+// DATA BENCANA
+// ═══════════════════════════════════════════════════════════
+const DISASTERS = [
+  { no: 1, nama: 'Gempa Bumi Shaanxi', tanggal: '23 Januari 1556', lokasi: 'Provinsi Shaanxi, Tiongkok (Dinasti Ming)', korban: '± 830.000 jiwa', penyebab: 'Gempa tektonik magnitudo 8,0–8,3', deskripsi: 'Gempa bumi paling mematikan dalam sejarah manusia. Sebagian besar penduduk tinggal di Yaodong (rumah gua) yang langsung runtuh dan mengubur penghuninya.' },
+  { no: 2, nama: 'Letusan Gunung Tambora', tanggal: '5–15 April 1815', lokasi: 'Pulau Sumbawa, NTB, Indonesia', korban: '> 71.000 jiwa langsung', penyebab: 'Erupsi super-kolosal VEI 7', deskripsi: 'Letusan terbesar dalam sejarah modern. Miliaran ton abu menghalangi sinar matahari, memicu "Year Without a Summer" 1816 yang menyebabkan gagal panen global.' },
+  { no: 3, nama: 'Siklon Coringa', tanggal: '25 November 1839', lokasi: 'Coringa, Andhra Pradesh, India', korban: '± 300.000 jiwa', penyebab: 'Siklon tropis + storm surge 12 meter', deskripsi: 'Gelombang badai raksasa menghancurkan kota pelabuhan Coringa, menyapu 20.000 kapal, dan kota tidak pernah dibangun kembali ke kejayaannya.' },
+  { no: 4, nama: 'Topan Haiphong', tanggal: '8 Oktober 1881', lokasi: 'Haiphong, Vietnam Utara (Teluk Tonkin)', korban: '± 300.000 jiwa', penyebab: 'Topan + gelombang pasang ekstrem', deskripsi: 'Gelombang laut raksasa menenggelamkan kota pelabuhan di dataran rendah delta, memicu kelaparan dan wabah penyakit yang melipatgandakan korban.' },
+  { no: 5, nama: 'Letusan Gunung Krakatau', tanggal: '26–27 Agustus 1883', lokasi: 'Selat Sunda, Indonesia', korban: '± 36.000 jiwa', penyebab: 'Erupsi kataklismik + tsunami 40 meter', deskripsi: 'Suara ledakan terdengar ribuan km. Tsunami menghancurkan ratusan desa di Banten & Lampung. Abu menurunkan suhu global selama beberapa tahun.' },
+  { no: 6, nama: 'Banjir Sungai Kuning', tanggal: 'September–Oktober 1887', lokasi: 'Sepanjang Sungai Kuning (Huang He), Tiongkok', korban: '900.000 – 2 juta jiwa', penyebab: 'Hujan lebat + jebolnya tanggul Huankou', deskripsi: 'Salah satu banjir paling mematikan. Luapan air merendam area 130.000 km², menghancurkan ratusan kota, memicu kelaparan dan wabah berskala besar.' },
+  { no: 7, nama: 'Letusan Gunung Pelée', tanggal: '8 Mei 1902', lokasi: 'Martinique, Kepulauan Karibia', korban: '± 28.000 – 30.000 jiwa', penyebab: 'Awan panas (nuée ardente) + piroklastik', deskripsi: 'Awan panas gas beracun menyapu Kota Saint-Pierre dalam hitungan menit. Kota hancur total, hanya 2 orang selamat.' },
+  { no: 8, nama: 'Gempa Bumi Messina', tanggal: '28 Desember 1908', lokasi: 'Selat Messina (Sisilia & Calabria), Italia', korban: '± 75.000 – 100.000 jiwa', penyebab: 'Gempa 7,1 M + tsunami 12 meter', deskripsi: 'Bencana terburuk Eropa modern. Guncangan dini hari meruntuhkan 90% bangunan Messina & Reggio Calabria, disusul tsunami yang meratakan garis pantai.' },
+  { no: 9, nama: 'Gempa Bumi Haiyuan', tanggal: '16 Desember 1920', lokasi: 'Kabupaten Haiyuan, Ningxia, Tiongkok', korban: '± 200.000 – 273.000 jiwa', penyebab: 'Pergeseran sesar Haiyuan 7,8–8,5 M', deskripsi: 'Gempa besar akibat pergeseran sesar Haiyuan yang memicu kerusakan masif di wilayah Ningxia.' },
+  { no: 10, nama: 'Gempa Bumi Kanto', tanggal: '1 September 1923', lokasi: 'Wilayah Kanto (Tokyo & Yokohama), Jepang', korban: '± 142.000 – 143.000 jiwa', penyebab: 'Gempa 7,9 M + tsunami + firestorm', deskripsi: 'Gempa melanda saat jam makan siang ketika kompor menyala. Angin kencang menyebarkan api membakar Tokyo dan Yokohama.' },
+  { no: 11, nama: 'Banjir Sungai Yangtze', tanggal: 'Juli–Agustus 1931', lokasi: 'Sungai Yangtze & Huai, Tiongkok', korban: '2 – 4 juta jiwa', penyebab: 'Hujan ekstrem + 7 siklon tropis', deskripsi: 'Bencana alam paling mematikan dalam sejarah modern. Menenggelamkan wilayah seluas pulau Inggris, memicu wabah kolera & tifus.' },
+  { no: 12, nama: 'Gempa Bumi Valdivia', tanggal: '22 Mei 1960', lokasi: 'Valdivia, Chile', korban: '± 1.600 – 6.000 jiwa', penyebab: 'Subduksi Lempeng Nazca 9,5 M', deskripsi: 'Gempa terbesar yang pernah tercatat (9,5 M). Memicu tsunami lintas Pasifik yang mencapai Hawaii, Jepang, dan Filipina.' },
+  { no: 13, nama: 'Siklon Bhola', tanggal: '12 November 1970', lokasi: 'Pakistan Timur (kini Bangladesh)', korban: '± 300.000 – 500.000 jiwa', penyebab: 'Siklon Kategori 3 + storm surge 6-10 m', deskripsi: 'Menyapu pulau-pulau rendah di delta Gangga. Lambatnya bantuan memicu ketegangan politik yang berujung Perang Kemerdekaan Bangladesh.' },
+  { no: 14, nama: 'Badai Nina', tanggal: '30 Juli – 8 Agustus 1975', lokasi: 'Henan, Tiongkok', korban: '± 26.000 – 229.000 jiwa', penyebab: 'Siklon Kategori 4 + jebolnya Bendungan Banqiao', deskripsi: 'Bencana kegagalan bendungan paling mematikan. Gelombang air raksasa menerjang wilayah hilir, memutus akses logistik skala besar.' },
+  { no: 15, nama: 'Gempa Bumi Tangshan', tanggal: '28 Juli 1976', lokasi: 'Tangshan, Provinsi Hebei, Tiongkok', korban: '242.419 jiwa (resmi)', penyebab: 'Gempa dangkal 7,5–7,8 M (Patahan Cangdong)', deskripsi: 'Gempa mengguncang pukul 03.42 saat warga tidur. Karena tidak dirancang tahan gempa, 85% bangunan runtuh seketika.' },
+  { no: 16, nama: 'Letusan Nevado del Ruiz', tanggal: '13 November 1985', lokasi: 'Armero, Tolima, Kolombia', korban: '± 23.000 jiwa', penyebab: 'Erupsi piroklastik + lahar dingin', deskripsi: 'Aliran lumpur dan batu menerjang Lembah Armero di tengah malam. Kota tertimbun lumpur, tragedi vulkanik terburuk kedua abad ke-20.' },
+  { no: 17, nama: 'Badai Mitch', tanggal: '22 Oktober – 5 November 1998', lokasi: 'Amerika Tengah (Honduras & Nikaragua)', korban: '> 11.000 jiwa', penyebab: 'Siklon Kategori 5 bergerak lambat', deskripsi: 'Badai Atlantik paling mematikan dalam 200 tahun. Banjir bandang dan tanah longsor melumpuhkan ekonomi Honduras dan Nikaragua.' },
+  { no: 18, nama: 'Longsor Vargas', tanggal: '14–16 Desember 1999', lokasi: 'Negara Bagian Vargas, Venezuela', korban: '± 10.000 – 30.000 jiwa', penyebab: 'Hujan rekor di Pegunungan Avila + debris flow', deskripsi: 'Lereng gunung runtuh membawa lumpur, batu raksasa, dan pohon menyapu kota pesisir. Puluhan ribu rumah rusak, garis pantai berubah.' },
+  { no: 19, nama: 'Gempa Bumi Bam', tanggal: '26 Desember 2003', lokasi: 'Bam, Provinsi Kerman, Iran', korban: '± 26.000 – 30.000 jiwa', penyebab: 'Gempa dangkal 6,6 M', deskripsi: 'Gempa pagi hari. Bangunan tradisional mud-brick runtuh seketika, meruntuhkan situs warisan dunia Arg-e Bam.' },
+  { no: 20, nama: 'Gelombang Panas Eropa', tanggal: 'Juli–Agustus 2003', lokasi: 'Eropa Barat & Tengah (terparah Prancis)', korban: '> 70.000 jiwa', penyebab: 'Antisiklon mengunci udara panas Afrika', deskripsi: 'Musim panas terpanas sejak 1540. Suhu ekstrem memicu dehidrasi, heatstroke, gagal panen, dan krisis layanan kesehatan.' },
+  { no: 21, nama: 'Gempa & Tsunami Samudra Hindia', tanggal: '26 Desember 2004', lokasi: 'Lepas pantai Sumatra, Indonesia (14 negara)', korban: '> 230.000 jiwa (Aceh ± 170.000)', penyebab: 'Megathrust 9,1–9,3 M', deskripsi: 'Gempa terbesar ketiga dunia. Tsunami 30 meter menghantam Aceh, Thailand, Sri Lanka, hingga Afrika Timur.' },
+  { no: 22, nama: 'Siklon Nargis', tanggal: '2–3 Mei 2008', lokasi: 'Myanmar (Delta Ayeyarwady)', korban: '± 138.000 jiwa', penyebab: 'Siklon Kategori 4 + storm surge', deskripsi: 'Badai paling mematikan dalam sejarah Myanmar. Merendam delta padat penduduk, memusnahkan pertanian, memicu krisis kemanusiaan.' },
+  { no: 23, nama: 'Gempa Bumi Haiti', tanggal: '12 Januari 2010', lokasi: 'Dekat Léogâne, 25 km dari Port-au-Prince', korban: '± 100.000 – 316.000 jiwa', penyebab: 'Gempa dangkal 7,0 M (Patahan Enriquillo)', deskripsi: 'Melumpuhkan Haiti karena pusat dekat area padat. Konstruksi buruk membuat rumah sakit, istana presiden, dan permukiman rata dengan tanah.' },
+  { no: 24, nama: 'Gempa Bumi Jepang (Tohoku)', tanggal: '11 Maret 2011', lokasi: 'Lepas pantai timur Tohoku, Jepang', korban: '± 18.000 – 20.000 jiwa', penyebab: 'Megathrust 9,0–9,1 M + tsunami 40 m', deskripsi: 'Gempa terkuat dalam sejarah Jepang. Tsunami menerjang Tohoku, memicu krisis nuklir Fukushima Daiichi.' },
+  { no: 25, nama: 'Badai Haiyan (Yolanda)', tanggal: '3–11 November 2013', lokasi: 'Filipina, Vietnam, Tiongkok', korban: '± 6.300 – 7.350 jiwa', penyebab: 'Siklon Kategori 5, angin 315 km/jam', deskripsi: 'Salah satu topan terkuat dengan landfall tercatat. Storm surge 5-6 m menerjang Tacloban, meratakan pemukiman, memicu krisis kemanusiaan.' }
+];
 
-    const DISASTER_IMAGES = {
-      1:  'gempabumishanxi.jpeg', 2:  'letusangunungtambora.jpeg',
-      3:  'sikloncoringa.jpeg', 4:  'topanhaipong.jpeg',
-      5:  'letusangunungkrakatau.jpeg', 6:  'banjirsungaikuning.jpeg',
-      7:  'letusangunungpelee.jpeg', 8:  'gempabumimesina.jpeg',
-      9:  'gempabumihaiyuan.jpeg', 10: 'gempabumikanto.jpeg',
-      11: 'banjirsungaiyangtze.jpeg', 12: 'gempabumivaldivia.jpeg',
-      13: 'siklonbhola.jpeg', 14: 'badainina.jpeg',
-      15: 'gempabumitangshan.jpeg', 16: 'letusangunungnevadodelruiz.jpeg',
-      17: 'badaimitch.jpeg', 18: 'longsorvargas.jpeg',
-      19: 'gempabumibam.jpeg', 20: 'gelombangpanaseropa.jpeg',
-      21: 'gempabumidantsunamisamudrahindia.jpeg', 22: 'siklonnargis.jpeg',
-      23: 'gempabumihaiti.jpeg', 24: 'gempabumijepang.jpeg',
-      25: 'badaihaiyan.jpeg'
-    };
+const DISASTER_IMAGES = {
+  1:  'gempabumishanxi.jpeg', 2:  'letusangunungtambora.jpeg',
+  3:  'sikloncoringa.jpeg', 4:  'topanhaipong.jpeg',
+  5:  'letusangunungkrakatau.jpeg', 6:  'banjirsungaikuning.jpeg',
+  7:  'letusangunungpelee.jpeg', 8:  'gempabumimesina.jpeg',
+  9:  'gempabumihaiyuan.jpeg', 10: 'gempabumikanto.jpeg',
+  11: 'banjirsungaiyangtze.jpeg', 12: 'gempabumivaldivia.jpeg',
+  13: 'siklonbhola.jpeg', 14: 'badainina.jpeg',
+  15: 'gempabumitangshan.jpeg', 16: 'letusangunungnevadodelruiz.jpeg',
+  17: 'badaimitch.jpeg', 18: 'longsorvargas.jpeg',
+  19: 'gempabumibam.jpeg', 20: 'gelombangpanaseropa.jpeg',
+  21: 'gempabumidantsunamisamudrahindia.jpeg', 22: 'siklonnargis.jpeg',
+  23: 'gempabumihaiti.jpeg', 24: 'gempabumijepang.jpeg',
+  25: 'badaihaiyan.jpeg'
+};
 
-    // ═══════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════
-    let currentView = 'idle';
-    let lastRevealedRank = -1;
-    let currentTeamIndex = 0;
-    let currentDisasterIndex = 0;
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentView = 'idle';
+let lastRevealedRank = -1;
+let currentTeamIndex = 0;
+let currentDisasterIndex = 0;
 
-    let teamRotateInterval = null;
-    let disasterRotateInterval = null;
-    let answerTimerInterval = null;
-    let memorizeTimerInterval = null;
+let teamRotateInterval = null;
+let disasterRotateInterval = null;
+let answerTimerInterval = null;
+let memorizeTimerInterval = null;
 
-    let teamsData = {};
-    let cachedTeamStandings = [];
-    let cachedGlobalScores = [];
+let teamsData = {};
+let cachedTeamStandings = [];
+let cachedGlobalScores = [];
 
-    let lastMemorizeSig = '';
-    let memorizeActive = false;
+let lastMemorizeSig = '';
+let memorizeActive = false;
 
-    // Idle canvas animation state
-    let idleCanvasRunning = false;
-    let idleCanvasRafId = null;
+// Idle canvas state
+let idleCanvasRunning = false;
+let idleCanvasRafId = null;
+let idleWindParticles = [];
+let idleEmbers = [];
+let idleWaveOffset = 0;
 
-    // ═══════════════════════════════════════════════════════════
-    // AUDIO — SFX
-    // ═══════════════════════════════════════════════════════════
-    function playBell() {
-      const bell = document.getElementById('bellSound');
-      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
-    }
+// Loading canvas state
+let loadingCanvasRunning = false;
+let loadingCanvasRafId = null;
+let loadingWindParticles = [];
 
-    function playBeep() {
-      const beep = document.getElementById('beepSound');
-      if (!beep) return playBell();
-      try {
-        beep.currentTime = 0;
-        beep.volume = 1.0;
-        beep.play().catch(() => playBell());
-      } catch (e) { playBell(); }
-    }
+// Transition state
+let transitionRunning = false;
+let transitionParticles = [];
+let transitionRafId = null;
 
-    function playBeepTimes(times = 3, gapMs = 400) {
-      for (let i = 0; i < times; i++) {
-        setTimeout(() => playBeep(), i * gapMs);
-      }
-    }
+// Guard
+let isTransitioning = false;
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ BGM MANAGER
-    // ═══════════════════════════════════════════════════════════
-    function initBGM() {
-      BGM.player = document.getElementById('bgmPlayer');
-      if (!BGM.player) return;
+// ═══════════════════════════════════════════════════════════
+// AUDIO — SFX
+// ═══════════════════════════════════════════════════════════
+function playBell() {
+  const bell = document.getElementById('bellSound');
+  if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
+}
 
-      BGM.player.volume = BGM.volume;
-      BGM.player.loop = true;
-      BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
-      BGM.current = 'idle';
+function playBeep() {
+  const beep = document.getElementById('beepSound');
+  if (!beep) return playBell();
+  try {
+    beep.currentTime = 0;
+    beep.volume = 1.0;
+    beep.play().catch(() => playBell());
+  } catch (e) { playBell(); }
+}
 
-      BGM.player.play()
-        .then(() => {
-          BGM.unlocked = true;
-          updateBGMBadge('playing', 'idle');
-        })
-        .catch(() => {
-          showUnlockOverlay();
-          updateBGMBadge('blocked', 'idle');
-        });
+function playBeepTimes(times = 3, gapMs = 400) {
+  for (let i = 0; i < times; i++) {
+    setTimeout(() => playBeep(), i * gapMs);
+  }
+}
 
-      const unlock = () => {
-        if (BGM.unlocked) return;
-        BGM.unlocked = true;
+// ═══════════════════════════════════════════════════════════
+// BGM MANAGER
+// ═══════════════════════════════════════════════════════════
+function initBGM() {
+  BGM.player = document.getElementById('bgmPlayer');
+  if (!BGM.player) return;
 
-        const target = BGM.pendingTrack || BGM.current || 'idle';
-        BGM.pendingTrack = null;
-        BGM.player.src = BGM.baseUrl + BGM.tracks[target];
-        BGM.player.currentTime = 0;
-        BGM.current = target;
+  BGM.player.volume = BGM.volume;
+  BGM.player.loop = true;
+  BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+  BGM.current = 'idle';
 
-        BGM.player.play()
-          .then(() => updateBGMBadge('playing', target))
-          .catch(() => {});
-
-        hideUnlockOverlay();
-        document.removeEventListener('click', unlock);
-        document.removeEventListener('touchstart', unlock);
-        document.removeEventListener('keydown', unlock);
-      };
-
-      document.addEventListener('click', unlock);
-      document.addEventListener('touchstart', unlock);
-      document.addEventListener('keydown', unlock);
-
-      const overlay = document.getElementById('audioUnlockOverlay');
-      if (overlay) overlay.addEventListener('click', unlock);
-    }
-
-    function showUnlockOverlay() {
-      const el = document.getElementById('audioUnlockOverlay');
-      if (el) el.classList.remove('hidden');
-    }
-    function hideUnlockOverlay() {
-      const el = document.getElementById('audioUnlockOverlay');
-      if (el) el.classList.add('hidden');
-    }
-
-    function updateBGMBadge(status, trackName) {
-      const dot = document.getElementById('bgmDot');
-      const label = document.getElementById('bgmLabel');
-      if (dot) {
-        if (status === 'playing') dot.className = 'dot playing';
-        else if (status === 'muted') dot.className = 'dot muted';
-        else dot.className = 'dot';
-      }
-      if (label) label.textContent = `BGM: ${trackName}`;
-    }
-
-    function playBGM(viewName) {
-      if (!BGM.player) return;
-
-      const filename = BGM.tracks[viewName];
-      if (!filename) return;
-
-      // Guard: track sama
-      if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
-
-      if (!BGM.unlocked) {
-        BGM.pendingTrack = viewName;
-        BGM.current = viewName;
-        updateBGMBadge('blocked', viewName);
-        return;
-      }
-
-      const newSrc = BGM.baseUrl + filename;
-      if (BGM.player.src === newSrc) {
-        BGM.current = viewName;
-        return;
-      }
-
-      BGM.current = viewName;
-      try { BGM.player.pause(); } catch (e) {}
-
-      BGM.player.src = newSrc;
-      BGM.player.currentTime = 0;
-
-      setTimeout(() => {
-        BGM.player.load();
-        BGM.player.play()
-          .then(() => updateBGMBadge('playing', viewName))
-          .catch(() => {
-            updateBGMBadge('blocked', viewName);
-            BGM.pendingTrack = viewName;
-            BGM.unlocked = false;
-            showUnlockOverlay();
-          });
-      }, 80);
-    }
-
-    function unlockAudio() {
+  BGM.player.play()
+    .then(() => {
       BGM.unlocked = true;
-      hideUnlockOverlay();
-      const target = BGM.pendingTrack || BGM.current || 'idle';
-      BGM.pendingTrack = null;
-      BGM.current = null;
-      playBGM(target);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // IDLE CANVAS ANIMATION (Fire Ember)
-    // ═══════════════════════════════════════════════════════════
-    const labCanvas = document.getElementById('lab-canvas');
-    const labCtx = labCanvas ? labCanvas.getContext('2d') : null;
-
-    let labW, labH;
-    let labParticles = [];
-
-    class Ember {
-      constructor() { this.reset(); }
-      reset() {
-        this.x = Math.random() * labW;
-        this.y = labH + Math.random() * 50;
-        this.size = Math.random() * 3 + 1;
-        this.speedY = Math.random() * 2 + 1;
-        this.speedX = (Math.random() - 0.5) * 1.5;
-        this.opacity = Math.random() * 0.9 + 0.1;
-        const colors = ['#ff1a00', '#ff5500', '#ffaa00', '#cc0000'];
-        this.color = colors[Math.floor(Math.random() * colors.length)];
-      }
-      update() {
-        this.y -= this.speedY;
-        this.x += this.speedX + Math.sin(this.y * 0.02) * 0.5;
-        this.opacity -= 0.003;
-        if (this.y < -10 || this.opacity <= 0) this.reset();
-      }
-      draw() {
-        if (!labCtx) return;
-        labCtx.beginPath();
-        labCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        labCtx.fillStyle = this.color;
-        labCtx.globalAlpha = this.opacity;
-        labCtx.shadowBlur = 12;
-        labCtx.shadowColor = this.color;
-        labCtx.fill();
-        labCtx.globalAlpha = 1;
-        labCtx.shadowBlur = 0;
-      }
-    }
-
-    function resizeLab() {
-      if (!labCanvas) return;
-      labW = labCanvas.width = window.innerWidth;
-      labH = labCanvas.height = window.innerHeight;
-    }
-
-    function startIdleCanvas() {
-      if (idleCanvasRunning || !labCtx) return;
-      idleCanvasRunning = true;
-
-      resizeLab();
-      if (labParticles.length === 0) {
-        for (let i = 0; i < 110; i++) labParticles.push(new Ember());
-      } else {
-        labParticles.forEach(p => p.reset());
-      }
-
-      const render = () => {
-        if (!idleCanvasRunning || !labCtx) return;
-        labCtx.fillStyle = 'rgba(8, 2, 2, 0.25)';
-        labCtx.fillRect(0, 0, labW, labH);
-        labParticles.forEach(p => { p.update(); p.draw(); });
-        idleCanvasRafId = requestAnimationFrame(render);
-      };
-      render();
-    }
-
-    function stopIdleCanvas() {
-      idleCanvasRunning = false;
-      if (idleCanvasRafId) cancelAnimationFrame(idleCanvasRafId);
-      idleCanvasRafId = null;
-    }
-
-    window.addEventListener('resize', () => {
-      if (idleCanvasRunning) resizeLab();
+      updateBGMBadge('playing', 'idle');
+    })
+    .catch(() => {
+      showUnlockOverlay();
+      updateBGMBadge('blocked', 'idle');
     });
 
-    // ═══════════════════════════════════════════════════════════
-    // FETCH TEAMS
-    // ═══════════════════════════════════════════════════════════
-    async function fetchTeams() {
-      const { data, error } = await supabaseClient
-        .from('cataclysm_memory_teams')
-        .select('unique_id, full_name, team')
-        .order('team', { ascending: true })
-        .order('full_name', { ascending: true });
+  const unlock = () => {
+    if (BGM.unlocked) return;
+    BGM.unlocked = true;
 
-      if (error) { console.error('[STAGE] Fetch teams error:', error); return; }
+    const target = BGM.pendingTrack || BGM.current || 'idle';
+    BGM.pendingTrack = null;
+    BGM.player.src = BGM.baseUrl + BGM.tracks[target];
+    BGM.player.currentTime = 0;
+    BGM.current = target;
 
-      teamsData = {};
-      for (let i = 1; i <= TEAM_COUNT; i++) teamsData[i] = [];
+    BGM.player.play()
+      .then(() => updateBGMBadge('playing', target))
+      .catch(() => {});
 
-      (data || []).forEach(row => {
-        if (!teamsData[row.team]) teamsData[row.team] = [];
-        teamsData[row.team].push({
-          unique_id: row.unique_id,
-          full_name: row.full_name || row.unique_id
-        });
+    hideUnlockOverlay();
+    document.removeEventListener('click', unlock);
+    document.removeEventListener('touchstart', unlock);
+    document.removeEventListener('keydown', unlock);
+  };
+
+  document.addEventListener('click', unlock);
+  document.addEventListener('touchstart', unlock);
+  document.addEventListener('keydown', unlock);
+
+  const overlay = document.getElementById('audioUnlockOverlay');
+  if (overlay) overlay.addEventListener('click', unlock);
+}
+
+function showUnlockOverlay() {
+  const el = document.getElementById('audioUnlockOverlay');
+  if (el) el.classList.remove('hidden');
+}
+function hideUnlockOverlay() {
+  const el = document.getElementById('audioUnlockOverlay');
+  if (el) el.classList.add('hidden');
+}
+
+function updateBGMBadge(status, trackName) {
+  const dot = document.getElementById('bgmDot');
+  const label = document.getElementById('bgmLabel');
+  if (dot) {
+    if (status === 'playing') dot.className = 'dot playing';
+    else if (status === 'muted') dot.className = 'dot muted';
+    else dot.className = 'dot';
+  }
+  if (label) label.textContent = `BGM: ${trackName}`;
+}
+
+function playBGM(viewName) {
+  if (!BGM.player) return;
+
+  const filename = BGM.tracks[viewName];
+  if (!filename) return;
+
+  if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
+
+  if (!BGM.unlocked) {
+    BGM.pendingTrack = viewName;
+    BGM.current = viewName;
+    updateBGMBadge('blocked', viewName);
+    return;
+  }
+
+  const newSrc = BGM.baseUrl + filename;
+  if (BGM.player.src === newSrc) {
+    BGM.current = viewName;
+    return;
+  }
+
+  BGM.current = viewName;
+  try { BGM.player.pause(); } catch (e) {}
+
+  BGM.player.src = newSrc;
+  BGM.player.currentTime = 0;
+
+  setTimeout(() => {
+    BGM.player.load();
+    BGM.player.play()
+      .then(() => updateBGMBadge('playing', viewName))
+      .catch(() => {
+        updateBGMBadge('blocked', viewName);
+        BGM.pendingTrack = viewName;
+        BGM.unlocked = false;
+        showUnlockOverlay();
       });
+  }, 80);
+}
 
-      if (currentView === 'team_assignment') startTeamRotation();
-    }
+function unlockAudio() {
+  BGM.unlocked = true;
+  hideUnlockOverlay();
+  const target = BGM.pendingTrack || BGM.current || 'idle';
+  BGM.pendingTrack = null;
+  BGM.current = null;
+  playBGM(target);
+}
 
-    // ═══════════════════════════════════════════════════════════
-    // TEAM ASSIGNMENT
-    // ═══════════════════════════════════════════════════════════
-    function renderTeamContainer(containerId, teamNum) {
-      const container = document.getElementById(containerId);
-      if (!container) return;
+// ═══════════════════════════════════════════════════════════
+// IDLE CANVAS — Wind + Embers + Tsunami
+// ═══════════════════════════════════════════════════════════
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
 
-      const members = teamsData[teamNum] || [];
-      const teamClass = `team-${teamNum}`;
-      container.className = `bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden ${teamClass}`;
+let bgW, bgH;
 
-      if (members.length === 0) {
-        container.innerHTML = `
-          <div class="flex items-center justify-center h-full">
-            <div class="text-center">
-              <i class="fas fa-users-slash text-6xl opacity-30 mb-4"></i>
-              <div class="text-2xl font-black opacity-70">${TEAM_NAMES[teamNum]}</div>
-              <div class="text-sm opacity-50 mt-2">Belum ada anggota</div>
-            </div>
-          </div>
-        `;
-        return;
-      }
+class WindParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * bgW * 1.5 - bgW * 0.25;
+    this.y = Math.random() * bgH;
+    this.length = Math.random() * 120 + 60;
+    this.speed = Math.random() * 25 + 15;
+    this.opacity = Math.random() * 0.4 + 0.1;
+    this.thickness = Math.random() * 2 + 0.5;
+  }
+  update() {
+    this.x += this.speed;
+    this.y += (Math.random() - 0.5) * 1.5;
+    if (this.x > bgW + 200) { this.reset(); this.x = -200; }
+  }
+  draw() {
+    if (!bgCtx) return;
+    bgCtx.beginPath();
+    const grad = bgCtx.createLinearGradient(this.x, this.y, this.x - this.length, this.y);
+    grad.addColorStop(0, `rgba(239, 68, 68, ${this.opacity})`);
+    grad.addColorStop(0.5, `rgba(185, 28, 28, ${this.opacity * 0.5})`);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    bgCtx.strokeStyle = grad;
+    bgCtx.lineWidth = this.thickness;
+    bgCtx.moveTo(this.x, this.y);
+    bgCtx.lineTo(this.x - this.length, this.y);
+    bgCtx.stroke();
+  }
+}
 
-      const gridHtml = members.map((m, idx) => {
-        const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
-        return `
-          <div class="flex flex-col items-center text-center animate-slide-up" style="animation-delay: ${idx * 60}ms">
-            <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-2 mb-2">
-              <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
-            </div>
-            <div class="text-xs font-bold truncate w-full text-white">${m.full_name}</div>
-            <div class="text-[9px] opacity-60 font-mono truncate w-full">${m.unique_id}</div>
-          </div>
-        `;
-      }).join('');
+class EmberParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * bgW;
+    this.y = bgH + Math.random() * 50;
+    this.size = Math.random() * 3 + 1;
+    this.vx = Math.random() * 8 + 4;
+    this.vy = -(Math.random() * 5 + 2);
+    this.opacity = Math.random() * 0.8 + 0.2;
+    this.color = Math.random() > 0.4 ? '#f97316' : '#ef4444';
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.opacity -= 0.005;
+    if (this.opacity <= 0 || this.y < -20 || this.x > bgW + 50) this.reset();
+  }
+  draw() {
+    if (!bgCtx) return;
+    bgCtx.beginPath();
+    bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    bgCtx.fillStyle = this.color;
+    bgCtx.globalAlpha = Math.max(0, this.opacity);
+    bgCtx.shadowBlur = 10;
+    bgCtx.shadowColor = '#ef4444';
+    bgCtx.fill();
+    bgCtx.globalAlpha = 1.0;
+    bgCtx.shadowBlur = 0;
+  }
+}
 
-      container.innerHTML = `
-        <div class="absolute top-4 left-6 z-10">
-          <div class="text-3xl font-black font-math tracking-wider text-white drop-shadow-lg">${TEAM_NAMES[teamNum]}</div>
-          <div class="text-xs font-bold opacity-80 mt-1">${members.length} ANGGOTA</div>
-        </div>
-        <div class="absolute top-4 right-6 z-10">
-          <div class="bg-slate-950/80 border border-white/20 rounded-2xl w-14 h-14 flex items-center justify-center text-2xl font-black">${teamNum}</div>
-        </div>
-        <div class="pt-20 h-full">
-          <div class="grid grid-cols-3 gap-3 auto-rows-max custom-scroll max-h-[400px] overflow-y-auto pr-1">
-            ${gridHtml}
-          </div>
-        </div>
-      `;
-    }
+function drawTsunami() {
+  if (!bgCtx) return;
+  idleWaveOffset += 0.04;
+  bgCtx.fillStyle = 'rgba(15, 3, 8, 0.85)';
+  bgCtx.beginPath();
+  bgCtx.moveTo(0, bgH);
+  for (let x = 0; x <= bgW; x += 20) {
+    const y = bgH - 70 - Math.sin(x * 0.005 + idleWaveOffset) * 25 - Math.cos(x * 0.01 + idleWaveOffset * 1.5) * 15;
+    bgCtx.lineTo(x, y);
+  }
+  bgCtx.lineTo(bgW, bgH);
+  bgCtx.closePath();
+  bgCtx.fill();
 
-    function startTeamRotation() {
-      if (teamRotateInterval) clearInterval(teamRotateInterval);
-      currentTeamIndex = 0;
-      rotateTeams();
-      teamRotateInterval = setInterval(() => {
-        if (currentView !== 'team_assignment') return;
-        currentTeamIndex = (currentTeamIndex + 2) % 10;
-        rotateTeams();
-      }, 3000);
-    }
+  const fireGrad = bgCtx.createLinearGradient(0, bgH - 120, 0, bgH);
+  fireGrad.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+  fireGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.15)');
+  fireGrad.addColorStop(1, 'rgba(0, 0, 0, 0.9)');
+  bgCtx.fillStyle = fireGrad;
+  bgCtx.fillRect(0, bgH - 120, bgW, 120);
+}
 
-    function rotateTeams() {
-      const teamA = (currentTeamIndex % 10) + 1;
-      const teamB = ((currentTeamIndex + 1) % 10) + 1;
-      renderTeamContainer('teamContainerA', teamA);
-      renderTeamContainer('teamContainerB', teamB);
+function resizeBg() {
+  if (!bgCanvas) return;
+  bgW = bgCanvas.width = window.innerWidth;
+  bgH = bgCanvas.height = window.innerHeight;
+}
 
-      const dots = document.querySelectorAll('.rotate-dot');
-      const activeIdx = Math.floor(currentTeamIndex / 2);
-      dots.forEach((d, i) => {
-        d.className = `rotate-dot w-3 h-3 rounded-full transition-all ${i === activeIdx ? 'bg-cyan-400 scale-125' : 'bg-slate-700'}`;
+function startIdleCanvas() {
+  if (idleCanvasRunning || !bgCtx) return;
+  idleCanvasRunning = true;
+
+  resizeBg();
+
+  if (idleWindParticles.length === 0) {
+    for (let i = 0; i < 70; i++) idleWindParticles.push(new WindParticle());
+    for (let i = 0; i < 60; i++) idleEmbers.push(new EmberParticle());
+  } else {
+    idleWindParticles.forEach(p => p.reset());
+    idleEmbers.forEach(e => e.reset());
+  }
+
+  const loop = () => {
+    if (!idleCanvasRunning || !bgCtx) return;
+    bgCtx.fillStyle = 'rgba(5, 2, 3, 0.25)';
+    bgCtx.fillRect(0, 0, bgW, bgH);
+    drawTsunami();
+    idleWindParticles.forEach(p => { p.update(); p.draw(); });
+    idleEmbers.forEach(e => { e.update(); e.draw(); });
+    idleCanvasRafId = requestAnimationFrame(loop);
+  };
+  loop();
+
+  LOG_OK('IDLE', '🎬 Idle canvas started');
+}
+
+function stopIdleCanvas() {
+  idleCanvasRunning = false;
+  if (idleCanvasRafId) cancelAnimationFrame(idleCanvasRafId);
+  idleCanvasRafId = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOADING CANVAS — Wind particles
+// ═══════════════════════════════════════════════════════════
+const loadingCanvas = document.getElementById('loadingCanvas');
+const loadingCtx = loadingCanvas ? loadingCanvas.getContext('2d') : null;
+let lcW, lcH;
+
+function resizeLoadingCanvas() {
+  if (!loadingCanvas) return;
+  lcW = loadingCanvas.width = window.innerWidth;
+  lcH = loadingCanvas.height = window.innerHeight;
+}
+
+function startLoadingCanvas() {
+  if (loadingCanvasRunning || !loadingCtx) return;
+  loadingCanvasRunning = true;
+  resizeLoadingCanvas();
+
+  if (loadingWindParticles.length === 0) {
+    for (let i = 0; i < 40; i++) {
+      loadingWindParticles.push({
+        x: Math.random() * lcW,
+        y: Math.random() * lcH,
+        length: Math.random() * 150 + 80,
+        speed: Math.random() * 20 + 12,
+        opacity: Math.random() * 0.35 + 0.1,
+        thickness: Math.random() * 2 + 0.5
       });
-      playBell();
+    }
+  }
+
+  const loop = () => {
+    if (!loadingCanvasRunning || !loadingCtx) return;
+    loadingCtx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    loadingCtx.fillRect(0, 0, lcW, lcH);
+
+    loadingWindParticles.forEach(p => {
+      p.x += p.speed;
+      if (p.x > lcW + 200) p.x = -200;
+
+      loadingCtx.beginPath();
+      const grad = loadingCtx.createLinearGradient(p.x, p.y, p.x - p.length, p.y);
+      grad.addColorStop(0, `rgba(239, 68, 68, ${p.opacity})`);
+      grad.addColorStop(0.5, `rgba(185, 28, 28, ${p.opacity * 0.5})`);
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      loadingCtx.strokeStyle = grad;
+      loadingCtx.lineWidth = p.thickness;
+      loadingCtx.moveTo(p.x, p.y);
+      loadingCtx.lineTo(p.x - p.length, p.y);
+      loadingCtx.stroke();
+    });
+
+    loadingCanvasRafId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function stopLoadingCanvas() {
+  loadingCanvasRunning = false;
+  if (loadingCanvasRafId) cancelAnimationFrame(loadingCanvasRafId);
+  loadingCanvasRafId = null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FIRE TRANSITION — Eruption particles
+// ═══════════════════════════════════════════════════════════
+const fireCanvas = document.getElementById('fireTransitionCanvas');
+const fireCtx = fireCanvas ? fireCanvas.getContext('2d') : null;
+
+function resizeFireCanvas() {
+  if (!fireCanvas) return;
+  fireCanvas.width = window.innerWidth;
+  fireCanvas.height = window.innerHeight;
+}
+resizeFireCanvas();
+
+class EruptionParticle {
+  constructor() {
+    this.x = Math.random() * fireCanvas.width;
+    this.y = fireCanvas.height + Math.random() * 20;
+    this.radius = Math.random() * 40 + 20;
+    this.vx = (Math.random() - 0.5) * 12;
+    this.vy = -Math.random() * 25 - 10;
+    this.life = 1;
+    this.decay = Math.random() * 0.02 + 0.01;
+    this.color = ['#f97316', '#ef4444', '#facc15', '#b91c1c'][Math.floor(Math.random() * 4)];
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.radius += 1.5;
+    this.life -= this.decay;
+  }
+  draw() {
+    if (!fireCtx) return;
+    fireCtx.beginPath();
+    fireCtx.arc(this.x, this.y, Math.max(0, this.radius), 0, Math.PI * 2);
+    fireCtx.fillStyle = this.color;
+    fireCtx.globalAlpha = Math.max(0, this.life);
+    fireCtx.shadowBlur = 30;
+    fireCtx.shadowColor = '#ef4444';
+    fireCtx.fill();
+    fireCtx.globalAlpha = 1.0;
+  }
+}
+
+function startFireTransition() {
+  if (!fireCtx) return;
+  fireCanvas.classList.add('show');
+  transitionRunning = true;
+
+  const loop = () => {
+    if (!transitionRunning || !fireCtx) return;
+    fireCtx.clearRect(0, 0, fireCanvas.width, fireCanvas.height);
+
+    for (let i = 0; i < 15; i++) {
+      transitionParticles.push(new EruptionParticle());
     }
 
-    function stopTeamRotation() {
-      if (teamRotateInterval) { clearInterval(teamRotateInterval); teamRotateInterval = null; }
+    for (let i = transitionParticles.length - 1; i >= 0; i--) {
+      const p = transitionParticles[i];
+      p.update();
+      p.draw();
+      if (p.life <= 0) transitionParticles.splice(i, 1);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // MEMORIZE PHASE
-    // ═══════════════════════════════════════════════════════════
-    async function startMemorizeTimer(startTime, duration) {
-      if (memorizeTimerInterval) clearInterval(memorizeTimerInterval);
-      const display = document.getElementById('memorizeTimerDisplay');
-      if (!display) return;
+    transitionRafId = requestAnimationFrame(loop);
+  };
+  loop();
+}
 
-      const startMs = new Date(startTime).getTime();
-      memorizeActive = true;
+function stopFireTransition() {
+  transitionRunning = false;
+  if (transitionRafId) cancelAnimationFrame(transitionRafId);
+  transitionRafId = null;
+  transitionParticles = [];
+  fireCanvas.classList.remove('show');
+}
 
-      const tick = () => {
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+// ═══════════════════════════════════════════════════════════
+// LOADING SCREEN CONTROLLER
+// ═══════════════════════════════════════════════════════════
+const LOADING_STATUSES = [
+  "Stabilizing storm vectors...",
+  "Allocating memory fragments...",
+  "Connecting to Day 1, Game 3 server...",
+  "Syncing apocalyptic neural network...",
+  "Entering Cataclysm Memory..."
+];
 
-        if (remaining <= 30) {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
-        } else {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
+async function showLoadingScreen(duration = 2400) {
+  return new Promise((resolve) => {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const progressBar = document.getElementById('progressBar');
+    const percentText = document.getElementById('loadingPercent');
+    const statusText = document.getElementById('loadingStatusText');
+
+    if (!loadingScreen) return resolve();
+
+    loadingScreen.classList.add('show');
+    startLoadingCanvas();
+
+    if (progressBar) progressBar.style.width = '0%';
+    if (percentText) percentText.innerText = '0%';
+    if (statusText) {
+      statusText.innerText = LOADING_STATUSES[0];
+      statusText.classList.remove('text-green-400', 'font-bold');
+    }
+
+    let progress = 0;
+    let statusIdx = 0;
+
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 12) + 5;
+      if (progress > 100) progress = 100;
+
+      if (progressBar) progressBar.style.width = `${progress}%`;
+      if (percentText) percentText.innerText = `${progress}%`;
+
+      statusIdx = Math.min(Math.floor((progress / 100) * LOADING_STATUSES.length), LOADING_STATUSES.length - 1);
+      if (statusText) statusText.innerText = LOADING_STATUSES[statusIdx];
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        if (statusText) {
+          statusText.innerText = "GAME READY! ENTERING WORLD...";
+          statusText.classList.add('text-green-400', 'font-bold');
         }
-
-        if (remaining <= 0) {
-          clearInterval(memorizeTimerInterval);
-          memorizeTimerInterval = null;
-          handleMemorizeTimeout();
-        }
-      };
-
-      tick();
-      memorizeTimerInterval = setInterval(tick, 500);
-    }
-
-    function stopMemorizeTimer() {
-      if (memorizeTimerInterval) { clearInterval(memorizeTimerInterval); memorizeTimerInterval = null; }
-      memorizeActive = false;
-    }
-
-    async function handleMemorizeTimeout() {
-      console.log('[STAGE] ⏰ Memorize timeout — kembali ke idle');
-
-      playBeepTimes(3, 400);
-
-      const overlay = document.getElementById('timeupOverlay');
-      if (overlay) {
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
         setTimeout(() => {
-          overlay.classList.add('hidden');
-          overlay.classList.remove('flex');
-        }, 3500);
+          loadingScreen.classList.remove('show');
+          stopLoadingCanvas();
+          resolve();
+        }, 500);
       }
+    }, duration / 15);
+  });
+}
 
-      try {
-        await supabaseClient
-          .from('system_cataclysm_memory')
-          .update({
-            is_memorize_active: false,
-            memorize_end_time: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', 1);
-      } catch (e) { console.warn('Update memorize_end gagal', e); }
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG_OK = (t, m) => console.log(`%c[${t}] ✅ ${m}`, 'color:#ef4444;font-weight:bold');
+const LOG_INFO = (t, m) => console.log(`%c[${t}] ℹ️ ${m}`, 'color:#f97316;font-weight:bold');
 
-      try {
-        await supabaseClient
-          .from('admin_layout_cataclysm_memory')
-          .update({
-            current_view: 'idle',
-            revealed_rank: 0,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', 1);
-      } catch (e) { console.warn('Update layout idle gagal', e); }
+// ═══════════════════════════════════════════════════════════
+// FETCH TEAMS
+// ═══════════════════════════════════════════════════════════
+async function fetchTeams() {
+  const { data, error } = await supabaseClient
+    .from('cataclysm_memory_teams')
+    .select('unique_id, full_name, team')
+    .order('team', { ascending: true })
+    .order('full_name', { ascending: true });
 
-      memorizeActive = false;
+  if (error) { console.error('[STAGE] Fetch teams error:', error); return; }
+
+  teamsData = {};
+  for (let i = 1; i <= TEAM_COUNT; i++) teamsData[i] = [];
+
+  (data || []).forEach(row => {
+    if (!teamsData[row.team]) teamsData[row.team] = [];
+    teamsData[row.team].push({
+      unique_id: row.unique_id,
+      full_name: row.full_name || row.unique_id
+    });
+  });
+
+  if (currentView === 'team_assignment') startTeamRotation();
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEAM ASSIGNMENT
+// ═══════════════════════════════════════════════════════════
+function renderTeamContainer(containerId, teamNum) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const members = teamsData[teamNum] || [];
+  const teamClass = `team-${teamNum}`;
+  container.className = `bg-slate-900/80 border-2 rounded-3xl p-6 min-h-[500px] backdrop-blur-md relative overflow-hidden ${teamClass}`;
+
+  if (members.length === 0) {
+    container.innerHTML = `
+      <div class="flex items-center justify-center h-full">
+        <div class="text-center">
+          <i class="fas fa-users-slash text-6xl opacity-30 mb-4"></i>
+          <div class="text-2xl font-black opacity-70">${TEAM_NAMES[teamNum]}</div>
+          <div class="text-sm opacity-50 mt-2">Belum ada anggota</div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const gridHtml = members.map((m, idx) => {
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
+    return `
+      <div class="flex flex-col items-center text-center animate-slide-up" style="animation-delay: ${idx * 60}ms">
+        <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-2 mb-2">
+          <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
+        </div>
+        <div class="text-xs font-bold truncate w-full text-white">${m.full_name}</div>
+        <div class="text-[9px] opacity-60 font-mono truncate w-full">${m.unique_id}</div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="absolute top-4 left-6 z-10">
+      <div class="text-3xl font-black font-math tracking-wider text-white drop-shadow-lg">${TEAM_NAMES[teamNum]}</div>
+      <div class="text-xs font-bold opacity-80 mt-1">${members.length} ANGGOTA</div>
+    </div>
+    <div class="absolute top-4 right-6 z-10">
+      <div class="bg-slate-950/80 border border-white/20 rounded-2xl w-14 h-14 flex items-center justify-center text-2xl font-black">${teamNum}</div>
+    </div>
+    <div class="pt-20 h-full">
+      <div class="grid grid-cols-3 gap-3 auto-rows-max custom-scroll max-h-[400px] overflow-y-auto pr-1">
+        ${gridHtml}
+      </div>
+    </div>
+  `;
+}
+
+function startTeamRotation() {
+  if (teamRotateInterval) clearInterval(teamRotateInterval);
+  currentTeamIndex = 0;
+  rotateTeams();
+  teamRotateInterval = setInterval(() => {
+    if (currentView !== 'team_assignment') return;
+    currentTeamIndex = (currentTeamIndex + 2) % 10;
+    rotateTeams();
+  }, 3000);
+}
+
+function rotateTeams() {
+  const teamA = (currentTeamIndex % 10) + 1;
+  const teamB = ((currentTeamIndex + 1) % 10) + 1;
+  renderTeamContainer('teamContainerA', teamA);
+  renderTeamContainer('teamContainerB', teamB);
+
+  const dots = document.querySelectorAll('.rotate-dot');
+  const activeIdx = Math.floor(currentTeamIndex / 2);
+  dots.forEach((d, i) => {
+    d.className = `rotate-dot w-3 h-3 rounded-full transition-all ${i === activeIdx ? 'bg-red-400 scale-125' : 'bg-slate-700'}`;
+  });
+  playBell();
+}
+
+function stopTeamRotation() {
+  if (teamRotateInterval) { clearInterval(teamRotateInterval); teamRotateInterval = null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MEMORIZE PHASE
+// ═══════════════════════════════════════════════════════════
+async function startMemorizeTimer(startTime, duration) {
+  if (memorizeTimerInterval) clearInterval(memorizeTimerInterval);
+  const display = document.getElementById('memorizeTimerDisplay');
+  if (!display) return;
+
+  const startMs = new Date(startTime).getTime();
+  memorizeActive = true;
+
+  const tick = () => {
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const remaining = Math.max(0, duration - elapsed);
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    if (remaining <= 30) {
+      display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
+    } else {
+      display.className = 'text-[180px] md:text-[240px] font-black font-math text-red-400 leading-none animate-timer-pulse';
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // DISASTER ROTATION
-    // ═══════════════════════════════════════════════════════════
-    function renderDisasterCard(disaster) {
-      const container = document.getElementById('disasterContainer');
-      if (!container) return;
+    if (remaining <= 0) {
+      clearInterval(memorizeTimerInterval);
+      memorizeTimerInterval = null;
+      handleMemorizeTimeout();
+    }
+  };
 
-      const colors = ['from-rose-900 to-rose-950', 'from-cyan-900 to-cyan-950', 'from-amber-900 to-amber-950', 'from-purple-900 to-purple-950', 'from-emerald-900 to-emerald-950'];
-      const colorClass = colors[disaster.no % colors.length];
+  tick();
+  memorizeTimerInterval = setInterval(tick, 500);
+}
 
-      let imageUrl = '';
-      const fileName = DISASTER_IMAGES[disaster.no];
-      if (fileName) {
-        const { data: urlData } = supabaseClient.storage.from('bencana').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
-      }
+function stopMemorizeTimer() {
+  if (memorizeTimerInterval) { clearInterval(memorizeTimerInterval); memorizeTimerInterval = null; }
+  memorizeActive = false;
+}
 
-      const imageHtml = imageUrl
-        ? `<img src="${imageUrl}" alt="${disaster.nama}" class="w-full h-full object-cover"
-             onerror="this.parentElement.innerHTML='<div class=\\'text-center p-6\\'><i class=\\'fas fa-image text-6xl text-slate-700 mb-4\\'></i><div class=\\'text-xs text-slate-500\\'>Gambar tidak ditemukan</div></div>';" />`
-        : `<div class="text-center p-6"><i class="fas fa-image text-6xl text-slate-700 mb-4"></i><div class="text-xs text-slate-500">Gambar ${disaster.nama}</div></div>`;
+async function handleMemorizeTimeout() {
+  console.log('[STAGE] ⏰ Memorize timeout — kembali ke idle');
 
-      container.innerHTML = `
-        <div class="animate-disaster bg-slate-900 border-2 border-purple-500/40 rounded-3xl overflow-hidden glow-purple">
-          <div class="bg-gradient-to-r ${colorClass} p-6 border-b-2 border-white/10">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <div class="w-16 h-16 bg-slate-950/60 border-2 border-white/20 rounded-2xl flex items-center justify-center text-2xl font-black">
-                  #${disaster.no}
-                </div>
-                <div>
-                  <div class="text-[10px] font-bold uppercase tracking-widest text-white/60">BENCANA ALAM</div>
-                  <h1 class="text-4xl font-black font-math tracking-wide text-white">${disaster.nama}</h1>
-                </div>
-              </div>
+  playBeepTimes(3, 400);
+
+  const overlay = document.getElementById('timeupOverlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }, 3500);
+  }
+
+  try {
+    await supabaseClient
+      .from('system_cataclysm_memory')
+      .update({
+        is_memorize_active: false,
+        memorize_end_time: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+  } catch (e) { console.warn('Update memorize_end gagal', e); }
+
+  try {
+    await supabaseClient
+      .from('admin_layout_cataclysm_memory')
+      .update({
+        current_view: 'idle',
+        revealed_rank: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+  } catch (e) { console.warn('Update layout idle gagal', e); }
+
+  memorizeActive = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DISASTER ROTATION
+// ═══════════════════════════════════════════════════════════
+function renderDisasterCard(disaster) {
+  const container = document.getElementById('disasterContainer');
+  if (!container) return;
+
+  const colors = ['from-red-900 to-red-950', 'from-orange-900 to-orange-950', 'from-rose-900 to-rose-950', 'from-amber-900 to-amber-950', 'from-red-800 to-red-900'];
+  const colorClass = colors[disaster.no % colors.length];
+
+  let imageUrl = '';
+  const fileName = DISASTER_IMAGES[disaster.no];
+  if (fileName) {
+    const { data: urlData } = supabaseClient.storage.from('bencana').getPublicUrl(fileName);
+    imageUrl = urlData.publicUrl;
+  }
+
+  const imageHtml = imageUrl
+    ? `<img src="${imageUrl}" alt="${disaster.nama}" class="w-full h-full object-cover"
+         onerror="this.parentElement.innerHTML='<div class=\\'text-center p-6\\'><i class=\\'fas fa-image text-6xl text-slate-700 mb-4\\'></i><div class=\\'text-xs text-slate-500\\'>Gambar tidak ditemukan</div></div>';" />`
+    : `<div class="text-center p-6"><i class="fas fa-image text-6xl text-slate-700 mb-4"></i><div class="text-xs text-slate-500">Gambar ${disaster.nama}</div></div>`;
+
+  container.innerHTML = `
+    <div class="animate-disaster bg-slate-950 border-2 border-red-500/50 rounded-3xl overflow-hidden glow-red">
+      <div class="bg-gradient-to-r ${colorClass} p-6 border-b-2 border-white/10">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-slate-950/60 border-2 border-red-400/30 rounded-2xl flex items-center justify-center text-2xl font-black text-red-300">
+              #${disaster.no}
             </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-8">
-            <div class="md:col-span-2">
-              <div class="aspect-[3/4] bg-slate-950 border-2 border-slate-700 rounded-2xl flex items-center justify-center overflow-hidden">
-                ${imageHtml}
-              </div>
-            </div>
-
-            <div class="md:col-span-3 space-y-4">
-              <div class="grid grid-cols-2 gap-3">
-                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                  <div class="flex items-center gap-2 text-rose-400 mb-1">
-                    <i class="fas fa-calendar-day text-xs"></i>
-                    <span class="text-[10px] font-bold uppercase tracking-widest">Tanggal</span>
-                  </div>
-                  <div class="text-sm font-bold text-white">${disaster.tanggal}</div>
-                </div>
-                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                  <div class="flex items-center gap-2 text-amber-400 mb-1">
-                    <i class="fas fa-skull text-xs"></i>
-                    <span class="text-[10px] font-bold uppercase tracking-widest">Korban</span>
-                  </div>
-                  <div class="text-sm font-bold text-white">${disaster.korban}</div>
-                </div>
-              </div>
-
-              <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                <div class="flex items-center gap-2 text-cyan-400 mb-1">
-                  <i class="fas fa-location-dot text-xs"></i>
-                  <span class="text-[10px] font-bold uppercase tracking-widest">Lokasi</span>
-                </div>
-                <div class="text-sm font-bold text-white">${disaster.lokasi}</div>
-              </div>
-
-              <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                <div class="flex items-center gap-2 text-orange-400 mb-1">
-                  <i class="fas fa-bolt text-xs"></i>
-                  <span class="text-[10px] font-bold uppercase tracking-widest">Penyebab</span>
-                </div>
-                <div class="text-sm font-bold text-white">${disaster.penyebab}</div>
-              </div>
-
-              <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                <div class="flex items-center gap-2 text-purple-400 mb-2">
-                  <i class="fas fa-book text-xs"></i>
-                  <span class="text-[10px] font-bold uppercase tracking-widest">Deskripsi</span>
-                </div>
-                <p class="text-sm text-slate-200 leading-relaxed">${disaster.deskripsi}</p>
-              </div>
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-widest text-red-200/60 font-mono">BENCANA ALAM</div>
+              <h1 class="text-4xl font-black font-cinzel tracking-wide text-white">${disaster.nama}</h1>
             </div>
           </div>
         </div>
-      `;
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 p-8">
+        <div class="md:col-span-2">
+          <div class="aspect-[3/4] bg-slate-950 border-2 border-red-900/40 rounded-2xl flex items-center justify-center overflow-hidden">
+            ${imageHtml}
+          </div>
+        </div>
+
+        <div class="md:col-span-3 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900 border border-red-900/40 rounded-2xl p-4">
+              <div class="flex items-center gap-2 text-red-400 mb-1">
+                <i class="fas fa-calendar-day text-xs"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Tanggal</span>
+              </div>
+              <div class="text-sm font-bold text-white">${disaster.tanggal}</div>
+            </div>
+            <div class="bg-slate-900 border border-red-900/40 rounded-2xl p-4">
+              <div class="flex items-center gap-2 text-amber-400 mb-1">
+                <i class="fas fa-skull text-xs"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Korban</span>
+              </div>
+              <div class="text-sm font-bold text-white">${disaster.korban}</div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-red-900/40 rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-orange-400 mb-1">
+              <i class="fas fa-location-dot text-xs"></i>
+              <span class="text-[10px] font-bold uppercase tracking-widest">Lokasi</span>
+            </div>
+            <div class="text-sm font-bold text-white">${disaster.lokasi}</div>
+          </div>
+
+          <div class="bg-slate-900 border border-red-900/40 rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-amber-500 mb-1">
+              <i class="fas fa-bolt text-xs"></i>
+              <span class="text-[10px] font-bold uppercase tracking-widest">Penyebab</span>
+            </div>
+            <div class="text-sm font-bold text-white">${disaster.penyebab}</div>
+          </div>
+
+          <div class="bg-slate-900 border border-red-900/40 rounded-2xl p-4">
+            <div class="flex items-center gap-2 text-red-400 mb-2">
+              <i class="fas fa-book text-xs"></i>
+              <span class="text-[10px] font-bold uppercase tracking-widest">Deskripsi</span>
+            </div>
+            <p class="text-sm text-slate-200 leading-relaxed">${disaster.deskripsi}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function startDisasterRotation() {
+  if (disasterRotateInterval) clearInterval(disasterRotateInterval);
+  currentDisasterIndex = 0;
+  renderDisasterCard(DISASTERS[0]);
+  playBell();
+
+  disasterRotateInterval = setInterval(() => {
+    if (currentView !== 'disaster_phase') return;
+    currentDisasterIndex = (currentDisasterIndex + 1) % DISASTERS.length;
+    renderDisasterCard(DISASTERS[currentDisasterIndex]);
+    playBell();
+  }, 3000);
+}
+
+function stopDisasterRotation() {
+  if (disasterRotateInterval) { clearInterval(disasterRotateInterval); disasterRotateInterval = null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ANSWER PHASE TIMER
+// ═══════════════════════════════════════════════════════════
+function startAnswerTimer(startTime, duration) {
+  if (answerTimerInterval) clearInterval(answerTimerInterval);
+  const display = document.getElementById('answerTimerDisplay');
+  if (!display) return;
+
+  const startMs = new Date(startTime).getTime();
+
+  const tick = () => {
+    const elapsed = Math.floor((Date.now() - startMs) / 1000);
+    const remaining = Math.max(0, duration - elapsed);
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    if (remaining <= 30) {
+      display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
+    } else if (remaining <= 60) {
+      display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
+    } else {
+      display.className = 'text-[180px] md:text-[240px] font-black font-math text-orange-400 leading-none animate-timer-pulse';
     }
 
-    function startDisasterRotation() {
-      if (disasterRotateInterval) clearInterval(disasterRotateInterval);
-      currentDisasterIndex = 0;
-      renderDisasterCard(DISASTERS[0]);
-      playBell();
+    if (remaining <= 0) clearInterval(answerTimerInterval);
+  };
 
-      disasterRotateInterval = setInterval(() => {
-        if (currentView !== 'disaster_phase') return;
-        currentDisasterIndex = (currentDisasterIndex + 1) % DISASTERS.length;
-        renderDisasterCard(DISASTERS[currentDisasterIndex]);
-        playBell();
-      }, 3000);
+  tick();
+  answerTimerInterval = setInterval(tick, 500);
+}
+
+function stopAnswerTimer() {
+  if (answerTimerInterval) { clearInterval(answerTimerInterval); answerTimerInterval = null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEAM STANDINGS
+// ═══════════════════════════════════════════════════════════
+async function fetchTeamStandings() {
+  const { data: teams } = await supabaseClient
+    .from('cataclysm_memory_teams')
+    .select('unique_id, full_name, team');
+
+  const { data: scores } = await supabaseClient
+    .from('game_scores')
+    .select('user_unique_id, score_obtained')
+    .eq('game_name', GAME_NAME);
+
+  const scoreMap = {};
+  (scores || []).forEach(s => {
+    scoreMap[s.user_unique_id] = (scoreMap[s.user_unique_id] || 0) + (s.score_obtained || 0);
+  });
+
+  const teamTotals = {};
+  for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
+
+  (teams || []).forEach(t => {
+    if (teamTotals[t.team]) {
+      const memberScore = scoreMap[t.unique_id] || 0;
+      teamTotals[t.team].members.push({
+        unique_id: t.unique_id,
+        full_name: t.full_name || t.unique_id,
+        score: memberScore
+      });
+      teamTotals[t.team].sum += memberScore;
+      teamTotals[t.team].count += 1;
     }
+  });
 
-    function stopDisasterRotation() {
-      if (disasterRotateInterval) { clearInterval(disasterRotateInterval); disasterRotateInterval = null; }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // ANSWER PHASE TIMER
-    // ═══════════════════════════════════════════════════════════
-    function startAnswerTimer(startTime, duration) {
-      if (answerTimerInterval) clearInterval(answerTimerInterval);
-      const display = document.getElementById('answerTimerDisplay');
-      if (!display) return;
-
-      const startMs = new Date(startTime).getTime();
-
-      const tick = () => {
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        display.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-
-        if (remaining <= 30) {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-rose-500 leading-none animate-timer-pulse';
-        } else if (remaining <= 60) {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-amber-400 leading-none animate-timer-pulse';
-        } else {
-          display.className = 'text-[180px] md:text-[240px] font-black font-math text-emerald-400 leading-none animate-timer-pulse';
-        }
-
-        if (remaining <= 0) clearInterval(answerTimerInterval);
+  cachedTeamStandings = Object.keys(teamTotals)
+    .map(tn => {
+      const t = teamTotals[tn];
+      const avg = t.count > 0 ? (t.sum / t.count) : 0;
+      return {
+        team: parseInt(tn),
+        average: Math.round(avg * 10) / 10,
+        sum: t.sum,
+        count: t.count,
+        members: t.members.sort((a, b) => b.score - a.score)
       };
+    })
+    .sort((a, b) => b.average - a.average);
+}
 
-      tick();
-      answerTimerInterval = setInterval(tick, 500);
+function renderTeamStandingReveal(rank) {
+  const container = document.getElementById('teamStandingReveal');
+  if (!container) return;
+
+  if (rank === -1) {
+    if (cachedTeamStandings.length === 0) {
+      container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data tim.</p>`;
+      return;
     }
-
-    function stopAnswerTimer() {
-      if (answerTimerInterval) { clearInterval(answerTimerInterval); answerTimerInterval = null; }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // TEAM STANDINGS
-    // ═══════════════════════════════════════════════════════════
-    async function fetchTeamStandings() {
-      const { data: teams } = await supabaseClient
-        .from('cataclysm_memory_teams')
-        .select('unique_id, full_name, team');
-
-      const { data: scores } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained')
-        .eq('game_name', GAME_NAME);
-
-      const scoreMap = {};
-      (scores || []).forEach(s => {
-        scoreMap[s.user_unique_id] = (scoreMap[s.user_unique_id] || 0) + (s.score_obtained || 0);
-      });
-
-      const teamTotals = {};
-      for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
-
-      (teams || []).forEach(t => {
-        if (teamTotals[t.team]) {
-          const memberScore = scoreMap[t.unique_id] || 0;
-          teamTotals[t.team].members.push({
-            unique_id: t.unique_id,
-            full_name: t.full_name || t.unique_id,
-            score: memberScore
-          });
-          teamTotals[t.team].sum += memberScore;
-          teamTotals[t.team].count += 1;
-        }
-      });
-
-      cachedTeamStandings = Object.keys(teamTotals)
-        .map(tn => {
-          const t = teamTotals[tn];
-          const avg = t.count > 0 ? (t.sum / t.count) : 0;
-          return {
-            team: parseInt(tn),
-            average: Math.round(avg * 10) / 10,
-            sum: t.sum,
-            count: t.count,
-            members: t.members.sort((a, b) => b.score - a.score)
-          };
-        })
-        .sort((a, b) => b.average - a.average);
-    }
-
-    function renderTeamStandingReveal(rank) {
-      const container = document.getElementById('teamStandingReveal');
-      if (!container) return;
-
-      if (rank === -1) {
-        if (cachedTeamStandings.length === 0) {
-          container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data tim.</p>`;
-          return;
-        }
-        container.innerHTML = `
-          <div class="w-full">
-            <div class="text-center mb-6">
-              <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-slate-700 text-slate-200">
-                SEMUA TIM (${cachedTeamStandings.length})
-              </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              ${cachedTeamStandings.map((t, idx) => {
-                const rankNum = idx + 1;
-                const tc = `team-${t.team}`;
-                let badge = `#${rankNum}`;
-                let badgeStyle = 'bg-slate-700 text-slate-200';
-                if (rankNum === 1) { badge = '🥇 #1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
-                else if (rankNum === 2) { badge = '🥈 #2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
-                else if (rankNum === 3) { badge = '🥉 #3'; badgeStyle = 'bg-amber-600 text-white'; }
-                return `
-                  <div class="animate-card-pop ${tc} border-2 rounded-2xl p-4" style="animation-delay: ${idx * 40}ms">
-                    <div class="text-center mb-3">
-                      <div class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest ${badgeStyle}">
-                        ${badge}
-                      </div>
-                      <div class="text-xl font-black font-math text-white mt-2">${TEAM_NAMES[t.team]}</div>
-                      <div class="text-3xl font-mono font-black text-white mt-1">${t.average}</div>
-                      <div class="text-[10px] uppercase opacity-70 font-bold">Rata-rata · ${t.count} anggota</div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      if (rank === 0 || cachedTeamStandings.length === 0) {
-        container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>`;
-        return;
-      }
-
-      const targetIdx = rank - 1;
-      const target = cachedTeamStandings[targetIdx];
-
-      if (!target) {
-        container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada data untuk peringkat ${rank}</p>`;
-        return;
-      }
-
-      const teamNum = target.team;
-      const teamClass = `team-${teamNum}`;
-
-      let badge = `PERINGKAT #${rank}`;
-      let badgeStyle = 'bg-slate-700 text-slate-200';
-      if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
-      else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
-      else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; }
-
-      const memberHtml = target.members.slice(0, 12).map((m) => {
-        const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
-        return `
-          <div class="flex flex-col items-center">
-            <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-1 mb-1">
-              <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
-            </div>
-            <div class="text-[10px] font-bold truncate w-full text-white">${m.full_name}</div>
-          </div>
-        `;
-      }).join('');
-
-      container.innerHTML = `
-        <div class="animate-card-pop w-full max-w-4xl ${teamClass} border-2 rounded-3xl p-6">
-          <div class="text-center mb-5">
-            <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest ${badgeStyle}">
-              ${badge}
-            </div>
-            <h2 class="text-4xl font-black font-math mt-3 text-white">${TEAM_NAMES[teamNum]}</h2>
-            <div class="text-3xl font-mono font-black text-white mt-2">${target.average} <span class="text-lg">PTS</span></div>
-            <div class="text-xs text-slate-300 mt-1 opacity-80">Rata-rata dari ${target.count} anggota</div>
-          </div>
-          <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
-            ${memberHtml}
+    container.innerHTML = `
+      <div class="w-full">
+        <div class="text-center mb-6">
+          <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-red-800 text-red-100">
+            SEMUA TIM (${cachedTeamStandings.length})
           </div>
         </div>
-      `;
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // LEADERBOARD (individu)
-    // ═══════════════════════════════════════════════════════════
-    async function fetchGlobalScores() {
-      const { data, error } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained');
-
-      if (error || !data) return;
-
-      const scoreMap = {};
-      data.forEach(row => {
-        const uid = row.user_unique_id || 'Tanpa Nama';
-        scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-      });
-
-      cachedGlobalScores = Object.keys(scoreMap)
-        .map(uid => ({ uid, total: scoreMap[uid] }))
-        .sort((a, b) => b.total - a.total);
-    }
-
-    function renderLeaderboardReveal(rank) {
-      const container = document.getElementById('leaderboardReveal');
-      if (!container) return;
-
-      if (rank === -1) {
-        if (cachedGlobalScores.length === 0) {
-          container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data nilai.</p>`;
-          return;
-        }
-        container.innerHTML = `
-          <div class="w-full">
-            <div class="text-center mb-4">
-              <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-purple-700 text-purple-100">
-                SEMUA PESERTA (${cachedGlobalScores.length})
-              </div>
-            </div>
-            <div class="w-full space-y-1.5 max-h-[500px] overflow-y-auto custom-scroll pr-2">
-              ${cachedGlobalScores.map((p, idx) => {
-                const rankNum = idx + 1;
-                const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
-                let rowClass = 'bg-slate-800/70 border-slate-700/50';
-                let rankStyle = 'bg-slate-700 text-slate-300';
-                let rankIcon = `#${rankNum}`;
-                if (rankNum === 1) { rowClass = 'bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-900 border-amber-500/50'; rankStyle = 'bg-amber-400 text-slate-950'; rankIcon = '👑'; }
-                else if (rankNum === 2) { rowClass = 'bg-gradient-to-r from-slate-800 via-slate-700/50 to-slate-900 border-slate-300/50'; rankStyle = 'bg-slate-200 text-slate-950'; rankIcon = '🥈'; }
-                else if (rankNum === 3) { rowClass = 'bg-gradient-to-r from-amber-900/60 via-amber-800/30 to-slate-900 border-amber-600/50'; rankStyle = 'bg-amber-600 text-white'; rankIcon = '🥉'; }
-                return `
-                  <div class="border-2 rounded-xl p-2 flex items-center justify-between gap-3 ${rowClass}">
-                    <div class="flex items-center gap-2 overflow-hidden flex-1">
-                      <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${rankStyle}">${rankIcon}</div>
-                      <img src="${avatar}" class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 flex-shrink-0 object-cover"/>
-                      <div class="overflow-hidden">
-                        <p class="text-xs font-bold text-white truncate">${p.uid}</p>
-                      </div>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                      <div class="text-lg font-mono font-black text-amber-400">${p.total}</div>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          ${cachedTeamStandings.map((t, idx) => {
+            const rankNum = idx + 1;
+            const tc = `team-${t.team}`;
+            let badge = `#${rankNum}`;
+            let badgeStyle = 'bg-slate-700 text-slate-200';
+            if (rankNum === 1) { badge = '🥇 #1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
+            else if (rankNum === 2) { badge = '🥈 #2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
+            else if (rankNum === 3) { badge = '🥉 #3'; badgeStyle = 'bg-amber-600 text-white'; }
+            return `
+              <div class="animate-card-pop ${tc} border-2 rounded-2xl p-4" style="animation-delay: ${idx * 40}ms">
+                <div class="text-center mb-3">
+                  <div class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest ${badgeStyle}">
+                    ${badge}
                   </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-        return;
-      }
+                  <div class="text-xl font-black font-math text-white mt-2">${TEAM_NAMES[t.team]}</div>
+                  <div class="text-3xl font-mono font-black text-white mt-1">${t.average}</div>
+                  <div class="text-[10px] uppercase opacity-70 font-bold">Rata-rata · ${t.count} anggota</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    return;
+  }
 
-      if (rank === 0 || cachedGlobalScores.length === 0) {
-        container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>`;
-        return;
-      }
+  if (rank === 0 || cachedTeamStandings.length === 0) {
+    container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman peringkat tim...</p>`;
+    return;
+  }
 
-      const targetIdx = rank - 1;
-      const player = cachedGlobalScores[targetIdx];
+  const targetIdx = rank - 1;
+  const target = cachedTeamStandings[targetIdx];
 
-      if (!player) {
-        container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada data untuk peringkat ${rank}</p>`;
-        return;
-      }
+  if (!target) {
+    container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada data untuk peringkat ${rank}</p>`;
+    return;
+  }
 
-      let badge = `PERINGKAT #${rank}`;
-      let badgeStyle = 'bg-slate-700 text-slate-200';
-      let cardTheme = 'bg-gradient-to-b from-slate-800 to-slate-900 border-slate-700/80';
+  const teamNum = target.team;
+  const teamClass = `team-${teamNum}`;
 
-      if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; cardTheme = 'bg-gradient-to-b from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80'; }
-      else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardTheme = 'bg-gradient-to-b from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80'; }
-      else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardTheme = 'bg-gradient-to-b from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80'; }
+  let badge = `PERINGKAT #${rank}`;
+  let badgeStyle = 'bg-slate-700 text-slate-200';
+  if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; }
+  else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; }
+  else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; }
 
-      const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.uid)}`;
+  const memberHtml = target.members.slice(0, 12).map((m) => {
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
+    return `
+      <div class="flex flex-col items-center">
+        <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-1 mb-1">
+          <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
+        </div>
+        <div class="text-[10px] font-bold truncate w-full text-white">${m.full_name}</div>
+      </div>
+    `;
+  }).join('');
 
-      container.innerHTML = `
-        <div class="animate-card-pop w-full max-w-lg ${cardTheme} border-2 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center space-y-6">
-          <div class="px-5 py-2 rounded-full text-xs md:text-sm font-black tracking-widest uppercase ${badgeStyle}">
-            ${badge}
-          </div>
+  container.innerHTML = `
+    <div class="animate-card-pop w-full max-w-4xl ${teamClass} border-2 rounded-3xl p-6">
+      <div class="text-center mb-5">
+        <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest ${badgeStyle}">
+          ${badge}
+        </div>
+        <h2 class="text-4xl font-black font-math mt-3 text-white">${TEAM_NAMES[teamNum]}</h2>
+        <div class="text-3xl font-mono font-black text-white mt-2">${target.average} <span class="text-lg">PTS</span></div>
+        <div class="text-xs text-slate-300 mt-1 opacity-80">Rata-rata dari ${target.count} anggota</div>
+      </div>
+      <div class="grid grid-cols-4 md:grid-cols-6 gap-2">
+        ${memberHtml}
+      </div>
+    </div>
+  `;
+}
 
-          <div class="w-40 h-40 md:w-52 md:h-52 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden flex items-center justify-center p-2">
-            <img src="${avatar}" alt="${player.uid}" class="w-full h-full object-contain" />
-          </div>
+// ═══════════════════════════════════════════════════════════
+// LEADERBOARD (individu)
+// ═══════════════════════════════════════════════════════════
+async function fetchGlobalScores() {
+  const { data, error } = await supabaseClient
+    .from('game_scores')
+    .select('user_unique_id, score_obtained');
 
-          <div class="text-center space-y-2">
-            <h3 class="text-3xl md:text-4xl font-black truncate max-w-md mx-auto text-white tracking-wide">
-              ${player.uid}
-            </h3>
-            <div class="inline-block text-2xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
-              +${player.total} PTS
-            </div>
-            <div class="text-xs text-slate-400 mt-2">Akumulasi seluruh game</div>
+  if (error || !data) return;
+
+  const scoreMap = {};
+  data.forEach(row => {
+    const uid = row.user_unique_id || 'Tanpa Nama';
+    scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
+  });
+
+  cachedGlobalScores = Object.keys(scoreMap)
+    .map(uid => ({ uid, total: scoreMap[uid] }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function renderLeaderboardReveal(rank) {
+  const container = document.getElementById('leaderboardReveal');
+  if (!container) return;
+
+  if (rank === -1) {
+    if (cachedGlobalScores.length === 0) {
+      container.innerHTML = `<p class="text-slate-500 text-xl">Belum ada data nilai.</p>`;
+      return;
+    }
+    container.innerHTML = `
+      <div class="w-full">
+        <div class="text-center mb-4">
+          <div class="inline-block px-6 py-2 rounded-full text-sm font-black uppercase tracking-widest bg-red-800 text-red-100">
+            SEMUA PESERTA (${cachedGlobalScores.length})
           </div>
         </div>
-      `;
+        <div class="w-full space-y-1.5 max-h-[500px] overflow-y-auto custom-scroll pr-2">
+          ${cachedGlobalScores.map((p, idx) => {
+            const rankNum = idx + 1;
+            const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+            let rowClass = 'bg-slate-800/70 border-slate-700/50';
+            let rankStyle = 'bg-slate-700 text-slate-300';
+            let rankIcon = `#${rankNum}`;
+            if (rankNum === 1) { rowClass = 'bg-gradient-to-r from-amber-950/80 via-amber-900/40 to-slate-900 border-amber-500/50'; rankStyle = 'bg-amber-400 text-slate-950'; rankIcon = '👑'; }
+            else if (rankNum === 2) { rowClass = 'bg-gradient-to-r from-slate-800 via-slate-700/50 to-slate-900 border-slate-300/50'; rankStyle = 'bg-slate-200 text-slate-950'; rankIcon = '🥈'; }
+            else if (rankNum === 3) { rowClass = 'bg-gradient-to-r from-amber-900/60 via-amber-800/30 to-slate-900 border-amber-600/50'; rankStyle = 'bg-amber-600 text-white'; rankIcon = '🥉'; }
+            return `
+              <div class="border-2 rounded-xl p-2 flex items-center justify-between gap-3 ${rowClass}">
+                <div class="flex items-center gap-2 overflow-hidden flex-1">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${rankStyle}">${rankIcon}</div>
+                  <img src="${avatar}" class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 flex-shrink-0 object-cover"/>
+                  <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate">${p.uid}</p>
+                  </div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="text-lg font-mono font-black text-amber-400">${p.total}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (rank === 0 || cachedGlobalScores.length === 0) {
+    container.innerHTML = `<p class="text-slate-500 text-xl">Menunggu pengumuman pemenang...</p>`;
+    return;
+  }
+
+  const targetIdx = rank - 1;
+  const player = cachedGlobalScores[targetIdx];
+
+  if (!player) {
+    container.innerHTML = `<p class="text-slate-400 text-xl">Belum ada data untuk peringkat ${rank}</p>`;
+    return;
+  }
+
+  let badge = `PERINGKAT #${rank}`;
+  let badgeStyle = 'bg-slate-700 text-slate-200';
+  let cardTheme = 'bg-gradient-to-b from-slate-800 to-slate-900 border-slate-700/80';
+
+  if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; cardTheme = 'bg-gradient-to-b from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80'; }
+  else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardTheme = 'bg-gradient-to-b from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80'; }
+  else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardTheme = 'bg-gradient-to-b from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80'; }
+
+  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.uid)}`;
+
+  container.innerHTML = `
+    <div class="animate-card-pop w-full max-w-lg ${cardTheme} border-2 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center space-y-6">
+      <div class="px-5 py-2 rounded-full text-xs md:text-sm font-black tracking-widest uppercase ${badgeStyle}">
+        ${badge}
+      </div>
+
+      <div class="w-40 h-40 md:w-52 md:h-52 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden flex items-center justify-center p-2">
+        <img src="${avatar}" alt="${player.uid}" class="w-full h-full object-contain" />
+      </div>
+
+      <div class="text-center space-y-2">
+        <h3 class="text-3xl md:text-4xl font-black truncate max-w-md mx-auto text-white tracking-wide">
+          ${player.uid}
+        </h3>
+        <div class="inline-block text-2xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
+          +${player.total} PTS
+        </div>
+        <div class="text-xs text-slate-400 mt-2">Akumulasi seluruh game</div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEW SWITCHER — dengan loading transition
+// ═══════════════════════════════════════════════════════════
+function stopAllRotations() {
+  stopTeamRotation();
+  stopDisasterRotation();
+  stopAnswerTimer();
+  stopMemorizeTimer();
+  stopIdleCanvas();
+}
+
+async function handleViewSwitch(viewName, revealedRank) {
+  console.log('[STAGE] View switch:', viewName, 'rank:', revealedRank);
+
+  const isSameView = (currentView === viewName);
+  const isSameRank = (lastRevealedRank === revealedRank);
+
+  // Skip full transition kalau view sama (misal rank reveal doang)
+  if (isSameView && isSameRank) return;
+
+  // Same view, rank berubah → update tanpa loading
+  if (isSameView && !isSameRank) {
+    lastRevealedRank = revealedRank;
+    if (viewName === 'leaderboard') {
+      fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
+    } else if (viewName === 'team_standings') {
+      fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
     }
+    return;
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // VIEW SWITCHER
-    // ═══════════════════════════════════════════════════════════
-    function stopAllRotations() {
-      stopTeamRotation();
-      stopDisasterRotation();
-      stopAnswerTimer();
-      stopMemorizeTimer();
-      stopIdleCanvas();
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  try {
+    // ⭐ Kalau dari idle → view lain → fire burst + loading
+    if (currentView === 'idle' && viewName !== 'idle') {
+      // Fire transition
+      startFireTransition();
+      await delay(1500);
+      // Loading screen
+      await showLoadingScreen(2000);
+      stopFireTransition();
     }
+    // Kalau view lain → view lain (bukan idle) → loading saja
+    else if (viewName !== 'idle' && currentView !== 'idle') {
+      await showLoadingScreen(1400);
+    }
+    // View → idle: langsung
 
-    function handleViewSwitch(viewName, revealedRank) {
-      console.log('[STAGE] View switch:', viewName, 'rank:', revealedRank);
+    applyViewSwitch(viewName, revealedRank);
+  } finally {
+    isTransitioning = false;
+  }
+}
 
-      const views = {
-        idle: document.getElementById('viewIdle'),
-        memorize_phase: document.getElementById('viewMemorizePhase'),
-        team_assignment: document.getElementById('viewTeamAssignment'),
-        disaster_phase: document.getElementById('viewDisasterPhase'),
-        answer_phase: document.getElementById('viewAnswerPhase'),
-        team_standings: document.getElementById('viewTeamStandings'),
-        leaderboard: document.getElementById('viewLeaderboard')
-      };
+function applyViewSwitch(viewName, revealedRank) {
+  const views = {
+    idle: document.getElementById('viewIdle'),
+    memorize_phase: document.getElementById('viewMemorizePhase'),
+    team_assignment: document.getElementById('viewTeamAssignment'),
+    disaster_phase: document.getElementById('viewDisasterPhase'),
+    answer_phase: document.getElementById('viewAnswerPhase'),
+    team_standings: document.getElementById('viewTeamStandings'),
+    leaderboard: document.getElementById('viewLeaderboard')
+  };
 
-      const isSameView = (currentView === viewName);
-      const isSameRank = (lastRevealedRank === revealedRank);
+  Object.values(views).forEach(v => {
+    if (v) { v.classList.remove('active-view'); }
+  });
 
-      if (isSameView && isSameRank) {
-        if (viewName === 'leaderboard' && revealedRank !== lastRevealedRank) {
-          lastRevealedRank = revealedRank;
-          renderLeaderboardReveal(revealedRank);
-        } else if (viewName === 'team_standings' && revealedRank !== lastRevealedRank) {
-          lastRevealedRank = revealedRank;
-          renderTeamStandingReveal(revealedRank);
-        }
-        return;
+  stopAllRotations();
+  currentView = viewName;
+  lastRevealedRank = revealedRank;
+
+  if (views[viewName]) {
+    views[viewName].classList.add('active-view');
+  }
+
+  playBGM(viewName);
+
+  if (viewName === 'idle') {
+    setTimeout(() => startIdleCanvas(), 100);
+  } else if (viewName === 'team_assignment') {
+    fetchTeams().then(() => startTeamRotation());
+  } else if (viewName === 'disaster_phase') {
+    startDisasterRotation();
+  } else if (viewName === 'answer_phase') {
+    loadSessionAndStartTimer();
+  } else if (viewName === 'memorize_phase') {
+    loadMemorizeAndStartTimer();
+  } else if (viewName === 'team_standings') {
+    fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
+  } else if (viewName === 'leaderboard') {
+    fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
+  }
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESSION LOADERS
+// ═══════════════════════════════════════════════════════════
+async function loadSessionAndStartTimer() {
+  const { data } = await supabaseClient
+    .from('system_cataclysm_memory')
+    .select('is_active, session_start_time, session_duration')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (data && data.is_active && data.session_start_time) {
+    startAnswerTimer(data.session_start_time, data.session_duration || 300);
+  } else {
+    const display = document.getElementById('answerTimerDisplay');
+    if (display) display.textContent = '--:--';
+  }
+}
+
+async function loadMemorizeAndStartTimer() {
+  const { data } = await supabaseClient
+    .from('system_cataclysm_memory')
+    .select('is_memorize_active, memorize_start_time, memorize_duration')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (data && data.is_memorize_active && data.memorize_start_time) {
+    startMemorizeTimer(data.memorize_start_time, data.memorize_duration || DEFAULT_MEMORIZE_DURATION);
+  } else {
+    const display = document.getElementById('memorizeTimerDisplay');
+    if (display) display.textContent = '--:--';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNATURE CACHE
+// ═══════════════════════════════════════════════════════════
+let lastLayoutSignature = '';
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME: LAYOUT
+// ═══════════════════════════════════════════════════════════
+function subscribeLayout() {
+  supabaseClient
+    .channel('stage_cataclysm_layout')
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'admin_layout_cataclysm_memory'
+    }, (payload) => {
+      if (payload.new) {
+        handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
       }
+    })
+    .subscribe();
 
-      if (isSameView && !isSameRank) {
-        lastRevealedRank = revealedRank;
-        if (viewName === 'leaderboard') {
-          fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
-        } else if (viewName === 'team_standings') {
-          fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
-        }
-        return;
-      }
+  setInterval(async () => {
+    const { data } = await supabaseClient
+      .from('admin_layout_cataclysm_memory')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
 
-      Object.values(views).forEach(v => {
-        if (v) { v.classList.add('hidden-view'); v.classList.remove('active-view'); }
-      });
+    if (!data) return;
+    const sig = `${data.current_view}|${data.revealed_rank}|${data.updated_at}`;
+    if (sig === lastLayoutSignature) return;
+    lastLayoutSignature = sig;
+    handleViewSwitch(data.current_view, data.revealed_rank);
+  }, 1500);
+}
 
-      stopAllRotations();
-      currentView = viewName;
-      lastRevealedRank = revealedRank;
-
-      if (views[viewName]) {
-        views[viewName].classList.remove('hidden-view');
-        views[viewName].classList.add('active-view');
-      }
-
-      // ⭐ BGM auto-play per view
-      playBGM(viewName);
-
-      // Handle specific view
-      if (viewName === 'idle') {
-        // Start fire canvas animation
-        setTimeout(() => startIdleCanvas(), 100);
-      } else if (viewName === 'team_assignment') {
+// ═══════════════════════════════════════════════════════════
+// REALTIME: TEAMS
+// ═══════════════════════════════════════════════════════════
+function subscribeTeams() {
+  supabaseClient
+    .channel('stage_cataclysm_teams')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'cataclysm_memory_teams'
+    }, () => {
+      if (currentView === 'team_assignment') {
         fetchTeams().then(() => startTeamRotation());
-      } else if (viewName === 'disaster_phase') {
-        startDisasterRotation();
-      } else if (viewName === 'answer_phase') {
-        loadSessionAndStartTimer();
-      } else if (viewName === 'memorize_phase') {
-        loadMemorizeAndStartTimer();
-      } else if (viewName === 'team_standings') {
-        fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
-      } else if (viewName === 'leaderboard') {
-        fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
       }
-    }
+    })
+    .subscribe();
+}
 
-    // ═══════════════════════════════════════════════════════════
-    // SESSION LOADERS
-    // ═══════════════════════════════════════════════════════════
-    async function loadSessionAndStartTimer() {
-      const { data } = await supabaseClient
-        .from('system_cataclysm_memory')
-        .select('is_active, session_start_time, session_duration')
-        .eq('id', 1)
-        .maybeSingle();
+// ═══════════════════════════════════════════════════════════
+// REALTIME: SYSTEM
+// ═══════════════════════════════════════════════════════════
+function subscribeSystem() {
+  supabaseClient
+    .channel('stage_cataclysm_system')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'system_cataclysm_memory'
+    }, (payload) => {
+      if (!payload.new) return;
+      const sys = payload.new;
 
-      if (data && data.is_active && data.session_start_time) {
-        startAnswerTimer(data.session_start_time, data.session_duration || 300);
-      } else {
-        const display = document.getElementById('answerTimerDisplay');
-        if (display) display.textContent = '--:--';
-      }
-    }
-
-    async function loadMemorizeAndStartTimer() {
-      const { data } = await supabaseClient
-        .from('system_cataclysm_memory')
-        .select('is_memorize_active, memorize_start_time, memorize_duration')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (data && data.is_memorize_active && data.memorize_start_time) {
-        startMemorizeTimer(data.memorize_start_time, data.memorize_duration || DEFAULT_MEMORIZE_DURATION);
-      } else {
-        const display = document.getElementById('memorizeTimerDisplay');
-        if (display) display.textContent = '--:--';
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // SIGNATURE CACHE
-    // ═══════════════════════════════════════════════════════════
-    let lastLayoutSignature = '';
-
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME: LAYOUT
-    // ═══════════════════════════════════════════════════════════
-    function subscribeLayout() {
-      supabaseClient
-        .channel('stage_cataclysm_layout')
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'admin_layout_cataclysm_memory'
-        }, (payload) => {
-          if (payload.new) {
-            handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
-          }
-        })
-        .subscribe();
-
-      setInterval(async () => {
-        const { data } = await supabaseClient
-          .from('admin_layout_cataclysm_memory')
-          .select('*')
-          .eq('id', 1)
-          .maybeSingle();
-
-        if (!data) return;
-        const sig = `${data.current_view}|${data.revealed_rank}|${data.updated_at}`;
-        if (sig === lastLayoutSignature) return;
-        lastLayoutSignature = sig;
-        handleViewSwitch(data.current_view, data.revealed_rank);
-      }, 1500);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME: TEAMS
-    // ═══════════════════════════════════════════════════════════
-    function subscribeTeams() {
-      supabaseClient
-        .channel('stage_cataclysm_teams')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'cataclysm_memory_teams'
-        }, () => {
-          if (currentView === 'team_assignment') {
-            fetchTeams().then(() => startTeamRotation());
-          }
-        })
-        .subscribe();
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // REALTIME: SYSTEM
-    // ═══════════════════════════════════════════════════════════
-    function subscribeSystem() {
-      supabaseClient
-        .channel('stage_cataclysm_system')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'system_cataclysm_memory'
-        }, (payload) => {
-          if (!payload.new) return;
-          const sys = payload.new;
-
-          if (sys.is_memorize_active && sys.memorize_start_time) {
-            const sig = `${sys.memorize_start_time}|${sys.memorize_duration}`;
-            if (sig !== lastMemorizeSig) {
-              lastMemorizeSig = sig;
-              if (currentView !== 'memorize_phase') {
-                handleViewSwitch('memorize_phase', 0);
-              } else {
-                startMemorizeTimer(sys.memorize_start_time, sys.memorize_duration || DEFAULT_MEMORIZE_DURATION);
-              }
-            }
+      if (sys.is_memorize_active && sys.memorize_start_time) {
+        const sig = `${sys.memorize_start_time}|${sys.memorize_duration}`;
+        if (sig !== lastMemorizeSig) {
+          lastMemorizeSig = sig;
+          if (currentView !== 'memorize_phase') {
+            handleViewSwitch('memorize_phase', 0);
           } else {
-            if (memorizeActive) {
-              stopMemorizeTimer();
-              if (currentView === 'memorize_phase') {
-                handleViewSwitch('idle', 0);
-              }
-            }
+            startMemorizeTimer(sys.memorize_start_time, sys.memorize_duration || DEFAULT_MEMORIZE_DURATION);
           }
-
-          if (currentView === 'answer_phase' && sys.is_active && sys.session_start_time) {
-            startAnswerTimer(sys.session_start_time, sys.session_duration || 300);
-          }
-        })
-        .subscribe();
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════
-    async function init() {
-      console.log('[STAGE] Init Cataclysm Memory...');
-
-      initBGM();
-
-      const { data: layout } = await supabaseClient
-        .from('admin_layout_cataclysm_memory')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
-
-      if (layout) {
-        lastLayoutSignature = `${layout.current_view}|${layout.revealed_rank}|${layout.updated_at}`;
-        handleViewSwitch(layout.current_view, layout.revealed_rank);
+        }
       } else {
-        lastLayoutSignature = 'idle|0|';
-        handleViewSwitch('idle', 0);
+        if (memorizeActive) {
+          stopMemorizeTimer();
+          if (currentView === 'memorize_phase') {
+            handleViewSwitch('idle', 0);
+          }
+        }
       }
 
-      subscribeLayout();
-      subscribeSystem();
-      subscribeTeams();
-    }
+      if (currentView === 'answer_phase' && sys.is_active && sys.session_start_time) {
+        startAnswerTimer(sys.session_start_time, sys.session_duration || 300);
+      }
+    })
+    .subscribe();
+}
 
-    init();
-  </script>
+// ═══════════════════════════════════════════════════════════
+// RESIZE HANDLERS
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  if (idleCanvasRunning) resizeBg();
+  if (loadingCanvasRunning) resizeLoadingCanvas();
+  resizeFireCanvas();
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  console.log('[STAGE] Init Cataclysm Memory...');
+
+  initBGM();
+
+  const { data: layout } = await supabaseClient
+    .from('admin_layout_cataclysm_memory')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (layout) {
+    lastLayoutSignature = `${layout.current_view}|${layout.revealed_rank}|${layout.updated_at}`;
+    applyViewSwitch(layout.current_view, layout.revealed_rank);
+  } else {
+    lastLayoutSignature = 'idle|0|';
+    applyViewSwitch('idle', 0);
+  }
+
+  subscribeLayout();
+  subscribeSystem();
+  subscribeTeams();
+}
+
+init();
+</script>
 </body>
 </html>
