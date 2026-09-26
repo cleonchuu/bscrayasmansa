@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby Operator - Arithmetic Bingo</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome untuk ikon tombol -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- CARD LOBBY MAIN CONTAINER -->
+  <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+    
+    <!-- BADGE GAME DAY 1 -->
+    <div class="flex items-center justify-between mb-6">
+      <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+        Day 1 • Game 1 (Operator Panel)
+      </span>
+      <div id="userBadge" class="text-xs text-slate-400 font-medium">
+        <!-- Badge Status Admin -->
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-700 text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Panel Akses
+        </span>
+      </div>
+    </div>
+
+    <!-- TITLE & LOGO SECTION -->
+    <div class="text-center mb-8">
+      <!-- Container Logo / Icon Gambar -->
+      <div class="inline-flex items-center justify-center w-24 h-24 bg-amber-500/10 rounded-2xl mb-4 border border-amber-500/30 overflow-hidden shadow-inner p-2">
+        <!-- Path logo mengacu pada folder assets utama -->
+        <img src="../assets/images/arithmetic_bingo_logo.png" alt="Arithmetic Bingo Logo" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://via.placeholder.com/96?text=LOGO';" />
+      </div>
+      
+      <h1 class="text-3xl font-black tracking-wide text-white">ARITHMETIC BINGO</h1>
+      <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+        Pilih peranan tampilan untuk memulai sesi game ini. Pilih **Admin** untuk kontrol perangkat atau **Layout** untuk tampilan Layar Utama.
+      </p>
+    </div>
+
+    <!-- ACTION BUTTONS SECTION (Hanya 2 Tombol Utama) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      
+      <!-- 1. TOMBOL AKSES ADMIN -->
+      <button onclick="handleNavigate('admin.html')" class="py-5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-2xl shadow-lg transition transform active:scale-95 flex flex-col items-center justify-center gap-2 group">
+        <i class="fa-solid fa-sliders text-3xl group-hover:scale-110 transition-transform"></i>
+        <span class="text-lg">ADMIN</span>
+        <span class="text-[11px] font-medium text-slate-900/80">Kontrol Game & Leaderboard</span>
+      </button>
+
+      <!-- 2. TOMBOL AKSES LAYOUT (STAGE/DISPLAY) -->
+      <button onclick="handleNavigate('layout.html')" class="py-5 px-6 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-100 font-black rounded-2xl shadow-lg transition transform active:scale-95 flex flex-col items-center justify-center gap-2 group">
+        <i class="fa-solid fa-desktop text-3xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+        <span class="text-lg">LAYOUT</span>
+        <span class="text-[11px] font-medium text-slate-400">Tampilan Layar Panggung</span>
+      </button>
+
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Handler Navigasi Sederhana
+    function handleNavigate(targetPage) {
+      window.location.href = targetPage;
+    }
+  </script>
+</body>
+</html>
