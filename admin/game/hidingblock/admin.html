@@ -706,17 +706,23 @@ async function revealRank(rankNum) {
 // ═══════════════════════════════════════════════════════════
 async function loadPanitia() {
   try {
-    // Ambil dari tabel user (asumsi tabel user biasa, sesuaikan kalau beda)
+    const sessionId = await getSessionId();
+    if (!sessionId) {
+      STATE.panitiaList = [];
+      renderPanitiaList();
+      return;
+    }
+
     const { data, error } = await supabaseClient
-      .from('game_scores')
-      .select('user_unique_id')
-      .eq('game_name', 'Panitia')       // asumsi ada role panitia ditandai di sini
-      .limit(50);
+      .from('hiding_block_panitia_registry')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('registered_at', { ascending: true });
 
-    if (error) { LOG.warn('loadPanitia fallback', error.message); }
+    if (error) { LOG.warn('loadPanitia', error.message); }
 
-    // Fallback: user bisa input manual di UI
-    STATE.panitiaList = (data || []).map(r => r.user_unique_id);
+    STATE.panitiaList = (data || []).map(r => r.panitia_unique_id);
+    STATE.panitiaRegistry = data || [];
     renderPanitiaList();
   } catch (e) { LOG.err('loadPanitia exception', e); }
 }
@@ -727,16 +733,10 @@ function renderPanitiaList() {
 
   if (STATE.panitiaList.length === 0) {
     c.innerHTML = `
-      <p class="text-xs text-slate-500 text-center py-4 mb-2">
-        Belum ada panitia terdaftar. Tambahkan manual:
+      <p class="text-xs text-slate-500 text-center py-6">
+        Belum ada panitia yang mendaftar.<br>
+        <span class="text-[10px]">Panitia harus buka <code>panitia.html</code> dan isi unique_id mereka.</span>
       </p>
-      <div class="flex gap-2">
-        <input id="manualPanitiaInput" type="text" placeholder="unique_id panitia..."
-               class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs" />
-        <button onclick="addPanitiaManual()" class="px-3 py-2 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold">
-          <i class="fas fa-plus"></i>
-        </button>
-      </div>
     `;
     UI.txt('panitiaCount', 0);
     return;
@@ -749,11 +749,11 @@ function renderPanitiaList() {
     div.className = `p-2.5 rounded-lg border flex items-center justify-between text-xs ${assignedTo ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/50 border-slate-700'}`;
     div.innerHTML = `
       <div class="flex items-center gap-2">
-        <i class="fas fa-user-shield text-indigo-400"></i>
+        <i class="fas fa-user-shield ${assignedTo ? 'text-emerald-400' : 'text-indigo-400'}"></i>
         <span class="font-bold text-slate-200">${p}</span>
       </div>
       <span class="text-[10px] ${assignedTo ? 'text-emerald-400' : 'text-slate-500'}">
-        ${assignedTo ? `→ ${assignedTo}` : 'belum assign'}
+        ${assignedTo ? `→ ${assignedTo}` : 'idle'}
       </span>
     `;
     c.appendChild(div);
