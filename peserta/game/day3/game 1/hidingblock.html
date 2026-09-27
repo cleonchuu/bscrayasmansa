@@ -450,6 +450,10 @@ const STATE = {
   // Pause
   pausedAt: null,
 
+  timerPaused: false,
+  totalPausedSec: 0,
+  pauseStartAt: null,
+
   realtimeConnected: false,
   bankTickInterval: null,
   imageTickInterval: null,
@@ -709,6 +713,16 @@ async function syncState() {
     onPauseDeactivated();
   }
 
+  // Sync pause state dari DB
+  if (myLogin) {
+    STATE.totalPausedSec = myLogin.total_paused_sec || 0;
+    
+    if (myLogin.is_timer_paused && !STATE.timerPaused) {
+      STATE.timerPaused = true;
+      STATE.pauseStartAt = myLogin.paused_at ? new Date(myLogin.paused_at).getTime() : Date.now();
+    }
+  }
+
   // Handle mode berubah
   if (STATE.mode !== prevMode) {
     LOG.ok(`Mode berubah: ${prevMode} → ${STATE.mode}`);
@@ -741,12 +755,6 @@ async function syncState() {
          STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
          STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
          STATE.realtimeConnected ? 'rt' : 'poll');
-}
-
-function remainingBankSec() {
-  if (!STATE.bankStartedAt) return STATE.bankDurationSec;
-  const elapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
-  return Math.max(0, STATE.bankDurationSec - elapsed);
 }
 
 function formatMMSS(sec) {
@@ -857,11 +865,21 @@ function updateProgressDisplay() {
   const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
   const totalPoin = Object.values(STATE.progressMap)
     .filter(p => p.status === 'locked')
-    .reduce((s, p) => s + (p.points_awarded || 0), 0);
+    .reduce((s, p) => s + Number(p.points_awarded || 0), 0);
 
   UI.txt('levelProgressLocked', `${locked} / 10`);
-  UI.txt('levelProgressPoints', totalPoin);
-  UI.txt('gamePoints', totalPoin);
+  UI.txt('levelProgressPoints', totalPoin.toFixed(2));
+  UI.txt('gamePoints', totalPoin.toFixed(2));
+}
+
+function getTotalPoints() {
+  return Object.values(STATE.progressMap)
+    .filter(p => p.status === 'locked')
+    .reduce((s, p) => s + Number(p.points_awarded || 0), 0);
+}
+
+// Di onBankTimeUp():
+UI.txt('frozenPoints', getTotalPoints().toFixed(2));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1002,24 +1020,31 @@ async function startBankTimer() {
       .update({
         bank_started_at: now,
         bank_remaining_sec: STATE.bankDurationSec,
-        status: 'playing'
+        status: 'playing',
+        is_timer_paused: false,
+        paused_at: null,
+        total_paused_sec: 0,
+        last_resumed_at: now
       })
       .eq('user_unique_id', STATE.user.unique_id);
 
     if (error) { LOG.err('startBankTimer', error); return; }
     STATE.bankStartedAt = now;
+    STATE.totalPausedSec = 0;
+    STATE.timerPaused = false;
     startBankTick();
-    LOG.ok('Bank started');
-
-    // Audit
-    await supabaseClient.from('hiding_block_audit_log').insert({
-      session_id: STATE.sessionId,
-      user_unique_id: STATE.user.unique_id,
-      user_role: 'peserta',
-      action: 'bank_start',
-      metadata: { duration: STATE.bankDurationSec, mode: STATE.mode }
-    });
+    LOG.ok('Bank started (forward counting)');
   } catch (e) { LOG.err('startBankTimer exception', e); }
+}
+
+function getEffectiveElapsedSec() {
+  if (!STATE.bankStartedAt) return 0;
+  const totalElapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
+  return Math.max(0, totalElapsed - STATE.totalPausedSec);
+}
+
+function remainingBankSec() {
+  return Math.max(0, STATE.bankDurationSec - getEffectiveElapsedSec());
 }
 
 function startBankTick() {
@@ -1090,7 +1115,7 @@ function startImageTimer() {
 async function pressBell() {
   if (STATE.busy) return;
   if (STATE.bellPressed) { toast('Bel sudah ditekan. Tunggu panitia.', 'warn'); return; }
-  if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
+  if (STATE.isPaused) { toast('Sedang pause global.', 'warn'); return; }
   if (!STATE.currentAttemptId) return;
 
   STATE.busy = true;
@@ -1101,24 +1126,34 @@ async function pressBell() {
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> MENUNGGU...`;
 
   try {
-    // Hitung durasi (dari image_loaded_at)
-    let durationSec = STATE.imageElapsedSec || 0;
-    // Kalau gambar gagal load, hitung dari attempt started_at
-    if (!STATE.imageLoadedAt && STATE.currentAttemptId) {
-      // Fallback: hitung dari created_at
-      durationSec = 0;
-    }
+    const durationSec = STATE.imageElapsedSec || 0;
+    const now = new Date().toISOString();
 
-    const { error } = await supabaseClient
+    // ✅ Pause timer di kiosk
+    STATE.timerPaused = true;
+    STATE.pauseStartAt = Date.now();
+
+    // Update progress
+    const { error: errProgress } = await supabaseClient
       .from('hiding_block_progress')
       .update({
         status: 'waiting_verdict',
-        submitted_at: new Date().toISOString(),
+        submitted_at: now,
         duration_sec: durationSec
       })
       .eq('id', STATE.currentAttemptId);
+    if (errProgress) throw errProgress;
 
-    if (error) throw error;
+    // ✅ Kirim data pause ke supabase
+    const { error: errLogin } = await supabaseClient
+      .from('system_hiding_block_login')
+      .update({
+        is_timer_paused: true,
+        paused_at: now,
+        bank_remaining_sec: Math.floor(remainingBankSec())
+      })
+      .eq('user_unique_id', STATE.user.unique_id);
+    if (errLogin) LOG.warn('Update pause state', errLogin);
 
     STATE.currentStatus = 'waiting_verdict';
 
@@ -1144,15 +1179,17 @@ async function pressBell() {
         level: STATE.currentLevel,
         choice: STATE.currentChoice,
         duration_sec: durationSec,
-        attempt_id: STATE.currentAttemptId
+        attempt_id: STATE.currentAttemptId,
+        bank_remaining_at_pause: Math.floor(remainingBankSec())
       }
     });
 
-    LOG.ok(`Bel ditekan (durasi: ${durationSec}s)`);
+    LOG.ok(`Bel ditekan (durasi: ${durationSec}s), timer pause`);
   } catch (e) {
     LOG.err('pressBell', e);
     toast('Gagal: ' + e.message, 'error');
     STATE.bellPressed = false;
+    STATE.timerPaused = false;
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
   } finally {
@@ -1180,22 +1217,25 @@ async function checkVerdict() {
 
     // Verdict diberikan!
     if (data.status === 'locked' || data.verdict === 'benar') {
-      LOG.ok(`BENAR! +${data.points_awarded} pts`);
-      AUDIO.bell();
-      UI.txt('verdictBenarPoin', data.points_awarded || 0);
-      UI.subPanel('subPanelVerdictBenar');
+  LOG.ok(`BENAR! +${Number(data.points_awarded).toFixed(2)} pts`);
+  AUDIO.bell();
+  
+  // ✅ Unpause timer
+  await unpauseTimer();
+  
+  UI.txt('verdictBenarPoin', Number(data.points_awarded || 0).toFixed(2));
+  UI.subPanel('subPanelVerdictBenar');
 
-      // Update progress map
-      const key = `${STATE.currentLevel}${STATE.currentChoice}`;
-      STATE.progressMap[key] = {
-        ...STATE.progressMap[key],
-        status: 'locked',
-        points_awarded: data.points_awarded
-      };
+  const key = `${STATE.currentLevel}${STATE.currentChoice}`;
+  STATE.progressMap[key] = {
+    ...STATE.progressMap[key],
+    status: 'locked',
+    points_awarded: data.points_awarded
+  };
 
-      // Reload progress dari DB untuk akurat
-      await reloadProgress();
-      STATE.currentStatus = 'locked';
+  await reloadProgress();
+  STATE.currentStatus = 'locked';
+}
 
     } else if (data.status === 'wrong_continued' || data.verdict === 'salah') {
       LOG.warn('SALAH — pilih lanjut/ulangi');
@@ -1247,7 +1287,7 @@ async function chooseUlangi() {
       action: 'choose_ulangi',
       metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
     });
-
+        await unpauseTimer();
     // Kembali ke view gambar (timer lanjut dari 0? TIDAK — timer lanjut dari 0 karena attempt baru
     // TAPI spec: "timer lanjut, tidak reset" → jadi kita biarkan imageLoadedAt = null
     // dan tidak start timer baru; timer per gambar tidak dihitung lagi untuk attempt ini? 
@@ -1287,10 +1327,58 @@ async function chooseUlangi() {
   }
 }
 
+async function chooseUlangi() {
+  LOG.info('Peserta pilih ULANGI');
+
+  try {
+    // ... insert attempt baru (sama seperti sebelumnya)
+
+    // ✅ Unpause timer
+    await unpauseTimer();
+
+    // Reset image state
+    STATE.imageLoaded = false;
+    STATE.imageLoadedAt = null;
+    STATE.imageElapsedSec = 0;
+    AUDIO.resetTimerTracking();
+
+    // ... rest sama
+  } catch (e) { ... }
+}
+
+async function unpauseTimer() {
+  if (!STATE.timerPaused) return;
+
+  const now = new Date().toISOString();
+  let additionalPause = 0;
+
+  if (STATE.pauseStartAt) {
+    additionalPause = Math.floor((Date.now() - STATE.pauseStartAt) / 1000);
+  }
+
+  STATE.totalPausedSec += additionalPause;
+  STATE.timerPaused = false;
+  STATE.pauseStartAt = null;
+
+  try {
+    await supabaseClient
+      .from('system_hiding_block_login')
+      .update({
+        is_timer_paused: false,
+        paused_at: null,
+        total_paused_sec: STATE.totalPausedSec,
+        last_resumed_at: now,
+        bank_remaining_sec: Math.floor(remainingBankSec())
+      })
+      .eq('user_unique_id', STATE.user.unique_id);
+
+    LOG.ok(`Timer unpaused (total pause: ${STATE.totalPausedSec}s)`);
+  } catch (e) { LOG.err('unpauseTimer', e); }
+}
+
 async function chooseLanjut() {
   LOG.info('Peserta pilih LANJUT');
   try {
-    // Update status ke surrendered/wrong_continued
     await supabaseClient
       .from('hiding_block_progress')
       .update({ status: 'wrong_continued' })
@@ -1305,15 +1393,14 @@ async function chooseLanjut() {
       metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
     });
 
-    // Reset state
+    // ✅ Unpause timer (supaya bisa lanjut level lain)
+    await unpauseTimer();
+
     STATE.currentStatus = 'wrong_continued';
     STATE.bellPressed = false;
     STATE.currentAttemptId = null;
 
-    // Reload progress
     await reloadProgress();
-
-    // Balik ke pilih level
     backToLevelSelect();
   } catch (e) { LOG.err('chooseLanjut', e); }
 }
@@ -1355,12 +1442,6 @@ function onBankTimeUp() {
   UI.txt('frozenLocked', `${locked}`);
 
   UI.dbg('frozen', '-', '00:00', STATE.realtimeConnected ? 'rt' : 'poll');
-}
-
-function getTotalPoints() {
-  return Object.values(STATE.progressMap)
-    .filter(p => p.status === 'locked')
-    .reduce((s, p) => s + (p.points_awarded || 0), 0);
 }
 
 // ═══════════════════════════════════════════════════════════
