@@ -16,7 +16,6 @@
       overscroll-behavior: none;
       touch-action: manipulation;
     }
-    .bingo-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
     .stage-panel {
       min-height: 100vh;
       display: flex;
@@ -28,7 +27,6 @@
     .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
 
-    /* Bell shake */
     @keyframes ringBell {
       0%,100% { transform: rotate(0deg); }
       20%     { transform: rotate(-22deg); }
@@ -38,7 +36,6 @@
     }
     .ring-bell { animation: ringBell 0.9s ease-in-out infinite; }
 
-    /* Pulse ring */
     @keyframes pulseRing {
       0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
       70%  { box-shadow: 0 0 0 22px rgba(245, 158, 11, 0); }
@@ -46,14 +43,6 @@
     }
     .pulse-ring { animation: pulseRing 1.6s infinite; }
 
-    /* Level button selected */
-    .level-btn.selected {
-      background: linear-gradient(180deg, rgba(99,102,241,0.3), rgba(99,102,241,0.1));
-      border-color: #818cf8 !important;
-      box-shadow: 0 0 25px rgba(99,102,241,0.4);
-    }
-
-    /* Image fullscreen viewer */
     .img-viewer {
       background: #000;
       display: flex;
@@ -68,56 +57,40 @@
       border-radius: 12px;
     }
 
-    /* Flashing timer warning */
     @keyframes flash {
       0%,100% { opacity: 1; }
       50%     { opacity: 0.4; }
     }
     .flash-warning { animation: flash 1s ease-in-out infinite; }
 
-    /* Fade in */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .fade-in { animation: fadeIn 0.3s ease-out; }
 
-    /* Pulse slow */
     @keyframes pulseSoft {
       0%,100% { opacity: 1; }
       50%     { opacity: 0.6; }
     }
     .pulse-soft { animation: pulseSoft 1.4s ease-in-out infinite; }
-
-    /* Locked overlay */
-    .locked-overlay {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 12px;
-      backdrop-filter: blur(3px);
-    }
   </style>
 </head>
 <body class="text-white">
 
-  <!-- ═══════════════════════════════════════════════════════ -->
   <!-- DEBUG BADGE -->
-  <!-- ═══════════════════════════════════════════════════════ -->
   <div id="dbgBadge"
        class="fixed top-1 right-1 text-[9px] font-mono bg-black/85 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 z-[200] pointer-events-none">
     <span id="dbgState">boot</span>·<span id="dbgQ">-</span>·<span id="dbgBank">--:--</span>·<span id="dbgRT">-</span>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
   <!-- AUDIO PLAYERS -->
-  <!-- ═══════════════════════════════════════════════════════ -->
   <audio id="sfxBell"   preload="auto"></audio>
   <audio id="sfxTimer"  preload="auto"></audio>
   <audio id="sfxTimeup" preload="auto"></audio>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 1: LOADING / LOGIN -->
+  <!-- PANEL 1: LOADING -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div id="panelLoad" class="stage-panel items-center justify-center text-center p-6">
     <div class="p-5 bg-indigo-500/10 rounded-full border-2 border-indigo-500/30 text-indigo-400 mb-4 animate-pulse">
@@ -125,11 +98,11 @@
     </div>
     <h1 class="text-3xl font-black mb-1">HIDING BLOCK</h1>
     <p class="text-xs text-slate-400">Memuat sesi...</p>
-    <p id="loadError" class="text-xs text-rose-400 mt-3 hidden"></p>
+    <p id="loadError" class="text-xs text-rose-400 mt-3 hidden font-mono"></p>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 2: READY (tekan SIAP) -->
+  <!-- PANEL 2: READY -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div id="panelReady" class="stage-panel hidden-panel p-6">
     <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6">
@@ -137,7 +110,7 @@
         <i class="fas fa-hand text-5xl"></i>
       </div>
       <div class="space-y-2">
-        <h2 class="text-4xl font-black">HALO, <span id="readyName" class="text-emerald-400">-</span>!</h2>
+        <h2 class="text-3xl font-black">HALO, <span id="readyName" class="text-emerald-400">-</span>!</h2>
         <p class="text-slate-400 text-sm max-w-xs mx-auto">Tekan tombol SIAP di bawah untuk menandai bahwa kamu sudah siap bermain.</p>
       </div>
 
@@ -164,7 +137,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 3: WAITING (sudah SIAP, tunggu admin start) -->
+  <!-- PANEL 3: WAITING -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div id="panelWaiting" class="stage-panel hidden-panel items-center justify-center text-center p-6">
     <div class="w-32 h-32 bg-indigo-500/10 border-2 border-indigo-500/40 rounded-full flex items-center justify-center text-indigo-400 mb-6 pulse-ring">
@@ -179,7 +152,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 4: FROZEN (bank habis) -->
+  <!-- PANEL 4: FROZEN -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div id="panelFrozen" class="stage-panel hidden-panel items-center justify-center text-center p-6">
     <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/40 rounded-full flex items-center justify-center text-rose-400 mb-6">
@@ -191,21 +164,21 @@
     <div class="mt-6 grid grid-cols-2 gap-3 max-w-xs w-full">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
         <div class="text-[10px] text-slate-500 uppercase">Poin</div>
-        <div id="frozenPoints" class="text-3xl font-math font-black text-amber-400">0</div>
+        <div id="frozenPoints" class="text-3xl font-mono font-black text-amber-400">0.00</div>
       </div>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
         <div class="text-[10px] text-slate-500 uppercase">Selesai</div>
-        <div id="frozenLocked" class="text-3xl font-math font-black text-emerald-400">0<span class="text-slate-500 text-lg">/10</span></div>
+        <div id="frozenLocked" class="text-3xl font-mono font-black text-emerald-400">0<span class="text-slate-500 text-lg">/10</span></div>
       </div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 5: GAME (main game) -->
+  <!-- PANEL 5: GAME -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <div id="panelGame" class="stage-panel hidden-panel">
 
-    <!-- HEADER: Nama + Bank -->
+    <!-- HEADER -->
     <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between sticky top-0 z-30">
       <div>
         <div class="text-[9px] text-slate-500 uppercase tracking-wider">Peserta</div>
@@ -213,24 +186,22 @@
       </div>
       <div class="text-center">
         <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
-        <div id="gamePoints" class="text-xl font-math font-black text-amber-400">0</div>
+        <div id="gamePoints" class="text-xl font-mono font-black text-amber-400">0.00</div>
       </div>
       <div class="text-right">
         <div class="text-[9px] text-slate-500 uppercase tracking-wider">Bank</div>
-        <div id="gameBank" class="text-xl font-math font-black text-rose-400">30:00</div>
+        <div id="gameBank" class="text-xl font-mono font-black text-emerald-400">30:00</div>
       </div>
     </div>
 
-    <!-- SUB-PANEL 5a: PILIH LEVEL -->
+    <!-- SUB-PANEL: SELECT LEVEL -->
     <div id="subPanelSelectLevel" class="flex-1 p-4 overflow-y-auto custom-scroll">
       <div class="text-center mb-5 mt-2">
         <h3 class="text-2xl font-black">PILIH LEVEL</h3>
         <p class="text-xs text-slate-400">Pilih level yang ingin kamu kerjakan</p>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 max-w-md mx-auto" id="levelButtonsWrap">
-        <!-- Level buttons generated by JS -->
-      </div>
+      <div class="grid grid-cols-2 gap-3 max-w-md mx-auto" id="levelButtonsWrap"></div>
 
       <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl p-4 max-w-md mx-auto">
         <div class="flex items-center justify-between text-xs mb-2">
@@ -239,12 +210,12 @@
         </div>
         <div class="flex items-center justify-between text-xs">
           <span class="text-slate-400">Total poin</span>
-          <span id="levelProgressPoints" class="font-mono font-bold text-amber-400">0</span>
+          <span id="levelProgressPoints" class="font-mono font-bold text-amber-400">0.00</span>
         </div>
       </div>
     </div>
 
-    <!-- SUB-PANEL 5b: PILIH A/B -->
+    <!-- SUB-PANEL: SELECT CHOICE -->
     <div id="subPanelSelectChoice" class="hidden flex-1 p-4 overflow-y-auto custom-scroll">
       <div class="text-center mb-5 mt-2">
         <div class="text-xs text-slate-500 mb-1">LEVEL <span id="choiceLevelNum" class="text-indigo-400 font-black">1</span></div>
@@ -255,12 +226,12 @@
       <div class="grid grid-cols-2 gap-3 max-w-md mx-auto">
         <button onclick="chooseOption('a')"
                 class="aspect-square bg-gradient-to-br from-indigo-600/30 to-indigo-900/20 hover:from-indigo-500/50 border-2 border-indigo-500/40 rounded-3xl flex flex-col items-center justify-center transition active:scale-95">
-          <div class="text-6xl font-math font-black text-indigo-300">A</div>
+          <div class="text-6xl font-black text-indigo-300">A</div>
           <div class="text-[10px] text-indigo-300/70 mt-2 uppercase">Gambar A</div>
         </button>
         <button onclick="chooseOption('b')"
                 class="aspect-square bg-gradient-to-br from-purple-600/30 to-purple-900/20 hover:from-purple-500/50 border-2 border-purple-500/40 rounded-3xl flex flex-col items-center justify-center transition active:scale-95">
-          <div class="text-6xl font-math font-black text-purple-300">B</div>
+          <div class="text-6xl font-black text-purple-300">B</div>
           <div class="text-[10px] text-purple-300/70 mt-2 uppercase">Gambar B</div>
         </button>
       </div>
@@ -271,19 +242,17 @@
       </button>
     </div>
 
-    <!-- SUB-PANEL 5c: VIEW GAMBAR -->
+    <!-- SUB-PANEL: VIEW IMAGE -->
     <div id="subPanelViewImage" class="hidden flex-1 flex flex-col">
-      <!-- Timer strip -->
       <div class="bg-slate-950 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-[10px] text-slate-500 uppercase">Level</span>
-          <span id="imgLevelLabel" class="font-math font-black text-indigo-400">1A</span>
+          <span id="imgLevelLabel" class="font-mono font-black text-indigo-400">1A</span>
         </div>
-        <div id="imgTimerDisplay" class="text-2xl font-math font-black text-emerald-400">00:00</div>
+        <div id="imgTimerDisplay" class="text-2xl font-mono font-black text-emerald-400">00:00</div>
         <div class="w-16"></div>
       </div>
 
-      <!-- Image area -->
       <div class="flex-1 img-viewer bg-black relative overflow-hidden">
         <div id="imgLoadingOverlay" class="absolute inset-0 flex items-center justify-center bg-slate-950 z-20">
           <div class="text-center space-y-3">
@@ -294,7 +263,6 @@
         <img id="imgViewerTarget" src="" alt="" />
       </div>
 
-      <!-- Bottom action -->
       <div class="bg-slate-900 border-t border-slate-800 p-4">
         <button id="btnBell"
                 onclick="pressBell()"
@@ -305,8 +273,8 @@
       </div>
     </div>
 
-    <!-- SUB-PANEL 5d: WAITING VERDICT -->
-    <div id="subPanelWaitingVerdict" class="hidden flex-1 items-center justify-center text-center p-6 flex flex-col">
+    <!-- SUB-PANEL: WAITING VERDICT -->
+    <div id="subPanelWaitingVerdict" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6">
       <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-ring">
         <i class="fas fa-bell text-6xl ring-bell"></i>
       </div>
@@ -315,31 +283,31 @@
 
       <div class="mt-6 px-6 py-3 rounded-2xl bg-slate-900 border border-slate-800">
         <div class="text-[10px] text-slate-500 uppercase">Durasi Kerja</div>
-        <div id="waitVerdictDuration" class="text-3xl font-math font-black text-white">00:00</div>
+        <div id="waitVerdictDuration" class="text-3xl font-mono font-black text-white">00:00</div>
       </div>
     </div>
 
-    <!-- SUB-PANEL 5e: AFTER VERDICT — BENAR -->
-    <div id="subPanelVerdictBenar" class="hidden flex-1 items-center justify-center text-center p-6 flex flex-col">
+    <!-- SUB-PANEL: VERDICT BENAR -->
+    <div id="subPanelVerdictBenar" class="hidden flex-1 flex-col items-center justify-center text-center p-6">
       <div class="w-32 h-32 bg-emerald-500/20 border-4 border-emerald-400 rounded-full flex items-center justify-center text-emerald-400 mb-6 shadow-2xl shadow-emerald-500/50">
         <i class="fas fa-check text-7xl"></i>
       </div>
       <h3 class="text-4xl font-black text-emerald-400 mb-2">BENAR!</h3>
       <p class="text-sm text-slate-400 mb-4">Gambar terkunci permanen.</p>
-      <div class="text-5xl font-math font-black text-amber-400">+<span id="verdictBenarPoin">0</span></div>
+      <div class="text-5xl font-mono font-black text-amber-400">+<span id="verdictBenarPoin">0.00</span></div>
       <div class="text-[10px] text-slate-500 uppercase tracking-wider mt-1">Poin</div>
       <button onclick="backToLevelSelect()" class="mt-8 px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition active:scale-95">
         <i class="fas fa-arrow-right"></i> Lanjut Pilih Level
       </button>
     </div>
 
-    <!-- SUB-PANEL 5f: AFTER VERDICT — SALAH -->
-    <div id="subPanelVerdictSalah" class="hidden flex-1 p-6 flex flex-col items-center justify-center text-center">
+    <!-- SUB-PANEL: VERDICT SALAH -->
+    <div id="subPanelVerdictSalah" class="hidden flex-1 p-6 flex-col items-center justify-center text-center">
       <div class="w-28 h-28 bg-rose-500/20 border-4 border-rose-400 rounded-full flex items-center justify-center text-rose-400 mb-5">
         <i class="fas fa-times text-6xl"></i>
       </div>
       <h3 class="text-4xl font-black text-rose-400 mb-2">SALAH</h3>
-      <p class="text-sm text-slate-400 mb-6 max-w-xs">Pilih apakah kamu mau <b>mengulangi</b> gambar ini (timer lanjut) atau <b>lanjut</b> ke level lain.</p>
+      <p class="text-sm text-slate-400 mb-6 max-w-xs">Pilih apakah kamu mau <b>mengulangi</b> gambar ini atau <b>lanjut</b> ke level lain.</p>
 
       <div class="grid grid-cols-2 gap-3 w-full max-w-sm">
         <button onclick="chooseUlangi()"
@@ -363,9 +331,7 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
   <!-- PAUSE OVERLAY -->
-  <!-- ═══════════════════════════════════════════════════════ -->
   <div id="pauseOverlay" class="hidden fixed inset-0 z-[150] bg-black/95 backdrop-blur-md items-center justify-center text-center p-6 flex flex-col">
     <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-soft">
       <i class="fas fa-pause text-6xl"></i>
@@ -380,9 +346,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
   <!-- TOAST -->
-  <!-- ═══════════════════════════════════════════════════════ -->
   <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none w-[90%] max-w-sm"></div>
 
 <script>
@@ -394,9 +358,8 @@ const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TAG = '[KIOSK-HB]';
-const BANK_GAME_SEC = 1800;    // 30 menit
-const BANK_SIM_SEC  = 600;     // 10 menit
-const TARGET_FULL_POINT_SEC = 600;  // 10 menit untuk poin penuh
+const BANK_GAME_SEC = 1800;
+const BANK_SIM_SEC  = 600;
 
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
 const BUCKET_BLOCK = `${STORAGE_BASE}/block`;
@@ -420,45 +383,34 @@ const LOG = {
 const STATE = {
   user: null,
   sessionId: null,
-  mode: 'idle',           // idle | simulasi | game
+  mode: 'idle',
   isPaused: false,
   isReady: false,
 
-  // Bank waktu
   bankStartedAt: null,
   bankDurationSec: BANK_GAME_SEC,
+  totalPausedSec: 0,
+  timerPaused: false,
+  pauseStartAt: null,
 
-  // Soal aktif
   currentLevel: null,
   currentChoice: null,
   currentAttemptId: null,
-  currentStatus: null,    // 'in_progress' | 'waiting_verdict' | 'locked' | 'wrong_continued'
+  currentStatus: null,
 
-  // Per gambar
   imageLoaded: false,
   imageLoadedAt: null,
-  imageStartTick: null,
   imageElapsedSec: 0,
 
-  // Progress
-  progressMap: {},        // "1a": {status, points, ...}
+  progressMap: {},
 
-  // Guards
   busy: false,
   bellPressed: false,
-
-  // Pause
-  pausedAt: null,
-
-  timerPaused: false,
-  totalPausedSec: 0,
-  pauseStartAt: null,
 
   realtimeConnected: false,
   bankTickInterval: null,
   imageTickInterval: null,
 
-  // Audio tracking — hindari pengulangan
   timerAudiosPlayed: new Set()
 };
 
@@ -467,7 +419,7 @@ const STATE = {
 // ═══════════════════════════════════════════════════════════
 const UI = {
   el: id => document.getElementById(id),
-  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  txt(id, v) { const e = UI.el(id); if (e) e.textContent = v; },
   show(id, asFlex = false) {
     const e = UI.el(id);
     if (!e) return;
@@ -481,31 +433,28 @@ const UI = {
     else e.classList.add('hidden');
   },
   panel(showId) {
-    ['panelLoad','panelReady','panelWaiting','panelFrozen','panelGame']
-      .forEach(id => {
-        const e = UI.el(id);
-        if (e) e.classList.add('hidden-panel');
-      });
+    ['panelLoad','panelReady','panelWaiting','panelFrozen','panelGame'].forEach(id => {
+      const e = UI.el(id);
+      if (e) e.classList.add('hidden-panel');
+    });
     const t = UI.el(showId);
     if (t) t.classList.remove('hidden-panel');
   },
   subPanel(showId) {
-    ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
-     'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah']
-      .forEach(id => {
-        const e = UI.el(id);
-        if (e) {
-          e.classList.add('hidden');
-          e.classList.remove('flex');
-        }
-      });
+    const list = ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
+                  'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'];
+    list.forEach(id => {
+      const e = UI.el(id);
+      if (!e) return;
+      e.classList.add('hidden');
+      e.classList.remove('flex');
+    });
     const t = UI.el(showId);
-    if (t) {
-      t.classList.remove('hidden');
-      // Beberapa sub-panel butuh flex untuk layout
-      if (showId.includes('Waiting') || showId.includes('VerdictBenar')) {
-        t.classList.add('flex');
-      }
+    if (!t) return;
+    t.classList.remove('hidden');
+    // Sub-panel yang butuh flex layout
+    if (['subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'].includes(showId)) {
+      t.classList.add('flex');
     }
   },
   dbg(state, q, bank, rt) {
@@ -526,12 +475,13 @@ function toast(msg, type='info', duration=2500) {
   const el = document.createElement('div');
   el.className = `${colors[type]} px-4 py-3 rounded-2xl border-2 shadow-2xl text-sm font-bold fade-in text-center`;
   el.textContent = msg;
-  UI.el('toastWrap').appendChild(el);
+  const wrap = UI.el('toastWrap');
+  if (wrap) wrap.appendChild(el);
   setTimeout(() => el.remove(), duration);
 }
 
 // ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE
+// AUDIO
 // ═══════════════════════════════════════════════════════════
 const AUDIO = {
   bell()   { AUDIO._play('sfxBell',   `${STORAGE_BASE}/sounds_effect/bell.mp3`); },
@@ -550,12 +500,10 @@ const AUDIO = {
       el.src = url;
       el.currentTime = 0;
       el.volume = 1;
-      el.play().catch(err => LOG.warn(`Audio ${url.split('/').pop()} gagal:`, err.message));
+      el.play().catch(err => LOG.warn(`Audio gagal:`, err.message));
     } catch (e) { LOG.warn('Audio exception', e); }
   },
-  resetTimerTracking() {
-    STATE.timerAudiosPlayed.clear();
-  }
+  resetTimerTracking() { STATE.timerAudiosPlayed.clear(); }
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -582,73 +530,7 @@ function initUser() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SESSION ID
-// ═══════════════════════════════════════════════════════════
-async function fetchSessionId() {
-  try {
-    const { data } = await supabaseClient
-      .from('system_hiding_block_login')
-      .select('session_id')
-      .order('joined_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data?.session_id || null;
-  } catch { return null; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// PRESS READY
-// ═══════════════════════════════════════════════════════════
-async function pressReady() {
-  if (STATE.busy || STATE.isReady) return;
-  STATE.busy = true;
-
-  const btn = UI.el('btnReady');
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
-
-  try {
-    STATE.sessionId = await fetchSessionId();
-  
-  // ✅ Fallback: kalau tidak ada, generate lokal (tidak ideal, tapi tidak crash)
-  if (!STATE.sessionId) {
-    LOG.warn('session_id kosong di DB — pakai fallback UUID lokal');
-    STATE.sessionId = crypto.randomUUID();
-  }
-    // Insert atau update (kalau peserta sudah ada)
-    const { error } = await supabaseClient
-      .from('system_hiding_block_login')
-      .upsert({
-        session_id: STATE.sessionId,
-        user_unique_id: STATE.user.unique_id,
-        status: 'ready',
-        joined_at: new Date().toISOString()
-      }, { onConflict: 'session_id,user_unique_id' });
-
-    if (error) throw error;
-
-    STATE.isReady = true;
-    AUDIO.bell();
-    LOG.ok('Peserta ready');
-
-    // Pindah ke panel waiting
-    UI.panel('panelWaiting');
-    UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
-
-    // Start realtime
-    startRealtimeListening();
-  } catch (e) {
-    LOG.err('pressReady', e);
-    toast('Gagal: ' + (e.message || 'Error tidak diketahui'), 'error');
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-check-circle text-3xl"></i><span>SIAP!</span>`;
-  } finally {
-    STATE.busy = false;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// FETCH CURRENT STATE
+// DB FETCHERS
 // ═══════════════════════════════════════════════════════════
 async function fetchSystemState() {
   try {
@@ -659,7 +541,12 @@ async function fetchSystemState() {
       .maybeSingle();
     if (error) { LOG.warn('fetchSystemState', error.message); return null; }
     return data;
-  } catch (e) { LOG.err('fetchSystemState exception', e); return null; }
+  } catch (e) { LOG.err('fetchSystemState', e); return null; }
+}
+
+async function fetchSessionId() {
+  const sys = await fetchSystemState();
+  return sys?.session_id || null;
 }
 
 async function fetchMyLogin() {
@@ -684,8 +571,8 @@ async function fetchMyProgress() {
     const map = {};
     data.forEach(r => {
       const key = `${r.level}${r.choice}`;
-      // Simpan yang terbaru / locked
-      if (!map[key] || r.status === 'locked' || new Date(r.created_at) > new Date(map[key].created_at)) {
+      if (!map[key] || r.status === 'locked' || 
+          new Date(r.created_at) > new Date(map[key].created_at)) {
         map[key] = r;
       }
     });
@@ -694,95 +581,155 @@ async function fetchMyProgress() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SYNC STATE (dari DB)
+// TIMER HELPERS
 // ═══════════════════════════════════════════════════════════
-async function syncState() {
-  const sys = await fetchSystemState();
-  if (!sys) return;
-
-  const prevMode = STATE.mode;
-  const prevPaused = STATE.isPaused;
-
-  STATE.mode = sys.mode || 'idle';
-  STATE.isPaused = !!sys.is_paused;
-
-  // Handle pause/unpause
-  if (STATE.isPaused && !prevPaused) {
-    onPauseActivated();
-  } else if (!STATE.isPaused && prevPaused) {
-    onPauseDeactivated();
-  }
-
-  // Sync pause state dari DB
-  if (myLogin) {
-    STATE.totalPausedSec = myLogin.total_paused_sec || 0;
-    
-    if (myLogin.is_timer_paused && !STATE.timerPaused) {
-      STATE.timerPaused = true;
-      STATE.pauseStartAt = myLogin.paused_at ? new Date(myLogin.paused_at).getTime() : Date.now();
-    }
-  }
-
-  // Handle mode berubah
-  if (STATE.mode !== prevMode) {
-    LOG.ok(`Mode berubah: ${prevMode} → ${STATE.mode}`);
-    onModeChanged(STATE.mode);
-  }
-
-  // Sync bank waktu
-  const myLogin = await fetchMyLogin();
-  if (myLogin?.bank_started_at) {
-    const prev = STATE.bankStartedAt;
-    STATE.bankStartedAt = myLogin.bank_started_at;
-    STATE.bankDurationSec = STATE.mode === 'simulasi' ? BANK_SIM_SEC : BANK_GAME_SEC;
-
-    if (!prev && STATE.bankStartedAt) {
-      // Bank baru mulai → start tick
-      startBankTick();
-    }
-  }
-
-  // Kalau bank habis → freeze
-  if (STATE.bankStartedAt && !STATE.isPaused) {
-    const elapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
-    if (elapsed >= STATE.bankDurationSec) {
-      onBankTimeUp();
-      return;
-    }
-  }
-
-  UI.dbg(STATE.isPaused ? 'paused' : STATE.mode, 
-         STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
-         STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
-         STATE.realtimeConnected ? 'rt' : 'poll');
-}
-
 function formatMMSS(sec) {
-  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
-  const ss = String(sec % 60).padStart(2, '0');
+  const s = Math.max(0, Math.floor(sec));
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
   return `${mm}:${ss}`;
 }
 
+function getEffectiveElapsedSec() {
+  if (!STATE.bankStartedAt) return 0;
+  const totalElapsed = Math.floor(
+    (Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000
+  );
+  return Math.max(0, totalElapsed - STATE.totalPausedSec);
+}
+
+function remainingBankSec() {
+  return Math.max(0, STATE.bankDurationSec - getEffectiveElapsedSec());
+}
+
 // ═══════════════════════════════════════════════════════════
-// MODE CHANGED
+// PRESS READY
+// ═══════════════════════════════════════════════════════════
+async function pressReady() {
+  if (STATE.busy || STATE.isReady) return;
+  STATE.busy = true;
+
+  const btn = UI.el('btnReady');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
+
+  try {
+    // Ambil session_id dari state global
+    STATE.sessionId = await fetchSessionId();
+    if (!STATE.sessionId) {
+      // Fallback: generate lokal (state mungkin belum siap)
+      LOG.warn('session_id kosong di DB — pakai fallback');
+      STATE.sessionId = crypto.randomUUID();
+    }
+
+    const { error } = await supabaseClient
+      .from('system_hiding_block_login')
+      .upsert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        status: 'ready',
+        joined_at: new Date().toISOString()
+      }, { onConflict: 'session_id,user_unique_id' });
+
+    if (error) throw error;
+
+    STATE.isReady = true;
+    AUDIO.bell();
+    LOG.ok('Peserta ready');
+
+    UI.panel('panelWaiting');
+    UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
+
+    startRealtimeListening();
+  } catch (e) {
+    LOG.err('pressReady', e);
+    toast('Gagal: ' + (e.message || 'Error'), 'error');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-check-circle text-3xl"></i><span>SIAP!</span>`;
+  } finally {
+    STATE.busy = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC STATE
+// ═══════════════════════════════════════════════════════════
+async function syncState() {
+  try {
+    const sys = await fetchSystemState();
+    if (!sys) return;
+
+    const myLogin = await fetchMyLogin();
+
+    const prevMode = STATE.mode;
+    const prevPaused = STATE.isPaused;
+
+    STATE.mode = sys.mode || 'idle';
+    STATE.isPaused = !!sys.is_paused;
+
+    // Handle pause global
+    if (STATE.isPaused && !prevPaused) onPauseActivated();
+    else if (!STATE.isPaused && prevPaused) onPauseDeactivated();
+
+    // Sync pause state dari DB
+    if (myLogin) {
+      STATE.totalPausedSec = myLogin.total_paused_sec || 0;
+
+      if (myLogin.is_timer_paused && !STATE.timerPaused) {
+        STATE.timerPaused = true;
+        STATE.pauseStartAt = myLogin.paused_at
+          ? new Date(myLogin.paused_at).getTime()
+          : Date.now();
+      }
+    }
+
+    // Mode berubah
+    if (STATE.mode !== prevMode) {
+      LOG.ok(`Mode: ${prevMode} → ${STATE.mode}`);
+      onModeChanged(STATE.mode);
+    }
+
+    // Sync bank
+    if (myLogin?.bank_started_at) {
+      const prev = STATE.bankStartedAt;
+      STATE.bankStartedAt = myLogin.bank_started_at;
+      STATE.bankDurationSec = STATE.mode === 'simulasi' ? BANK_SIM_SEC : BANK_GAME_SEC;
+
+      if (!prev && STATE.bankStartedAt) startBankTick();
+    }
+
+    // Cek bank habis
+    if (STATE.bankStartedAt && !STATE.isPaused) {
+      const elapsed = getEffectiveElapsedSec();
+      if (elapsed >= STATE.bankDurationSec) {
+        onBankTimeUp();
+        return;
+      }
+    }
+
+    UI.dbg(
+      STATE.isPaused ? 'paused' : STATE.mode,
+      STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
+      STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
+      STATE.realtimeConnected ? 'rt' : 'poll'
+    );
+  } catch (e) {
+    LOG.err('syncState', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODE CHANGE
 // ═══════════════════════════════════════════════════════════
 async function onModeChanged(newMode) {
-  LOG.ok(`Mode: ${newMode}`);
+  LOG.ok(`Mode changed → ${newMode}`);
 
   if (newMode === 'idle') {
-    // Kembali ke waiting
-    if (STATE.isReady) {
-      UI.panel('panelWaiting');
-    } else {
-      UI.panel('panelReady');
-    }
+    if (STATE.isReady) UI.panel('panelWaiting');
+    else UI.panel('panelReady');
   } else if (newMode === 'simulasi' || newMode === 'game') {
-    // Peserta masuk mode game
-    if (STATE.isReady) {
-      await enterGameMode();
-    } else {
-      toast('Kamu belum menekan SIAP!', 'warn');
-    }
+    if (STATE.isReady) await enterGameMode();
+    else toast('Kamu belum menekan SIAP!', 'warn');
   }
 }
 
@@ -792,23 +739,23 @@ async function onModeChanged(newMode) {
 async function enterGameMode() {
   LOG.ok('Enter game mode');
 
-  // Set bank duration sesuai mode
   STATE.bankDurationSec = STATE.mode === 'simulasi' ? BANK_SIM_SEC : BANK_GAME_SEC;
 
-  // Cek bank sudah dimulai belum
   const myLogin = await fetchMyLogin();
-  if (!myLogin?.bank_started_at) {
-    // Belum mulai → tunggu peserta buka gambar pertama
-    LOG.info('Bank belum mulai — tunggu gambar pertama');
-  } else {
+  if (myLogin?.bank_started_at) {
     STATE.bankStartedAt = myLogin.bank_started_at;
+    STATE.totalPausedSec = myLogin.total_paused_sec || 0;
+    if (myLogin.is_timer_paused) {
+      STATE.timerPaused = true;
+      STATE.pauseStartAt = myLogin.paused_at ? new Date(myLogin.paused_at).getTime() : Date.now();
+    }
     startBankTick();
+  } else {
+    LOG.info('Bank belum mulai — tunggu gambar pertama');
   }
 
-  // Load progress
   STATE.progressMap = await fetchMyProgress();
 
-  // Tampil panel game → sub panel pilih level
   UI.panel('panelGame');
   UI.txt('gameName', STATE.user.full_name || STATE.user.unique_id);
 
@@ -849,7 +796,7 @@ function renderLevelButtons() {
     btn.onclick = () => selectLevel(level);
 
     btn.innerHTML = `
-      <div class="text-5xl font-math font-black">${level}</div>
+      <div class="text-5xl font-black">${level}</div>
       <div class="text-[10px] uppercase tracking-wider mt-1 opacity-80">Level ${level}</div>
       <div class="text-[9px] opacity-60 mt-0.5">${POINT_MAP[level]} poin</div>
       ${badge ? `<div class="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded bg-black/40">${badge}</div>` : ''}
@@ -857,15 +804,12 @@ function renderLevelButtons() {
     wrap.appendChild(btn);
   }
 
-  // Update progress bar bawah
   updateProgressDisplay();
 }
 
 function updateProgressDisplay() {
   const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
-  const totalPoin = Object.values(STATE.progressMap)
-    .filter(p => p.status === 'locked')
-    .reduce((s, p) => s + Number(p.points_awarded || 0), 0);
+  const totalPoin = getTotalPoints();
 
   UI.txt('levelProgressLocked', `${locked} / 10`);
   UI.txt('levelProgressPoints', totalPoin.toFixed(2));
@@ -878,15 +822,11 @@ function getTotalPoints() {
     .reduce((s, p) => s + Number(p.points_awarded || 0), 0);
 }
 
-// Di onBankTimeUp():
-UI.txt('frozenPoints', getTotalPoints().toFixed(2));
-}
-
 // ═══════════════════════════════════════════════════════════
 // SELECT LEVEL
 // ═══════════════════════════════════════════════════════════
 function selectLevel(level) {
-  if (STATE.isPaused) { toast('Sedang pause. Tunggu panitia.', 'warn'); return; }
+  if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
   if (STATE.mode === 'idle') { toast('Belum mulai.', 'warn'); return; }
 
   STATE.currentLevel = level;
@@ -902,17 +842,15 @@ function backToLevelSelect() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHOOSE OPTION A/B
+// CHOOSE OPTION
 // ═══════════════════════════════════════════════════════════
 async function chooseOption(choice) {
   if (STATE.busy) return;
   if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
 
   const key = `${STATE.currentLevel}${choice}`;
-
-  // Cek kalau sudah locked
   if (STATE.progressMap[key]?.status === 'locked') {
-    toast('Gambar ini sudah selesai (locked).', 'warn');
+    toast('Gambar ini sudah selesai.', 'warn');
     return;
   }
 
@@ -925,12 +863,13 @@ async function chooseOption(choice) {
   AUDIO.resetTimerTracking();
 
   const isSimulasi = STATE.mode === 'simulasi';
-  const fileName = isSimulasi ? `s${STATE.currentLevel}${choice}.png` : `${STATE.currentLevel}${choice}.png`;
+  const fileName = isSimulasi
+    ? `s${STATE.currentLevel}${choice}.png`
+    : `${STATE.currentLevel}${choice}.png`;
   const imageUrl = `${BUCKET_BLOCK}/${fileName}`;
 
   LOG.ok(`Buka gambar: ${fileName}`);
 
-  // Insert progress attempt
   try {
     const { data, error } = await supabaseClient
       .from('hiding_block_progress')
@@ -952,18 +891,16 @@ async function chooseOption(choice) {
     STATE.currentStatus = 'in_progress';
   } catch (e) {
     LOG.err('Insert progress', e);
-    toast('Gagal mulai gambar: ' + e.message, 'error');
+    toast('Gagal mulai: ' + e.message, 'error');
     STATE.busy = false;
     return;
   }
 
-  // Tampil sub-panel view gambar
   UI.subPanel('subPanelViewImage');
   UI.txt('imgLevelLabel', `${STATE.currentLevel}${choice.toUpperCase()}`);
   UI.txt('imgTimerDisplay', '00:00');
   UI.show('imgLoadingOverlay');
 
-  // Load image
   const img = UI.el('imgViewerTarget');
   img.onload = () => onImageLoaded();
   img.onerror = () => onImageFailed();
@@ -973,7 +910,7 @@ async function chooseOption(choice) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// IMAGE LOADED → START TIMER
+// IMAGE LOADED / FAILED
 // ═══════════════════════════════════════════════════════════
 async function onImageLoaded() {
   LOG.ok('Gambar loaded');
@@ -982,7 +919,6 @@ async function onImageLoaded() {
   STATE.imageLoaded = true;
   STATE.imageLoadedAt = Date.now();
 
-  // Update DB
   try {
     await supabaseClient
       .from('hiding_block_progress')
@@ -990,27 +926,20 @@ async function onImageLoaded() {
       .eq('id', STATE.currentAttemptId);
   } catch (e) { LOG.warn('Update image_loaded_at', e); }
 
-  // Start bank tick kalau belum
-  if (!STATE.bankStartedAt) {
-    await startBankTimer();
-  }
+  if (!STATE.bankStartedAt) await startBankTimer();
 
-  // Start timer per gambar
   startImageTimer();
 }
 
 function onImageFailed() {
   LOG.err('Gambar gagal load');
   UI.hide('imgLoadingOverlay');
-
   STATE.imageLoaded = false;
-
-  // Tampilkan opsi ke peserta: pakai bel untuk skip
   toast('Gambar gagal dimuat. Tekan BEL untuk minta bantuan panitia.', 'warn', 5000);
 }
 
 // ═══════════════════════════════════════════════════════════
-// START BANK TIMER (mulai bank 30 menit)
+// START BANK TIMER
 // ═══════════════════════════════════════════════════════════
 async function startBankTimer() {
   const now = new Date().toISOString();
@@ -1033,18 +962,8 @@ async function startBankTimer() {
     STATE.totalPausedSec = 0;
     STATE.timerPaused = false;
     startBankTick();
-    LOG.ok('Bank started (forward counting)');
-  } catch (e) { LOG.err('startBankTimer exception', e); }
-}
-
-function getEffectiveElapsedSec() {
-  if (!STATE.bankStartedAt) return 0;
-  const totalElapsed = Math.floor((Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000);
-  return Math.max(0, totalElapsed - STATE.totalPausedSec);
-}
-
-function remainingBankSec() {
-  return Math.max(0, STATE.bankDurationSec - getEffectiveElapsedSec());
+    LOG.ok('Bank started');
+  } catch (e) { LOG.err('startBankTimer', e); }
 }
 
 function startBankTick() {
@@ -1052,23 +971,19 @@ function startBankTick() {
 
   const tick = () => {
     if (STATE.isPaused) return;
+
+    // Kalau timer per peserta pause, kurangi sisa via pause tracking
     const rem = remainingBankSec();
     UI.txt('gameBank', formatMMSS(rem));
-    UI.dbg(STATE.isPaused ? 'paused' : 'game',
-           STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
-           formatMMSS(rem),
-           STATE.realtimeConnected ? 'rt' : 'poll');
 
-    // Warna warning
     const bankEl = UI.el('gameBank');
     if (bankEl) {
-      if (rem < 60) bankEl.className = 'text-xl font-math font-black text-rose-500 flash-warning';
-      else if (rem < 300) bankEl.className = 'text-xl font-math font-black text-rose-400';
-      else if (rem < 900) bankEl.className = 'text-xl font-math font-black text-amber-400';
-      else bankEl.className = 'text-xl font-math font-black text-emerald-400';
+      if (rem < 60) bankEl.className = 'text-xl font-mono font-black text-rose-500 flash-warning';
+      else if (rem < 300) bankEl.className = 'text-xl font-mono font-black text-rose-400';
+      else if (rem < 900) bankEl.className = 'text-xl font-mono font-black text-amber-400';
+      else bankEl.className = 'text-xl font-mono font-black text-emerald-400';
     }
 
-    // Suara peringatan bank
     if (rem === 300) AUDIO.timerFile('5_menit.mp3');
     if (rem === 60)  AUDIO.timerFile('1_menit.mp3');
     if (rem === 30)  AUDIO.timerFile('30_detik.mp3');
@@ -1084,7 +999,7 @@ function startBankTick() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// IMAGE TIMER (per gambar)
+// IMAGE TIMER
 // ═══════════════════════════════════════════════════════════
 function startImageTimer() {
   if (STATE.imageTickInterval) clearInterval(STATE.imageTickInterval);
@@ -1095,11 +1010,8 @@ function startImageTimer() {
     if (!STATE.imageLoaded) return;
 
     STATE.imageElapsedSec = Math.floor((Date.now() - STATE.imageLoadedAt) / 1000);
-    const mm = String(Math.floor(STATE.imageElapsedSec / 60)).padStart(2, '0');
-    const ss = String(STATE.imageElapsedSec % 60).padStart(2, '0');
-    UI.txt('imgTimerDisplay', `${mm}:${ss}`);
+    UI.txt('imgTimerDisplay', formatMMSS(STATE.imageElapsedSec));
 
-    // Suara per menit (1.mp3 s.d. 10.mp3)
     const minutes = Math.floor(STATE.imageElapsedSec / 60);
     if (STATE.imageElapsedSec % 60 === 0 && minutes >= 1 && minutes <= 10) {
       AUDIO.timerFile(`${minutes}.mp3`);
@@ -1114,7 +1026,7 @@ function startImageTimer() {
 // ═══════════════════════════════════════════════════════════
 async function pressBell() {
   if (STATE.busy) return;
-  if (STATE.bellPressed) { toast('Bel sudah ditekan. Tunggu panitia.', 'warn'); return; }
+  if (STATE.bellPressed) { toast('Bel sudah ditekan.', 'warn'); return; }
   if (STATE.isPaused) { toast('Sedang pause global.', 'warn'); return; }
   if (!STATE.currentAttemptId) return;
 
@@ -1129,11 +1041,10 @@ async function pressBell() {
     const durationSec = STATE.imageElapsedSec || 0;
     const now = new Date().toISOString();
 
-    // ✅ Pause timer di kiosk
+    // ✅ Pause timer peserta
     STATE.timerPaused = true;
     STATE.pauseStartAt = Date.now();
 
-    // Update progress
     const { error: errProgress } = await supabaseClient
       .from('hiding_block_progress')
       .update({
@@ -1144,7 +1055,7 @@ async function pressBell() {
       .eq('id', STATE.currentAttemptId);
     if (errProgress) throw errProgress;
 
-    // ✅ Kirim data pause ke supabase
+    // ✅ Simpan pause state ke DB
     const { error: errLogin } = await supabaseClient
       .from('system_hiding_block_login')
       .update({
@@ -1157,19 +1068,14 @@ async function pressBell() {
 
     STATE.currentStatus = 'waiting_verdict';
 
-    // Stop image timer
     if (STATE.imageTickInterval) {
       clearInterval(STATE.imageTickInterval);
       STATE.imageTickInterval = null;
     }
 
-    // Tampil waiting verdict
     UI.subPanel('subPanelWaitingVerdict');
-    const mm = String(Math.floor(durationSec / 60)).padStart(2, '0');
-    const ss = String(durationSec % 60).padStart(2, '0');
-    UI.txt('waitVerdictDuration', `${mm}:${ss}`);
+    UI.txt('waitVerdictDuration', formatMMSS(durationSec));
 
-    // Audit
     await supabaseClient.from('hiding_block_audit_log').insert({
       session_id: STATE.sessionId,
       user_unique_id: STATE.user.unique_id,
@@ -1184,7 +1090,7 @@ async function pressBell() {
       }
     });
 
-    LOG.ok(`Bel ditekan (durasi: ${durationSec}s), timer pause`);
+    LOG.ok(`Bel ditekan (${durationSec}s), timer paused`);
   } catch (e) {
     LOG.err('pressBell', e);
     toast('Gagal: ' + e.message, 'error');
@@ -1198,7 +1104,7 @@ async function pressBell() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// WATCH VERDICT (dari panitia)
+// CHECK VERDICT
 // ═══════════════════════════════════════════════════════════
 async function checkVerdict() {
   if (!STATE.currentAttemptId) return;
@@ -1211,34 +1117,29 @@ async function checkVerdict() {
       .maybeSingle();
 
     if (error || !data) return;
-
-    // Kalau status masih waiting_verdict, tidak ada perubahan
     if (data.status === 'waiting_verdict') return;
 
-    // Verdict diberikan!
     if (data.status === 'locked' || data.verdict === 'benar') {
-  LOG.ok(`BENAR! +${Number(data.points_awarded).toFixed(2)} pts`);
-  AUDIO.bell();
-  
-  // ✅ Unpause timer
-  await unpauseTimer();
-  
-  UI.txt('verdictBenarPoin', Number(data.points_awarded || 0).toFixed(2));
-  UI.subPanel('subPanelVerdictBenar');
+      const poin = Number(data.points_awarded || 0);
+      LOG.ok(`BENAR! +${poin.toFixed(2)} pts`);
+      AUDIO.bell();
 
-  const key = `${STATE.currentLevel}${STATE.currentChoice}`;
-  STATE.progressMap[key] = {
-    ...STATE.progressMap[key],
-    status: 'locked',
-    points_awarded: data.points_awarded
-  };
+      await unpauseTimer();
 
-  await reloadProgress();
-  STATE.currentStatus = 'locked';
-}
+      UI.txt('verdictBenarPoin', poin.toFixed(2));
+      UI.subPanel('subPanelVerdictBenar');
 
+      const key = `${STATE.currentLevel}${STATE.currentChoice}`;
+      STATE.progressMap[key] = {
+        ...STATE.progressMap[key],
+        status: 'locked',
+        points_awarded: data.points_awarded
+      };
+
+      await reloadProgress();
+      STATE.currentStatus = 'locked';
     } else if (data.status === 'wrong_continued' || data.verdict === 'salah') {
-      LOG.warn('SALAH — pilih lanjut/ulangi');
+      LOG.warn('SALAH');
       UI.subPanel('subPanelVerdictSalah');
       STATE.currentStatus = 'wrong_continued';
     }
@@ -1251,101 +1152,8 @@ async function reloadProgress() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHOOSE ULANGI / LANJUT (setelah salah)
+// UNPAUSE TIMER
 // ═══════════════════════════════════════════════════════════
-async function chooseUlangi() {
-  LOG.info('Peserta pilih ULANGI');
-
-  // Buat attempt baru untuk gambar yang sama
-  try {
-    const { data, error } = await supabaseClient
-      .from('hiding_block_progress')
-      .insert({
-        session_id: STATE.sessionId,
-        user_unique_id: STATE.user.unique_id,
-        level: STATE.currentLevel,
-        choice: STATE.currentChoice,
-        mode: STATE.mode,
-        status: 'in_progress',
-        attempt_count: (STATE.progressMap[`${STATE.currentLevel}${STATE.currentChoice}`]?.attempt_count || 1) + 1,
-        started_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    STATE.currentAttemptId = data.id;
-    STATE.currentStatus = 'in_progress';
-    STATE.bellPressed = false;
-
-    // Audit
-    await supabaseClient.from('hiding_block_audit_log').insert({
-      session_id: STATE.sessionId,
-      user_unique_id: STATE.user.unique_id,
-      user_role: 'peserta',
-      action: 'choose_ulangi',
-      metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
-    });
-        await unpauseTimer();
-    // Kembali ke view gambar (timer lanjut dari 0? TIDAK — timer lanjut dari 0 karena attempt baru
-    // TAPI spec: "timer lanjut, tidak reset" → jadi kita biarkan imageLoadedAt = null
-    // dan tidak start timer baru; timer per gambar tidak dihitung lagi untuk attempt ini? 
-    // 
-    // Interpretasi: attempt baru = timer baru. Tapi spec bilang "lanjut tidak reset".
-    // Kita interpretasikan "lanjut" = timer di attempt baru dimulai dari 0 karena
-    // attempt adalah unit terpisah.
-    //
-    // Untuk mereset behavior, kita reset imageElapsedSec = 0
-    STATE.imageLoaded = false;
-    STATE.imageLoadedAt = null;
-    STATE.imageElapsedSec = 0;
-    AUDIO.resetTimerTracking();
-
-    // Reopen image
-    const isSimulasi = STATE.mode === 'simulasi';
-    const fileName = isSimulasi ? `s${STATE.currentLevel}${STATE.currentChoice}.png` : `${STATE.currentLevel}${STATE.currentChoice}.png`;
-    const imageUrl = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
-
-    UI.subPanel('subPanelViewImage');
-    UI.show('imgLoadingOverlay');
-    UI.txt('imgTimerDisplay', '00:00');
-
-    const img = UI.el('imgViewerTarget');
-    img.onload = () => onImageLoaded();
-    img.onerror = () => onImageFailed();
-    img.src = imageUrl;
-
-    // Reset bell button
-    const btn = UI.el('btnBell');
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
-
-  } catch (e) {
-    LOG.err('chooseUlangi', e);
-    toast('Gagal: ' + e.message, 'error');
-  }
-}
-
-async function chooseUlangi() {
-  LOG.info('Peserta pilih ULANGI');
-
-  try {
-    // ... insert attempt baru (sama seperti sebelumnya)
-
-    // ✅ Unpause timer
-    await unpauseTimer();
-
-    // Reset image state
-    STATE.imageLoaded = false;
-    STATE.imageLoadedAt = null;
-    STATE.imageElapsedSec = 0;
-    AUDIO.resetTimerTracking();
-
-    // ... rest sama
-  } catch (e) { ... }
-}
-
 async function unpauseTimer() {
   if (!STATE.timerPaused) return;
 
@@ -1376,6 +1184,76 @@ async function unpauseTimer() {
   } catch (e) { LOG.err('unpauseTimer', e); }
 }
 
+// ═══════════════════════════════════════════════════════════
+// CHOOSE ULANGI / LANJUT
+// ═══════════════════════════════════════════════════════════
+async function chooseUlangi() {
+  LOG.info('Peserta pilih ULANGI');
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('hiding_block_progress')
+      .insert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        level: STATE.currentLevel,
+        choice: STATE.currentChoice,
+        mode: STATE.mode,
+        status: 'in_progress',
+        attempt_count: (STATE.progressMap[`${STATE.currentLevel}${STATE.currentChoice}`]?.attempt_count || 1) + 1,
+        started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    STATE.currentAttemptId = data.id;
+    STATE.currentStatus = 'in_progress';
+    STATE.bellPressed = false;
+
+    await supabaseClient.from('hiding_block_audit_log').insert({
+      session_id: STATE.sessionId,
+      user_unique_id: STATE.user.unique_id,
+      user_role: 'peserta',
+      action: 'choose_ulangi',
+      metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
+    });
+
+    // ✅ Unpause timer
+    await unpauseTimer();
+
+    // Reset image state
+    STATE.imageLoaded = false;
+    STATE.imageLoadedAt = null;
+    STATE.imageElapsedSec = 0;
+    AUDIO.resetTimerTracking();
+
+    // Reopen image
+    const isSimulasi = STATE.mode === 'simulasi';
+    const fileName = isSimulasi
+      ? `s${STATE.currentLevel}${STATE.currentChoice}.png`
+      : `${STATE.currentLevel}${STATE.currentChoice}.png`;
+    const imageUrl = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
+
+    UI.subPanel('subPanelViewImage');
+    UI.show('imgLoadingOverlay');
+    UI.txt('imgTimerDisplay', '00:00');
+
+    const img = UI.el('imgViewerTarget');
+    img.onload = () => onImageLoaded();
+    img.onerror = () => onImageFailed();
+    img.src = imageUrl;
+
+    const btn = UI.el('btnBell');
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+  } catch (e) {
+    LOG.err('chooseUlangi', e);
+    toast('Gagal: ' + e.message, 'error');
+  }
+}
+
 async function chooseLanjut() {
   LOG.info('Peserta pilih LANJUT');
   try {
@@ -1384,7 +1262,6 @@ async function chooseLanjut() {
       .update({ status: 'wrong_continued' })
       .eq('id', STATE.currentAttemptId);
 
-    // Audit
     await supabaseClient.from('hiding_block_audit_log').insert({
       session_id: STATE.sessionId,
       user_unique_id: STATE.user.unique_id,
@@ -1393,7 +1270,7 @@ async function chooseLanjut() {
       metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
     });
 
-    // ✅ Unpause timer (supaya bisa lanjut level lain)
+    // ✅ Unpause timer
     await unpauseTimer();
 
     STATE.currentStatus = 'wrong_continued';
@@ -1414,19 +1291,16 @@ function onBankTimeUp() {
 
   LOG.warn('⏰ Bank time up');
 
-  // Stop timer
   if (STATE.bankTickInterval) { clearInterval(STATE.bankTickInterval); STATE.bankTickInterval = null; }
   if (STATE.imageTickInterval) { clearInterval(STATE.imageTickInterval); STATE.imageTickInterval = null; }
 
   AUDIO.timeup();
 
-  // Update login status
   supabaseClient
     .from('system_hiding_block_login')
     .update({ status: 'finished' })
     .eq('user_unique_id', STATE.user.unique_id);
 
-  // Audit
   supabaseClient.from('hiding_block_audit_log').insert({
     session_id: STATE.sessionId,
     user_unique_id: STATE.user.unique_id,
@@ -1435,9 +1309,8 @@ function onBankTimeUp() {
     metadata: { total_points: getTotalPoints() }
   });
 
-  // Tampilkan panel frozen
   UI.panel('panelFrozen');
-  UI.txt('frozenPoints', getTotalPoints());
+  UI.txt('frozenPoints', getTotalPoints().toFixed(2));
   const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
   UI.txt('frozenLocked', `${locked}`);
 
@@ -1445,16 +1318,11 @@ function onBankTimeUp() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PAUSE HANDLERS
+// PAUSE HANDLERS (global)
 // ═══════════════════════════════════════════════════════════
 function onPauseActivated() {
   LOG.warn('PAUSE activated');
-
-  // Tampil overlay
   UI.show('pauseOverlay', true);
-
-  // Bekukan timer (tidak clear, hanya skip di tick)
-  // Tidak perlu action karena tick sudah cek STATE.isPaused
 }
 
 function onPauseDeactivated() {
@@ -1463,26 +1331,27 @@ function onPauseDeactivated() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// WATCH MODE CHANGE FROM DB
+// REALTIME
 // ═══════════════════════════════════════════════════════════
-async function watchSystemState() {
-  // Realtime listener
+function startRealtimeListening() {
+  if (!STATE.user) return;
+
   supabaseClient
     .channel(`kiosk_hb_${STATE.user.unique_id}`)
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'system_hiding_block_state'
-    }, () => syncState())
-    .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'hiding_block_progress',
-      filter: `user_unique_id=eq.${STATE.user.unique_id}`
-    }, (payload) => {
-      LOG.info('Progress update', payload);
-      checkVerdict();
-    })
-    .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'system_hiding_block_login',
-      filter: `user_unique_id=eq.${STATE.user.unique_id}`
-    }, () => syncState())
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'system_hiding_block_state' },
+      () => syncState())
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'hiding_block_progress',
+        filter: `user_unique_id=eq.${STATE.user.unique_id}` },
+      (payload) => {
+        LOG.info('Progress update', payload);
+        checkVerdict();
+      })
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'system_hiding_block_login',
+        filter: `user_unique_id=eq.${STATE.user.unique_id}` },
+      () => syncState())
     .subscribe(status => {
       STATE.realtimeConnected = status === 'SUBSCRIBED';
       LOG.info(`Realtime: ${status}`);
@@ -1494,7 +1363,7 @@ async function watchSystemState() {
       );
     });
 
-  // Polling fallback (tiap 2 detik)
+  // Polling fallback
   setInterval(async () => {
     await syncState();
     if (STATE.currentAttemptId && STATE.currentStatus === 'waiting_verdict') {
@@ -1503,74 +1372,86 @@ async function watchSystemState() {
   }, 2000);
 }
 
-function startRealtimeListening() {
-  watchSystemState();
-}
-
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 (async function init() {
-  LOG.ok('══════════ KIOSK HIDING BLOCK BOOT ══════════');
-  UI.dbg('boot', '-', '--:--', '-');
+  try {
+    LOG.ok('══════════ KIOSK HIDING BLOCK BOOT ══════════');
+    UI.dbg('boot', '-', '--:--', '-');
 
-  // 1. Cek user
-  if (!initUser()) {
-    UI.txt('loadError', 'Session tidak valid. Redirect...');
-    return;
-  }
-
-  // 2. Cek apakah sudah pernah ready
-  const myLogin = await fetchMyLogin();
-
-  if (myLogin?.status === 'finished' || myLogin?.status === 'eliminated') {
-    // Sudah selesai → frozen
-    STATE.sessionId = myLogin.session_id;
-    STATE.progressMap = await fetchMyProgress();
-    STATE.bankStartedAt = myLogin.bank_started_at;
-    UI.txt('frozenPoints', getTotalPoints());
-    const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
-    UI.txt('frozenLocked', `${locked}`);
-    UI.panel('panelFrozen');
-    LOG.warn('Peserta sudah selesai — frozen');
-    return;
-  }
-
-  if (myLogin?.status === 'ready' || myLogin?.status === 'playing') {
-    // Sudah SIAP → langsung waiting / game
-    STATE.sessionId = myLogin.session_id;
-    STATE.isReady = true;
-
-    const sys = await fetchSystemState();
-    if (sys?.mode === 'game' || sys?.mode === 'simulasi') {
-      STATE.mode = sys.mode;
-      STATE.isPaused = !!sys.is_paused;
-      await enterGameMode();
-    } else {
-      UI.panel('panelWaiting');
-      UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
+    // 1. Cek user
+    if (!initUser()) {
+      UI.txt('loadError', 'Session tidak valid. Redirect...');
+      UI.el('loadError')?.classList.remove('hidden');
+      return;
     }
 
-    startRealtimeListening();
-    return;
+    // 2. Cek login existing
+    const myLogin = await fetchMyLogin();
+
+    // Sudah selesai → frozen
+    if (myLogin?.status === 'finished' || myLogin?.status === 'eliminated') {
+      STATE.sessionId = myLogin.session_id;
+      STATE.progressMap = await fetchMyProgress();
+      STATE.bankStartedAt = myLogin.bank_started_at;
+      STATE.totalPausedSec = myLogin.total_paused_sec || 0;
+      UI.txt('frozenPoints', getTotalPoints().toFixed(2));
+      const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
+      UI.txt('frozenLocked', `${locked}`);
+      UI.panel('panelFrozen');
+      LOG.warn('Peserta sudah selesai — frozen');
+      return;
+    }
+
+    // Sudah ready / playing
+    if (myLogin?.status === 'ready' || myLogin?.status === 'playing') {
+      STATE.sessionId = myLogin.session_id;
+      STATE.isReady = true;
+
+      const sys = await fetchSystemState();
+      if (sys?.mode === 'game' || sys?.mode === 'simulasi') {
+        STATE.mode = sys.mode;
+        STATE.isPaused = !!sys.is_paused;
+        await enterGameMode();
+      } else {
+        UI.panel('panelWaiting');
+        UI.txt('waitingName', STATE.user.full_name || STATE.user.unique_id);
+      }
+
+      startRealtimeListening();
+      LOG.ok('══════════ READY (resume) ══════════');
+      return;
+    }
+
+    // 3. Belum ready → tampil tombol SIAP
+    UI.txt('readyName', STATE.user.full_name || STATE.user.unique_id);
+    UI.panel('panelReady');
+    UI.dbg('ready', '-', '--:--', '-');
+
+    // Prefetch state
+    const sys = await fetchSystemState();
+    if (sys) {
+      STATE.mode = sys.mode || 'idle';
+      STATE.isPaused = !!sys.is_paused;
+    }
+
+    LOG.ok('══════════ READY ══════════');
+  } catch (err) {
+    LOG.err('INIT FATAL ERROR', err);
+    const errEl = UI.el('loadError');
+    if (errEl) {
+      errEl.textContent = '❌ Error: ' + (err.message || 'Unknown');
+      errEl.classList.remove('hidden');
+    }
+    UI.panel('panelLoad');
+    UI.txt('dbgState', 'ERROR');
   }
-
-  // 3. Belum ready → tampil ready panel
-  UI.txt('readyName', STATE.user.full_name || STATE.user.unique_id);
-  UI.panel('panelReady');
-  UI.dbg('ready', '-', '--:--', '-');
-
-  // Prefetch state untuk tahu mode
-  const sys = await fetchSystemState();
-  if (sys) {
-    STATE.mode = sys.mode || 'idle';
-    STATE.isPaused = !!sys.is_paused;
-  }
-
-  LOG.ok('══════════ READY ══════════');
 })();
 
-// Expose ke window (untuk onclick)
+// ═══════════════════════════════════════════════════════════
+// EXPOSE
+// ═══════════════════════════════════════════════════════════
 window.pressReady = pressReady;
 window.selectLevel = selectLevel;
 window.backToLevelSelect = backToLevelSelect;
