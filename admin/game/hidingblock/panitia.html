@@ -109,6 +109,34 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
+<!-- PANEL PILIH PESERTA -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="chooseView" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+  <div class="text-center space-y-2">
+    <div class="w-16 h-16 mx-auto bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl">
+      <i class="fas fa-hand-pointer"></i>
+    </div>
+    <h2 class="text-xl font-black">PILIH PESERTA ASUHAN</h2>
+    <p class="text-xs text-slate-400">Pilih <b>1 peserta</b> yang akan kamu dampingi selama sesi ini.</p>
+  </div>
+
+  <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+    <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+      <i class="fas fa-users"></i> Peserta Siap
+      <span id="choosePesertaCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded">0</span>
+    </h3>
+    <div id="choosePesertaList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
+      <p class="text-xs text-slate-500 text-center py-4">Memuat peserta...</p>
+    </div>
+  </div>
+
+  <div class="text-[11px] text-slate-500 text-center">
+    <i class="fas fa-info-circle text-cyan-400"></i>
+    Setelah memilih, tugas tidak dapat dibatalkan sampai sesi selesai.
+  </div>
+</div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- ACTIVE VIEW (sudah di-assign peserta) -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="activeView" class="hidden space-y-4">
@@ -432,18 +460,41 @@ async function loginPanitia() {
   STATE.panitiaId = val;
   sessionStorage.setItem('panitia_hb_id', val);
 
-  // Ambil session_id dari sistem (yang aktif)
+  // Ambil session_id dari state
   const sid = await getCurrentSessionId();
+  if (!sid) {
+    toast('Session belum aktif. Tunggu admin memulai sesi.', 'warn');
+    return;
+  }
   STATE.sessionId = sid;
 
-  // Cek assignment
+  // Register ke registry
+  try {
+    const { error } = await supabaseClient
+      .from('hiding_block_panitia_registry')
+      .upsert({
+        session_id: sid,
+        panitia_unique_id: val,
+        full_name: val,
+        status: 'idle',
+        registered_at: new Date().toISOString()
+      }, { onConflict: 'session_id,panitia_unique_id' });
+
+    if (error) throw error;
+    LOG.ok(`Panitia ${val} terdaftar di session ${sid.slice(0,8)}...`);
+  } catch (e) {
+    LOG.err('Register panitia error', e);
+    toast('Gagal register: ' + e.message, 'error');
+    return;
+  }
+
+  // Cek assignment yang sudah ada
   await checkAssignment();
 
   // Subscribe realtime
   subscribeRealtime();
 
   UI.hide('loginView');
-  UI.txt('sessionIdDisplay', sid ? sid.slice(0, 8) + '...' : '-');
   LOG.ok(`Panitia logged in: ${val}`);
 }
 
@@ -470,6 +521,132 @@ async function getCurrentSessionId() {
     return data?.session_id || null;
   } catch { return null; }
 }
+  async function enterChooseView() {
+  UI.hide('loginView');
+  UI.hide('waitingView');
+  UI.hide('activeView');
+  UI.show('chooseView');
+
+  await loadAvailablePeserta();
+
+  UI.dbg('choose', '-', STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+async function loadAvailablePeserta() {
+  try {
+    // Ambil semua peserta ready di session ini
+    const { data: allPeserta, error: err1 } = await supabaseClient
+      .from('system_hiding_block_login')
+      .select('user_unique_id, status, joined_at')
+      .eq('session_id', STATE.sessionId)
+      .in('status', ['ready', 'playing'])
+      .order('joined_at', { ascending: true });
+
+    if (err1) { LOG.warn('loadAvailablePeserta', err1.message); }
+
+    // Ambil yang sudah diassign
+    const { data: assigned, error: err2 } = await supabaseClient
+      .from('hiding_block_panitia')
+      .select('peserta_unique_id')
+      .eq('session_id', STATE.sessionId);
+
+    if (err2) { LOG.warn('loadAssigned', err2.message); }
+
+    const assignedSet = new Set((assigned || []).map(a => a.peserta_unique_id));
+
+    // Filter: exclude peserta yang sudah di-assign ke panitia lain
+    // (kalau peserta sudah di-assign ke diri sendiri, tetap tampil)
+    const available = (allPeserta || []).filter(p => {
+      const isAssigned = assignedSet.has(p.user_unique_id);
+      // Kalau belum di-assign sama sekali → tampil
+      // Kalau sudah di-assign ke kita sendiri → tetap tampil sebagai "sudah kamu pegang"
+      return !isAssigned;
+    });
+
+    renderChoosePesertaList(available);
+  } catch (e) { LOG.err('loadAvailablePeserta exception', e); }
+}
+
+function renderChoosePesertaList(pesertaList) {
+  const c = UI.el('choosePesertaList');
+  if (!c) return;
+
+  UI.txt('choosePesertaCount', pesertaList.length);
+
+  if (pesertaList.length === 0) {
+    c.innerHTML = `
+      <p class="text-xs text-slate-500 text-center py-6">
+        Belum ada peserta yang siap.<br>
+        <span class="text-[10px]">Menunggu peserta menekan tombol SIAP di kiosk masing-masing...</span>
+      </p>
+    `;
+    return;
+  }
+
+  c.innerHTML = '';
+  pesertaList.forEach(p => {
+    const div = document.createElement('button');
+    div.className = 'w-full p-3 rounded-xl border bg-slate-800/50 hover:bg-indigo-500/20 border-slate-700 hover:border-indigo-500/50 transition text-left flex items-center justify-between';
+    div.onclick = () => choosePeserta(p.user_unique_id);
+    div.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+          <i class="fas fa-user"></i>
+        </div>
+        <div>
+          <div class="font-bold text-white text-sm">${p.user_unique_id}</div>
+          <div class="text-[10px] text-slate-500">Status: ${p.status}</div>
+        </div>
+      </div>
+      <i class="fas fa-arrow-right text-slate-500"></i>
+    `;
+    c.appendChild(div);
+  });
+}
+
+async function choosePeserta(pesertaId) {
+  if (STATE.busy) return;
+  STATE.busy = true;
+
+  try {
+    const { error } = await supabaseClient
+      .from('hiding_block_panitia')
+      .insert({
+        session_id: STATE.sessionId,
+        panitia_unique_id: STATE.panitiaId,
+        peserta_unique_id: pesertaId
+      });
+
+    if (error) {
+      // Kalau sudah ada (unique constraint), berarti baru saja di-assign
+      if (error.code === '23505') {
+        toast('Peserta sudah di-assign ke panitia lain', 'warn');
+        await loadAvailablePeserta();
+      } else {
+        throw error;
+      }
+      return;
+    }
+
+    // Update status registry
+    await supabaseClient
+      .from('hiding_block_panitia_registry')
+      .update({ status: 'assigned' })
+      .eq('session_id', STATE.sessionId)
+      .eq('panitia_unique_id', STATE.panitiaId);
+
+    STATE.pesertaId = pesertaId;
+    toast(`✅ Kamu mendampingi ${pesertaId}`, 'success');
+    LOG.ok(`Assigned to ${pesertaId}`);
+
+    await enterActiveView();
+  } catch (e) {
+    LOG.err('choosePeserta', e);
+    toast('Gagal: ' + e.message, 'error');
+  } finally {
+    STATE.busy = false;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // CEK ASSIGNMENT
@@ -482,6 +659,7 @@ async function checkAssignment() {
       .from('hiding_block_panitia')
       .select('*')
       .eq('panitia_unique_id', STATE.panitiaId)
+      .eq('session_id', STATE.sessionId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -490,10 +668,10 @@ async function checkAssignment() {
 
     if (data && data.peserta_unique_id) {
       STATE.pesertaId = data.peserta_unique_id;
-      STATE.sessionId = data.session_id;
       await enterActiveView();
     } else {
-      enterWaitingView();
+      // Belum assign → tampil panel pilih peserta
+      await enterChooseView();
     }
   } catch (e) { LOG.err('checkAssignment exception', e); }
 }
@@ -509,6 +687,7 @@ function enterWaitingView() {
 async function enterActiveView() {
   UI.hide('loginView');
   UI.hide('waitingView');
+  UI.hide('chooseView');
   UI.show('activeView');
 
   UI.txt('activePanitiaId', STATE.panitiaId);
@@ -516,11 +695,8 @@ async function enterActiveView() {
 
   LOG.ok(`Peserta asuhan: ${STATE.pesertaId}`);
 
-  // Load stats & history
   await loadStats();
   await loadHistory();
-
-  // Cek apakah ada pending attempt (kalau peserta sedang tekan bel)
   await checkPendingAttempt();
 
   UI.dbg('active', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
@@ -533,22 +709,6 @@ async function loadStats() {
   if (!STATE.pesertaId) return;
 
   try {
-    // Bank time
-    const { data: login } = await supabaseClient
-      .from('system_hiding_block_login')
-      .select('bank_started_at, status')
-      .eq('user_unique_id', STATE.pesertaId)
-      .maybeSingle();
-
-    if (login?.bank_started_at) {
-      const startedMs = new Date(login.bank_started_at).getTime();
-      const elapsed = Math.floor((Date.now() - startedMs) / 1000);
-      STATE.stats.bankRemaining = Math.max(0, BANK_GAME_SEC - elapsed);
-    } else {
-      STATE.stats.bankRemaining = BANK_GAME_SEC;
-    }
-
-    // Progress
     const { data: progress } = await supabaseClient
       .from('hiding_block_progress')
       .select('*')
@@ -557,40 +717,23 @@ async function loadStats() {
     if (progress) {
       const locked = progress.filter(p => p.status === 'locked');
       STATE.stats.locked = locked.length;
-      STATE.stats.points = locked.reduce((s, p) => s + (p.points_awarded || 0), 0);
+      STATE.stats.points = locked.reduce((s, p) => s + Number(p.points_awarded || 0), 0);
       STATE.stats.attempt = progress.length;
     }
 
     renderStats();
-
-    // Start bank tick
-    if (!STATE.bankTick) {
-      STATE.bankTick = setInterval(() => {
-        if (STATE.stats.bankRemaining > 0) {
-          STATE.stats.bankRemaining--;
-          renderStats();
-        }
-      }, 1000);
-    }
   } catch (e) { LOG.err('loadStats exception', e); }
 }
 
 function renderStats() {
-  UI.txt('statPoints', STATE.stats.points);
+  UI.txt('statPoints', STATE.stats.points.toFixed(2));
   UI.txt('statLocked', `${STATE.stats.locked}/10`);
   UI.txt('statAttempt', STATE.stats.attempt);
 
-  const rem = STATE.stats.bankRemaining;
-  const mm = String(Math.floor(rem / 60)).padStart(2, '0');
-  const ss = String(rem % 60).padStart(2, '0');
-  UI.txt('statBank', `${mm}:${ss}`);
-
+  // ⏸ Bank stuck 30:00 (info only — hitung di kiosk)
+  UI.txt('statBank', '30:00');
   const bankEl = UI.el('statBank');
-  if (bankEl) {
-    if (rem < 300) bankEl.className = 'text-3xl font-black text-rose-500 font-mono animate-pulse';
-    else if (rem < 900) bankEl.className = 'text-3xl font-black text-amber-400 font-mono';
-    else bankEl.className = 'text-3xl font-black text-rose-400 font-mono';
-  }
+  if (bankEl) bankEl.className = 'text-3xl font-black text-slate-500 font-mono';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -658,7 +801,6 @@ function renderHistory() {
       </div>
     `;
     c.appendChild(div);
-    c.appendChild(div);
   });
 }
 
@@ -704,16 +846,17 @@ function showAlert(attempt) {
   UI.txt('alertDuration', `${mm}:${ss}`);
 
   // Hitung poin jika benar
-  const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
-  const TARGET = 600;
-  let multiplier;
-  if (dur <= TARGET) {
-    multiplier = 1 - (0.5 * dur / TARGET);
-  } else {
-    multiplier = 0.5;
-  }
-  const poin = Math.round(poinMax * multiplier);
-  UI.txt('alertPoin', `+${poin}`);
+// Di dalam showAlert(attempt):
+const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
+const TARGET = 600;
+let multiplier;
+if (dur <= TARGET) {
+  multiplier = 1 - (0.5 * dur / TARGET);
+} else {
+  multiplier = 0.5;
+}
+const poin = Number((poinMax * multiplier).toFixed(2));
+UI.txt('alertPoin', `+${poin.toFixed(2)}`);   // ✅ 2 desimal
 
   UI.show('alertZone');
   UI.hide('idleZone');
@@ -769,7 +912,6 @@ async function verdict(keputusan) {
 }
 
 async function submitVerdict(attempt, keputusan) {
-  // Disable tombol sementara
   UI.el('btnBenar').disabled = true;
   UI.el('btnSalah').disabled = true;
 
@@ -778,7 +920,11 @@ async function submitVerdict(attempt, keputusan) {
   const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
   const TARGET = 600;
   let multiplier = dur <= TARGET ? 1 - (0.5 * dur / TARGET) : 0.5;
-  const poin = keputusan === 'benar' ? Math.round(poinMax * multiplier) : 0;
+  
+  // ✅ Poin desimal 2 angka
+  const poin = keputusan === 'benar' 
+    ? Number((poinMax * multiplier).toFixed(2)) 
+    : 0;
 
   const newStatus = keputusan === 'benar' ? 'locked' : 'wrong_continued';
 
@@ -804,14 +950,17 @@ async function submitVerdict(attempt, keputusan) {
       points: poin
     });
 
-    toast(keputusan === 'benar' ? `✅ BENAR! +${poin} pts` : '⚠ SALAH — peserta pilih lanjut/ulangi', keputusan === 'benar' ? 'success' : 'warn');
+    toast(
+      keputusan === 'benar' 
+        ? `✅ BENAR! +${poin.toFixed(2)} pts` 
+        : '⚠ SALAH — peserta pilih lanjut/ulangi',
+      keputusan === 'benar' ? 'success' : 'warn'
+    );
 
-    // Reset UI
     hideAlert();
     UI.el('btnBenar').disabled = false;
     UI.el('btnSalah').disabled = false;
 
-    // Reload stats & history
     await loadStats();
     await loadHistory();
 
