@@ -605,8 +605,12 @@ async function pressReady() {
 
   try {
     STATE.sessionId = await fetchSessionId();
-    if (!STATE.sessionId) throw new Error('Session ID tidak ditemukan. Hubungi admin.');
-
+  
+  // ✅ Fallback: kalau tidak ada, generate lokal (tidak ideal, tapi tidak crash)
+  if (!STATE.sessionId) {
+    LOG.warn('session_id kosong di DB — pakai fallback UUID lokal');
+    STATE.sessionId = crypto.randomUUID();
+  }
     // Insert atau update (kalau peserta sudah ada)
     const { error } = await supabaseClient
       .from('system_hiding_block_login')

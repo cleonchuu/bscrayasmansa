@@ -495,13 +495,16 @@ async function writeAudit({ user_unique_id = null, user_role = 'admin', action, 
   } catch (e) { LOG.err('writeAudit gagal', e); }
 }
 
+// Ganti yang lama:
+// async function getSessionId() { ... }
+
+// Dengan yang baru:
 async function getSessionId() {
-  // Ambil session_id terkini dari login table (kalau ada) untuk audit tagging
   try {
     const { data } = await supabaseClient
-      .from('system_hiding_block_login')
+      .from('system_hiding_block_state')
       .select('session_id')
-      .limit(1)
+      .eq('id', 1)
       .maybeSingle();
     return data?.session_id || null;
   } catch { return null; }
@@ -566,6 +569,12 @@ async function applyMode(mode) {
     updated_at: now
   };
   if (mode === 'simulasi') update.simulasi_used = true;
+
+  // ✅ Kalau mulai mode baru, generate session_id baru
+  if (mode === 'simulasi' || mode === 'game') {
+    update.session_id = crypto.randomUUID();
+    LOG.ok(`New session_id: ${update.session_id}`);
+  }
 
   const { error } = await supabaseClient
     .from('system_hiding_block_state')
@@ -641,6 +650,7 @@ function confirmResetSession() {
           is_paused: false,
           started_at: null,
           simulasi_used: false,
+          session_id: crypto.randomUUID(),   // ← tambahan
           updated_at: new Date().toISOString()
         })
         .eq('id', 1);

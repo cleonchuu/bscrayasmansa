@@ -463,10 +463,9 @@ function logoutPanitia() {
 async function getCurrentSessionId() {
   try {
     const { data } = await supabaseClient
-      .from('system_hiding_block_login')
+      .from('system_hiding_block_state')
       .select('session_id')
-      .order('joined_at', { ascending: false })
-      .limit(1)
+      .eq('id', 1)
       .maybeSingle();
     return data?.session_id || null;
   } catch { return null; }
