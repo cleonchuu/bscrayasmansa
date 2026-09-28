@@ -922,6 +922,14 @@ function backToLevelSelect(reason = 'manual') {
 // ═══════════════════════════════════════════════════════════
 // CHOOSE OPTION A/B
 // ═══════════════════════════════════════════════════════════
+
+function resetBellButton() {
+  const btn = UI.el('btnBell');
+  if (!btn) return;
+  btn.disabled = false;
+  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+  LOG.step('🔔 Tombol BEL di-reset');
+}
 async function chooseOption(choice) {
   LOG.step(`chooseOption(${choice})`);
 
@@ -990,6 +998,11 @@ async function chooseOption(choice) {
   UI.txt('imgTimerDisplay', '00:00');
   UI.show('imgLoadingOverlay');
 
+  // ✅ FIX: Reset tombol BEL
+  const btn = UI.el('btnBell');
+  btn.disabled = false;
+  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+
   const img = UI.el('imgViewerTarget');
   img.onload = () => onImageLoaded();
   img.onerror = () => onImageFailed();
@@ -1009,6 +1022,9 @@ async function onImageLoaded() {
   STATE.imageLoadedAt = Date.now();
   STATE.imagePausedTotal = 0;
   STATE.imagePausedAt = null;
+
+    // ✅ EXTRA: pastikan tombol reset saat gambar loaded
+  resetBellButton();
 
   try {
     await supabaseClient
@@ -1342,13 +1358,19 @@ async function chooseUlangi() {
     const imageUrl = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
 
     UI.subPanel('subPanelViewImage', 'chooseUlangi');
-    UI.show('imgLoadingOverlay');
-    UI.txt('imgTimerDisplay', '00:00');
+  UI.show('imgLoadingOverlay');
+  UI.txt('imgTimerDisplay', '00:00');
 
-    const img = UI.el('imgViewerTarget');
-    img.onload = () => onImageLoaded();
-    img.onerror = () => onImageFailed();
-    img.src = imageUrl;
+  // ✅ Reset tombol BEL
+  const btn = UI.el('btnBell');
+  btn.disabled = false;
+  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+
+  const img = UI.el('imgViewerTarget');
+  img.onload = () => onImageLoaded();
+  img.onerror = () => onImageFailed();
+  img.src = imageUrl;
+}
 
     const btn = UI.el('btnBell');
     btn.disabled = false;
