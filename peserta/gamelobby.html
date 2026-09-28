@@ -370,9 +370,9 @@
 
     // 5. FETCH GAME SCHEDULE FROM SUPABASE (Tabel: public.game_schedule)
     const daysData = [
-      { day: 1, title: 'Hari Pertama', date: '15 Jan 2026' },
-      { day: 2, title: 'Hari Kedua', date: '16 Jan 2026' },
-      { day: 3, title: 'Hari Ketiga', date: '17 Jan 2026' }
+      { day: 1, title: 'Hari Pertama', date: '12 Oktober 2026' },
+      { day: 2, title: 'Hari Kedua', date: '13 Oktober 2026' },
+      { day: 3, title: 'Hari Ketiga', date: '14 Oktober 2026' }
     ];
 
     async function loadGameSchedule() {
@@ -450,7 +450,47 @@
 
         // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
         let gameName = `Game ${game}`;
+        if (dayNumber === 1 && game === 2) {
+          gameName = "Arithmatic Bingo";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 1 && game === 2) {
+          gameName = "Number Disco";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 1 && game === 3) {
+          gameName = "Cataclysm Memory";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
         if (dayNumber === 2 && game === 1) {
+          gameName = "Mimic Sudoku";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 2 && game === 2) {
+          gameName = "Frenzy Cross Maze";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 2 && game === 3) {
+          gameName = "Forsaken City Recall";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 3 && game === 1) {
+          gameName = "Hiding Block";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 3 && game === 2) {
+          gameName = "Morse Match";
+        }
+                // Penamaan Khusus Day 2 Game 1 (Crypta Treasure Hunt)
+        let gameName = `Game ${game}`;
+        if (dayNumber === 3 && game === 3) {
           gameName = "Crypta Treasure Hunt";
         }
 
