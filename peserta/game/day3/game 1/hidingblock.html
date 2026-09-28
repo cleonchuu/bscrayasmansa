@@ -16,11 +16,7 @@
       overscroll-behavior: none;
       touch-action: manipulation;
     }
-    .stage-panel {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    .stage-panel { min-height: 100vh; display: flex; flex-direction: column; }
     .stage-panel.hidden-panel { display: none; }
 
     .custom-scroll::-webkit-scrollbar { width: 5px; }
@@ -29,10 +25,10 @@
 
     @keyframes ringBell {
       0%,100% { transform: rotate(0deg); }
-      20%     { transform: rotate(-22deg); }
-      40%     { transform: rotate(22deg); }
-      60%     { transform: rotate(-14deg); }
-      80%     { transform: rotate(14deg); }
+      20% { transform: rotate(-22deg); }
+      40% { transform: rotate(22deg); }
+      60% { transform: rotate(-14deg); }
+      80% { transform: rotate(14deg); }
     }
     .ring-bell { animation: ringBell 0.9s ease-in-out infinite; }
 
@@ -45,65 +41,56 @@
 
     .img-viewer {
       background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       padding: 8px;
     }
     .img-viewer img {
-      max-width: 100%;
-      max-height: 100%;
+      max-width: 100%; max-height: 100%;
       object-fit: contain;
       border-radius: 12px;
     }
 
     @keyframes flash {
       0%,100% { opacity: 1; }
-      50%     { opacity: 0.4; }
+      50% { opacity: 0.4; }
     }
     .flash-warning { animation: flash 1s ease-in-out infinite; }
 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .fade-in { animation: fadeIn 0.3s ease-out; }
 
     @keyframes pulseSoft {
       0%,100% { opacity: 1; }
-      50%     { opacity: 0.6; }
+      50% { opacity: 0.6; }
     }
     .pulse-soft { animation: pulseSoft 1.4s ease-in-out infinite; }
   </style>
 </head>
 <body class="text-white">
 
-  <!-- DEBUG BADGE -->
   <div id="dbgBadge"
        class="fixed top-1 right-1 text-[9px] font-mono bg-black/85 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 z-[200] pointer-events-none">
     <span id="dbgState">boot</span>·<span id="dbgQ">-</span>·<span id="dbgBank">--:--</span>·<span id="dbgRT">-</span>
   </div>
 
-  <!-- AUDIO PLAYERS -->
   <audio id="sfxBell"   preload="auto"></audio>
   <audio id="sfxTimer"  preload="auto"></audio>
   <audio id="sfxTimeup" preload="auto"></audio>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 1: LOADING -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL: LOADING -->
   <div id="panelLoad" class="stage-panel items-center justify-center text-center p-6">
     <div class="p-5 bg-indigo-500/10 rounded-full border-2 border-indigo-500/30 text-indigo-400 mb-4 animate-pulse">
       <i class="fas fa-cube text-5xl"></i>
     </div>
     <h1 class="text-3xl font-black mb-1">HIDING BLOCK</h1>
     <p class="text-xs text-slate-400">Memuat sesi...</p>
-    <p id="loadError" class="text-xs text-rose-400 mt-3 hidden font-mono"></p>
+    <p id="loadError" class="text-xs text-rose-400 mt-3 hidden font-mono max-w-xs"></p>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 2: READY -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL: READY -->
   <div id="panelReady" class="stage-panel hidden-panel p-6">
     <div class="flex-1 flex flex-col items-center justify-center text-center space-y-6">
       <div class="w-24 h-24 bg-emerald-500/10 border-2 border-emerald-500/40 rounded-3xl flex items-center justify-center text-emerald-400">
@@ -125,8 +112,7 @@
         <p><b class="text-indigo-400">5.</b> Bank waktu: <b class="text-rose-400">30 menit</b> total</p>
       </div>
 
-      <button id="btnReady"
-              onclick="pressReady()"
+      <button id="btnReady" onclick="pressReady()"
               class="w-full max-w-sm py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-2xl transition active:scale-95 shadow-2xl shadow-emerald-600/30 flex items-center justify-center gap-3">
         <i class="fas fa-check-circle text-3xl"></i>
         <span>SIAP!</span>
@@ -136,9 +122,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 3: WAITING -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL: WAITING -->
   <div id="panelWaiting" class="stage-panel hidden-panel items-center justify-center text-center p-6">
     <div class="w-32 h-32 bg-indigo-500/10 border-2 border-indigo-500/40 rounded-full flex items-center justify-center text-indigo-400 mb-6 pulse-ring">
       <i class="fas fa-hourglass-half text-6xl"></i>
@@ -151,9 +135,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 4: FROZEN -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL: FROZEN -->
   <div id="panelFrozen" class="stage-panel hidden-panel items-center justify-center text-center p-6">
     <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/40 rounded-full flex items-center justify-center text-rose-400 mb-6">
       <i class="fas fa-snowflake text-6xl"></i>
@@ -173,12 +155,9 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- PANEL 5: GAME -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- PANEL: GAME -->
   <div id="panelGame" class="stage-panel hidden-panel">
 
-    <!-- HEADER -->
     <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between sticky top-0 z-30">
       <div>
         <div class="text-[9px] text-slate-500 uppercase tracking-wider">Peserta</div>
@@ -264,8 +243,7 @@
       </div>
 
       <div class="bg-slate-900 border-t border-slate-800 p-4">
-        <button id="btnBell"
-                onclick="pressBell()"
+        <button id="btnBell" onclick="pressBell()"
                 class="w-full py-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xl transition active:scale-95 shadow-2xl shadow-amber-500/40 flex items-center justify-center gap-3">
           <i class="fas fa-bell text-2xl"></i>
           <span>SUDAH MIRIP — TEKAN BEL</span>
@@ -274,7 +252,7 @@
     </div>
 
     <!-- SUB-PANEL: WAITING VERDICT -->
-    <div id="subPanelWaitingVerdict" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6">
+    <div id="subPanelWaitingVerdict" class="hidden flex-1 flex-col items-center justify-center text-center p-6">
       <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-ring">
         <i class="fas fa-bell text-6xl ring-bell"></i>
       </div>
@@ -302,7 +280,7 @@
     </div>
 
     <!-- SUB-PANEL: VERDICT SALAH -->
-    <div id="subPanelVerdictSalah" class="hidden flex-1 p-6 flex-col items-center justify-center text-center">
+    <div id="subPanelVerdictSalah" class="hidden flex-1 flex-col items-center justify-center text-center p-6">
       <div class="w-28 h-28 bg-rose-500/20 border-4 border-rose-400 rounded-full flex items-center justify-center text-rose-400 mb-5">
         <i class="fas fa-times text-6xl"></i>
       </div>
@@ -332,7 +310,7 @@
   </div>
 
   <!-- PAUSE OVERLAY -->
-  <div id="pauseOverlay" class="hidden fixed inset-0 z-[150] bg-black/95 backdrop-blur-md items-center justify-center text-center p-6 flex flex-col">
+  <div id="pauseOverlay" class="hidden fixed inset-0 z-[150] bg-black/95 backdrop-blur-md items-center justify-center text-center p-6 flex-col">
     <div class="w-32 h-32 bg-amber-500/10 border-2 border-amber-500/40 rounded-full flex items-center justify-center text-amber-400 mb-6 pulse-soft">
       <i class="fas fa-pause text-6xl"></i>
     </div>
@@ -346,7 +324,6 @@
     </div>
   </div>
 
-  <!-- TOAST -->
   <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none w-[90%] max-w-sm"></div>
 
 <script>
@@ -386,27 +363,37 @@ const STATE = {
   mode: 'idle',
   isPaused: false,
   isReady: false,
+  isFrozen: false,
 
+  // ─── Bank timer ───
   bankStartedAt: null,
   bankDurationSec: BANK_GAME_SEC,
-  totalPausedSec: 0,
-  timerPaused: false,
-  pauseStartAt: null,
+  bankPausedTotal: 0,       // total pause peserta (tekan bel)
+  bankPausedAt: null,       // kapan pause peserta dimulai
+  bankGlobalPausedTotal: 0, // total pause global (admin)
+  bankGlobalPausedAt: null, // kapan pause global dimulai
 
+  // ─── Image timer ───
+  imageLoaded: false,
+  imageLoadedAt: null,
+  imagePausedTotal: 0,
+  imagePausedAt: null,
+  imageElapsedSec: 0,
+
+  // ─── Attempt saat ini ───
   currentLevel: null,
   currentChoice: null,
   currentAttemptId: null,
-  currentStatus: null,
+  currentStatus: null,  // 'in_progress' | 'waiting_verdict' | 'locked' | 'wrong_continued' | null
 
-  imageLoaded: false,
-  imageLoadedAt: null,
-  imageElapsedSec: 0,
-
+  // ─── Progress cache ───
   progressMap: {},
 
+  // ─── Guards ───
   busy: false,
   bellPressed: false,
 
+  // ─── Realtime ───
   realtimeConnected: false,
   bankTickInterval: null,
   imageTickInterval: null,
@@ -452,7 +439,6 @@ const UI = {
     const t = UI.el(showId);
     if (!t) return;
     t.classList.remove('hidden');
-    // Sub-panel yang butuh flex layout
     if (['subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'].includes(showId)) {
       t.classList.add('flex');
     }
@@ -500,11 +486,63 @@ const AUDIO = {
       el.src = url;
       el.currentTime = 0;
       el.volume = 1;
-      el.play().catch(err => LOG.warn(`Audio gagal:`, err.message));
+      el.play().catch(err => LOG.warn(`Audio gagal`, err.message));
     } catch (e) { LOG.warn('Audio exception', e); }
   },
   resetTimerTracking() { STATE.timerAudiosPlayed.clear(); }
 };
+
+// ═══════════════════════════════════════════════════════════
+// TIMER HELPERS — AKURAT DENGAN PAUSE
+// ═══════════════════════════════════════════════════════════
+function formatMMSS(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function getBankElapsedSec() {
+  if (!STATE.bankStartedAt) return 0;
+
+  const now = Date.now();
+  const totalElapsed = Math.floor((now - new Date(STATE.bankStartedAt).getTime()) / 1000);
+
+  // Pause peserta (tekan bel) yang sedang berjalan
+  let activePesertaPause = 0;
+  if (STATE.bankPausedAt) {
+    activePesertaPause = Math.floor((now - STATE.bankPausedAt) / 1000);
+  }
+
+  // Pause global (admin) yang sedang berjalan
+  let activeGlobalPause = 0;
+  if (STATE.bankGlobalPausedAt) {
+    activeGlobalPause = Math.floor((now - STATE.bankGlobalPausedAt) / 1000);
+  }
+
+  const totalPaused = STATE.bankPausedTotal + activePesertaPause +
+                      STATE.bankGlobalPausedTotal + activeGlobalPause;
+
+  return Math.max(0, totalElapsed - totalPaused);
+}
+
+function remainingBankSec() {
+  return Math.max(0, STATE.bankDurationSec - getBankElapsedSec());
+}
+
+function getImageElapsedSec() {
+  if (!STATE.imageLoadedAt) return 0;
+
+  const now = Date.now();
+  const totalElapsed = Math.floor((now - STATE.imageLoadedAt) / 1000);
+
+  let activePause = 0;
+  if (STATE.imagePausedAt) {
+    activePause = Math.floor((now - STATE.imagePausedAt) / 1000);
+  }
+
+  return Math.max(0, totalElapsed - STATE.imagePausedTotal - activePause);
+}
 
 // ═══════════════════════════════════════════════════════════
 // USER INIT
@@ -513,7 +551,7 @@ function initUser() {
   try {
     const sess = localStorage.getItem('userSession');
     if (!sess) {
-      LOG.warn('Tidak ada userSession, redirect ke login');
+      LOG.warn('Tidak ada userSession');
       window.location.href = '/login.html';
       return false;
     }
@@ -571,35 +609,13 @@ async function fetchMyProgress() {
     const map = {};
     data.forEach(r => {
       const key = `${r.level}${r.choice}`;
-      if (!map[key] || r.status === 'locked' || 
+      if (!map[key] || r.status === 'locked' ||
           new Date(r.created_at) > new Date(map[key].created_at)) {
         map[key] = r;
       }
     });
     return map;
   } catch { return {}; }
-}
-
-// ═══════════════════════════════════════════════════════════
-// TIMER HELPERS
-// ═══════════════════════════════════════════════════════════
-function formatMMSS(sec) {
-  const s = Math.max(0, Math.floor(sec));
-  const mm = String(Math.floor(s / 60)).padStart(2, '0');
-  const ss = String(s % 60).padStart(2, '0');
-  return `${mm}:${ss}`;
-}
-
-function getEffectiveElapsedSec() {
-  if (!STATE.bankStartedAt) return 0;
-  const totalElapsed = Math.floor(
-    (Date.now() - new Date(STATE.bankStartedAt).getTime()) / 1000
-  );
-  return Math.max(0, totalElapsed - STATE.totalPausedSec);
-}
-
-function remainingBankSec() {
-  return Math.max(0, STATE.bankDurationSec - getEffectiveElapsedSec());
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -614,11 +630,9 @@ async function pressReady() {
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Memproses...`;
 
   try {
-    // Ambil session_id dari state global
     STATE.sessionId = await fetchSessionId();
     if (!STATE.sessionId) {
-      // Fallback: generate lokal (state mungkin belum siap)
-      LOG.warn('session_id kosong di DB — pakai fallback');
+      LOG.warn('session_id kosong — pakai fallback');
       STATE.sessionId = crypto.randomUUID();
     }
 
@@ -652,7 +666,7 @@ async function pressReady() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SYNC STATE
+// SYNC STATE (poll + realtime)
 // ═══════════════════════════════════════════════════════════
 async function syncState() {
   try {
@@ -668,16 +682,14 @@ async function syncState() {
     STATE.isPaused = !!sys.is_paused;
 
     // Handle pause global
-    if (STATE.isPaused && !prevPaused) onPauseActivated();
-    else if (!STATE.isPaused && prevPaused) onPauseDeactivated();
+    if (STATE.isPaused && !prevPaused) onGlobalPauseActivated();
+    else if (!STATE.isPaused && prevPaused) onGlobalPauseDeactivated();
 
-    // Sync pause state dari DB
+    // Sync data peserta dari DB (jika ada pause personal)
     if (myLogin) {
-      STATE.totalPausedSec = myLogin.total_paused_sec || 0;
-
-      if (myLogin.is_timer_paused && !STATE.timerPaused) {
-        STATE.timerPaused = true;
-        STATE.pauseStartAt = myLogin.paused_at
+      // Sync kalau peserta pause tapi local tidak tahu (kasus refresh)
+      if (myLogin.is_timer_paused && !STATE.bankPausedAt) {
+        STATE.bankPausedAt = myLogin.paused_at
           ? new Date(myLogin.paused_at).getTime()
           : Date.now();
       }
@@ -689,7 +701,7 @@ async function syncState() {
       onModeChanged(STATE.mode);
     }
 
-    // Sync bank
+    // Sync bank data
     if (myLogin?.bank_started_at) {
       const prev = STATE.bankStartedAt;
       STATE.bankStartedAt = myLogin.bank_started_at;
@@ -699,16 +711,15 @@ async function syncState() {
     }
 
     // Cek bank habis
-    if (STATE.bankStartedAt && !STATE.isPaused) {
-      const elapsed = getEffectiveElapsedSec();
-      if (elapsed >= STATE.bankDurationSec) {
+    if (STATE.bankStartedAt && !STATE.isPaused && !STATE.isFrozen) {
+      if (getBankElapsedSec() >= STATE.bankDurationSec) {
         onBankTimeUp();
         return;
       }
     }
 
     UI.dbg(
-      STATE.isPaused ? 'paused' : STATE.mode,
+      STATE.isFrozen ? 'frozen' : (STATE.isPaused ? 'paused' : STATE.mode),
       STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
       STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
       STATE.realtimeConnected ? 'rt' : 'poll'
@@ -744,11 +755,6 @@ async function enterGameMode() {
   const myLogin = await fetchMyLogin();
   if (myLogin?.bank_started_at) {
     STATE.bankStartedAt = myLogin.bank_started_at;
-    STATE.totalPausedSec = myLogin.total_paused_sec || 0;
-    if (myLogin.is_timer_paused) {
-      STATE.timerPaused = true;
-      STATE.pauseStartAt = myLogin.paused_at ? new Date(myLogin.paused_at).getTime() : Date.now();
-    }
     startBankTick();
   } else {
     LOG.info('Bank belum mulai — tunggu gambar pertama');
@@ -810,7 +816,6 @@ function renderLevelButtons() {
 function updateProgressDisplay() {
   const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
   const totalPoin = getTotalPoints();
-
   UI.txt('levelProgressLocked', `${locked} / 10`);
   UI.txt('levelProgressPoints', totalPoin.toFixed(2));
   UI.txt('gamePoints', totalPoin.toFixed(2));
@@ -828,25 +833,45 @@ function getTotalPoints() {
 function selectLevel(level) {
   if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
   if (STATE.mode === 'idle') { toast('Belum mulai.', 'warn'); return; }
+  if (STATE.isFrozen) return;
 
   STATE.currentLevel = level;
   UI.txt('choiceLevelNum', level);
   UI.subPanel('subPanelSelectChoice');
 }
 
+// ═══════════════════════════════════════════════════════════
+// BACK TO LEVEL SELECT — reset SEMUA state attempt
+// ═══════════════════════════════════════════════════════════
 function backToLevelSelect() {
-  UI.subPanel('subPanelSelectLevel');
+  // ✅ Reset SEMUA state
   STATE.currentLevel = null;
   STATE.currentChoice = null;
+  STATE.currentAttemptId = null;
+  STATE.currentStatus = null;
+  STATE.bellPressed = false;
+  STATE.imageLoaded = false;
+  STATE.imageLoadedAt = null;
+  STATE.imageElapsedSec = 0;
+  STATE.imagePausedAt = null;
+  STATE.imagePausedTotal = 0;
+
+  if (STATE.imageTickInterval) {
+    clearInterval(STATE.imageTickInterval);
+    STATE.imageTickInterval = null;
+  }
+
+  UI.subPanel('subPanelSelectLevel');
   renderLevelButtons();
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHOOSE OPTION
+// CHOOSE OPTION A/B
 // ═══════════════════════════════════════════════════════════
 async function chooseOption(choice) {
   if (STATE.busy) return;
   if (STATE.isPaused) { toast('Sedang pause.', 'warn'); return; }
+  if (STATE.isFrozen) return;
 
   const key = `${STATE.currentLevel}${choice}`;
   if (STATE.progressMap[key]?.status === 'locked') {
@@ -855,11 +880,17 @@ async function chooseOption(choice) {
   }
 
   STATE.busy = true;
+
+  // ✅ Reset state SEBELUM mulai
   STATE.currentChoice = choice;
+  STATE.currentAttemptId = null;
+  STATE.currentStatus = 'in_progress';
   STATE.bellPressed = false;
   STATE.imageLoaded = false;
   STATE.imageLoadedAt = null;
   STATE.imageElapsedSec = 0;
+  STATE.imagePausedAt = null;
+  STATE.imagePausedTotal = 0;
   AUDIO.resetTimerTracking();
 
   const isSimulasi = STATE.mode === 'simulasi';
@@ -887,8 +918,10 @@ async function chooseOption(choice) {
       .single();
 
     if (error) throw error;
+
     STATE.currentAttemptId = data.id;
     STATE.currentStatus = 'in_progress';
+    LOG.ok(`Attempt baru: ${data.id.slice(0, 8)}...`);
   } catch (e) {
     LOG.err('Insert progress', e);
     toast('Gagal mulai: ' + e.message, 'error');
@@ -918,6 +951,8 @@ async function onImageLoaded() {
 
   STATE.imageLoaded = true;
   STATE.imageLoadedAt = Date.now();
+  STATE.imagePausedTotal = 0;
+  STATE.imagePausedAt = null;
 
   try {
     await supabaseClient
@@ -959,8 +994,10 @@ async function startBankTimer() {
 
     if (error) { LOG.err('startBankTimer', error); return; }
     STATE.bankStartedAt = now;
-    STATE.totalPausedSec = 0;
-    STATE.timerPaused = false;
+    STATE.bankPausedTotal = 0;
+    STATE.bankPausedAt = null;
+    STATE.bankGlobalPausedTotal = 0;
+    STATE.bankGlobalPausedAt = null;
     startBankTick();
     LOG.ok('Bank started');
   } catch (e) { LOG.err('startBankTimer', e); }
@@ -970,9 +1007,8 @@ function startBankTick() {
   if (STATE.bankTickInterval) clearInterval(STATE.bankTickInterval);
 
   const tick = () => {
-    if (STATE.isPaused) return;
+    if (STATE.isFrozen) return;
 
-    // Kalau timer per peserta pause, kurangi sisa via pause tracking
     const rem = remainingBankSec();
     UI.txt('gameBank', formatMMSS(rem));
 
@@ -1005,11 +1041,10 @@ function startImageTimer() {
   if (STATE.imageTickInterval) clearInterval(STATE.imageTickInterval);
 
   const tick = () => {
-    if (!STATE.imageLoadedAt) return;
-    if (STATE.isPaused) return;
-    if (!STATE.imageLoaded) return;
+    if (!STATE.imageLoadedAt || !STATE.imageLoaded) return;
+    if (STATE.isFrozen) return;
 
-    STATE.imageElapsedSec = Math.floor((Date.now() - STATE.imageLoadedAt) / 1000);
+    STATE.imageElapsedSec = getImageElapsedSec();
     UI.txt('imgTimerDisplay', formatMMSS(STATE.imageElapsedSec));
 
     const minutes = Math.floor(STATE.imageElapsedSec / 60);
@@ -1028,6 +1063,7 @@ async function pressBell() {
   if (STATE.busy) return;
   if (STATE.bellPressed) { toast('Bel sudah ditekan.', 'warn'); return; }
   if (STATE.isPaused) { toast('Sedang pause global.', 'warn'); return; }
+  if (STATE.isFrozen) return;
   if (!STATE.currentAttemptId) return;
 
   STATE.busy = true;
@@ -1038,13 +1074,16 @@ async function pressBell() {
   btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> MENUNGGU...`;
 
   try {
-    const durationSec = STATE.imageElapsedSec || 0;
+    const durationSec = getImageElapsedSec();
     const now = new Date().toISOString();
 
-    // ✅ Pause timer peserta
-    STATE.timerPaused = true;
-    STATE.pauseStartAt = Date.now();
+    // ✅ Pause image timer
+    STATE.imagePausedAt = Date.now();
 
+    // ✅ Pause bank timer (personal)
+    STATE.bankPausedAt = Date.now();
+
+    // Update progress
     const { error: errProgress } = await supabaseClient
       .from('hiding_block_progress')
       .update({
@@ -1055,7 +1094,7 @@ async function pressBell() {
       .eq('id', STATE.currentAttemptId);
     if (errProgress) throw errProgress;
 
-    // ✅ Simpan pause state ke DB
+    // Kirim pause state ke DB
     const { error: errLogin } = await supabaseClient
       .from('system_hiding_block_login')
       .update({
@@ -1067,11 +1106,6 @@ async function pressBell() {
     if (errLogin) LOG.warn('Update pause state', errLogin);
 
     STATE.currentStatus = 'waiting_verdict';
-
-    if (STATE.imageTickInterval) {
-      clearInterval(STATE.imageTickInterval);
-      STATE.imageTickInterval = null;
-    }
 
     UI.subPanel('subPanelWaitingVerdict');
     UI.txt('waitVerdictDuration', formatMMSS(durationSec));
@@ -1095,7 +1129,8 @@ async function pressBell() {
     LOG.err('pressBell', e);
     toast('Gagal: ' + e.message, 'error');
     STATE.bellPressed = false;
-    STATE.timerPaused = false;
+    STATE.imagePausedAt = null;
+    STATE.bankPausedAt = null;
     btn.disabled = false;
     btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
   } finally {
@@ -1104,10 +1139,15 @@ async function pressBell() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHECK VERDICT
+// CHECK VERDICT — dengan GUARD KETAT
 // ═══════════════════════════════════════════════════════════
 async function checkVerdict() {
+  // ✅ Guard 1: ada attempt ID
   if (!STATE.currentAttemptId) return;
+
+  // ✅ Guard 2: HANYA cek kalau status kita waiting_verdict
+  //    (biar ga ganggu saat peserta mulai attempt baru)
+  if (STATE.currentStatus !== 'waiting_verdict') return;
 
   try {
     const { data, error } = await supabaseClient
@@ -1117,14 +1157,18 @@ async function checkVerdict() {
       .maybeSingle();
 
     if (error || !data) return;
-    if (data.status === 'waiting_verdict') return;
+    if (data.status === 'waiting_verdict') return;   // masih menunggu
 
+    // Verdict sudah diberi panitia
     if (data.status === 'locked' || data.verdict === 'benar') {
       const poin = Number(data.points_awarded || 0);
       LOG.ok(`BENAR! +${poin.toFixed(2)} pts`);
       AUDIO.bell();
 
-      await unpauseTimer();
+      // ✅ Unpause kedua timer
+      await unpauseTimers();
+
+      STATE.currentStatus = 'locked';
 
       UI.txt('verdictBenarPoin', poin.toFixed(2));
       UI.subPanel('subPanelVerdictBenar');
@@ -1137,11 +1181,10 @@ async function checkVerdict() {
       };
 
       await reloadProgress();
-      STATE.currentStatus = 'locked';
     } else if (data.status === 'wrong_continued' || data.verdict === 'salah') {
       LOG.warn('SALAH');
-      UI.subPanel('subPanelVerdictSalah');
       STATE.currentStatus = 'wrong_continued';
+      UI.subPanel('subPanelVerdictSalah');
     }
   } catch (e) { LOG.err('checkVerdict', e); }
 }
@@ -1152,21 +1195,24 @@ async function reloadProgress() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// UNPAUSE TIMER
+// UNPAUSE TIMERS (image + bank personal)
 // ═══════════════════════════════════════════════════════════
-async function unpauseTimer() {
-  if (!STATE.timerPaused) return;
+async function unpauseTimers() {
+  const now = Date.now();
 
-  const now = new Date().toISOString();
-  let additionalPause = 0;
-
-  if (STATE.pauseStartAt) {
-    additionalPause = Math.floor((Date.now() - STATE.pauseStartAt) / 1000);
+  // Image timer unpause
+  if (STATE.imagePausedAt) {
+    const dur = Math.floor((now - STATE.imagePausedAt) / 1000);
+    STATE.imagePausedTotal += dur;
+    STATE.imagePausedAt = null;
   }
 
-  STATE.totalPausedSec += additionalPause;
-  STATE.timerPaused = false;
-  STATE.pauseStartAt = null;
+  // Bank timer unpause
+  if (STATE.bankPausedAt) {
+    const dur = Math.floor((now - STATE.bankPausedAt) / 1000);
+    STATE.bankPausedTotal += dur;
+    STATE.bankPausedAt = null;
+  }
 
   try {
     await supabaseClient
@@ -1174,18 +1220,18 @@ async function unpauseTimer() {
       .update({
         is_timer_paused: false,
         paused_at: null,
-        total_paused_sec: STATE.totalPausedSec,
-        last_resumed_at: now,
+        total_paused_sec: STATE.bankPausedTotal,
+        last_resumed_at: new Date().toISOString(),
         bank_remaining_sec: Math.floor(remainingBankSec())
       })
       .eq('user_unique_id', STATE.user.unique_id);
 
-    LOG.ok(`Timer unpaused (total pause: ${STATE.totalPausedSec}s)`);
-  } catch (e) { LOG.err('unpauseTimer', e); }
+    LOG.ok(`Timer unpaused (total bank pause: ${STATE.bankPausedTotal}s)`);
+  } catch (e) { LOG.err('unpauseTimers', e); }
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHOOSE ULANGI / LANJUT
+// CHOOSE ULANGI
 // ═══════════════════════════════════════════════════════════
 async function chooseUlangi() {
   LOG.info('Peserta pilih ULANGI');
@@ -1220,13 +1266,15 @@ async function chooseUlangi() {
       metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
     });
 
-    // ✅ Unpause timer
-    await unpauseTimer();
+    // ✅ Unpause timers
+    await unpauseTimers();
 
     // Reset image state
     STATE.imageLoaded = false;
     STATE.imageLoadedAt = null;
     STATE.imageElapsedSec = 0;
+    STATE.imagePausedAt = null;
+    STATE.imagePausedTotal = 0;
     AUDIO.resetTimerTracking();
 
     // Reopen image
@@ -1254,13 +1302,22 @@ async function chooseUlangi() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════
+// CHOOSE LANJUT — reset SEMUA state, biar ga bug "Menunggu"
+// ═══════════════════════════════════════════════════════════
 async function chooseLanjut() {
   LOG.info('Peserta pilih LANJUT');
+
+  const oldAttemptId = STATE.currentAttemptId;
+
   try {
-    await supabaseClient
-      .from('hiding_block_progress')
-      .update({ status: 'wrong_continued' })
-      .eq('id', STATE.currentAttemptId);
+    // Update attempt lama
+    if (oldAttemptId) {
+      await supabaseClient
+        .from('hiding_block_progress')
+        .update({ status: 'wrong_continued' })
+        .eq('id', oldAttemptId);
+    }
 
     await supabaseClient.from('hiding_block_audit_log').insert({
       session_id: STATE.sessionId,
@@ -1270,14 +1327,27 @@ async function chooseLanjut() {
       metadata: { level: STATE.currentLevel, choice: STATE.currentChoice }
     });
 
-    // ✅ Unpause timer
-    await unpauseTimer();
+    // ✅ Unpause timers
+    await unpauseTimers();
 
-    STATE.currentStatus = 'wrong_continued';
-    STATE.bellPressed = false;
+    // ✅ RESET SEMUA STATE ATTEMPT
+    STATE.currentStatus = null;      // ← JANGAN 'wrong_continued', biar checkVerdict ga trigger panel
     STATE.currentAttemptId = null;
+    STATE.bellPressed = false;
+    STATE.imageLoaded = false;
+    STATE.imageLoadedAt = null;
+    STATE.imageElapsedSec = 0;
+    STATE.imagePausedAt = null;
+    STATE.imagePausedTotal = 0;
+
+    if (STATE.imageTickInterval) {
+      clearInterval(STATE.imageTickInterval);
+      STATE.imageTickInterval = null;
+    }
 
     await reloadProgress();
+
+    // Balik ke level select (yang juga reset state)
     backToLevelSelect();
   } catch (e) { LOG.err('chooseLanjut', e); }
 }
@@ -1286,7 +1356,8 @@ async function chooseLanjut() {
 // BANK TIME UP
 // ═══════════════════════════════════════════════════════════
 function onBankTimeUp() {
-  if (STATE.currentStatus === 'frozen') return;
+  if (STATE.isFrozen) return;
+  STATE.isFrozen = true;
   STATE.currentStatus = 'frozen';
 
   LOG.warn('⏰ Bank time up');
@@ -1318,20 +1389,26 @@ function onBankTimeUp() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// PAUSE HANDLERS (global)
+// GLOBAL PAUSE HANDLERS
 // ═══════════════════════════════════════════════════════════
-function onPauseActivated() {
-  LOG.warn('PAUSE activated');
+function onGlobalPauseActivated() {
+  LOG.warn('PAUSE GLOBAL activated');
   UI.show('pauseOverlay', true);
+  STATE.bankGlobalPausedAt = Date.now();
 }
 
-function onPauseDeactivated() {
-  LOG.info('PAUSE deactivated');
+function onGlobalPauseDeactivated() {
+  LOG.info('PAUSE GLOBAL deactivated');
   UI.hide('pauseOverlay');
+  if (STATE.bankGlobalPausedAt) {
+    const dur = Math.floor((Date.now() - STATE.bankGlobalPausedAt) / 1000);
+    STATE.bankGlobalPausedTotal += dur;
+    STATE.bankGlobalPausedAt = null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
-// REALTIME
+// REALTIME + POLLING
 // ═══════════════════════════════════════════════════════════
 function startRealtimeListening() {
   if (!STATE.user) return;
@@ -1356,7 +1433,7 @@ function startRealtimeListening() {
       STATE.realtimeConnected = status === 'SUBSCRIBED';
       LOG.info(`Realtime: ${status}`);
       UI.dbg(
-        STATE.isPaused ? 'paused' : STATE.mode,
+        STATE.isFrozen ? 'frozen' : (STATE.isPaused ? 'paused' : STATE.mode),
         STATE.currentLevel ? `${STATE.currentLevel}${STATE.currentChoice || ''}` : '-',
         STATE.bankStartedAt ? formatMMSS(remainingBankSec()) : '--:--',
         STATE.realtimeConnected ? 'rt' : 'poll'
@@ -1366,9 +1443,7 @@ function startRealtimeListening() {
   // Polling fallback
   setInterval(async () => {
     await syncState();
-    if (STATE.currentAttemptId && STATE.currentStatus === 'waiting_verdict') {
-      await checkVerdict();
-    }
+    await checkVerdict();
   }, 2000);
 }
 
@@ -1380,22 +1455,21 @@ function startRealtimeListening() {
     LOG.ok('══════════ KIOSK HIDING BLOCK BOOT ══════════');
     UI.dbg('boot', '-', '--:--', '-');
 
-    // 1. Cek user
     if (!initUser()) {
       UI.txt('loadError', 'Session tidak valid. Redirect...');
       UI.el('loadError')?.classList.remove('hidden');
       return;
     }
 
-    // 2. Cek login existing
     const myLogin = await fetchMyLogin();
 
-    // Sudah selesai → frozen
+    // ─── Sudah selesai → frozen ───
     if (myLogin?.status === 'finished' || myLogin?.status === 'eliminated') {
       STATE.sessionId = myLogin.session_id;
       STATE.progressMap = await fetchMyProgress();
       STATE.bankStartedAt = myLogin.bank_started_at;
-      STATE.totalPausedSec = myLogin.total_paused_sec || 0;
+      STATE.isFrozen = true;
+
       UI.txt('frozenPoints', getTotalPoints().toFixed(2));
       const locked = Object.values(STATE.progressMap).filter(p => p.status === 'locked').length;
       UI.txt('frozenLocked', `${locked}`);
@@ -1404,7 +1478,7 @@ function startRealtimeListening() {
       return;
     }
 
-    // Sudah ready / playing
+    // ─── Sudah ready / playing → resume ───
     if (myLogin?.status === 'ready' || myLogin?.status === 'playing') {
       STATE.sessionId = myLogin.session_id;
       STATE.isReady = true;
@@ -1424,12 +1498,11 @@ function startRealtimeListening() {
       return;
     }
 
-    // 3. Belum ready → tampil tombol SIAP
+    // ─── Belum ready → tampil tombol SIAP ───
     UI.txt('readyName', STATE.user.full_name || STATE.user.unique_id);
     UI.panel('panelReady');
     UI.dbg('ready', '-', '--:--', '-');
 
-    // Prefetch state
     const sys = await fetchSystemState();
     if (sys) {
       STATE.mode = sys.mode || 'idle';
