@@ -337,87 +337,61 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TAG = '[KIOSK-HB]';
 const BANK_GAME_SEC = 1800;
 const BANK_SIM_SEC  = 600;
-
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
 const BUCKET_BLOCK = `${STORAGE_BASE}/block`;
 const BUCKET_TIMER = `${STORAGE_BASE}/timer`;
-
 const POINT_MAP = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 };
 
 // ═══════════════════════════════════════════════════════════
-// 🔥 DIAGNOSTIC LOGGER — Bisa dilihat di DevTools
+// LOGGER
 // ═══════════════════════════════════════════════════════════
 const BOOT_TS = Date.now();
 let EVENT_SEQ = 0;
 
 function _ts() {
   const ms = Date.now() - BOOT_TS;
-  const sec = (ms / 1000).toFixed(2).padStart(7, ' ');
-  return `[${sec}s]`;
+  return `[${(ms / 1000).toFixed(2).padStart(7, ' ')}s]`;
 }
-
 function _short(id) {
   if (!id) return 'null';
   return String(id).slice(0, 8);
 }
 
 const LOG = {
-  ok:    (m, d) => console.log(`%c${_ts()} ${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
-  info:  (m, d) => console.log(`%c${_ts()} ${TAG} ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
-  warn:  (m, d) => console.warn(`%c${_ts()} ${TAG} ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
-  err:   (m, d) => console.error(`%c${_ts()} ${TAG} ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
-  step:  (m, d) => console.log(`%c${_ts()} ${TAG} ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? ''),
-
-  // ─── STATE CHANGE (highlight) ───
+  ok:   (m, d) => console.log(`%c${_ts()} ${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+  info: (m, d) => console.log(`%c${_ts()} ${TAG} ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+  warn: (m, d) => console.warn(`%c${_ts()} ${TAG} ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+  err:  (m, d) => console.error(`%c${_ts()} ${TAG} ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+  step: (m, d) => console.log(`%c${_ts()} ${TAG} ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? ''),
   state: (fromStatus, toStatus, reason, extra = {}) => {
     EVENT_SEQ++;
-    const payload = {
-      seq: EVENT_SEQ,
-      from: fromStatus,
-      to: toStatus,
-      reason,
-      attempt: _short(STATE.currentAttemptId),
-      level: STATE.currentLevel,
-      choice: STATE.currentChoice,
-      ...extra
-    };
     console.log(
       `%c${_ts()} ${TAG} 🔄 STATE  [${fromStatus || 'null'}] → [${toStatus || 'null'}]  reason="${reason}"  attempt=${_short(STATE.currentAttemptId)}`,
       'color:#000;background:#fbbf24;padding:2px 6px;border-radius:3px;font-weight:bold',
-      payload
+      { seq: EVENT_SEQ, from: fromStatus, to: toStatus, reason, ...extra }
     );
   },
-
-  // ─── PANEL CHANGE ───
   panel: (showId, reason) => {
-    const fromPanel = STATE._lastPanel || 'none';
+    const from = STATE._lastPanel || 'none';
     STATE._lastPanel = showId;
     console.log(
-      `%c${_ts()} ${TAG} 📺 PANEL  [${fromPanel}] → [${showId}]  reason="${reason}"`,
+      `%c${_ts()} ${TAG} 📺 PANEL  [${from}] → [${showId}]  reason="${reason}"`,
       'color:#fff;background:#6366f1;padding:2px 6px;border-radius:3px;font-weight:bold'
     );
   },
-
-  // ─── VERDICT CHECK (spam-prone) ───
   verdict: (action, extra = {}) => {
     const style = action === 'skip' ? 'color:#94a3b8'
                 : action === 'trigger' ? 'color:#ef4444;font-weight:bold'
                 : 'color:#06b6d4';
     console.log(
       `%c${_ts()} ${TAG} 🔍 VERDICT [${action}]  status=${STATE.currentStatus}  attempt=${_short(STATE.currentAttemptId)}`,
-      style,
-      extra
+      style, extra
     );
-  },
-
-  // ─── COUNTDOWN ───
-  tick: (label, val) => {
-    console.log(`%c${_ts()} ${TAG} ⏱️ ${label} = ${val}`, 'color:#64748b');
   }
 };
 
 // ═══════════════════════════════════════════════════════════
-// STATE — semua field + tracking
+// STATE
 // ═══════════════════════════════════════════════════════════
 const STATE = {
   user: null,
@@ -427,7 +401,6 @@ const STATE = {
   isReady: false,
   isFrozen: false,
 
-  // Bank timer
   bankStartedAt: null,
   bankDurationSec: BANK_GAME_SEC,
   bankPausedTotal: 0,
@@ -435,14 +408,12 @@ const STATE = {
   bankGlobalPausedTotal: 0,
   bankGlobalPausedAt: null,
 
-  // Image timer
   imageLoaded: false,
   imageLoadedAt: null,
   imagePausedTotal: 0,
   imagePausedAt: null,
   imageElapsedSec: 0,
 
-  // Attempt
   currentLevel: null,
   currentChoice: null,
   currentAttemptId: null,
@@ -457,13 +428,9 @@ const STATE = {
   imageTickInterval: null,
   timerAudiosPlayed: new Set(),
 
-  // Diagnostics
   _lastPanel: 'boot'
 };
 
-// ═══════════════════════════════════════════════════════════
-// 🎯 STATE SETTER — pakai ini untuk ganti status agar ter-log
-// ═══════════════════════════════════════════════════════════
 function setStatus(newStatus, reason, extra = {}) {
   const old = STATE.currentStatus;
   if (old === newStatus) return;
@@ -480,7 +447,7 @@ function setAttemptId(newId, reason) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// UI HELPERS
+// UI
 // ═══════════════════════════════════════════════════════════
 const UI = {
   el: id => document.getElementById(id),
@@ -498,8 +465,7 @@ const UI = {
     else e.classList.add('hidden');
   },
   panel(showId, reason = '') {
-    const list = ['panelLoad','panelReady','panelWaiting','panelFrozen','panelGame'];
-    list.forEach(id => {
+    ['panelLoad','panelReady','panelWaiting','panelFrozen','panelGame'].forEach(id => {
       const e = UI.el(id);
       if (e) e.classList.add('hidden-panel');
     });
@@ -508,9 +474,8 @@ const UI = {
     LOG.panel(showId, reason);
   },
   subPanel(showId, reason = '') {
-    const list = ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
-                  'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'];
-    list.forEach(id => {
+    ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
+     'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'].forEach(id => {
       const e = UI.el(id);
       if (!e) return;
       e.classList.add('hidden');
@@ -660,7 +625,10 @@ async function fetchMyLogin() {
       .eq('user_unique_id', STATE.user.unique_id)
       .maybeSingle();
     return data;
-  } catch { return null; }
+  } catch (e) {
+    LOG.warn('fetchMyLogin', e);
+    return null;
+  }
 }
 
 async function fetchMyProgress() {
@@ -679,7 +647,10 @@ async function fetchMyProgress() {
       }
     });
     return map;
-  } catch { return {}; }
+  } catch (e) {
+    LOG.warn('fetchMyProgress', e);
+    return {};
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -879,6 +850,17 @@ function getTotalPoints() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// RESET BELL BUTTON
+// ═══════════════════════════════════════════════════════════
+function resetBellButton() {
+  const btn = UI.el('btnBell');
+  if (!btn) return;
+  btn.disabled = false;
+  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+  LOG.step('🔔 Tombol BEL di-reset');
+}
+
+// ═══════════════════════════════════════════════════════════
 // SELECT LEVEL
 // ═══════════════════════════════════════════════════════════
 function selectLevel(level) {
@@ -893,12 +875,11 @@ function selectLevel(level) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BACK TO LEVEL SELECT — RESET SEMUA
+// BACK TO LEVEL SELECT
 // ═══════════════════════════════════════════════════════════
 function backToLevelSelect(reason = 'manual') {
   LOG.step(`backToLevelSelect(${reason})`);
 
-  // Reset state
   STATE.currentLevel = null;
   STATE.currentChoice = null;
   setAttemptId(null, `backToLevelSelect-${reason}`);
@@ -922,14 +903,6 @@ function backToLevelSelect(reason = 'manual') {
 // ═══════════════════════════════════════════════════════════
 // CHOOSE OPTION A/B
 // ═══════════════════════════════════════════════════════════
-
-function resetBellButton() {
-  const btn = UI.el('btnBell');
-  if (!btn) return;
-  btn.disabled = false;
-  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
-  LOG.step('🔔 Tombol BEL di-reset');
-}
 async function chooseOption(choice) {
   LOG.step(`chooseOption(${choice})`);
 
@@ -945,7 +918,6 @@ async function chooseOption(choice) {
 
   STATE.busy = true;
 
-  // ✅ Reset state dulu
   STATE.currentChoice = choice;
   setAttemptId(null, 'chooseOption-reset');
   setStatus('in_progress', 'chooseOption-start');
@@ -997,11 +969,7 @@ async function chooseOption(choice) {
   UI.txt('imgLevelLabel', `${STATE.currentLevel}${choice.toUpperCase()}`);
   UI.txt('imgTimerDisplay', '00:00');
   UI.show('imgLoadingOverlay');
-
-  // ✅ FIX: Reset tombol BEL
-  const btn = UI.el('btnBell');
-  btn.disabled = false;
-  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+  resetBellButton();
 
   const img = UI.el('imgViewerTarget');
   img.onload = () => onImageLoaded();
@@ -1015,27 +983,33 @@ async function chooseOption(choice) {
 // IMAGE LOADED / FAILED
 // ═══════════════════════════════════════════════════════════
 async function onImageLoaded() {
-  LOG.ok('Gambar loaded');
-  UI.hide('imgLoadingOverlay');
-
-  STATE.imageLoaded = true;
-  STATE.imageLoadedAt = Date.now();
-  STATE.imagePausedTotal = 0;
-  STATE.imagePausedAt = null;
-
-    // ✅ EXTRA: pastikan tombol reset saat gambar loaded
-  resetBellButton();
-
   try {
-    await supabaseClient
-      .from('hiding_block_progress')
-      .update({ image_loaded_at: new Date().toISOString() })
-      .eq('id', STATE.currentAttemptId);
-  } catch (e) { LOG.warn('Update image_loaded_at', e); }
+    LOG.ok('Gambar loaded');
+    UI.hide('imgLoadingOverlay');
+    resetBellButton();
 
-  if (!STATE.bankStartedAt) await startBankTimer();
+    STATE.imageLoaded = true;
+    STATE.imageLoadedAt = Date.now();
+    STATE.imagePausedTotal = 0;
+    STATE.imagePausedAt = null;
 
-  startImageTimer();
+    try {
+      await supabaseClient
+        .from('hiding_block_progress')
+        .update({ image_loaded_at: new Date().toISOString() })
+        .eq('id', STATE.currentAttemptId);
+    } catch (e) {
+      LOG.warn('Update image_loaded_at gagal', e);
+    }
+
+    if (!STATE.bankStartedAt) {
+      await startBankTimer();
+    }
+
+    startImageTimer();
+  } catch (e) {
+    LOG.err('onImageLoaded', e);
+  }
 }
 
 function onImageFailed() {
@@ -1199,24 +1173,20 @@ async function pressBell() {
     STATE.bellPressed = false;
     STATE.imagePausedAt = null;
     STATE.bankPausedAt = null;
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+    resetBellButton();
   } finally {
     STATE.busy = false;
   }
 }
 
 // ═══════════════════════════════════════════════════════════
-// CHECK VERDICT — LOG SETIAP SKIP/TRIGGER
+// CHECK VERDICT
 // ═══════════════════════════════════════════════════════════
 async function checkVerdict() {
-  // Guard 1: no attempt
   if (!STATE.currentAttemptId) {
     LOG.verdict('skip', { reason: 'no-attempt-id' });
     return;
   }
-
-  // Guard 2: only when waiting_verdict
   if (STATE.currentStatus !== 'waiting_verdict') {
     LOG.verdict('skip', { reason: `status-is-${STATE.currentStatus}` });
     return;
@@ -1358,23 +1328,14 @@ async function chooseUlangi() {
     const imageUrl = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
 
     UI.subPanel('subPanelViewImage', 'chooseUlangi');
-  UI.show('imgLoadingOverlay');
-  UI.txt('imgTimerDisplay', '00:00');
+    UI.show('imgLoadingOverlay');
+    UI.txt('imgTimerDisplay', '00:00');
+    resetBellButton();
 
-  // ✅ Reset tombol BEL
-  const btn = UI.el('btnBell');
-  btn.disabled = false;
-  btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
-
-  const img = UI.el('imgViewerTarget');
-  img.onload = () => onImageLoaded();
-  img.onerror = () => onImageFailed();
-  img.src = imageUrl;
-}
-
-    const btn = UI.el('btnBell');
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fas fa-bell text-2xl"></i><span>SUDAH MIRIP — TEKAN BEL</span>`;
+    const img = UI.el('imgViewerTarget');
+    img.onload = () => onImageLoaded();
+    img.onerror = () => onImageFailed();
+    img.src = imageUrl;
   } catch (e) {
     LOG.err('chooseUlangi', e);
     toast('Gagal: ' + e.message, 'error');
@@ -1407,7 +1368,6 @@ async function chooseLanjut() {
 
     await unpauseTimers();
 
-    // ✅ Reset total
     setStatus(null, 'chooseLanjut');
     setAttemptId(null, 'chooseLanjut');
     STATE.bellPressed = false;
@@ -1522,10 +1482,9 @@ function startRealtimeListening() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 🛠️ DEBUG TOOLS — Panggil dari Console untuk introspeksi
+// DEBUG TOOLS
 // ═══════════════════════════════════════════════════════════
 window.hbDebug = {
-  // Lihat state saat ini
   state() {
     console.table({
       'Status': STATE.currentStatus,
@@ -1534,57 +1493,40 @@ window.hbDebug = {
       'Choice': STATE.currentChoice,
       'BellPressed': STATE.bellPressed,
       'ImageLoaded': STATE.imageLoaded,
-      'BankStartedAt': STATE.bankStartedAt,
-      'BankPausedAt': STATE.bankPausedAt,
       'BankRemaining': formatMMSS(remainingBankSec()),
       'LastPanel': STATE._lastPanel
     });
   },
-
-  // Lihat semua progress
-  progress() {
-    console.table(Object.entries(STATE.progressMap).map(([k, v]) => ({
-      key: k,
-      status: v.status,
-      points: v.points_awarded,
-      attempt: v.attempt_count,
-      duration: v.duration_sec
-    })));
-  },
-
-  // Force cek verdict sekarang
-  async checkVerdict() {
-    LOG.step('Manual checkVerdict()');
-    await checkVerdict();
-  },
-
-  // Force sync state
-  async syncState() {
-    LOG.step('Manual syncState()');
-    await syncState();
-  },
-
-  // Info timer
   timer() {
-    const bankElapsed = getBankElapsedSec();
-    const bankRemaining = remainingBankSec();
-    const imageElapsed = getImageElapsedSec();
     console.table({
-      'Bank Elapsed': formatMMSS(bankElapsed),
-      'Bank Remaining': formatMMSS(bankRemaining),
-      'Bank Duration': formatMMSS(STATE.bankDurationSec),
+      'Bank Elapsed': formatMMSS(getBankElapsedSec()),
+      'Bank Remaining': formatMMSS(remainingBankSec()),
       'Bank Paused Total': STATE.bankPausedTotal + 's',
-      'Bank Paused Active': STATE.bankPausedAt ? Math.floor((Date.now() - STATE.bankPausedAt)/1000) + 's' : '-',
       'Bank Global Paused Total': STATE.bankGlobalPausedTotal + 's',
-      'Image Elapsed': formatMMSS(imageElapsed),
-      'Image Paused Total': STATE.imagePausedTotal + 's',
-      'Image Paused Active': STATE.imagePausedAt ? Math.floor((Date.now() - STATE.imagePausedAt)/1000) + 's' : '-'
+      'Image Elapsed': formatMMSS(getImageElapsedSec()),
+      'Image Paused Total': STATE.imagePausedTotal + 's'
     });
   },
-
-  // Reset ke state bersih (untuk testing)
+  progress() {
+    console.table(Object.entries(STATE.progressMap).map(([k, v]) => ({
+      key: k, status: v.status, points: v.points_awarded, attempt: v.attempt_count
+    })));
+  },
+  whyPanel() {
+    const panels = ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
+                    'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'];
+    const visible = panels.filter(id => {
+      const el = document.getElementById(id);
+      return el && !el.classList.contains('hidden');
+    });
+    console.log('%c Panel aktif:', 'color:#fbbf24;font-weight:bold', visible);
+    console.log('%c Status:', 'color:#fbbf24;font-weight:bold', STATE.currentStatus);
+    console.log('%c Attempt:', 'color:#fbbf24;font-weight:bold', _short(STATE.currentAttemptId));
+  },
+  async checkVerdict() { await checkVerdict(); },
+  async syncState() { await syncState(); },
   reset() {
-    if (!confirm('Reset state kiosk? (tidak menghapus data DB)')) return;
+    if (!confirm('Reset state kiosk?')) return;
     setStatus(null, 'debug-reset');
     setAttemptId(null, 'debug-reset');
     STATE.currentLevel = null;
@@ -1598,26 +1540,6 @@ window.hbDebug = {
     STATE.busy = false;
     LOG.ok('State reset');
     backToLevelSelect('debug-reset');
-  },
-
-  // Lihat penjelasan panel yang sedang tampil
-  whyPanel() {
-    const panels = ['subPanelSelectLevel','subPanelSelectChoice','subPanelViewImage',
-                    'subPanelWaitingVerdict','subPanelVerdictBenar','subPanelVerdictSalah'];
-    const visible = panels.filter(id => {
-      const el = document.getElementById(id);
-      return el && !el.classList.contains('hidden');
-    });
-    console.log('%c Panel yang sedang tampil:', 'color:#fbbf24;font-weight:bold', visible);
-    console.log('%c Current status:', 'color:#fbbf24;font-weight:bold', STATE.currentStatus);
-    console.log('%c Current attempt ID:', 'color:#fbbf24;font-weight:bold', _short(STATE.currentAttemptId));
-    console.log('%c Alasan status:', 'color:#fbbf24;font-weight:bold',
-      STATE.currentStatus === 'waiting_verdict' ? 'Menunggu panitia (BENAR/SALAH)' :
-      STATE.currentStatus === 'in_progress' ? 'Sedang mengerjakan' :
-      STATE.currentStatus === 'locked' ? 'Sudah selesai (locked)' :
-      STATE.currentStatus === 'wrong_continued' ? 'Sudah dinilai SALAH — belum pilih ulangi/lanjut' :
-      STATE.currentStatus === null ? 'Tidak ada attempt aktif' : 'Unknown'
-    );
   }
 };
 
@@ -1627,7 +1549,7 @@ window.hbDebug = {
 (async function init() {
   try {
     LOG.ok('══════════ KIOSK HIDING BLOCK BOOT ══════════');
-    console.log('%c💡 Debug tools tersedia: window.hbDebug.state() / .timer() / .whyPanel() / .progress()',
+    console.log('%c💡 Debug: hbDebug.state() / .timer() / .whyPanel()',
                 'color:#a855f7;background:#1e1b4b;padding:4px 8px;border-radius:4px;font-weight:bold');
     UI.dbg('boot', '-', '--:--', '-');
 
@@ -1639,7 +1561,6 @@ window.hbDebug = {
 
     const myLogin = await fetchMyLogin();
 
-    // Sudah selesai
     if (myLogin?.status === 'finished' || myLogin?.status === 'eliminated') {
       STATE.sessionId = myLogin.session_id;
       STATE.progressMap = await fetchMyProgress();
@@ -1654,7 +1575,6 @@ window.hbDebug = {
       return;
     }
 
-    // Sudah ready / playing
     if (myLogin?.status === 'ready' || myLogin?.status === 'playing') {
       STATE.sessionId = myLogin.session_id;
       STATE.isReady = true;
@@ -1674,7 +1594,6 @@ window.hbDebug = {
       return;
     }
 
-    // Belum ready
     UI.txt('readyName', STATE.user.full_name || STATE.user.unique_id);
     UI.panel('panelReady', 'init-fresh');
     UI.dbg('ready', '-', '--:--', '-');
