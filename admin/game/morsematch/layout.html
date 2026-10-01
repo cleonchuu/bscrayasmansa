@@ -742,25 +742,24 @@ async function playSoalSequence(soal, token) {
     if (!checkToken()) return;
     await playSymbol(String(soal.n2), token);
     if (!checkToken()) return;
-
-    // 4. BELL sebelum operator 2 (pakai Web Audio, abortable)
-    if (!checkToken()) return;
-    LOG.info('🔔 Bell antar operasi');
-    setMorseVisual(true, true);
-    await playBellTone(token);
-    setMorseVisual(false);
-    if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 5. Operator 2
+    // 4. Operator 2
     if (!checkToken()) return;
     await playSymbol(soal.op2Symbol, token);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 6. Angka 3
+    // 5. Angka 3
     if (!checkToken()) return;
     await playSymbol(String(soal.n3), token);
+    if (!checkToken()) return;
+
+    // 6. BELL di AKHIR persamaan — tanda "persamaan selesai"
+    LOG.info('🔔 Bell akhir persamaan');
+    setMorseVisual(true, true);
+    await playBellTone(token);
+    setMorseVisual(false);
 
   } catch (e) {
     LOG.err('playSoalSequence', e);
@@ -796,7 +795,7 @@ async function runSoalLoop(soalIdx) {
   const myToken = STATE.currentPlaybackToken;
 
   LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer} (token=${myToken})`);
-  LOG.info(`   Urutan: ${soal.n1} → ${soal.op1Symbol} → ${soal.n2} → 🔔 → ${soal.op2Symbol} → ${soal.n3}`);
+  LOG.info(`   Urutan: ${soal.n1} → ${soal.op1Symbol} → ${soal.n2} → ${soal.op2Symbol} → ${soal.n3} → 🔔`);
 
   // Kill semua oscillator & SFX yang masih nyangkut dari soal sebelumnya
   killAllOscillators();
@@ -814,8 +813,10 @@ async function runSoalLoop(soalIdx) {
     await playSoalSequence(soal, myToken);
     if (myToken !== STATE.currentPlaybackToken) break;
 
-    // Jeda antar pengulangan penuh
-    await sleep(STATE.audioSettings.gap_inter_ms, myToken);
+    // Jeda antar pengulangan penuh (lebih panjang, karena bell baru selesai)
+    const gapAfterBell = (STATE.audioSettings.gap_inter_ms || 300) * 2;
+    await sleep(gapAfterBell, myToken);
+  }
   }
 
   LOG.info(`⏹ Soal #${soalIdx} loop berhenti (token=${myToken}, current=${STATE.currentPlaybackToken})`);
