@@ -380,6 +380,8 @@ const STATE = {
   // Playback state
   isPlayingSequence: false,
   sequenceAbort: false,
+  currentPlaybackToken: 0,   // token unik per playback; ganti = abort
+  activeOscillators: [],     // daftar oscillator yang sedang bunyi
   lastProcessedSoalIdx: 0,
 
   // Loop & tick
@@ -426,11 +428,11 @@ function unlockAudio() {
 }
 
 /**
- * Memainkan satu tone (titik atau garis)
+ * Mainkan satu tone. Bisa dibatalkan via STATE.currentPlaybackToken.
  * @param {number} durationMs
- * @returns {Promise<void>}
+ * @param {number} token — token playback saat ini
  */
-function playTone(durationMs) {
+function playTone(durationMs, token) {
   return new Promise((resolve) => {
     if (!STATE.audioCtx) { resolve(); return; }
 
@@ -450,7 +452,6 @@ function playTone(durationMs) {
     const now = ctx.currentTime;
     const durSec = durationMs / 1000;
 
-    // Envelope biar tidak click
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.35, now + 0.005);
     gain.gain.setValueAtTime(0.35, now + durSec - 0.005);
@@ -459,25 +460,121 @@ function playTone(durationMs) {
     osc.start(now);
     osc.stop(now + durSec + 0.02);
 
-    setTimeout(resolve, durationMs);
+    // Simpan oscillator supaya bisa di-stop paksa saat abort
+    const oscEntry = { osc, gain, stopped: false };
+    STATE.activeOscillators.push(oscEntry);
+
+    const cleanup = () => {
+      if (oscEntry.stopped) return;
+      oscEntry.stopped = true;
+      try { osc.stop(); } catch (e) {}
+      try { osc.disconnect(); } catch (e) {}
+      try { gain.disconnect(); } catch (e) {}
+      const idx = STATE.activeOscillators.indexOf(oscEntry);
+      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
+    };
+
+    // Auto-cleanup setelah durasi
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, durationMs);
+
+    // Cek abort di tengah jalan (interval 30ms)
+    const abortCheck = setInterval(() => {
+      if (token !== STATE.currentPlaybackToken) {
+        clearInterval(abortCheck);
+        clearTimeout(timeoutId);
+        cleanup();
+        resolve();
+      }
+    }, 30);
+
+    // Clear abort check setelah tone selesai normal
+    setTimeout(() => clearInterval(abortCheck), durationMs + 50);
   });
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Stop paksa semua oscillator yang sedang bunyi.
+ * Dipanggil saat abort.
+ */
+function killAllOscillators() {
+  STATE.activeOscillators.forEach(entry => {
+    try { entry.osc.stop(); } catch (e) {}
+    try { entry.osc.disconnect(); } catch (e) {}
+    try { entry.gain.disconnect(); } catch (e) {}
+  });
+  STATE.activeOscillators = [];
+  LOG.warn('🔇 Semua oscillator di-stop paksa');
+}
+
+/**
+ * Sleep yang bisa dibatalkan. Cek token setiap 30ms.
+ */
+function sleep(ms, token = null) {
+  return new Promise(resolve => {
+    if (token === null) {
+      // Sleep biasa (tidak bisa dibatalkan)
+      setTimeout(resolve, ms);
+      return;
+    }
+
+    const start = Date.now();
+    const check = setInterval(() => {
+      if (token !== STATE.currentPlaybackToken) {
+        clearInterval(check);
+        resolve();
+        return;
+      }
+      if (Date.now() - start >= ms) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 30);
+  });
 }
 
 /**
  * Mainkan suara SFX (bell / beep) pakai file audio
  */
+let currentSfxAudio = null;
+
 function playSfx(url) {
   return new Promise(resolve => {
+    // Stop SFX sebelumnya kalau masih jalan
+    if (currentSfxAudio) {
+      try { currentSfxAudio.pause(); } catch (e) {}
+      currentSfxAudio = null;
+    }
+
     const a = new Audio(url);
     a.volume = 0.7;
-    a.onended = () => resolve();
-    a.onerror = () => resolve();
-    a.play().catch(() => resolve());
+    currentSfxAudio = a;
+
+    let resolved = false;
+    const done = () => {
+      if (resolved) return;
+      resolved = true;
+      if (currentSfxAudio === a) currentSfxAudio = null;
+      resolve();
+    };
+
+    a.onended = done;
+    a.onerror = done;
+
+    // Auto-resolve max 3 detik (kalau file gagal load)
+    setTimeout(done, 3000);
+
+    a.play().catch(() => done());
   });
+}
+
+function killSfx() {
+  if (currentSfxAudio) {
+    try { currentSfxAudio.pause(); } catch (e) {}
+    currentSfxAudio = null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -514,7 +611,10 @@ function setMorseIdle() {
 // ═══════════════════════════════════════════════════════════
 // PLAY SATU SIMBOL (pola morse)
 // ═══════════════════════════════════════════════════════════
-async function playSymbol(symbol) {
+async function playSymbol(symbol, token) {
+  // Guard: kalau token sudah tidak valid, langsung keluar
+  if (token !== STATE.currentPlaybackToken) return;
+
   const libItem = STATE.library.find(l => l.symbol === symbol);
   if (!libItem || !libItem.morse_pattern) {
     LOG.warn(`Pola morse ${symbol} tidak ditemukan`);
@@ -529,23 +629,22 @@ async function playSymbol(symbol) {
   LOG.info(`🔊 Symbol ${symbol}: ${pattern}`);
 
   for (let i = 0; i < pattern.length; i++) {
-    if (STATE.sequenceAbort) return;
+    // Cek token setiap iterasi
+    if (token !== STATE.currentPlaybackToken) {
+      LOG.info(`⏹ Abort di tengah simbol ${symbol}`);
+      setMorseVisual(false);
+      return;
+    }
 
     const ch = pattern[i];
     const dur = ch === '.' ? dotMs : dashMs;
 
-    // Set visual lit
     setMorseVisual(true, ch === '-');
-
-    // Play tone
-    await playTone(dur);
-
-    // Set visual off
+    await playTone(dur, token);
     setMorseVisual(false);
 
-    // Gap intra (kecuali karakter terakhir)
     if (i < pattern.length - 1) {
-      await sleep(gapIntra);
+      await sleep(gapIntra, token);
     }
   }
 }
@@ -553,50 +652,61 @@ async function playSymbol(symbol) {
 // ═══════════════════════════════════════════════════════════
 // PLAY FULL SOAL (n1 op1 n2 op2 n3)
 // ═══════════════════════════════════════════════════════════
-async function playSoalSequence(soal) {
-  STATE.sequenceAbort = false;
-  STATE.isPlayingSequence = true;
+async function playSoalSequence(soal, token) {
+  // Guard awal
+  if (token !== STATE.currentPlaybackToken) return;
 
+  STATE.isPlayingSequence = true;
   const gapInter = STATE.audioSettings.gap_inter_ms;
+
+  const checkToken = () => token === STATE.currentPlaybackToken;
 
   try {
     // 1. Angka 1
-    await playSymbol(String(soal.n1));
-    if (STATE.sequenceAbort) return;
-    await sleep(gapInter);
+    if (!checkToken()) return;
+    await playSymbol(String(soal.n1), token);
+    if (!checkToken()) return;
+    await sleep(gapInter, token);
 
     // 2. Operator 1
-    await playSymbol(soal.op1Symbol);
-    if (STATE.sequenceAbort) return;
-    await sleep(gapInter);
+    if (!checkToken()) return;
+    await playSymbol(soal.op1Symbol, token);
+    if (!checkToken()) return;
+    await sleep(gapInter, token);
 
     // 3. Angka 2
-    await playSymbol(String(soal.n2));
-    if (STATE.sequenceAbort) return;
+    if (!checkToken()) return;
+    await playSymbol(String(soal.n2), token);
+    if (!checkToken()) return;
 
     // 4. BELL sebelum operator 2
+    if (!checkToken()) return;
     LOG.info('🔔 Bell antar operasi');
     setMorseVisual(true, true);
-    await sleep(150);
+    await sleep(150, token);
     setMorseVisual(false);
+
+    // Play bell SFX (tidak bisa dibatalkan karena Audio element, tapi cek token sebelum & sesudah)
+    if (!checkToken()) return;
     await playSfx(SFX_BELL);
-    if (STATE.sequenceAbort) return;
-    await sleep(gapInter);
+    if (!checkToken()) return;
+    await sleep(gapInter, token);
 
     // 5. Operator 2
-    await playSymbol(soal.op2Symbol);
-    if (STATE.sequenceAbort) return;
-    await sleep(gapInter);
+    if (!checkToken()) return;
+    await playSymbol(soal.op2Symbol, token);
+    if (!checkToken()) return;
+    await sleep(gapInter, token);
 
     // 6. Angka 3
-    await playSymbol(String(soal.n3));
-    if (STATE.sequenceAbort) return;
+    if (!checkToken()) return;
+    await playSymbol(String(soal.n3), token);
 
   } catch (e) {
     LOG.err('playSoalSequence', e);
   } finally {
     STATE.isPlayingSequence = false;
-    setMorseIdle();
+    if (checkToken()) setMorseIdle();
   }
 }
 
@@ -620,7 +730,16 @@ async function runSoalLoop(soalIdx) {
     return;
   }
 
-  LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer}`);
+  // 🔑 TOKEN BARU: setiap kali runSoalLoop dipanggil, token baru
+  // Semua playback lama otomatis abort karena token-nya beda
+  STATE.currentPlaybackToken++;
+  const myToken = STATE.currentPlaybackToken;
+
+  LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer} (token=${myToken})`);
+
+  // Kill semua oscillator & SFX yang masih nyangkut dari soal sebelumnya
+  killAllOscillators();
+  killSfx();
 
   // Update UI
   UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
@@ -629,18 +748,16 @@ async function runSoalLoop(soalIdx) {
   const bar = UI.el('gameProgressBar');
   if (bar) bar.style.width = `${pct}%`;
 
-  // Mainkan soal berulang sampai abort atau waktu habis
-  STATE.sequenceAbort = false;
-  STATE.isPlayingSequence = false;
-
-  while (!STATE.sequenceAbort) {
-    await playSoalSequence(soal);
-    if (STATE.sequenceAbort) break;
+  // Mainkan soal berulang sampai token berubah atau waktu habis
+  while (myToken === STATE.currentPlaybackToken) {
+    await playSoalSequence(soal, myToken);
+    if (myToken !== STATE.currentPlaybackToken) break;
 
     // Jeda antar pengulangan penuh
-    await sleep(STATE.audioSettings.gap_inter_ms);
-    if (STATE.sequenceAbort) break;
+    await sleep(STATE.audioSettings.gap_inter_ms, myToken);
   }
+
+  LOG.info(`⏹ Soal #${soalIdx} loop berhenti (token=${myToken}, current=${STATE.currentPlaybackToken})`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -770,7 +887,10 @@ function switchView(viewName, revealedRank = 0) {
     }
   } else {
     stopSoalTick();
-    STATE.sequenceAbort = true;
+    // Abort paksa semua playback
+    STATE.currentPlaybackToken++;
+    killAllOscillators();
+    killSfx();
     setMorseIdle();
   }
 
@@ -813,8 +933,7 @@ function stopHafalTick() {
 function startSoalTick() {
   if (STATE.soalTick) clearInterval(STATE.soalTick);
 
-  // Mulai loop soal yang sedang aktif
-  STATE.sequenceAbort = true; // hentikan loop lama
+  // Mulai loop soal yang sedang aktif (setelah delay kecil)
   setTimeout(() => {
     if (STATE.currentSoalIndex > 0) {
       runSoalLoop(STATE.currentSoalIndex);
@@ -858,11 +977,16 @@ async function handleSoalChange() {
     LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex} (soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length})`);
     STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
 
-    // Abort loop lama
-    STATE.sequenceAbort = true;
-    await sleep(300);
+    // 🔑 Abort paksa: naikkan token → semua loop lama langsung berhenti
+    STATE.currentPlaybackToken++;
+    killAllOscillators();
+    killSfx();
+    setMorseIdle();
 
-    // Mulai loop baru
+    // Jeda kecil supaya audio benar-benar stop
+    await sleep(150);
+
+    // Mulai loop baru (token baru lagi)
     runSoalLoop(STATE.currentSoalIndex);
   }
 }
