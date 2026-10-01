@@ -817,7 +817,7 @@ async function runSoalLoop(soalIdx) {
     const gapAfterBell = (STATE.audioSettings.gap_inter_ms || 300) * 2;
     await sleep(gapAfterBell, myToken);
   }
-  }
+}
 
   LOG.info(`⏹ Soal #${soalIdx} loop berhenti (token=${myToken}, current=${STATE.currentPlaybackToken})`);
 
