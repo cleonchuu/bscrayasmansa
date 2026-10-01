@@ -1,1 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Layout Stage — Morse Match</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
 
+    html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #020617;
+      color: #fff;
+    }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+
+    /* View transitions */
+    .stage-view {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    .stage-view.hidden-view {
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      visibility: hidden;
+    }
+    .stage-view.active-view {
+      opacity: 1;
+      transform: scale(1);
+      visibility: visible;
+    }
+
+    /* Idle floating */
+    @keyframes floaty {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50%     { transform: translateY(-18px) rotate(2deg); }
+    }
+    .floaty   { animation: floaty 6s ease-in-out infinite; }
+    .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
+    .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
+
+    @keyframes gradientShift {
+      0%,100% { background-position: 0% 50%; }
+      50%     { background-position: 100% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(270deg, #4338ca, #7c3aed, #db2777, #f59e0b, #4338ca);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+    .animated-gradient-text {
+      background: linear-gradient(270deg, #818cf8, #c084fc, #f472b6, #fbbf24, #818cf8);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    /* Morse container */
+    .morse-container {
+      background: #0a0a0f;
+      transition: background 0.05s ease, box-shadow 0.05s ease;
+    }
+    .morse-container.lit {
+      background: #ef4444;
+      box-shadow: 0 0 120px rgba(239, 68, 68, 0.8), inset 0 0 80px rgba(255, 255, 255, 0.3);
+    }
+    .morse-container.lit-soft {
+      background: #7f1d1d;
+      box-shadow: 0 0 60px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Card pop */
+    @keyframes cardPop {
+      0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-card-pop { animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* Pulse */
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70%  { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .pulse-ring { animation: pulseRing 1.8s infinite; }
+
+    @keyframes pulseSoft {
+      0%,100% { opacity: 1; }
+      50%     { opacity: 0.5; }
+    }
+    .pulse-soft { animation: pulseSoft 1.6s ease-in-out infinite; }
+
+    .custom-scroll::-webkit-scrollbar { width: 8px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
+
+    /* Soal indicator */
+    @keyframes soalPop {
+      0%   { transform: scale(0.6); opacity: 0; }
+      50%  { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .soal-pop { animation: soalPop 0.5s ease-out; }
+  </style>
+</head>
+<body>
+
+  <!-- AUDIO UNLOCK OVERLAY -->
+  <div id="audioUnlockOverlay"
+       onclick="unlockAudio()"
+       class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
+    <div class="p-8 bg-indigo-600/20 rounded-full border-2 border-indigo-500/50 text-indigo-400 mb-6 animate-bounce">
+      <i class="fas fa-volume-high text-6xl"></i>
+    </div>
+    <h2 class="text-3xl font-black font-math tracking-wider text-white mb-2">KLIK UNTUK MENGAKTIFKAN STAGE</h2>
+    <p class="text-sm text-slate-400">Diperlukan interaksi awal agar browser mengizinkan audio morse</p>
+  </div>
+
+  <!-- 1. VIEW: IDLE -->
+  <section id="viewIdle" class="stage-view active-view">
+    <div class="absolute inset-0 animated-gradient opacity-20"></div>
+
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute top-[10%] left-[8%] w-24 h-24 bg-indigo-500/30 rounded-2xl floaty backdrop-blur-sm border border-indigo-400/30"></div>
+      <div class="absolute top-[70%] left-[15%] w-16 h-16 bg-purple-500/30 rounded-xl floaty-2 border border-purple-400/30"></div>
+      <div class="absolute top-[20%] right-[12%] w-32 h-32 bg-amber-500/25 rounded-3xl floaty-3 border border-amber-400/30"></div>
+      <div class="absolute top-[65%] right-[20%] w-20 h-20 bg-pink-500/25 rounded-2xl floaty border border-pink-400/30"></div>
+      <div class="absolute bottom-[15%] left-1/2 w-14 h-14 bg-emerald-500/30 rounded-xl floaty-2 border border-emerald-400/30"></div>
+    </div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
+      <div class="mb-6">
+        <div class="inline-flex items-center gap-3 px-6 py-2.5 bg-indigo-500/20 border border-indigo-400/40 rounded-full backdrop-blur-md">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-sm font-bold text-indigo-200 tracking-widest uppercase">Audio Challenge</span>
+        </div>
+      </div>
+
+      <h1 class="text-[9rem] lg:text-[13rem] font-math font-black leading-none mb-4">
+        <span class="animated-gradient-text">MORSE</span>
+      </h1>
+      <h1 class="text-[9rem] lg:text-[13rem] font-math font-black leading-none mb-12">
+        <span class="text-white">MATCH</span>
+      </h1>
+
+      <p class="text-2xl lg:text-3xl text-slate-300 font-semibold mb-12 max-w-2xl leading-relaxed">
+        Latih ketajaman <span class="text-indigo-400 font-black">pendengaran</span> & kecepatan <span class="text-amber-400 font-black">berhitung</span>!
+      </p>
+
+      <div class="flex items-center gap-8 text-center">
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-purple-400">15</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Menit Hafal</div>
+        </div>
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-emerald-400">30</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Soal</div>
+        </div>
+        <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
+          <div class="text-4xl lg:text-5xl font-math font-black text-rose-400">30</div>
+          <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Detik / Soal</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative z-10 py-8 text-center">
+      <div class="inline-flex items-center gap-3 text-slate-500 text-sm">
+        <i class="fas fa-hourglass-start"></i>
+        <span>Menunggu panitia memulai sesi...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. VIEW: HAFAL -->
+  <section id="viewHafal" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
+      <div class="inline-flex items-center gap-3 px-6 py-3 bg-purple-500/20 border-2 border-purple-400/50 rounded-full mb-8 pulse-soft">
+        <i class="fas fa-brain text-purple-300 text-2xl"></i>
+        <span class="text-lg font-black text-purple-200 tracking-widest uppercase">Sesi Menghafal</span>
+      </div>
+
+      <h2 class="text-7xl lg:text-9xl font-math font-black text-white mb-4">HAFALKAN!</h2>
+      <p class="text-2xl text-purple-200/80 mb-16 max-w-2xl">
+        Gunakan waktu ini untuk memahami pola morse di kiosk masing-masing.
+      </p>
+
+      <div class="bg-slate-950/70 border-4 border-purple-500/40 rounded-[2.5rem] p-12 pulse-soft">
+        <div class="text-xs text-purple-400 uppercase tracking-[0.3em] mb-3">Sisa Waktu Menghafal</div>
+        <div id="hafalCountdown" class="text-[8rem] lg:text-[12rem] font-math font-black text-white leading-none">
+          15:00
+        </div>
+      </div>
+
+      <p class="mt-12 text-slate-400 text-lg">
+        <i class="fas fa-info-circle text-purple-400"></i>
+        Peserta dapat mendengarkan pola morse dari kiosk mereka.
+      </p>
+    </div>
+  </section>
+
+  <!-- 3. VIEW: GAME -->
+  <section id="viewGame" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 pt-8 pb-4 px-10 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 bg-amber-500/20 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center text-amber-400 text-3xl">
+          <i class="fas fa-bolt"></i>
+        </div>
+        <div>
+          <div class="text-xs text-amber-400 uppercase tracking-widest font-bold">Mode Aktif</div>
+          <div class="text-3xl font-math font-black text-white">GAME ON</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <div class="text-right">
+          <div class="text-xs text-slate-400 uppercase tracking-widest">Soal</div>
+          <div id="gameSoalDisplay" class="text-4xl font-math font-black text-indigo-400">0 / 30</div>
+        </div>
+        <div class="w-px h-12 bg-slate-700"></div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400 uppercase tracking-widest">Sisa Waktu</div>
+          <div id="gameTimerDisplay" class="text-4xl font-math font-black text-rose-400">30</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kontainer Morse Besar -->
+    <div class="relative z-10 flex-1 px-10 pb-10 flex flex-col items-center justify-center">
+      <div class="w-full max-w-6xl flex-1 flex flex-col">
+        <!-- Kontainer morse -->
+        <div id="morseBigContainer"
+             class="morse-container flex-1 rounded-[3rem] border-4 border-slate-800 flex items-center justify-center transition-all duration-75 relative overflow-hidden">
+          <!-- Overlay cahaya -->
+          <div id="morseGlow" class="absolute inset-0 opacity-0 transition-opacity duration-75"></div>
+
+          <!-- Content -->
+          <div class="relative z-10 flex flex-col items-center justify-center text-center">
+            <div id="morseStatusIcon" class="text-8xl text-slate-700 mb-6 transition-all duration-100">
+              <i class="fas fa-volume-xmark"></i>
+            </div>
+            <div id="morseStatusText" class="text-4xl font-math font-black text-slate-700 tracking-[0.3em] uppercase transition-all duration-100">
+              MENUNGGU SINYAL
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress bar soal -->
+        <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-400 uppercase tracking-widest">Progress Pertandingan</span>
+            <span id="gameProgressPct" class="text-xs font-mono font-bold text-amber-400">0%</span>
+          </div>
+          <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden">
+            <div id="gameProgressBar" class="h-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. VIEW: LEADERBOARD -->
+  <section id="viewLeaderboard" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-amber-950/30 via-slate-950 to-yellow-950/20"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-10 text-center">
+      <div class="mb-8">
+        <span class="bg-amber-500/20 border-2 border-amber-400/50 text-amber-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em]">
+          <i class="fas fa-trophy"></i> Final Standings
+        </span>
+      </div>
+
+      <h2 class="text-6xl lg:text-7xl font-math font-black text-white mb-12">
+        PAPAN PERINGKAT <span class="text-amber-400">TOP 10</span>
+      </h2>
+
+      <div class="relative w-full max-w-2xl min-h-[520px] flex items-center justify-center">
+        <div class="absolute -left-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+
+        <div id="leaderboardCard" class="w-full">
+          <p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>
+        </div>
+
+        <div class="absolute -right-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
+          <i class="fas fa-chevron-right"></i>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. VIEW: ALL PLAYERS -->
+  <section id="viewAllPlayers" class="stage-view hidden-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-slate-950 to-emerald-950/20"></div>
+
+    <div class="relative z-10 flex-1 flex flex-col px-10 py-8">
+      <div class="text-center mb-6">
+        <span class="bg-indigo-500/20 border-2 border-indigo-400/50 text-indigo-300 font-black text-xs px-5 py-1.5 rounded-full uppercase tracking-[0.2em]">
+          <i class="fas fa-users"></i> Full Roster
+        </span>
+        <h2 class="text-5xl lg:text-6xl font-math font-black text-white mt-4">
+          REKAP SEMUA PESERTA
+        </h2>
+      </div>
+
+      <div class="flex-1 overflow-y-auto custom-scroll pr-2">
+        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-7xl mx-auto"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEBUG BADGE -->
+  <div id="dbgBadge"
+       class="fixed bottom-2 left-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
+    <span id="dbgState">boot</span> · <span id="dbgSoal">-</span> · <span id="dbgRT">--</span> · <span id="dbgAudio">-</span>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TAG = '[MORSE-LAYOUT]';
+const GAME_NAME = 'Morse Match';
+const QUESTION_ID = '00000000-0000-0000-0000-000000000002';
+
+// Audio files untuk bell & beep
+const SFX_BELL = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/bell.mp3`;
+const SFX_BEEP = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/beep.mp3`;
+
+// ═══════════════════════════════════════════════════════════
+// LOGGER
+// ═══════════════════════════════════════════════════════════
+const LOG = {
+  ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+  info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+  warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+  err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STATE = {
+  audioUnlocked: false,
+  audioCtx: null,
+
+  currentView: 'idle',
+  currentMode: 'idle',
+  sessionId: null,
+
+  hafalDurationSec: 900,
+  soalDurationSec: 30,
+  totalSoal: 30,
+  currentSoalIndex: 0,
+  currentSoalStartedAt: null,
+  startedAt: null,
+
+  soalList: [],        // 30 soal
+  library: [],         // pola morse per simbol
+  audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
+
+  // Playback state
+  isPlayingSequence: false,
+  sequenceAbort: false,
+  lastProcessedSoalIdx: 0,
+
+  // Loop & tick
+  hafalTick: null,
+  soalTick: null,
+  playLoopTimer: null,
+
+  realtimeConnected: false
+};
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+const UI = {
+  el: id => document.getElementById(id),
+  txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
+  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
+  dbg(state, soal, rt, audio) {
+    UI.txt('dbgState', state);
+    if (soal !== undefined) UI.txt('dbgSoal', soal || '-');
+    if (rt !== undefined) UI.txt('dbgRT', rt || '--');
+    if (audio !== undefined) UI.txt('dbgAudio', audio || '-');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO ENGINE (Web Audio API)
+// ═══════════════════════════════════════════════════════════
+function unlockAudio() {
+  try {
+    if (!STATE.audioCtx) {
+      STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (STATE.audioCtx.state === 'suspended') {
+      STATE.audioCtx.resume();
+    }
+    STATE.audioUnlocked = true;
+    UI.el('audioUnlockOverlay').classList.add('hidden');
+    LOG.ok('Audio unlocked');
+    UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', 'unlocked');
+  } catch (e) {
+    LOG.err('unlockAudio', e);
+  }
+}
+
+/**
+ * Memainkan satu tone (titik atau garis)
+ * @param {number} durationMs
+ * @returns {Promise<void>}
+ */
+function playTone(durationMs) {
+  return new Promise((resolve) => {
+    if (!STATE.audioCtx) { resolve(); return; }
+
+    const ctx = STATE.audioCtx;
+    const freq = STATE.audioSettings.frequency_hz;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = 0.35;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const durSec = durationMs / 1000;
+
+    // Envelope biar tidak click
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.005);
+    gain.gain.setValueAtTime(0.35, now + durSec - 0.005);
+    gain.gain.linearRampToValueAtTime(0, now + durSec);
+
+    osc.start(now);
+    osc.stop(now + durSec + 0.02);
+
+    setTimeout(resolve, durationMs);
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Mainkan suara SFX (bell / beep) pakai file audio
+ */
+function playSfx(url) {
+  return new Promise(resolve => {
+    const a = new Audio(url);
+    a.volume = 0.7;
+    a.onended = () => resolve();
+    a.onerror = () => resolve();
+    a.play().catch(() => resolve());
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISUAL MORSE (kontainer besar)
+// ═══════════════════════════════════════════════════════════
+function setMorseVisual(lit, isLong = false) {
+  const container = UI.el('morseBigContainer');
+  const icon = UI.el('morseStatusIcon');
+  const text = UI.el('morseStatusText');
+
+  if (!container) return;
+
+  if (lit) {
+    container.classList.add('lit');
+    container.classList.remove('lit-soft');
+    icon.className = 'text-8xl text-white mb-6 transition-all duration-50';
+    icon.innerHTML = '<i class="fas fa-volume-high"></i>';
+    text.className = 'text-4xl font-math font-black text-white tracking-[0.3em] uppercase transition-all duration-50';
+    text.textContent = isLong ? 'GARIS' : 'TITIK';
+  } else {
+    container.classList.remove('lit');
+    container.classList.remove('lit-soft');
+    icon.className = 'text-8xl text-slate-700 mb-6 transition-all duration-100';
+    icon.innerHTML = '<i class="fas fa-volume-xmark"></i>';
+    text.className = 'text-4xl font-math font-black text-slate-700 tracking-[0.3em] uppercase transition-all duration-100';
+    text.textContent = 'MENUNGGU SINYAL';
+  }
+}
+
+function setMorseIdle() {
+  setMorseVisual(false);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLAY SATU SIMBOL (pola morse)
+// ═══════════════════════════════════════════════════════════
+async function playSymbol(symbol) {
+  const libItem = STATE.library.find(l => l.symbol === symbol);
+  if (!libItem || !libItem.morse_pattern) {
+    LOG.warn(`Pola morse ${symbol} tidak ditemukan`);
+    return;
+  }
+
+  const pattern = libItem.morse_pattern;
+  const dotMs = STATE.audioSettings.dot_duration_ms;
+  const dashMs = STATE.audioSettings.dash_duration_ms;
+  const gapIntra = STATE.audioSettings.gap_intra_ms;
+
+  LOG.info(`🔊 Symbol ${symbol}: ${pattern}`);
+
+  for (let i = 0; i < pattern.length; i++) {
+    if (STATE.sequenceAbort) return;
+
+    const ch = pattern[i];
+    const dur = ch === '.' ? dotMs : dashMs;
+
+    // Set visual lit
+    setMorseVisual(true, ch === '-');
+
+    // Play tone
+    await playTone(dur);
+
+    // Set visual off
+    setMorseVisual(false);
+
+    // Gap intra (kecuali karakter terakhir)
+    if (i < pattern.length - 1) {
+      await sleep(gapIntra);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLAY FULL SOAL (n1 op1 n2 op2 n3)
+// ═══════════════════════════════════════════════════════════
+async function playSoalSequence(soal) {
+  STATE.sequenceAbort = false;
+  STATE.isPlayingSequence = true;
+
+  const gapInter = STATE.audioSettings.gap_inter_ms;
+
+  try {
+    // 1. Angka 1
+    await playSymbol(String(soal.n1));
+    if (STATE.sequenceAbort) return;
+    await sleep(gapInter);
+
+    // 2. Operator 1
+    await playSymbol(soal.op1Symbol);
+    if (STATE.sequenceAbort) return;
+    await sleep(gapInter);
+
+    // 3. Angka 2
+    await playSymbol(String(soal.n2));
+    if (STATE.sequenceAbort) return;
+
+    // 4. BELL sebelum operator 2
+    LOG.info('🔔 Bell antar operasi');
+    setMorseVisual(true, true);
+    await sleep(150);
+    setMorseVisual(false);
+    await playSfx(SFX_BELL);
+    if (STATE.sequenceAbort) return;
+    await sleep(gapInter);
+
+    // 5. Operator 2
+    await playSymbol(soal.op2Symbol);
+    if (STATE.sequenceAbort) return;
+    await sleep(gapInter);
+
+    // 6. Angka 3
+    await playSymbol(String(soal.n3));
+    if (STATE.sequenceAbort) return;
+
+  } catch (e) {
+    LOG.err('playSoalSequence', e);
+  } finally {
+    STATE.isPlayingSequence = false;
+    setMorseIdle();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SOAL LOOP — mainkan soal berulang selama 30 detik
+// ═══════════════════════════════════════════════════════════
+async function runSoalLoop(soalIdx) {
+  const soal = STATE.soalList[soalIdx - 1];
+  if (!soal) {
+    LOG.warn(`Soal index ${soalIdx} tidak ditemukan`);
+    return;
+  }
+
+  LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer}`);
+
+  // Update UI
+  UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
+  const pct = Math.round((soalIdx / STATE.totalSoal) * 100);
+  UI.txt('gameProgressPct', `${pct}%`);
+  const bar = UI.el('gameProgressBar');
+  if (bar) bar.style.width = `${pct}%`;
+
+  // Mainkan soal berulang sampai abort atau waktu habis
+  STATE.sequenceAbort = false;
+  STATE.isPlayingSequence = false;
+
+  while (!STATE.sequenceAbort) {
+    await playSoalSequence(soal);
+    if (STATE.sequenceAbort) break;
+
+    // Jeda antar pengulangan penuh
+    await sleep(STATE.audioSettings.gap_inter_ms);
+    if (STATE.sequenceAbort) break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC DENGAN DATABASE
+// ═══════════════════════════════════════════════════════════
+async function loadState() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_morse_match_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) { LOG.warn('loadState', error.message); return; }
+    if (!data) return;
+
+    STATE.currentMode = data.mode || 'idle';
+    STATE.sessionId = data.session_id;
+    STATE.hafalDurationSec = data.hafal_duration_sec || 900;
+    STATE.soalDurationSec = data.soal_duration_sec || 30;
+    STATE.totalSoal = data.total_soal || 30;
+    STATE.currentSoalIndex = data.current_soal_index || 0;
+    STATE.currentSoalStartedAt = data.current_soal_started_at;
+    STATE.startedAt = data.started_at;
+  } catch (e) { LOG.err('loadState exception', e); }
+}
+
+async function loadLibrary() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_morse_match_library')
+      .select('*')
+      .order('sort_order', { ascending: true });
+
+    if (error) { LOG.warn('loadLibrary', error.message); return; }
+    STATE.library = data || [];
+  } catch (e) { LOG.err('loadLibrary exception', e); }
+}
+
+async function loadAudioSettings() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_morse_match_audio')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) { LOG.warn('loadAudioSettings', error.message); return; }
+    if (data) STATE.audioSettings = data;
+  } catch (e) { LOG.err('loadAudioSettings exception', e); }
+}
+
+async function loadSoal() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_morse_match_questions')
+      .select('*')
+      .eq('id', QUESTION_ID)
+      .maybeSingle();
+
+    if (error) { LOG.warn('loadSoal', error.message); return; }
+    if (data && data.expression_text) {
+      try {
+        const parsed = JSON.parse(data.expression_text);
+        if (Array.isArray(parsed)) {
+          // Konversi op1Idx / op2Idx ke simbol
+          STATE.soalList = parsed.map(q => ({
+            ...q,
+            op1Symbol: ['+','-','×','÷'][q.op1Idx] || '+',
+            op2Symbol: ['+','-','×','÷'][q.op2Idx] || '+'
+          }));
+          LOG.ok(`Loaded ${STATE.soalList.length} soal`);
+        }
+      } catch (e) {
+        LOG.warn('Parse soal JSON gagal', e);
+      }
+    }
+  } catch (e) { LOG.err('loadSoal exception', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEW SWITCHER
+// ═══════════════════════════════════════════════════════════
+function switchView(viewName, revealedRank = 0) {
+  if (viewName === STATE.currentView && viewName !== 'leaderboard') return;
+
+  LOG.info(`Switch view → ${viewName}`);
+
+  ['viewIdle','viewHafal','viewGame','viewLeaderboard','viewAllPlayers'].forEach(id => {
+    const el = UI.el(id);
+    if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
+  });
+
+  const map = {
+    idle: 'viewIdle',
+    hafal: 'viewHafal',
+    game: 'viewGame',
+    leaderboard: 'viewLeaderboard',
+    all_players: 'viewAllPlayers'
+  };
+
+  const target = UI.el(map[viewName] || 'viewIdle');
+  if (target) {
+    target.classList.remove('hidden-view');
+    target.classList.add('active-view');
+  }
+
+  STATE.currentView = viewName;
+
+  if (viewName === 'hafal') startHafalTick();
+  else stopHafalTick();
+
+  if (viewName === 'game') {
+    // Jika baru masuk game dan soal belum diproses
+    if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
+      STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
+      startSoalTick();
+    }
+  } else {
+    stopSoalTick();
+    STATE.sequenceAbort = true;
+    setMorseIdle();
+  }
+
+  if (viewName === 'leaderboard') fetchAndRenderLeaderboard(revealedRank);
+  else if (viewName === 'all_players') fetchAndRenderAllPlayers();
+
+  UI.dbg(viewName, STATE.currentSoalIndex ? `${STATE.currentSoalIndex}/${STATE.totalSoal}` : '-',
+         STATE.realtimeConnected ? 'rt' : 'poll',
+         STATE.audioUnlocked ? 'on' : 'off');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HAFAL TICK
+// ═══════════════════════════════════════════════════════════
+function startHafalTick() {
+  if (STATE.hafalTick) clearInterval(STATE.hafalTick);
+
+  const tick = () => {
+    if (!STATE.startedAt) {
+      UI.txt('hafalCountdown', '15:00');
+      return;
+    }
+    const elapsed = Math.floor((Date.now() - new Date(STATE.startedAt).getTime()) / 1000);
+    const remaining = Math.max(0, STATE.hafalDurationSec - elapsed);
+    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const ss = String(remaining % 60).padStart(2, '0');
+    UI.txt('hafalCountdown', `${mm}:${ss}`);
+  };
+  tick();
+  STATE.hafalTick = setInterval(tick, 500);
+}
+
+function stopHafalTick() {
+  if (STATE.hafalTick) { clearInterval(STATE.hafalTick); STATE.hafalTick = null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SOAL TICK — cek timer soal, kalau ganti soal → restart loop
+// ═══════════════════════════════════════════════════════════
+function startSoalTick() {
+  if (STATE.soalTick) clearInterval(STATE.soalTick);
+
+  // Mulai loop soal yang sedang aktif
+  STATE.sequenceAbort = true; // hentikan loop lama
+  setTimeout(() => {
+    if (STATE.currentSoalIndex > 0) {
+      runSoalLoop(STATE.currentSoalIndex);
+    }
+  }, 100);
+
+  const tick = () => {
+    if (STATE.currentMode !== 'game') return;
+
+    // Hitung sisa waktu
+    if (STATE.currentSoalStartedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
+      const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
+      UI.txt('gameTimerDisplay', String(remaining));
+
+      // Beep di 0 detik
+      if (remaining === 0 && !STATE._beepedForSoal?.[STATE.currentSoalIndex]) {
+        STATE._beepedForSoal = STATE._beepedForSoal || {};
+        STATE._beepedForSoal[STATE.currentSoalIndex] = true;
+        playSfx(SFX_BEEP);
+        LOG.info(`🔔 Beep soal #${STATE.currentSoalIndex} selesai`);
+      }
+    }
+  };
+  tick();
+  STATE.soalTick = setInterval(tick, 500);
+}
+
+function stopSoalTick() {
+  if (STATE.soalTick) { clearInterval(STATE.soalTick); STATE.soalTick = null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HANDLE PERGANTIAN SOAL (dari polling state)
+// ═══════════════════════════════════════════════════════════
+async function handleSoalChange() {
+  if (STATE.currentMode !== 'game') return;
+  if (STATE.currentSoalIndex === 0) return;
+
+  if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
+    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex}`);
+    STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
+
+    // Abort loop lama
+    STATE.sequenceAbort = true;
+    await sleep(300);
+
+    // Mulai loop baru
+    runSoalLoop(STATE.currentSoalIndex);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC LAYOUT VIEW
+// ═══════════════════════════════════════════════════════════
+async function syncLayout() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_layout_morse_match')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error || !data) return;
+    const view = data.current_view || 'idle';
+    const rank = data.revealed_rank || 0;
+    switchView(view, rank);
+  } catch (e) { LOG.err('syncLayout', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCORES / LEADERBOARD / ALL PLAYERS
+// ═══════════════════════════════════════════════════════════
+async function loadScores() {
+  const { data, error } = await supabaseClient
+    .from('game_scores')
+    .select('user_unique_id, score_obtained')
+    .eq('game_name', GAME_NAME);
+
+  if (error) { LOG.warn('loadScores', error.message); return []; }
+
+  const map = {};
+  (data || []).forEach(r => {
+    if (!r.user_unique_id) return;
+    map[r.user_unique_id] = (map[r.user_unique_id] || 0) + Number(r.score_obtained || 0);
+  });
+
+  return Object.keys(map)
+    .map(uid => ({ uid, total: map[uid] }))
+    .sort((a, b) => b.total - a.total);
+}
+
+async function fetchAndRenderLeaderboard(revealedRank) {
+  const scores = await loadScores();
+  renderLeaderboardCard(scores, revealedRank);
+}
+
+function renderLeaderboardCard(scores, rank) {
+  const c = UI.el('leaderboardCard');
+  if (!c) return;
+
+  if (!rank || rank === 0) {
+    c.innerHTML = `<p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>`;
+    return;
+  }
+
+  const p = scores[rank - 1];
+  if (!p) {
+    c.innerHTML = `<p class="text-slate-400 text-2xl py-20">Belum ada peserta di peringkat #${rank}</p>`;
+    return;
+  }
+
+  const themeMap = {
+    1: { bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20', border: 'border-amber-400', badge: 'bg-amber-400 text-slate-950', label: '👑 JUARA 1' },
+    2: { bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30', border: 'border-slate-300', badge: 'bg-slate-200 text-slate-950', label: '🥈 JUARA 2' },
+    3: { bg: 'from-amber-800/30 via-orange-800/15 to-slate-900/30', border: 'border-amber-700', badge: 'bg-amber-700 text-white', label: '🥉 JUARA 3' }
+  };
+  const theme = themeMap[rank] || {
+    bg: 'from-indigo-900/30 via-slate-900/40 to-slate-950',
+    border: 'border-slate-600',
+    badge: 'bg-slate-700 text-slate-200',
+    label: `PERINGKAT #${rank}`
+  };
+
+  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+  c.innerHTML = `
+    <div class="animate-card-pop bg-gradient-to-br ${theme.bg} border-4 ${theme.border} rounded-[2.5rem] p-12 flex flex-col items-center gap-6">
+      <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">
+        ${theme.label}
+      </div>
+
+      <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
+        <img src="${avatar}" class="w-full h-full object-contain" alt="${p.uid}" />
+      </div>
+
+      <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
+
+      <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
+        ${Number(p.total).toFixed(2)} PTS
+      </div>
+    </div>
+  `;
+}
+
+async function fetchAndRenderAllPlayers() {
+  const scores = await loadScores();
+  const c = UI.el('allPlayersGrid');
+  if (!c) return;
+
+  if (scores.length === 0) {
+    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">Belum ada peserta.</p>`;
+    return;
+  }
+
+  c.innerHTML = '';
+  scores.forEach((p, i) => {
+    const rank = i + 1;
+    const rankColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+    const card = document.createElement('div');
+    card.className = `p-4 rounded-2xl border bg-slate-900/60 backdrop-blur-sm flex items-center gap-3 border-${rankColor}-500/30 animate-card-pop`;
+    card.style.animationDelay = `${i * 0.05}s`;
+    card.innerHTML = `
+      <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">
+        ${rank}
+      </div>
+      <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0" />
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-white truncate">${p.uid}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-math font-black text-amber-400 text-xl">${Number(p.total).toFixed(2)}</div>
+        <div class="text-[9px] text-slate-500 uppercase">PTS</div>
+      </div>
+    `;
+    c.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME
+// ═══════════════════════════════════════════════════════════
+function setupRealtime() {
+  const channel = supabaseClient.channel('morse_layout_rt');
+
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'system_morse_match_state' },
+    () => syncStateAndSoal());
+
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'admin_layout_morse_match' },
+    () => syncLayout());
+
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'game_scores' },
+    () => {
+      if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(0);
+      else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
+    });
+
+  channel.subscribe(status => {
+    STATE.realtimeConnected = status === 'SUBSCRIBED';
+    LOG.info(`Realtime: ${status}`);
+    UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
+  });
+
+  // Polling fallback tiap 2 detik
+  setInterval(async () => {
+    await loadState();
+    await syncLayout();
+    await handleSoalChange();
+    updateViewFromMode();
+  }, 2000);
+}
+
+async function syncStateAndSoal() {
+  await loadState();
+  await handleSoalChange();
+  updateViewFromMode();
+}
+
+function updateViewFromMode() {
+  // Kalau mode berubah, switch view otomatis (kecuali layout sedang dipaksa ke leaderboard/all_players)
+  if (STATE.currentView === 'leaderboard' || STATE.currentView === 'all_players') return;
+
+  if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle') {
+    switchView('idle');
+  } else if (STATE.currentMode === 'hafal' && STATE.currentView !== 'hafal') {
+    switchView('hafal');
+  } else if (STATE.currentMode === 'game' && STATE.currentView !== 'game') {
+    switchView('game');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(async function init() {
+  LOG.ok('══════════ MORSE MATCH LAYOUT BOOT ══════════');
+  UI.dbg('boot', '-', '-', 'off');
+
+  await loadState();
+  await loadLibrary();
+  await loadAudioSettings();
+  await loadSoal();
+  await syncLayout();
+
+  setupRealtime();
+  updateViewFromMode();
+
+  LOG.ok('══════════ READY ══════════');
+  UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
+})();
+
+// Expose
+window.unlockAudio = unlockAudio;
+window.switchView = switchView;
+</script>
+</body>
+</html>
