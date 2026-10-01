@@ -340,9 +340,12 @@ const TAG = '[MORSE-LAYOUT]';
 const GAME_NAME = 'Morse Match';
 const QUESTION_ID = '00000000-0000-0000-0000-000000000002';
 
-// Audio files untuk bell & beep
-const SFX_BELL = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/bell.mp3`;
+// Audio files untuk bell & beep (beep tetap pakai file, bell pakai Web Audio)
 const SFX_BEEP = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/beep.mp3`;
+
+// Bell pakai Web Audio supaya bisa dibatalkan saat ganti soal
+const BELL_FREQ_HZ = 1200;
+const BELL_DURATION_MS = 120;
 
 // ═══════════════════════════════════════════════════════════
 // LOGGER
@@ -492,6 +495,67 @@ function playTone(durationMs, token) {
 
     // Clear abort check setelah tone selesai normal
     setTimeout(() => clearInterval(abortCheck), durationMs + 50);
+  });
+}
+
+  /**
+ * Bell: tone khusus, abortable.
+ */
+function playBellTone(token) {
+  return new Promise((resolve) => {
+    if (!STATE.audioCtx) { resolve(); return; }
+    if (token !== STATE.currentPlaybackToken) { resolve(); return; }
+
+    const ctx = STATE.audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';      // triangle = lebih "bell"-ish
+    osc.frequency.value = BELL_FREQ_HZ;
+    gain.gain.value = 0.4;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const durSec = BELL_DURATION_MS / 1000;
+
+    // Envelope bell: attack cepat, decay panjang
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.4, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + durSec);
+
+    osc.start(now);
+    osc.stop(now + durSec + 0.02);
+
+    const oscEntry = { osc, gain, stopped: false };
+    STATE.activeOscillators.push(oscEntry);
+
+    const cleanup = () => {
+      if (oscEntry.stopped) return;
+      oscEntry.stopped = true;
+      try { osc.stop(); } catch (e) {}
+      try { osc.disconnect(); } catch (e) {}
+      try { gain.disconnect(); } catch (e) {}
+      const idx = STATE.activeOscillators.indexOf(oscEntry);
+      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
+    };
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, BELL_DURATION_MS);
+
+    const abortCheck = setInterval(() => {
+      if (token !== STATE.currentPlaybackToken) {
+        clearInterval(abortCheck);
+        clearTimeout(timeoutId);
+        cleanup();
+        resolve();
+      }
+    }, 30);
+
+    setTimeout(() => clearInterval(abortCheck), BELL_DURATION_MS + 50);
   });
 }
 
@@ -679,16 +743,12 @@ async function playSoalSequence(soal, token) {
     await playSymbol(String(soal.n2), token);
     if (!checkToken()) return;
 
-    // 4. BELL sebelum operator 2
+    // 4. BELL sebelum operator 2 (pakai Web Audio, abortable)
     if (!checkToken()) return;
     LOG.info('🔔 Bell antar operasi');
     setMorseVisual(true, true);
-    await sleep(150, token);
+    await playBellTone(token);
     setMorseVisual(false);
-
-    // Play bell SFX (tidak bisa dibatalkan karena Audio element, tapi cek token sebelum & sesudah)
-    if (!checkToken()) return;
-    await playSfx(SFX_BELL);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
@@ -736,6 +796,7 @@ async function runSoalLoop(soalIdx) {
   const myToken = STATE.currentPlaybackToken;
 
   LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer} (token=${myToken})`);
+  LOG.info(`   Urutan: ${soal.n1} → ${soal.op1Symbol} → ${soal.n2} → 🔔 → ${soal.op2Symbol} → ${soal.n3}`);
 
   // Kill semua oscillator & SFX yang masih nyangkut dari soal sebelumnya
   killAllOscillators();
@@ -887,8 +948,8 @@ function switchView(viewName, revealedRank = 0) {
     }
   } else {
     stopSoalTick();
-    // Abort paksa semua playback
-    STATE.currentPlaybackToken++;
+    // Abort paksa semua playback (naikkan token supaya loop lama berhenti)
+    STATE.currentPlaybackToken++;  // INI boleh naikkan, karena tidak akan langsung di-follow runSoalLoop
     killAllOscillators();
     killSfx();
     setMorseIdle();
@@ -977,8 +1038,7 @@ async function handleSoalChange() {
     LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex} (soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length})`);
     STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
 
-    // 🔑 Abort paksa: naikkan token → semua loop lama langsung berhenti
-    STATE.currentPlaybackToken++;
+        // Abort paksa semua audio (TANPA naikkan token — runSoalLoop yang akan naikkan)
     killAllOscillators();
     killSfx();
     setMorseIdle();
@@ -986,7 +1046,7 @@ async function handleSoalChange() {
     // Jeda kecil supaya audio benar-benar stop
     await sleep(150);
 
-    // Mulai loop baru (token baru lagi)
+    // Mulai loop baru (runSoalLoop akan naikkan token)
     runSoalLoop(STATE.currentSoalIndex);
   }
 }
