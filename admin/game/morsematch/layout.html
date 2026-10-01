@@ -373,6 +373,7 @@ const STATE = {
   startedAt: null,
 
   soalList: [],        // 30 soal
+  soalLoaded: false,   // flag load selesai
   library: [],         // pola morse per simbol
   audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
 
@@ -603,9 +604,19 @@ async function playSoalSequence(soal) {
 // SOAL LOOP — mainkan soal berulang selama 30 detik
 // ═══════════════════════════════════════════════════════════
 async function runSoalLoop(soalIdx) {
+  // Guard: pastikan soal sudah ke-load
+  if (!STATE.soalLoaded || STATE.soalList.length === 0) {
+    LOG.warn(`⏳ Soal belum ke-load, skip dulu (idx=${soalIdx}). Mencoba reload...`);
+    await loadSoal();
+    if (!STATE.soalLoaded || STATE.soalList.length === 0) {
+      LOG.err('❌ Soal tetap kosong setelah reload. Cek tabel system_morse_match_questions.');
+      return;
+    }
+  }
+
   const soal = STATE.soalList[soalIdx - 1];
   if (!soal) {
-    LOG.warn(`Soal index ${soalIdx} tidak ditemukan`);
+    LOG.warn(`Soal index ${soalIdx} tidak ditemukan (total: ${STATE.soalList.length})`);
     return;
   }
 
@@ -694,18 +705,27 @@ async function loadSoal() {
     if (data && data.expression_text) {
       try {
         const parsed = JSON.parse(data.expression_text);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           // Konversi op1Idx / op2Idx ke simbol
           STATE.soalList = parsed.map(q => ({
             ...q,
             op1Symbol: ['+','-','×','÷'][q.op1Idx] || '+',
             op2Symbol: ['+','-','×','÷'][q.op2Idx] || '+'
           }));
-          LOG.ok(`Loaded ${STATE.soalList.length} soal`);
+          STATE.soalLoaded = true;
+          LOG.ok(`✅ Loaded ${STATE.soalList.length} soal dari DB`);
+          LOG.info(`Sample soal #1:`, STATE.soalList[0]);
+        } else {
+          LOG.warn(`Soal array kosong / bukan array. Parsed:`, parsed);
+          STATE.soalLoaded = false;
         }
       } catch (e) {
-        LOG.warn('Parse soal JSON gagal', e);
+        LOG.warn('Parse soal JSON gagal. Raw data:', data.expression_text);
+        STATE.soalLoaded = false;
       }
+    } else {
+      LOG.warn('Tidak ada soal di DB');
+      STATE.soalLoaded = false;
     }
   } catch (e) { LOG.err('loadSoal exception', e); }
 }
@@ -835,7 +855,7 @@ async function handleSoalChange() {
   if (STATE.currentSoalIndex === 0) return;
 
   if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
-    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex}`);
+    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex} (soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length})`);
     STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
 
     // Abort loop lama
@@ -861,6 +881,20 @@ async function syncLayout() {
     if (error || !data) return;
     const view = data.current_view || 'idle';
     const rank = data.revealed_rank || 0;
+
+    // ⚠ PENTING: mode game/hafal punya prioritas lebih tinggi
+    // Kecuali admin eksplisit switch ke leaderboard / all_players
+    if (view === 'leaderboard' || view === 'all_players') {
+      switchView(view, rank);
+      return;
+    }
+
+    // Kalau mode game/hafal, JANGAN override view dari layout
+    if (STATE.currentMode === 'game' || STATE.currentMode === 'hafal') {
+      // Skip — biarkan updateViewFromMode yang urus
+      return;
+    }
+
     switchView(view, rank);
   } catch (e) { LOG.err('syncLayout', e); }
 }
@@ -987,6 +1021,10 @@ function setupRealtime() {
     () => syncStateAndSoal());
 
   channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'system_morse_match_questions' },
+    () => { LOG.info('⚡ Soal di-update, reload...'); loadSoal(); });
+
+  channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'admin_layout_morse_match' },
     () => syncLayout());
 
@@ -1019,15 +1057,23 @@ async function syncStateAndSoal() {
 }
 
 function updateViewFromMode() {
-  // Kalau mode berubah, switch view otomatis (kecuali layout sedang dipaksa ke leaderboard/all_players)
-  if (STATE.currentView === 'leaderboard' || STATE.currentView === 'all_players') return;
+  // Prioritas: mode game/hafal WAJIB tampilkan view yang sesuai
+  // Kecuali admin override eksplisit ke leaderboard/all_players (via switchLayout)
+  if (STATE.currentView === 'leaderboard' || STATE.currentView === 'all_players') {
+    // Cek: kalau admin set layout view selain leaderboard/all_players, override
+    // Tapi kalau admin memang set leaderboard/all_players, biarkan
+    return;
+  }
 
-  if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle') {
-    switchView('idle');
-  } else if (STATE.currentMode === 'hafal' && STATE.currentView !== 'hafal') {
-    switchView('hafal');
-  } else if (STATE.currentMode === 'game' && STATE.currentView !== 'game') {
+  if (STATE.currentMode === 'game' && STATE.currentView !== 'game') {
+    LOG.info(`updateViewFromMode: mode=game, view=${STATE.currentView} → switch ke game`);
     switchView('game');
+  } else if (STATE.currentMode === 'hafal' && STATE.currentView !== 'hafal') {
+    LOG.info(`updateViewFromMode: mode=hafal, view=${STATE.currentView} → switch ke hafal`);
+    switchView('hafal');
+  } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle') {
+    LOG.info(`updateViewFromMode: mode=idle, view=${STATE.currentView} → switch ke idle`);
+    switchView('idle');
   }
 }
 
@@ -1041,9 +1087,11 @@ function updateViewFromMode() {
   await loadState();
   await loadLibrary();
   await loadAudioSettings();
-  await loadSoal();
-  await syncLayout();
+  await loadSoal();  // load soal dulu
 
+  LOG.info(`Init selesai. soalLoaded=${STATE.soalLoaded}, total soal=${STATE.soalList.length}`);
+
+  await syncLayout();
   setupRealtime();
   updateViewFromMode();
 
