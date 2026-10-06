@@ -272,7 +272,7 @@
         <p id="gameStatusText" class="text-sm font-bold text-slate-300">Dengarkan morse dari layar utama</p>
       </div>
 
-      <!-- Lock overlay info -->
+      <!-- Lock banner -->
       <div id="lockBanner" class="hidden bg-emerald-950/60 border-2 border-emerald-500/50 rounded-2xl p-4 mb-4 text-center fade-in">
         <div class="text-emerald-400 text-3xl mb-2">
           <i class="fas fa-lock"></i>
@@ -364,17 +364,21 @@ const STATE = {
   startedAt: null,
 
   soalList: [],
+  soalLoaded: false,
   library: [],
   audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
 
   // Audio
   audioCtx: null,
   isPlayingMorse: false,
+  audioToken: 0,              // untuk abort playback saat mode ganti
+  activeOscillators: [],
 
   // Game
   currentInput: '',
-  lockedUntilSoal: 0,  // soal index sampai mana kiosk dikunci
-  answeredSoalIdx: new Set(),  // soal yang sudah dijawab benar
+  lockedUntilSoal: 0,
+  answeredSoalIdx: new Set(),
+  isSubmitting: false,        // guard anti double-submit
 
   // Tick
   timerTick: null,
@@ -383,7 +387,8 @@ const STATE = {
 
   realtimeConnected: false,
   _lastProcessedSoalIdx: 0,
-  _lastProcessedMode: null
+  _lastProcessedMode: null,
+  _beepedSoal: {}             // {soalIdx: true}
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -449,7 +454,7 @@ function initUser() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE
+// AUDIO ENGINE (untuk mode hafal)
 // ═══════════════════════════════════════════════════════════
 function initAudioCtx() {
   try {
@@ -466,9 +471,10 @@ function initAudioCtx() {
   }
 }
 
-function playTone(durationMs) {
+function playTone(durationMs, token) {
   return new Promise(resolve => {
     if (!STATE.audioCtx) { resolve(); return; }
+
     const ctx = STATE.audioCtx;
     const freq = STATE.audioSettings.frequency_hz;
 
@@ -492,8 +498,45 @@ function playTone(durationMs) {
 
     osc.start(now);
     osc.stop(now + durSec + 0.02);
-    setTimeout(resolve, durationMs);
+
+    const oscEntry = { osc, gain, stopped: false };
+    STATE.activeOscillators.push(oscEntry);
+
+    const cleanup = () => {
+      if (oscEntry.stopped) return;
+      oscEntry.stopped = true;
+      try { osc.stop(); } catch (e) {}
+      try { osc.disconnect(); } catch (e) {}
+      try { gain.disconnect(); } catch (e) {}
+      const idx = STATE.activeOscillators.indexOf(oscEntry);
+      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
+    };
+
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, durationMs);
+
+    const abortCheck = setInterval(() => {
+      if (token !== STATE.audioToken) {
+        clearInterval(abortCheck);
+        clearTimeout(timeoutId);
+        cleanup();
+        resolve();
+      }
+    }, 30);
+
+    setTimeout(() => clearInterval(abortCheck), durationMs + 50);
   });
+}
+
+function killAllOscillators() {
+  STATE.activeOscillators.forEach(entry => {
+    try { entry.osc.stop(); } catch (e) {}
+    try { entry.osc.disconnect(); } catch (e) {}
+    try { entry.gain.disconnect(); } catch (e) {}
+  });
+  STATE.activeOscillators = [];
 }
 
 function sleep(ms) {
@@ -528,6 +571,9 @@ async function playMorse(symbolKey, labelDisplay) {
   }
 
   STATE.isPlayingMorse = true;
+  STATE.audioToken++;  // token baru → abort playback lama kalau ada
+
+  const myToken = STATE.audioToken;
 
   // Update display
   UI.txt('currentSymbolDisplay', labelDisplay);
@@ -542,9 +588,13 @@ async function playMorse(symbolKey, labelDisplay) {
   LOG.info(`🔊 ${labelDisplay}: ${pattern}`);
 
   for (let i = 0; i < pattern.length; i++) {
+    if (myToken !== STATE.audioToken) {
+      LOG.info('⏹ Abort morse playback');
+      break;
+    }
     const ch = pattern[i];
     const dur = ch === '.' ? dotMs : dashMs;
-    await playTone(dur);
+    await playTone(dur, myToken);
     if (i < pattern.length - 1) await sleep(gapIntra);
   }
 
@@ -554,7 +604,7 @@ async function playMorse(symbolKey, labelDisplay) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SFX
+// SFX (beep)
 // ═══════════════════════════════════════════════════════════
 function playSfx(url) {
   try {
@@ -628,15 +678,23 @@ async function loadSoal() {
     if (data && data.expression_text) {
       try {
         const parsed = JSON.parse(data.expression_text);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           STATE.soalList = parsed.map(q => ({
             ...q,
             op1Symbol: ['+','-','×','÷'][q.op1Idx] || '+',
             op2Symbol: ['+','-','×','÷'][q.op2Idx] || '+'
           }));
-          LOG.ok(`Loaded ${STATE.soalList.length} soal`);
+          STATE.soalLoaded = true;
+          LOG.ok(`✅ Loaded ${STATE.soalList.length} soal`);
+        } else {
+          STATE.soalLoaded = false;
         }
-      } catch (e) { LOG.warn('Parse soal JSON gagal', e); }
+      } catch (e) {
+        LOG.warn('Parse soal JSON gagal', e);
+        STATE.soalLoaded = false;
+      }
+    } else {
+      STATE.soalLoaded = false;
     }
   } catch (e) { LOG.err('loadSoal exception', e); }
 }
@@ -651,9 +709,17 @@ function handleModeChange() {
 
   LOG.ok(`Mode: ${prevMode} → ${STATE.currentMode}`);
 
+  // Abort audio morse yang sedang diputar (kalau ada)
+  STATE.audioToken++;
+  killAllOscillators();
+  STATE.isPlayingMorse = false;
+  UI.el('displayCard')?.classList.remove('audio-playing');
+
   if (STATE.currentMode === 'idle') {
     UI.panel('panelIdle');
     stopAllTicks();
+    // Reset game state
+    resetGameState();
   } else if (STATE.currentMode === 'hafal') {
     UI.panel('panelHafal');
     startHafalTick();
@@ -662,17 +728,26 @@ function handleModeChange() {
     UI.panel('panelGame');
     stopHafalTick();
     startTimerTick();
-    // Reset lock state saat masuk game
-    STATE.lockedUntilSoal = 0;
-    STATE.answeredSoalIdx.clear();
-    STATE.currentInput = '';
-    updateCalcDisplay();
-    updateLockUI();
+    // Reset game state kalau baru masuk game
+    if (prevMode !== 'game') {
+      resetGameState();
+    }
+    updateGameUI();
   }
 
   UI.dbg(STATE.currentMode, STATE.currentMode,
          STATE.currentSoalIndex ? `${STATE.currentSoalIndex}/${STATE.totalSoal}` : '-',
          STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+function resetGameState() {
+  STATE.lockedUntilSoal = 0;
+  STATE.answeredSoalIdx.clear();
+  STATE.currentInput = '';
+  STATE.isSubmitting = false;
+  STATE._beepedSoal = {};
+  updateCalcDisplay();
+  updateLockUI();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -709,34 +784,25 @@ function startTimerTick() {
   const tick = () => {
     if (STATE.currentMode !== 'game') return;
 
-    UI.txt('gameSoalDisplay', `${STATE.currentSoalIndex}/${STATE.totalSoal}`);
+    updateGameUI();
 
-    if (STATE.currentSoalStartedAt) {
+    // Cek soal sudah ganti → buka lock
+    if (STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex > STATE.lockedUntilSoal) {
+      LOG.info(`🔓 Soal ganti ke #${STATE.currentSoalIndex}, unlock kiosk`);
+      STATE.lockedUntilSoal = 0;
+      STATE.currentInput = '';
+      updateCalcDisplay();
+      updateLockUI();
+    }
+
+    // Beep di detik 0 (sekali per soal)
+    if (STATE.currentSoalStartedAt && STATE.currentSoalIndex > 0) {
       const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
       const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
-      UI.txt('gameTimerDisplay', String(remaining));
-
-      const timerEl = UI.el('gameTimerDisplay');
-      if (timerEl) {
-        if (remaining <= 5) timerEl.className = 'text-2xl font-mono font-black text-rose-500 flash-warning';
-        else if (remaining <= 10) timerEl.className = 'text-2xl font-mono font-black text-rose-400';
-        else timerEl.className = 'text-2xl font-mono font-black text-emerald-400';
-      }
-
-      // Beep di detik 0 (sekali per soal)
-      if (remaining === 0 && !STATE._beepedSoal?.[STATE.currentSoalIndex]) {
-        STATE._beepedSoal = STATE._beepedSoal || {};
+      if (remaining === 0 && !STATE._beepedSoal[STATE.currentSoalIndex]) {
         STATE._beepedSoal[STATE.currentSoalIndex] = true;
         playSfx(SFX_BEEP);
       }
-    }
-
-    // Cek apakah kunci sudah boleh dibuka (soal sudah ganti)
-    if (STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex > STATE.lockedUntilSoal) {
-      STATE.lockedUntilSoal = 0;
-      updateLockUI();
-      STATE.currentInput = '';
-      updateCalcDisplay();
     }
   };
   tick();
@@ -747,11 +813,29 @@ function stopTimerTick() {
   if (STATE.timerTick) { clearInterval(STATE.timerTick); STATE.timerTick = null; }
 }
 
+function updateGameUI() {
+  UI.txt('gameSoalDisplay', `${STATE.currentSoalIndex}/${STATE.totalSoal}`);
+
+  if (STATE.currentSoalStartedAt) {
+    const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
+    const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
+    UI.txt('gameTimerDisplay', String(remaining));
+
+    const timerEl = UI.el('gameTimerDisplay');
+    if (timerEl) {
+      if (remaining <= 5) timerEl.className = 'text-2xl font-mono font-black text-rose-500 flash-warning';
+      else if (remaining <= 10) timerEl.className = 'text-2xl font-mono font-black text-rose-400';
+      else timerEl.className = 'text-2xl font-mono font-black text-emerald-400';
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 // KALKULATOR
 // ═══════════════════════════════════════════════════════════
 function appendCalc(val) {
-  if (STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex <= STATE.lockedUntilSoal) {
+  if (STATE.currentMode !== 'game') return;
+  if (isLocked()) {
     toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn');
     return;
   }
@@ -776,6 +860,10 @@ function updateCalcDisplay() {
   if (el) el.textContent = STATE.currentInput || '0';
 }
 
+function isLocked() {
+  return STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex <= STATE.lockedUntilSoal;
+}
+
 // ═══════════════════════════════════════════════════════════
 // SUBMIT JAWABAN
 // ═══════════════════════════════════════════════════════════
@@ -784,11 +872,15 @@ async function submitAnswer() {
     toast('Bukan mode game.', 'warn');
     return;
   }
+  if (STATE.isSubmitting) {
+    LOG.warn('Sedang submit, tunggu...');
+    return;
+  }
   if (!STATE.currentInput) {
     toast('Masukkan jawaban dulu.', 'warn');
     return;
   }
-  if (STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex <= STATE.lockedUntilSoal) {
+  if (isLocked()) {
     toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn');
     return;
   }
@@ -807,24 +899,25 @@ async function submitAnswer() {
     return;
   }
 
-  const isCorrect = String(STATE.currentInput).trim() === String(soal.answer).trim();
-
-  // Disable tombol sementara
+  STATE.isSubmitting = true;
   const btn = UI.el('btnSubmitAnswer');
   if (btn) btn.disabled = true;
+
+  const isCorrect = String(STATE.currentInput).trim() === String(soal.answer).trim();
 
   if (isCorrect) {
     // Hitung poin
     const elapsedSec = STATE.currentSoalStartedAt
       ? Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000)
       : 0;
-    const clampedElapsed = Math.min(elapsedSec, STATE.soalDurationSec);
+    const clampedElapsed = Math.max(0, Math.min(elapsedSec, STATE.soalDurationSec));
     const rawPoin = POIN_MAKS * (1 - clampedElapsed / STATE.soalDurationSec);
     const poin = Math.max(POIN_MINIMAL, Number(rawPoin.toFixed(2)));
 
     LOG.ok(`✅ BENAR! +${poin.toFixed(2)} (waktu ${clampedElapsed}s)`);
 
     // Insert ke game_scores
+    let insertError = null;
     try {
       const { error } = await supabaseClient
         .from('game_scores')
@@ -833,27 +926,25 @@ async function submitAnswer() {
           game_name: GAME_NAME,
           score_obtained: poin
         });
-
-      if (error) throw error;
-      LOG.ok(`💾 Skor tersimpan: ${poin.toFixed(2)}`);
+      if (error) insertError = error;
     } catch (err) {
-      LOG.err('Gagal insert game_scores', err);
-      // Tampilkan peringatan
-      toast('⚠ GAGAL SIMPAN POIN: ' + (err.message || 'Koneksi putus'), 'error', 6000);
-      showFlash('warning', '⚠', 'GAGAL SIMPAN', 'Panggil panitia!');
-      // Tetap lanjut lock supaya tidak spam
+      insertError = err;
     }
 
-    // Tandai soal sudah dijawab
+    if (insertError) {
+      LOG.err('Gagal insert game_scores', insertError);
+      toast('⚠ GAGAL SIMPAN POIN: ' + (insertError.message || 'Koneksi putus'), 'error', 6000);
+      showFlash('warning', '⚠', 'GAGAL SIMPAN', 'Panggil panitia!', 2500);
+      // Tetap lock supaya tidak spam
+    } else {
+      LOG.ok(`💾 Skor tersimpan: ${poin.toFixed(2)}`);
+      showFlash('correct', '✅', 'BENAR!', `+${poin.toFixed(2)} pts`, 1500);
+    }
+
     STATE.answeredSoalIdx.add(STATE.currentSoalIndex);
     STATE.lockedUntilSoal = STATE.currentSoalIndex;
-
-    // Update lock UI
     UI.txt('lockPointsText', `+${poin.toFixed(2)} poin`);
     updateLockUI();
-
-    // Flash hijau
-    showFlash('correct', '✅', 'BENAR!', `+${poin.toFixed(2)} pts`, 1500);
 
     STATE.currentInput = '';
     updateCalcDisplay();
@@ -865,19 +956,22 @@ async function submitAnswer() {
     updateCalcDisplay();
   }
 
-  // Re-enable tombol
-  if (btn) btn.disabled = false;
+  // Re-enable setelah delay kecil (mencegah double-tap)
+  setTimeout(() => {
+    STATE.isSubmitting = false;
+    if (btn) btn.disabled = false;
+  }, 500);
 }
 
 // ═══════════════════════════════════════════════════════════
 // LOCK UI
 // ═══════════════════════════════════════════════════════════
 function updateLockUI() {
-  const isLocked = STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex <= STATE.lockedUntilSoal;
+  const locked = isLocked();
   const banner = UI.el('lockBanner');
   const calcC = UI.el('calcContainer');
 
-  if (isLocked) {
+  if (locked) {
     banner?.classList.remove('hidden');
     if (calcC) {
       calcC.querySelectorAll('button').forEach(b => b.disabled = true);
@@ -908,6 +1002,7 @@ function showFlash(type, icon, text, subtext = '', duration = 1500) {
   textEl.textContent = text;
   subEl.textContent = subtext;
 
+  overlay.classList.remove('hidden');
   setTimeout(() => {
     overlay.classList.add('hidden');
   }, duration);
@@ -964,15 +1059,21 @@ async function syncState() {
       return;
     }
 
+    // Init audio ctx saat pertama interaksi user (kapan saja)
+    const initOnce = () => {
+      initAudioCtx();
+      document.removeEventListener('click', initOnce);
+      document.removeEventListener('touchstart', initOnce);
+    };
+    document.addEventListener('click', initOnce, { once: true });
+    document.addEventListener('touchstart', initOnce, { once: true });
+
     await loadState();
     await loadLibrary();
     await loadAudioSettings();
     await loadSoal();
 
-    // Init audio ctx saat pertama interaksi user
-    document.addEventListener('click', () => {
-      initAudioCtx();
-    }, { once: true });
+    LOG.info(`Init: mode=${STATE.currentMode}, soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length}`);
 
     handleModeChange();
     setupRealtime();
