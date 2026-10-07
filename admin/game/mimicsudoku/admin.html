@@ -40,7 +40,7 @@
     <!-- GRID DUAL PANEL CONTROL -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      <!-- PANEL KONTROL GAME STAGE (PEMILIHAN LEVEL) -->
+      <!-- PANEL KONTROL GAME STAGE -->
       <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6">
         <div>
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
@@ -53,61 +53,67 @@
             
             <div class="grid grid-cols-3 gap-2">
               <button onclick="selectLevel('level_1')" id="btnLvl1" class="level-btn bg-slate-900 border border-purple-500 text-purple-300 py-3 rounded-2xl text-xs font-bold hover:bg-purple-900/40 transition">
-                LEVEL 1<br><span class="text-[10px] opacity-75 font-normal">(1 Sel • 2 Mnt)</span>
+                LEVEL 1<br><span class="text-[10px] opacity-75 font-normal">(4 Sel • 2 Mnt)</span>
               </button>
               <button onclick="selectLevel('level_2')" id="btnLvl2" class="level-btn bg-slate-900 border border-slate-700 text-slate-400 py-3 rounded-2xl text-xs font-bold hover:bg-slate-700 transition">
-                LEVEL 2<br><span class="text-[10px] opacity-75 font-normal">(2 Sel • 4 Mnt)</span>
+                LEVEL 2<br><span class="text-[10px] opacity-75 font-normal">(7 Sel • 4 Mnt)</span>
               </button>
               <button onclick="selectLevel('level_3')" id="btnLvl3" class="level-btn bg-slate-900 border border-slate-700 text-slate-400 py-3 rounded-2xl text-xs font-bold hover:bg-slate-700 transition">
-                LEVEL 3<br><span class="text-[10px] opacity-75 font-normal">(3 Sel • 5 Mnt)</span>
+                LEVEL 3<br><span class="text-[10px] opacity-75 font-normal">(10 Sel • 5 Mnt)</span>
               </button>
             </div>
           </div>
 
           <!-- KUNCI JAWABAN LIVE -->
-        <div class="mt-5 bg-slate-950 border-2 border-amber-500/40 p-4 rounded-2xl">
-          <div class="flex justify-between items-center mb-3">
-            <span class="text-[10px] text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-              <i class="fas fa-key"></i> Kunci Jawaban Live
-            </span>
-            <span id="answerStatus" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-              MENUNGGU
-            </span>
+          <div class="mt-5 bg-slate-950 border-2 border-amber-500/40 p-4 rounded-2xl">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[10px] text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                <i class="fas fa-key"></i> Kunci Jawaban Live
+              </span>
+              <span id="answerStatus" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                MENUNGGU
+              </span>
+            </div>
+
+            <div class="text-center mb-3">
+              <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Soal:</div>
+              <div id="liveQuestion" class="text-2xl font-mono font-black text-white tracking-wider">--</div>
+            </div>
+
+            <div class="text-center bg-amber-500/10 border border-amber-500/30 rounded-xl py-3">
+              <div class="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Jawaban:</div>
+              <div id="liveAnswer" class="text-4xl font-mono font-black text-amber-400">--</div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex items-center gap-1.5">
+              <i class="fas fa-info-circle"></i>
+              <span>Jawaban auto-update saat stage generate soal baru.</span>
+            </div>
           </div>
 
-          <!-- Soal yang harus dijawab -->
-          <div class="text-center mb-3">
-            <div class="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Soal:</div>
-            <div id="liveQuestion" class="text-2xl font-mono font-black text-white tracking-wider">--</div>
-          </div>
+          <!-- Action Buttons -->
+          <div class="space-y-3 mt-5">
+            <button id="btnStartGame" onclick="executeGameStart()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-play"></i>
+              <span>JALANKAN PERMAINAN</span>
+            </button>
 
-          <!-- Jawaban -->
-          <div class="text-center bg-amber-500/10 border border-amber-500/30 rounded-xl py-3">
-            <div class="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Jawaban:</div>
-            <div id="liveAnswer" class="text-4xl font-mono font-black text-amber-400">--</div>
-          </div>
+            <button id="btnFreeze" onclick="toggleFreeze()" class="hidden w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-pause"></i>
+              <span id="btnFreezeText">JEDA WAKTU (FREEZE)</span>
+            </button>
 
-          <!-- Info untuk admin -->
-          <div class="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex items-center gap-1.5">
-            <i class="fas fa-info-circle"></i>
-            <span>Jawaban auto-update saat stage generate soal baru.</span>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="space-y-3">
-          <button id="btnStartGame" onclick="executeGameStart()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-lg rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-play"></i>
-            <span>JALANKAN PERMAINAN</span>
-          </button>
-
-          <!-- Auto-Reset Countdown Bar -->
-          <div id="countdownContainer" class="hidden bg-purple-950/60 border border-purple-500/40 p-3 rounded-xl text-center">
-            <p class="text-xs text-purple-300 font-semibold mb-1">
-              ⚡ Status Active! Auto reset dalam: <span id="countText" class="font-bold text-amber-400">10s</span>
-            </p>
-            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-              <div id="progressBar" class="bg-purple-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+            <!-- Timer Info -->
+            <div id="countdownContainer" class="hidden bg-purple-950/60 border border-purple-500/40 p-3 rounded-xl text-center">
+              <p class="text-xs text-purple-300 font-semibold mb-1">
+                ⏱️ Sisa waktu sesi: <span id="countText" class="font-bold text-amber-400">--</span>
+              </p>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                <div id="progressBar" class="bg-purple-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+              </div>
+              <p class="text-[10px] text-slate-500 mt-2">
+                <i class="fas fa-server"></i> Timer dijalankan oleh server (RPC tick)
+              </p>
             </div>
           </div>
         </div>
@@ -117,7 +123,7 @@
       <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
         <div>
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
-            <i class="fa-solid fa-database text-cyan-400"></i> Status Realtime Supabase
+            <i class="fa-solid fa-database text-cyan-400"></i> Status Realtime Server
           </h2>
 
           <div class="space-y-3 bg-slate-900 p-4 rounded-2xl border border-slate-700 text-sm">
@@ -130,24 +136,36 @@
               <span id="dbCurrentLevel" class="font-mono font-bold text-purple-400">none</span>
             </div>
             <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Seconds Remaining:</span>
+              <span id="dbSeconds" class="font-mono font-bold text-amber-400">0</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Is Running:</span>
+              <span id="dbRunning" class="font-mono font-bold text-slate-300">false</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Is Frozen:</span>
+              <span id="dbFrozen" class="font-mono font-bold text-slate-300">false</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
               <span class="text-slate-400">Last Updated:</span>
               <span id="dbUpdatedAt" class="font-mono text-xs text-slate-300">-</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">Status Koneksi:</span>
+              <span class="text-slate-400">Koneksi:</span>
               <span id="dbConnStatus" class="font-mono font-bold text-emerald-400">● Connected</span>
             </div>
           </div>
         </div>
 
         <button onclick="manualResetControl()" class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
-          <i class="fa-solid fa-rotate-left text-amber-400"></i> Reset Status ke 'none' (Manual)
+          <i class="fa-solid fa-rotate-left text-amber-400"></i> Reset ke 'RESET' (Manual)
         </button>
       </section>
 
     </div>
 
-    <!-- LAYOUT VIEW SWITCHER & LEADERBOARD REVEAL -->
+    <!-- LAYOUT VIEW SWITCHER -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung (Stage Display)
@@ -155,41 +173,40 @@
       
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-moon text-cyan-400"></i> Mode Idle (Arena Lobby)
+          <i class="fas fa-moon text-cyan-400"></i> Mode Idle
         </button>
         <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 hover:border-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-display"></i> Mode Game (Papan Sudoku)
+          <i class="fas fa-display"></i> Mode Game
         </button>
         <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-trophy text-amber-400"></i> Mode Papan Peringkat
+          <i class="fas fa-trophy text-amber-400"></i> Papan Peringkat
         </button>
         <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-users text-emerald-400"></i> Mode Semua Peserta
+          <i class="fas fa-users text-emerald-400"></i> Semua Peserta
         </button>
       </div>
 
-      <!-- KONTROL BUKA PERINGKAT (1 PER 1) -->
       <div class="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4">
-        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Pengumuman Peringkat 1 per 1 (Klik Urutan):</p>
+        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Pengumuman Peringkat 1 per 1:</p>
         <div class="flex flex-wrap gap-2" id="rankButtonsContainer"></div>
       </div>
     </section>
 
-    <!-- REKAP & MANAJEMEN POIN PESERTA -->
+    <!-- REKAP PESERTA -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i class="fas fa-list-ol text-indigo-400"></i> Daftar Seluruh Peserta & Poin
           </h2>
-          <p class="text-xs text-slate-400">Data poin real-time ditarik dari tabel <code class="text-indigo-300">game_scores</code></p>
+          <p class="text-xs text-slate-400">Data real-time dari tabel <code class="text-indigo-300">game_scores</code></p>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="resetAllLimits()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
-            <i class="fas fa-rotate text-amber-400"></i> Reset Kuota Semua Peserta
+            <i class="fas fa-rotate text-amber-400"></i> Reset Kuota Semua
           </button>
           <button onclick="fetchScores()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
-            <i class="fas fa-sync-alt"></i> Refresh Poin
+            <i class="fas fa-sync-alt"></i> Refresh
           </button>
         </div>
       </div>
@@ -215,7 +232,7 @@
 
   </main>
 
-  <!-- MODAL KONFIRMASI HAPUS POIN PESERTA -->
+  <!-- MODAL KONFIRMASI HAPUS -->
   <div id="deleteModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden">
     <div class="bg-slate-900 border border-rose-500/40 p-6 rounded-3xl max-w-md w-full mx-4 shadow-2xl space-y-4">
       <div class="flex items-center gap-3 text-rose-400">
@@ -225,15 +242,14 @@
         <h3 class="text-xl font-bold text-white">Hapus Poin Peserta?</h3>
       </div>
       <p class="text-slate-300 text-sm">
-        Apakah Anda yakin ingin menghapus seluruh poin untuk peserta <span id="targetDeleteUser" class="font-bold text-amber-400"></span>?
-        <br><span class="text-xs text-slate-400 mt-1 block">Tindakan ini akan menghapus riwayat skor peserta ini dari database Supabase secara permanen.</span>
+        Yakin hapus semua poin <span id="targetDeleteUser" class="font-bold text-amber-400"></span>?
       </p>
       <div class="flex items-center justify-end gap-3 pt-2">
         <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-semibold transition">
           Batal
         </button>
         <button id="confirmDeleteBtn" onclick="executeDeleteScore()" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/30 transition">
-          Ya, Hapus Poin
+          Ya, Hapus
         </button>
       </div>
     </div>
@@ -282,11 +298,23 @@
   // STATE
   // ═══════════════════════════════════════════════════════════
   let selectedLevel = 'level_1';
-  let countdownInterval = null;
   let userToDelete = null;
 
+  // ⭐ Server Timer State (baca dari mimic_game_state)
+  let serverState = {
+    action: 'RESET',
+    current_level: null,
+    seconds_remaining: 0,
+    duration: 0,
+    label: null,
+    is_frozen: false,
+    is_running: false
+  };
+  let tickInterval = null;
+  let localTickGuard = false;  // cegah double tick
+
   // ═══════════════════════════════════════════════════════════
-  // SUDOKU GENERATOR
+  // SUDOKU GENERATOR (untuk generate master grid & jawaban)
   // ═══════════════════════════════════════════════════════════
   class SudokuGenerator {
     static generate() {
@@ -323,7 +351,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // CELL MEMORY — unique 1-9 per cell per siklus
+  // CELL MEMORY
   // ═══════════════════════════════════════════════════════════
   class CellMemory {
     constructor() { this.reset(); }
@@ -348,8 +376,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // MIMIC ADMIN
-  // Generate master + target + jawaban + loop question
+  // MIMIC ADMIN — SERVER-SIDE TIMER VERSION
   // ═══════════════════════════════════════════════════════════
   class MimicAdmin {
     constructor() {
@@ -359,19 +386,19 @@
       this.answerValue = 0;
       this.cellMemory = new CellMemory();
       this.isRunning = false;
-
-      this.sessionTimer = null;
       this.loopTimer = null;
-      this.countdownTick = null;
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // START — dipanggil saat tombol JALANKAN PERMAINAN diklik
+    // ═══════════════════════════════════════════════════════════
     async start(level) {
       LOG.ok('GAME', `══════════ START GAME (${level}) ══════════`);
 
       const config = LEVEL_CONFIG[level];
       if (!config) { LOG.error('GAME', `Level tidak dikenal: ${level}`); return false; }
 
-      if (this.isRunning) { this.stop(); await new Promise(r => setTimeout(r, 300)); }
+      if (this.isRunning) { await this.stop(); }
 
       this.isRunning = true;
       this.currentLevel = level;
@@ -392,38 +419,64 @@
       LOG.ok('GEN', `Jawaban = ${this.answerValue}`);
 
       // ═══════════════════════════════════════════════════════
-      // STEP 2: Publish master data
+      // STEP 2: Publish master data (grid, target, jawaban)
       // ═══════════════════════════════════════════════════════
-      await this.publishMasterData(config);
+      const ok = await this.publishMasterData();
+      if (!ok) { this.isRunning = false; return false; }
 
       // ═══════════════════════════════════════════════════════
-      // STEP 3: Publish question board pertama (dengan paksa 1 baris/kolom)
+      // STEP 3: Publish question board pertama
       // ═══════════════════════════════════════════════════════
       this.cellMemory.reset();
       await this.publishQuestionBoard();
 
       // ═══════════════════════════════════════════════════════
-      // STEP 4: Start loop 5 detik
+      // STEP 4: RPC admin_start_game → set state di server
+      // ═══════════════════════════════════════════════════════
+      LOG.step('RPC', `admin_start_game('${level}')...`);
+      const { data: startRes, error: startErr } = await supabaseClient.rpc('admin_start_game', {
+        p_level: level
+      });
+
+      if (startErr || !startRes?.success) {
+        LOG.error('RPC', 'admin_start_game gagal', startErr || startRes);
+        this.isRunning = false;
+        return false;
+      }
+      LOG.ok('RPC', `Server state: seconds_remaining=${startRes.duration}`);
+
+      // ═══════════════════════════════════════════════════════
+      // STEP 5: Mulai loop ganti papan soal
       // ═══════════════════════════════════════════════════════
       this.startQuestionLoop();
 
       // ═══════════════════════════════════════════════════════
-      // STEP 5: Start timer
+      // STEP 6: Mulai tick timer ke server
       // ═══════════════════════════════════════════════════════
-      this.startSessionTimer(config.durationSec);
+      this.startServerTick();
 
-      LOG.ok('GAME', `✅ Sesi berjalan. Durasi ${config.durationSec}s`);
+      // ═══════════════════════════════════════════════════════
+      // STEP 7: Update UI
+      // ═══════════════════════════════════════════════════════
+      this.updateStartUI(level, config);
+
+      LOG.ok('GAME', `✅ Sesi berjalan. Durasi ${config.durationSec}s (server-side)`);
       return true;
     }
 
-    stop() {
-      LOG.warn('GAME', 'Stop game');
+    // ═══════════════════════════════════════════════════════════
+    // STOP — hentikan semua timer lokal
+    // ═══════════════════════════════════════════════════════════
+    async stop() {
+      LOG.warn('GAME', 'Stop game (local)');
       this.isRunning = false;
-      if (this.sessionTimer) { clearTimeout(this.sessionTimer); this.sessionTimer = null; }
       if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null; }
-      if (this.countdownTick) { clearInterval(this.countdownTick); this.countdownTick = null; }
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // PICK RANDOM CELLS
+    // ═══════════════════════════════════════════════════════════
     pickRandomCells(count) {
       const all = [];
       for (let r = 0; r < 9; r++)
@@ -436,7 +489,10 @@
       return all.slice(0, count);
     }
 
-    async publishMasterData(config) {
+    // ═══════════════════════════════════════════════════════════
+    // PUBLISH MASTER DATA (id=1, 2, 3)
+    // ═══════════════════════════════════════════════════════════
+    async publishMasterData() {
       try {
         LOG.step('SUPA', 'Publish master grid (id=1)...');
         await supabaseClient.from('system_mimic_sudoku').upsert({
@@ -460,20 +516,7 @@
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
-        LOG.step('SUPA', 'Publish status (id=5)...');
-        await supabaseClient.from('system_mimic_sudoku').upsert({
-          id: 5,
-          grid_data: {
-            action: 'START_GAME',
-            current_level: this.currentLevel,
-            session_start_time: Date.now(),
-            duration: config.durationSec,
-            label: config.label
-          },
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-
-        LOG.ok('SUPA', '✅ Master data tersimpan (id=1, 2, 3, 5).');
+        LOG.ok('SUPA', '✅ Master data tersimpan (id=1, 2, 3).');
         return true;
       } catch (e) {
         LOG.error('SUPA', 'Exception', e);
@@ -481,47 +524,42 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════
-// Generate question grid dengan PAKSA 2 baris ATAU 2 kolom sempurna
-// ═══════════════════════════════════════════════════════
-generateQuestionGrid() {
-  // 1. Generate board biasa (unique 1-9 per cell)
-  const nextGrid = this.cellMemory.generateBoard();
+    // ═══════════════════════════════════════════════════════════
+    // GENERATE QUESTION GRID (force 2 rows/cols perfect)
+    // ═══════════════════════════════════════════════════════════
+    generateQuestionGrid() {
+      const nextGrid = this.cellMemory.generateBoard();
+      const isRowTarget = Math.random() < 0.5;
 
-  // 2. Pilih mode: 2 baris atau 2 kolom
-  const isRowTarget = Math.random() < 0.5;
-
-  if (isRowTarget) {
-    // Pilih 2 indeks baris unik (0-8)
-    const indices = this.pickUniqueIndices(2, 9);
-    indices.forEach(rowIdx => {
-      for (let c = 0; c < 9; c++) {
-        nextGrid[rowIdx][c] = this.masterGrid[rowIdx][c];
+      if (isRowTarget) {
+        const indices = this.pickUniqueIndices(2, 9);
+        indices.forEach(rowIdx => {
+          for (let c = 0; c < 9; c++) {
+            nextGrid[rowIdx][c] = this.masterGrid[rowIdx][c];
+          }
+        });
+        LOG.info('GEN', `Force 2 ROWS: ${indices.map(i => i + 1).join(', ')}`);
+      } else {
+        const indices = this.pickUniqueIndices(2, 9);
+        indices.forEach(colIdx => {
+          for (let r = 0; r < 9; r++) {
+            nextGrid[r][colIdx] = this.masterGrid[r][colIdx];
+          }
+        });
+        LOG.info('GEN', `Force 2 COLS: ${indices.map(i => COL_LETTERS[i]).join(', ')}`);
       }
-    });
-    LOG.info('GEN', `Force 2 ROWS to perfect: ${indices.map(i => i + 1).join(', ')}`);
-  } else {
-    const indices = this.pickUniqueIndices(2, 9);
-    indices.forEach(colIdx => {
-      for (let r = 0; r < 9; r++) {
-        nextGrid[r][colIdx] = this.masterGrid[r][colIdx];
+
+      return nextGrid;
+    }
+
+    pickUniqueIndices(n, max) {
+      const pool = Array.from({ length: max }, (_, i) => i);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-    });
-    LOG.info('GEN', `Force 2 COLS to perfect: ${indices.map(i => COL_LETTERS[i]).join(', ')}`);
-  }
-
-  return nextGrid;
-}
-
-// Helper: pilih N indeks unik dari 0..max-1
-pickUniqueIndices(n, max) {
-  const pool = Array.from({ length: max }, (_, i) => i);
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, n);
-}
+      return pool.slice(0, n);
+    }
 
     async publishQuestionBoard() {
       const questionGrid = this.generateQuestionGrid();
@@ -543,68 +581,86 @@ pickUniqueIndices(n, max) {
       if (this.loopTimer) clearInterval(this.loopTimer);
       this.loopTimer = setInterval(async () => {
         if (!this.isRunning) return;
-        LOG.step('LOOP', 'Ganti papan (force row/col perfect)...');
+        if (serverState.is_frozen) {
+          LOG.info('LOOP', 'Skip (frozen)');
+          return;
+        }
+        LOG.step('LOOP', 'Ganti papan soal...');
         await this.publishQuestionBoard();
       }, LOOP_INTERVAL_MS);
     }
 
-    startSessionTimer(durationSec) {
-      if (this.sessionTimer) clearTimeout(this.sessionTimer);
-      if (this.countdownTick) clearInterval(this.countdownTick);
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ SERVER TICK — decrement timer via RPC setiap 1 detik
+    // ═══════════════════════════════════════════════════════════
+    startServerTick() {
+      if (tickInterval) clearInterval(tickInterval);
 
-      const container = document.getElementById('countdownContainer');
-      const countText = document.getElementById('countText');
-      const progressBar = document.getElementById('progressBar');
+      tickInterval = setInterval(async () => {
+        if (!this.isRunning) return;
+        if (serverState.is_frozen) return;       // freeze → skip
+        if (!serverState.is_running) return;     // sudah stop
+        if (localTickGuard) return;              // cegah double request
+        localTickGuard = true;
 
-      if (container) container.classList.remove('hidden');
-      let remaining = durationSec;
-      if (countText) countText.textContent = `${remaining}s`;
-      if (progressBar) progressBar.style.width = '100%';
+        try {
+          const { data, error } = await supabaseClient.rpc('admin_tick_timer');
 
-      this.countdownTick = setInterval(() => {
-        remaining--;
-        if (countText) countText.textContent = `${remaining}s`;
-        if (progressBar) progressBar.style.width = `${(remaining / durationSec) * 100}%`;
-        if (remaining <= 0) { clearInterval(this.countdownTick); this.countdownTick = null; }
-      }, 1000);
+          if (error) {
+            LOG.error('TICK', 'RPC error', error);
+          } else if (data?.success) {
+            LOG.info('TICK', `seconds_remaining = ${data.seconds_remaining}`);
 
-      this.sessionTimer = setTimeout(() => {
-        LOG.ok('GAME', '⏰ Waktu sesi habis');
-        this.onSessionEnd();
-      }, durationSec * 1000);
+            // Kalau habis → stop semua
+            if (data.seconds_remaining <= 0) {
+              LOG.ok('TICK', '⏰ Waktu habis');
+              this.onSessionEnd();
+            }
+          }
+        } catch (e) {
+          LOG.error('TICK', 'Exception', e);
+        } finally {
+          localTickGuard = false;
+        }
+      }, 1000); // ⭐ 1 detik
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // SESSION END — cleanup lokal (state di server sudah TIME_UP)
+    // ═══════════════════════════════════════════════════════════
     async onSessionEnd() {
-      LOG.ok('GAME', 'Session end → publish RESET');
+      LOG.ok('GAME', 'Session end → cleanup');
       this.isRunning = false;
 
       if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null; }
-      if (this.countdownTick) { clearInterval(this.countdownTick); this.countdownTick = null; }
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 
-      await supabaseClient.from('system_mimic_sudoku').upsert({
-        id: 5,
-        grid_data: {
-          action: 'RESET',
-          current_level: null,
-          session_start_time: null,
-          duration: null,
-          label: null
-        },
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
-
+      // Kosongkan papan soal
       await supabaseClient.from('system_mimic_sudoku').upsert({
         id: 4,
         grid_data: Array(81).fill(0),
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
 
-      const container = document.getElementById('countdownContainer');
-      if (container) container.classList.add('hidden');
-      const btnStart = document.getElementById('btnStartGame');
-      if (btnStart) btnStart.disabled = false;
+      // Sembunyikan UI
+      document.getElementById('countdownContainer')?.classList.add('hidden');
+      document.getElementById('btnStartGame').disabled = false;
+      document.getElementById('btnFreeze')?.classList.add('hidden');
 
-      LOG.ok('GAME', '✅ Reset selesai.');
+      LOG.ok('GAME', '✅ Cleanup selesai.');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // UPDATE START UI
+    // ═══════════════════════════════════════════════════════════
+    updateStartUI(level, config) {
+      document.getElementById('btnStartGame').disabled = true;
+      document.getElementById('btnFreeze')?.classList.remove('hidden');
+      document.getElementById('countdownContainer')?.classList.remove('hidden');
+
+      safeSetText('countText', `${config.durationSec}s`);
+      const bar = document.getElementById('progressBar');
+      if (bar) bar.style.width = '100%';
     }
   }
 
@@ -648,24 +704,24 @@ pickUniqueIndices(n, max) {
   }
 
   function updateActiveViewUI(viewName, rank = 0) {
-  const btnIdle = document.getElementById('btnViewIdle');
-  const btnGame = document.getElementById('btnViewGame');
-  const btnLb = document.getElementById('btnViewLeaderboard');
-  const btnAll = document.getElementById('btnViewAll');
-  if (!btnGame) return;
+    const btnIdle = document.getElementById('btnViewIdle');
+    const btnGame = document.getElementById('btnViewGame');
+    const btnLb = document.getElementById('btnViewLeaderboard');
+    const btnAll = document.getElementById('btnViewAll');
+    if (!btnGame) return;
 
-  [btnIdle, btnGame, btnLb, btnAll].forEach(b => b && b.classList.remove('border-purple-500', 'bg-purple-900/40'));
+    [btnIdle, btnGame, btnLb, btnAll].forEach(b => b && b.classList.remove('border-purple-500', 'bg-purple-900/40'));
 
-  if (viewName === 'idle') {
-    btnIdle.classList.add('border-purple-500', 'bg-purple-900/40');
-  } else if (viewName === 'leaderboard') {
-    btnLb.classList.add('border-purple-500', 'bg-purple-900/40');
-  } else if (viewName === 'all_players') {
-    btnAll.classList.add('border-purple-500', 'bg-purple-900/40');
-  } else {
-    btnGame.classList.add('border-purple-500', 'bg-purple-900/40');
+    if (viewName === 'idle') {
+      btnIdle.classList.add('border-purple-500', 'bg-purple-900/40');
+    } else if (viewName === 'leaderboard') {
+      btnLb.classList.add('border-purple-500', 'bg-purple-900/40');
+    } else if (viewName === 'all_players') {
+      btnAll.classList.add('border-purple-500', 'bg-purple-900/40');
+    } else {
+      btnGame.classList.add('border-purple-500', 'bg-purple-900/40');
+    }
   }
-}
 
   // ═══════════════════════════════════════════════════════════
   // PILIH LEVEL
@@ -702,43 +758,101 @@ pickUniqueIndices(n, max) {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // FREEZE / UNFREEZE
+  // ═══════════════════════════════════════════════════════════
+  async function toggleFreeze() {
+    if (!supabaseClient) return;
+
+    LOG.step('FREEZE', 'Toggle freeze...');
+    const { data, error } = await supabaseClient.rpc('admin_toggle_freeze');
+
+    if (error || !data?.success) {
+      LOG.error('FREEZE', 'Gagal toggle', error || data);
+      return;
+    }
+
+    LOG.ok('FREEZE', `is_frozen = ${data.is_frozen}`);
+
+    // Update UI tombol
+    const btnFreeze = document.getElementById('btnFreeze');
+    const btnFreezeText = document.getElementById('btnFreezeText');
+    if (data.is_frozen) {
+      btnFreeze.className = "hidden w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
+      btnFreezeText.textContent = 'LANJUTKAN WAKTU';
+    } else {
+      btnFreeze.className = "hidden w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
+      btnFreezeText.textContent = 'JEDA WAKTU (FREEZE)';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // MANUAL RESET
   // ═══════════════════════════════════════════════════════════
   async function manualResetControl() {
     if (!supabaseClient) return;
     LOG.warn('RESET', 'Manual reset');
 
-    if (window._mimicAdmin.isRunning) {
-      await window._mimicAdmin.onSessionEnd();
-    } else {
-      await supabaseClient.from('system_mimic_sudoku').upsert({
-        id: 5,
-        grid_data: { action: 'RESET', current_level: null, session_start_time: null, duration: null, label: null },
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+    // Stop timer lokal
+    await window._mimicAdmin.stop();
 
-      await supabaseClient.from('system_mimic_sudoku').upsert({
-        id: 4,
-        grid_data: Array(81).fill(0),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+    // RPC reset di server
+    const { data, error } = await supabaseClient.rpc('admin_reset_game');
+    if (error || !data?.success) {
+      LOG.error('RESET', 'Gagal reset', error || data);
+      return;
     }
 
-    const btnStart = document.getElementById('btnStartGame');
-    if (btnStart) btnStart.disabled = false;
+    // UI
+    document.getElementById('btnStartGame').disabled = false;
+    document.getElementById('btnFreeze')?.classList.add('hidden');
+    document.getElementById('countdownContainer')?.classList.add('hidden');
+
     LOG.ok('RESET', 'Reset selesai.');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // UPDATE DB UI (id=5)
+  // UPDATE DB UI (dari mimic_game_state)
   // ═══════════════════════════════════════════════════════════
-  function updateDatabaseUI(statusRow) {
-    if (!statusRow || !statusRow.grid_data) return;
-    const data = statusRow.grid_data;
-    safeSetText('dbAction', data.action || '-');
-    safeSetText('dbCurrentLevel', data.current_level || 'none');
-    if (statusRow.updated_at) {
-      safeSetText('dbUpdatedAt', new Date(statusRow.updated_at).toLocaleTimeString('id-ID'));
+  function updateDatabaseUI(stateRow) {
+    if (!stateRow) return;
+
+    serverState = {
+      action: stateRow.action || 'RESET',
+      current_level: stateRow.current_level || null,
+      seconds_remaining: stateRow.seconds_remaining || 0,
+      duration: stateRow.duration || 0,
+      label: stateRow.label || null,
+      is_frozen: !!stateRow.is_frozen,
+      is_running: !!stateRow.is_running
+    };
+
+    safeSetText('dbAction', serverState.action);
+    safeSetText('dbCurrentLevel', serverState.current_level || 'none');
+    safeSetText('dbSeconds', serverState.seconds_remaining);
+    safeSetText('dbRunning', String(serverState.is_running));
+    safeSetText('dbFrozen', String(serverState.is_frozen));
+
+    if (stateRow.updated_at) {
+      safeSetText('dbUpdatedAt', new Date(stateRow.updated_at).toLocaleTimeString('id-ID'));
+    }
+
+    // ⭐ Update countdown UI dari state server
+    if (serverState.is_running && serverState.duration > 0) {
+      const m = Math.floor(serverState.seconds_remaining / 60);
+      const s = serverState.seconds_remaining % 60;
+      safeSetText('countText', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+
+      const pct = (serverState.seconds_remaining / serverState.duration) * 100;
+      const bar = document.getElementById('progressBar');
+      if (bar) bar.style.width = pct + '%';
+
+      document.getElementById('countdownContainer')?.classList.remove('hidden');
+      document.getElementById('btnFreeze')?.classList.remove('hidden');
+      document.getElementById('btnStartGame').disabled = true;
+    } else {
+      document.getElementById('countdownContainer')?.classList.add('hidden');
+      document.getElementById('btnFreeze')?.classList.add('hidden');
+      document.getElementById('btnStartGame').disabled = false;
     }
   }
 
@@ -787,8 +901,6 @@ pickUniqueIndices(n, max) {
         statusEl.textContent = '✓ LIVE';
         statusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
       }
-
-      LOG.ok('ANSWER', `Soal: ${questionText} = ${rowAnswer.grid_data}`);
     } catch (e) {
       LOG.error('ANSWER', 'Exception', e);
     }
@@ -834,7 +946,7 @@ pickUniqueIndices(n, max) {
       tr.innerHTML = `
         <td class="p-3 font-mono font-bold text-amber-400">#${rank}</td>
         <td class="p-3 font-semibold text-white">${item.uid}</td>
-        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${item.total} PTS</td>
+        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${item.total.toFixed(2)} PTS</td>
         <td class="p-3 text-right">
           <div class="flex items-center justify-end gap-2">
             <button onclick="resetUserLimit('${item.uid}')" class="bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
@@ -898,22 +1010,39 @@ pickUniqueIndices(n, max) {
     else fetchScores();
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // REALTIME
+  // ═══════════════════════════════════════════════════════════
   function setupAllRealtimeChannels() {
     if (!supabaseClient) return;
     LOG.ok('REALTIME', 'Setup channels...');
 
     supabaseClient
       .channel('admin_mimic_all')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_mimic_sudoku' }, (payload) => {
-        if (!payload.new) return;
-        const id = payload.new.id;
-        if (id === 2 || id === 3) fetchLiveAnswer();
-        if (id === 5) updateDatabaseUI(payload.new);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_scores' }, () => fetchScores())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' }, (payload) => {
-        if (payload.new) updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
-      })
+      // ⭐ mimic_game_state → sumber utama timer
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'mimic_game_state' },
+        (payload) => {
+          if (payload.new) updateDatabaseUI(payload.new);
+        })
+      // id=2,3 → kunci jawaban
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'system_mimic_sudoku' },
+        (payload) => {
+          if (!payload.new) return;
+          const id = payload.new.id;
+          if (id === 2 || id === 3) fetchLiveAnswer();
+        })
+      // game_scores → refresh tabel
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'game_scores' },
+        () => fetchScores())
+      // layout → view switcher
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' },
+        (payload) => {
+          if (payload.new) updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
+        })
       .subscribe((status) => {
         LOG.info('REALTIME', `Channel: ${status}`);
         const conn = document.getElementById('dbConnStatus');
@@ -928,21 +1057,26 @@ pickUniqueIndices(n, max) {
         }
       });
 
+    // Fallback: polling jawaban tiap 3 detik
     setInterval(fetchLiveAnswer, 3000);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
     selectLevel('level_1');
     renderRankButtons();
 
-    const { data: statusRow } = await supabaseClient
-      .from('system_mimic_sudoku')
+    // ⭐ Baca state awal dari mimic_game_state
+    const { data: stateRow } = await supabaseClient
+      .from('mimic_game_state')
       .select('*')
-      .eq('id', 5)
+      .eq('id', 1)
       .maybeSingle();
-    if (statusRow) updateDatabaseUI(statusRow);
+    if (stateRow) updateDatabaseUI(stateRow);
 
     await fetchLiveAnswer();
     await fetchScores();
@@ -950,7 +1084,6 @@ pickUniqueIndices(n, max) {
 
     LOG.ok('INIT', '══════════ ADMIN READY ══════════');
   });
-</script>
 </script>
 </body>
 </html>
