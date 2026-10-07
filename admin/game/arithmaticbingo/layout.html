@@ -594,9 +594,9 @@
             <i class="fas fa-users text-indigo-400"></i> REKAP POIN
           </h2>
         </div>
-        <div id="scrollContainer" class="max-w-4xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
-          <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-        </div>
+<div id="scrollContainer" class="max-w-5xl mx-auto max-h-[500px] overflow-y-auto custom-scroll pr-2">
+  <div id="allPlayersGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+</div>
       </div>
     </div>
   </div>
@@ -1422,22 +1422,37 @@ function startStageTimer(seconds) {
 // ═══════════════════════════════════════════════════════════════════════
 // FETCH & RENDER SCORES
 // ═══════════════════════════════════════════════════════════════════════
-// ⭐ Ganti fungsi fetchAndRenderStageScores dengan versi baru ini
 async function fetchAndRenderStageScores(isAllPlayersView) {
-  const { data, error } = await supabaseClient
+  // Query point + join dengan users untuk avatar
+  const { data: pointData, error: pointErr } = await supabaseClient
     .from('point_arithmatic_bingo')
     .select('unique_id, name, point')
     .order('point', { ascending: false })
-    .limit(100);
+    .limit(200);
 
-  if (error || !data) {
-    LOG.err('Fetch stage scores error', error);
+  if (pointErr || !pointData) {
+    LOG.err('Fetch stage scores error', pointErr);
     return;
   }
 
-  cachedScores = data.map(row => ({
+  // Ambil semua avatar_url dari tabel users
+  const uniqueIds = pointData.map(r => r.unique_id);
+  const { data: userData, error: userErr } = await supabaseClient
+    .from('users')
+    .select('unique_id, avatar_url')
+    .in('unique_id', uniqueIds);
+
+  if (userErr) LOG.warn('Fetch avatars error', userErr);
+
+  const avatarMap = {};
+  (userData || []).forEach(u => {
+    avatarMap[u.unique_id] = u.avatar_url;
+  });
+
+  cachedScores = pointData.map(row => ({
     uid: row.name || String(row.unique_id),
-    total: row.point ?? 0
+    total: row.point ?? 0,
+    avatarUrl: avatarMap[row.unique_id] || null
   }));
 
   if (isAllPlayersView) {
@@ -1489,28 +1504,37 @@ function renderStageLeaderboard() {
     glowEffect = "shadow-xl shadow-amber-700/20";
   }
 
-  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}`;
+const avatarUrl = targetPlayer.avatarUrl 
+  || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}`;
 
   container.innerHTML = `
-    <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 md:p-10 ${glowEffect} flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
-      <div class="px-5 py-2 rounded-full border text-xs md:text-sm font-orbitron font-black tracking-widest uppercase ${badgeBg}">
-        ${badgeLabel}
-      </div>
-      <div class="relative">
-        <div class="w-36 h-36 md:w-44 md:h-44 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden shadow-inner flex items-center justify-center p-2">
-          <img src="${avatarUrl}" alt="${targetPlayer.uid}" class="w-full h-full object-contain" />
-        </div>
-      </div>
-      <div class="space-y-2">
-        <h3 class="text-2xl md:text-4xl font-orbitron font-black truncate max-w-xs md:max-w-md mx-auto tracking-wide">
-          ${targetPlayer.uid}
-        </h3>
-        <div class="inline-block text-xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
-          +${targetPlayer.total} PTS
-        </div>
+  <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 md:p-10 ${glowEffect} flex flex-col items-center justify-center space-y-5 relative overflow-hidden">
+    <div class="px-5 py-2 rounded-full border text-xs md:text-sm font-orbitron font-black tracking-widest uppercase ${badgeBg}">
+      ${badgeLabel}
+    </div>
+
+    <!-- Avatar 3:4 -->
+    <div class="relative">
+      <div class="w-40 md:w-56 bg-slate-950/80 border-2 border-white/20 rounded-2xl overflow-hidden shadow-2xl"
+           style="aspect-ratio: 3 / 4;">
+        <img src="${avatarUrl}" 
+             alt="${targetPlayer.uid}" 
+             class="w-full h-full object-cover"
+             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(targetPlayer.uid)}'" />
       </div>
     </div>
-  `;
+
+    <!-- Nama + Poin -->
+    <div class="space-y-2 text-center">
+      <h3 class="text-2xl md:text-4xl font-orbitron font-black truncate max-w-xs md:max-w-md mx-auto tracking-wide">
+        ${targetPlayer.uid}
+      </h3>
+      <div class="inline-block text-xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
+        +${targetPlayer.total} PTS
+      </div>
+    </div>
+  </div>
+`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1527,17 +1551,41 @@ function renderAllPlayersList() {
 
   cachedScores.forEach((item, idx) => {
     const rankNumber = idx + 1;
-    const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}`;
+    const avatarUrl = item.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}`;
+
+    // Warna rank
+    let rankColor = 'text-[#818cf8] border-[#818cf8]/40';
+    if (rankNumber === 1) rankColor = 'text-amber-400 border-amber-400/40 bg-amber-500/10';
+    else if (rankNumber === 2) rankColor = 'text-slate-200 border-slate-300/40 bg-slate-300/10';
+    else if (rankNumber === 3) rankColor = 'text-amber-600 border-amber-600/40 bg-amber-700/10';
 
     const card = document.createElement('div');
-    card.className = "p-3 rounded-xl border border-[#818cf8]/30 bg-slate-800/50 flex items-center justify-between";
+    card.className = "flex items-center gap-3 p-2.5 rounded-xl border border-[#818cf8]/30 bg-slate-800/50 hover:bg-slate-800/80 transition";
     card.innerHTML = `
-      <div class="flex items-center gap-3 overflow-hidden">
-        <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900/80 rounded-lg text-[#818cf8] border border-[#818cf8]/40">#${rankNumber}</span>
-        <img src="${avatarUrl}" class="w-8 h-8 rounded-lg bg-slate-900 border border-slate-700" />
-        <span class="text-sm font-mono font-semibold text-slate-200 truncate">${item.uid}</span>
+      <!-- Avatar 3:4 kecil -->
+      <div class="flex-shrink-0 w-12 bg-slate-900 rounded-lg overflow-hidden border border-slate-700"
+           style="aspect-ratio: 3 / 4;">
+        <img src="${avatarUrl}" 
+             alt="${item.uid}" 
+             class="w-full h-full object-cover"
+             loading="lazy"
+             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.uid)}'" />
       </div>
-      <span class="text-sm font-mono font-bold text-[#00ff66] bg-[#00ff66]/10 px-3 py-1 rounded-lg border border-[#00ff66]/30">+${item.total} PTS</span>
+
+      <!-- Info -->
+      <div class="flex-1 min-w-0 flex flex-col justify-center">
+        <div class="flex items-center gap-2 mb-0.5">
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${rankColor}">
+            #${rankNumber}
+          </span>
+        </div>
+        <span class="text-xs md:text-sm font-mono font-semibold text-slate-200 truncate">
+          ${item.uid}
+        </span>
+        <span class="text-xs font-mono font-bold text-[#00ff66]">
+          +${item.total} PTS
+        </span>
+      </div>
     `;
     container.appendChild(card);
   });
