@@ -1422,22 +1422,23 @@ function startStageTimer(seconds) {
 // ═══════════════════════════════════════════════════════════════════════
 // FETCH & RENDER SCORES
 // ═══════════════════════════════════════════════════════════════════════
+// ⭐ Ganti fungsi fetchAndRenderStageScores dengan versi baru ini
 async function fetchAndRenderStageScores(isAllPlayersView) {
   const { data, error } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained')
-    .eq('game_name', 'Bingo Math');
+    .from('point_arithmatic_bingo')
+    .select('unique_id, name, point')
+    .order('point', { ascending: false })
+    .limit(100);
 
-  if (error || !data) return;
+  if (error || !data) {
+    LOG.err('Fetch stage scores error', error);
+    return;
+  }
 
-  let scoreMap = {};
-  data.forEach(row => {
-    scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + row.score_obtained;
-  });
-
-  cachedScores = Object.keys(scoreMap)
-    .map(uid => ({ uid, total: scoreMap[uid] }))
-    .sort((a, b) => b.total - a.total);
+  cachedScores = data.map(row => ({
+    uid: row.name || String(row.unique_id),
+    total: row.point ?? 0
+  }));
 
   if (isAllPlayersView) {
     renderAllPlayersList();
