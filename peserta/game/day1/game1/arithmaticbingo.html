@@ -300,7 +300,12 @@ const POLL_INTERVAL_MS = 800;
 const TIMER_TICK_MS = 200;
 const FLUSH_DEBOUNCE_MS = 1500;
 const CLOCK_RESYNC_MS = 60000;
+const SAVE_DEBOUNCE_MS = 300;   // ⭐ debounce save ke localStorage
 const TAG = '[KIOSK]';
+
+// ⭐ Kunci storage (namespace biar tidak bentrok dengan app lain)
+const STORAGE_KEY = 'bingoState_v1';
+const SESSION_KEY = 'bingoSession_v1';
 
 const LOG = {
   ok:   (m, d) => console.log(`%c${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
@@ -324,12 +329,15 @@ const STATE = {
   scoreAccumulated: 0,
   pendingPoints: 0,
   flushTimer: null,
+  saveTimer: null,
   isProcessing: false,
   lastSig: '',
   lastQuestionNum: 0,
   realtimeConnected: false,
   clockOffset: 0,
-  clockSynced: false
+  clockSynced: false,
+  restoredFromStorage: false,   // ⭐ flag: papan dipulihkan dari storage
+  currentSessionId: null         // ⭐ session identifier
 };
 
 const UI = {
@@ -342,6 +350,98 @@ const UI = {
     UI.setText('dbgClock', `±${Math.round(STATE.clockOffset)}ms`);
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE — localStorage (Opsi 1)
+// ═══════════════════════════════════════════════════════════
+function saveStateToStorage() {
+  if (!STATE.user) return;
+  try {
+    const payload = {
+      unique_id: STATE.user.unique_id,
+      sessionId: STATE.currentSessionId,
+      boards: STATE.boards,
+      boardStates: STATE.boardStates,
+      lineBonusClaimed: STATE.lineBonusClaimed,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    LOG.warn('saveStateToStorage error', e);
+  }
+}
+
+// ⭐ Debounce save biar tidak spam saat klik berturut-turut
+function scheduleSave() {
+  if (STATE.saveTimer) clearTimeout(STATE.saveTimer);
+  STATE.saveTimer = setTimeout(() => {
+    STATE.saveTimer = null;
+    saveStateToStorage();
+  }, SAVE_DEBOUNCE_MS);
+}
+
+// ⭐ Save langsung (untuk event penting: bingo, reset sesi)
+function saveStateNow() {
+  if (STATE.saveTimer) {
+    clearTimeout(STATE.saveTimer);
+    STATE.saveTimer = null;
+  }
+  saveStateToStorage();
+}
+
+function loadStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+
+    const data = JSON.parse(raw);
+    if (!data || data.unique_id !== STATE.user.unique_id) return false;
+
+    // Cek umur: kalau lebih dari 6 jam, anggap expired
+    if (Date.now() - data.savedAt > 6 * 60 * 60 * 1000) {
+      LOG.warn('State di localStorage expired (>6 jam)');
+      localStorage.removeItem(STORAGE_KEY);
+      return false;
+    }
+
+    // Validasi struktur minimal
+    if (!Array.isArray(data.boards) || data.boards.length !== 5) return false;
+    if (!Array.isArray(data.boardStates) || data.boardStates.length !== 5) return false;
+
+    STATE.boards = data.boards;
+    STATE.boardStates = data.boardStates;
+    STATE.lineBonusClaimed = data.lineBonusClaimed || [[], [], [], [], []];
+    STATE.currentSessionId = data.sessionId || null;
+    STATE.restoredFromStorage = true;
+
+    LOG.ok(`📦 State dipulihkan dari localStorage (session: ${STATE.currentSessionId})`);
+    return true;
+  } catch (e) {
+    LOG.warn('loadStateFromStorage error', e);
+    return false;
+  }
+}
+
+function clearStateStorage() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESSION ID (Opsi 3)
+// ═══════════════════════════════════════════════════════════
+function saveSessionId(sessionId) {
+  try { localStorage.setItem(SESSION_KEY, String(sessionId || '')); } catch (e) {}
+  STATE.currentSessionId = sessionId;
+}
+
+function getSavedSessionId() {
+  try { return localStorage.getItem(SESSION_KEY); } catch (e) { return null; }
+}
+
+function clearSessionId() {
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  STATE.currentSessionId = null;
+}
 
 // ═══════════════════════════════════════════════════════════
 // SOUND & EFFECTS
@@ -608,12 +708,16 @@ async function handleCellClick(boardIdx, cellIdx) {
     vibrate([80, 40, 80]);
   }
 
+  // ⭐ Simpan state setelah klik (debounced)
+  scheduleSave();
+
   setTimeout(() => renderBoard(STATE.currentBoardIndex), 400);
   STATE.isProcessing = false;
 }
 
 function checkBingoBonus(boardIdx) {
   const state = STATE.boardStates[boardIdx];
+  let gotBingo = false;
 
   for (let r = 0; r < 5; r++) {
     const tag = `R-${r}`;
@@ -623,6 +727,7 @@ function checkBingoBonus(boardIdx) {
         STATE.lineBonusClaimed[boardIdx].push(tag);
         addPoints(5, `🎉 BINGO Baris ${r + 1}! (+5)`);
         showBingoBurst(`BINGO BARIS ${r + 1} · +5 POIN`);
+        gotBingo = true;
       }
     }
   }
@@ -635,9 +740,13 @@ function checkBingoBonus(boardIdx) {
         STATE.lineBonusClaimed[boardIdx].push(tag);
         addPoints(5, `🎉 BINGO Kolom ${c + 1}! (+5)`);
         showBingoBurst(`BINGO KOLOM ${c + 1} · +5 POIN`);
+        gotBingo = true;
       }
     }
   }
+
+  // ⭐ Bingo itu event penting → save langsung (bukan debounced)
+  if (gotBingo) saveStateNow();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -705,6 +814,7 @@ function resetBoardsForNewSession(reason = 'new-session') {
   STATE.isQuestionActive = false;
   STATE.lastQuestionNum = 0;
   STATE.lastTimerWarningState = '';
+  STATE.restoredFromStorage = false;
 
   if (STATE.timerInterval) {
     clearInterval(STATE.timerInterval);
@@ -712,12 +822,12 @@ function resetBoardsForNewSession(reason = 'new-session') {
   }
   STATE.timerEndAt = 0;
 
-  // ⭐ Generate & render papan baru
+  // ⭐ Generate papan baru + hapus state lama + simpan yang baru
   generateBingoBoards();
   renderBoard(0);
+  clearStateStorage();
+  saveStateNow();   // simpan papan fresh
 
-  // ⚠️ JANGAN reset scoreAccumulated ke 0 di sini!
-  // Poin tetap dipertahankan lintas sesi (kecuali admin reset lewat RPC)
   UI.setText('totalScoreText', STATE.scoreAccumulated);
 
   UI.setText('questionNum', 'Soal #-');
@@ -759,6 +869,8 @@ function processQuestionData(data) {
 
   if (isNewSessionStart || isNumberReset) {
     LOG.ok(`🎮 SESI BARU (prev #${prevQNum} → #${currQNum})`);
+    // ⭐ Simpan sessionId baru sebelum reset
+    saveSessionId(data.start_time || Date.now());
     resetBoardsForNewSession('detect-new-session');
     STATE.lastSig = sig;
   }
@@ -767,6 +879,8 @@ function processQuestionData(data) {
     LOG.warn('State: WAITING / CLEARED');
 
     if (prevQNum > 0) {
+      // ⭐ Sesi di-clear admin → hapus sessionId juga
+      clearSessionId();
       resetBoardsForNewSession('admin-clear');
       STATE.lastSig = sig;
     }
@@ -819,6 +933,11 @@ function processQuestionData(data) {
   STATE.activeAnswer = data.correct_answer;
   STATE.isQuestionActive = true;
   STATE.lastTimerWarningState = '';
+
+  // ⭐ Kalau belum ada sessionId, ambil dari data
+  if (!STATE.currentSessionId && data.start_time) {
+    saveSessionId(data.start_time);
+  }
 
   UI.setText('questionNum', `Soal #${currQNum}`);
   UI.setText('questionText', data.question_text || 'SIAP MEMULAI?');
@@ -957,14 +1076,17 @@ function subscribeToAdmin() {
   }, POLL_INTERVAL_MS);
 }
 
+// ⭐ Flush + save saat tab kehilangan fokus / ditutup
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     flushPendingPoints();
+    saveStateNow();
   }
 });
 
 window.addEventListener('beforeunload', () => {
   flushPendingPoints();
+  saveStateNow();
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -979,10 +1101,19 @@ async function init() {
       return;
     }
 
-    // ⭐ STEP 1: Render papan dulu (jangan tunggu apapun)
-    LOG.info('Generating bingo boards...');
-    generateBingoBoards();
-    renderBoard(0);
+    // ⭐ STEP 1: Coba restore papan dari localStorage
+    const restored = loadStateFromStorage();
+
+    if (restored) {
+      LOG.ok('✅ Papan dipulihkan dari storage (refresh recovery)');
+      renderBoard(STATE.currentBoardIndex || 0);
+    } else {
+      LOG.info('Tidak ada state tersimpan, generate papan baru');
+      generateBingoBoards();
+      renderBoard(0);
+      saveStateNow();   // simpan papan baru supaya nanti bisa di-restore
+    }
+
     UI.debug('ready', 0);
 
     // ⭐ STEP 2: Cek DOM gridContainer
@@ -993,7 +1124,7 @@ async function init() {
       LOG.ok(`gridContainer found, ${gc.children.length} cells rendered`);
     }
 
-    // ⭐ STEP 3: Sync clock (kalau error, tetap lanjut)
+    // ⭐ STEP 3: Sync clock
     try {
       LOG.info('Syncing clock...');
       await syncClockOffset();
@@ -1001,18 +1132,25 @@ async function init() {
       LOG.warn('syncClockOffset gagal, lanjut saja', e);
     }
 
-    // ⭐ STEP 4: Load poin dari DB
+    // ⭐ STEP 4: Ambil poin dari DB
+    // (Kalau sudah restore papan, kita tetap butuh poin dari DB karena poin
+    //  adalah sumber kebenaran — localStorage hanya backup papan)
     try {
       LOG.info('Loading saved points...');
-      STATE.scoreAccumulated = await loadMyPointsFromDB();
+      const dbPoints = await loadMyPointsFromDB();
+
+      // ⭐ Kalau ada pendingPoints (jarang terjadi), pakai nilai terbesar
+      // Ini mencegah poin turun kalau ada pending yang belum ke-flush
+      const finalPoints = Math.max(dbPoints, STATE.scoreAccumulated || 0);
+      STATE.scoreAccumulated = finalPoints;
       UI.setText('totalScoreText', STATE.scoreAccumulated);
+      LOG.ok(`Poin final: ${STATE.scoreAccumulated} (db=${dbPoints})`);
     } catch (e) {
-      LOG.warn('loadMyPointsFromDB gagal, poin mulai dari 0', e);
-      STATE.scoreAccumulated = 0;
-      UI.setText('totalScoreText', 0);
+      LOG.warn('loadMyPointsFromDB gagal', e);
+      UI.setText('totalScoreText', STATE.scoreAccumulated || 0);
     }
 
-    // ⭐ STEP 5: Fetch state awal
+    // ⭐ STEP 5: Fetch state sistem awal (untuk tahu sesi aktif)
     try {
       const { data, error } = await supabaseClient
         .from('system_arithmatic_bingo')
@@ -1021,7 +1159,28 @@ async function init() {
         .maybeSingle();
 
       if (error) LOG.err('Initial fetch error', error);
-      if (data) processQuestionData(data);
+
+      if (data) {
+        // Cek apakah sessionId di storage cocok dengan yang di server
+        const serverSession = data.start_time || '';
+        const savedSession = getSavedSessionId();
+
+        if (savedSession && serverSession && savedSession !== serverSession) {
+          LOG.warn(`⚠️ Session beda! saved=${savedSession}, server=${serverSession}`);
+          LOG.warn('Kemungkinan admin sudah mulai sesi baru — reset papan');
+          clearStateStorage();
+          clearSessionId();
+          generateBingoBoards();
+          renderBoard(0);
+          saveSessionId(serverSession);
+          saveStateNow();
+        } else if (!savedSession && serverSession) {
+          // Belum ada sessionId tersimpan, simpan yang sekarang
+          saveSessionId(serverSession);
+        }
+
+        processQuestionData(data);
+      }
     } catch (e) {
       LOG.err('Initial fetch exception', e);
     }
@@ -1040,7 +1199,7 @@ async function init() {
 window.switchBoard = switchBoard;
 window.handleCellClick = handleCellClick;
 
-// ⭐ Guard: tunggu DOM ready
+// Guard DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
