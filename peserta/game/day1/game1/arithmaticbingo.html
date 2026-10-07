@@ -287,16 +287,20 @@
     <div id="gridContainer" class="bingo-grid bg-slate-800/80 p-3 rounded-2xl border border-white/5 shadow-2xl"></div>
 
   </div>
-
 <script>
+// ═══════════════════════════════════════════════════════════
+// KONFIG
+// ═══════════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const QUESTION_DURATION = 20;
-const MAX_QUESTIONS = 99;
+const POLL_INTERVAL_MS = 800;
 const TIMER_TICK_MS = 200;
-const TAG = '[ADMIN]';
+const FLUSH_DEBOUNCE_MS = 1500;
+const CLOCK_RESYNC_MS = 60000;
+const TAG = '[KIOSK]';
 
 const LOG = {
   ok:   (m, d) => console.log(`%c${TAG} ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
@@ -306,501 +310,742 @@ const LOG = {
 };
 
 const STATE = {
-  usedAnswers: new Set(),
-  qCount: 0,
-  autoInterval: null,
+  user: null,
+  boards: [],
+  boardStates: [],
+  lineBonusClaimed: [[], [], [], [], []],
+  currentBoardIndex: 0,
+  activeQuestionNum: 0,
+  activeAnswer: null,
+  isQuestionActive: false,
   timerInterval: null,
   timerEndAt: 0,
-  isAutoRunning: false,
-  isAnswerVisible: false,
-  isProcessingStart: false,
-  realtimeConnected: false
+  lastTimerWarningState: '',
+  scoreAccumulated: 0,
+  pendingPoints: 0,
+  flushTimer: null,
+  isProcessing: false,
+  lastSig: '',
+  lastQuestionNum: 0,
+  realtimeConnected: false,
+  clockOffset: 0,
+  clockSynced: false
 };
 
 const UI = {
   setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; },
   setHTML(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html; },
-  debug(state, qNum, conn = null) {
+  debug(state, qNum, sync = null) {
     UI.setText('dbgState', state);
     UI.setText('dbgQ', `#${qNum}`);
-    if (conn !== null) UI.setText('dbgConn', conn);
+    if (sync !== null) UI.setText('dbgSync', sync);
+    UI.setText('dbgClock', `±${Math.round(STATE.clockOffset)}ms`);
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// SOUND & EFFECTS
+// ═══════════════════════════════════════════════════════════
+function vibrate(pattern) {
+  if ('vibrate' in navigator) {
+    try { navigator.vibrate(pattern); } catch (e) {}
+  }
+}
 
 function playBell() {
   const bell = document.getElementById('bellSound');
   if (!bell) return;
+  try { bell.currentTime = 0; bell.play().catch(() => {}); } catch (e) {}
+}
+
+function playBingo() {
+  const b = document.getElementById('bingoSound');
+  if (!b) return playBell();
+  try { b.currentTime = 0; b.play().catch(() => playBell()); } catch (e) { playBell(); }
+}
+
+function animAdd(el, className, duration = 800) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(() => el.classList.remove(className), duration);
+}
+
+function showBingoBurst(subText = '+5 POIN') {
+  const el = document.getElementById('bingoBurst');
+  if (!el) return;
+  const sub = document.getElementById('bingoBurstSub');
+  if (sub) sub.textContent = subText;
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+  animAdd(el.querySelector('div'), 'anim-bingo-burst', 1400);
+  setTimeout(() => {
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  }, 1400);
+  playBingo();
+  vibrate([50, 30, 50, 30, 100]);
+}
+
+function showTimeup() {
+  const el = document.getElementById('timeupOverlay');
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+  setTimeout(() => {
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  }, 1800);
+  animAdd(document.body, 'anim-screen-shake', 500);
+  vibrate([200, 100, 200]);
+}
+
+function showScorePopup(points) {
+  const container = document.getElementById('scorePopupContainer');
+  if (!container) return;
+  const el = document.createElement('div');
+  const isPositive = points > 0;
+  el.className = `absolute right-0 text-2xl font-black ${isPositive ? 'text-emerald-400' : 'text-rose-500'} anim-score-popup`;
+  el.textContent = isPositive ? `+${points}` : `${points}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function flashScore(isPositive) {
+  const el = document.getElementById('totalScoreText');
+  if (!el) return;
+  animAdd(el, isPositive ? 'anim-score-green' : 'anim-score-red', 500);
+}
+
+function spawnConfetti(anchorEl) {
+  if (!anchorEl) return;
+  const rect = anchorEl.getBoundingClientRect();
+  const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#a855f7'];
+  for (let i = 0; i < 8; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = `${rect.left + rect.width / 2}px`;
+    piece.style.top = `${rect.top + rect.height / 2}px`;
+    piece.style.backgroundColor = colors[i % colors.length];
+    piece.style.animationDelay = `${i * 40}ms`;
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 1200);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK SYNC
+// ═══════════════════════════════════════════════════════════
+async function syncClockOffset() {
   try {
-    bell.currentTime = 0;
-    bell.play().catch(() => LOG.warn('Autoplay diblokir'));
-  } catch (e) { LOG.warn('Bell error', e); }
+    const t0 = Date.now();
+    const { data, error } = await supabaseClient
+      .from('system_arithmatic_bingo')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    const t1 = Date.now();
+
+    if (error || !data) { STATE.clockOffset = 0; return; }
+
+    let serverTs = null;
+    if (data.server_time) serverTs = new Date(data.server_time).getTime();
+    else if (data.updated_at) serverTs = new Date(data.updated_at).getTime();
+
+    if (!serverTs) { STATE.clockOffset = 0; return; }
+
+    const rtt = t1 - t0;
+    const localEstimate = t0 + (rtt / 2);
+    STATE.clockOffset = serverTs - localEstimate;
+    STATE.clockSynced = true;
+    LOG.ok(`Clock offset: ${Math.round(STATE.clockOffset)}ms`);
+  } catch (e) {
+    STATE.clockOffset = 0;
+  }
 }
 
-function buildQuestion(ans) {
-  const mode = Math.floor(Math.random() * 3);
+function now() { return Date.now() + STATE.clockOffset; }
 
-  if (mode === 0) {
-    const a = Math.floor(Math.random() * (ans - 1)) + 1;
-    return `${a} + ${ans - a} = ?`;
+// ═══════════════════════════════════════════════════════════
+// USER INIT
+// ═══════════════════════════════════════════════════════════
+function initUser() {
+  try {
+    const sess = localStorage.getItem('userSession');
+    if (!sess) { window.location.href = '/login.html'; return false; }
+    STATE.user = JSON.parse(sess);
+    if (!STATE.user?.unique_id) return false;
+    UI.setText('playerName', STATE.user.full_name || STATE.user.unique_id);
+    LOG.ok('User ready', STATE.user.unique_id);
+    return true;
+  } catch (e) {
+    LOG.err('initUser exception', e);
+    return false;
   }
-  if (mode === 1) {
-    const add = Math.floor(Math.random() * 30) + 5;
-    return `${ans + add} - ${add} = ?`;
-  }
-  let mult = 2;
-  if (ans % 3 === 0) mult = 3;
-  if (ans % 5 === 0) mult = 5;
-  if (ans % mult === 0 && (ans / mult) >= 1) {
-    return `${ans / mult} × ${mult} = ?`;
-  }
-  return `${ans + 10} - 10 = ?`;
 }
 
-async function generateAndPublishQuestion() {
-  if (STATE.qCount >= MAX_QUESTIONS) {
-    stopAutoRun();
-    UI.setText('currentQuestion', 'BINGO SELESAI!');
-    UI.setText('qNumDisplay', `Soal #${MAX_QUESTIONS} / ${MAX_QUESTIONS}`);
-    UI.debug('finished', MAX_QUESTIONS);
-    LOG.ok('Semua soal selesai');
+async function loadMyPointsFromDB() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('point_arithmatic_bingo')
+      .select('point')
+      .eq('unique_id', STATE.user.unique_id)
+      .maybeSingle();
+
+    if (error) {
+      LOG.err('Load point error', error);
+      return 0;
+    }
+    const pt = data?.point ?? 0;
+    LOG.ok(`Poin dimuat dari DB: ${pt}`);
+    return pt;
+  } catch (e) {
+    LOG.err('Load point exception', e);
+    return 0;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BINGO BOARD
+// ═══════════════════════════════════════════════════════════
+function generateBingoBoards() {
+  STATE.boards = [];
+  STATE.boardStates = [];
+  STATE.lineBonusClaimed = [[], [], [], [], []];
+
+  const primaryPool = Array.from({ length: 99 }, (_, i) => i + 1);
+  const duplicatePool = [...primaryPool].sort(() => Math.random() - 0.5).slice(0, 26);
+  const finalPool = [...primaryPool, ...duplicatePool].sort(() => Math.random() - 0.5);
+
+  for (let b = 0; b < 5; b++) {
+    const board = [];
+    const stateBoard = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const val = finalPool.pop();
+        board.push(val);
+        stateBoard.push({ val, status: 'default', row: r, col: c });
+      }
+    }
+    STATE.boards.push(board);
+    STATE.boardStates.push(stateBoard);
+  }
+}
+
+function renderBoard(boardIdx) {
+  const container = document.getElementById('gridContainer');
+  if (!container) {
+    LOG.err('❌ gridContainer tidak ditemukan!');
     return;
   }
 
-  if (STATE.qCount === 0) {
-    STATE.usedAnswers.clear();
-    LOG.ok('🎮 Sesi baru dimulai — pool jawaban di-reset');
+  if (!STATE.boardStates[boardIdx]) {
+    LOG.err(`❌ boardStates[${boardIdx}] kosong!`);
+    return;
   }
 
-  let ans;
-  let guard = 0;
-  do {
-    ans = Math.floor(Math.random() * 99) + 1;
-    guard++;
-    if (guard > 500) break;
-  } while (STATE.usedAnswers.has(ans) && STATE.usedAnswers.size < 99);
+  container.innerHTML = '';
 
-  STATE.usedAnswers.add(ans);
-  STATE.qCount++;
+  const state = STATE.boardStates[boardIdx];
+  state.forEach((cell, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'bingo-cell-wrap';
 
-  const qText = buildQuestion(ans);
-  const formattedAns = String(ans).padStart(2, '0');
-  const startTime = new Date().toISOString();
+    const btn = document.createElement('button');
+    btn.className = 'bingo-cell text-sm ';
 
-  UI.setText('qNumDisplay', `Soal #${STATE.qCount} / ${MAX_QUESTIONS}`);
-  UI.setText('currentQuestion', qText);
-  UI.setText('currentAnswer', formattedAns);
-  UI.debug(STATE.isAutoRunning ? 'running' : 'ready', STATE.qCount);
+    if (cell.status === 'default') {
+      btn.className += 'bg-slate-700 text-white active:scale-95';
+    } else if (cell.status === 'correct') {
+      btn.className += 'bg-emerald-500 text-slate-900 font-extrabold shadow-lg shadow-emerald-500/50';
+    } else if (cell.status === 'wrong') {
+      btn.className += 'bg-rose-600 text-white line-through opacity-60';
+    }
 
-  playBell();
+    btn.textContent = String(cell.val).padStart(2, '0');
+    btn.onclick = () => handleCellClick(boardIdx, idx);
+    wrap.appendChild(btn);
+    container.appendChild(wrap);
+  });
 
-  try {
-    const { error } = await supabaseClient
-      .from('system_arithmatic_bingo')
-      .update({
-        question_text: qText,
-        correct_answer: ans,
-        question_number: STATE.qCount,
-        start_time: startTime,
-        is_active: true
-      })
-      .eq('id', 1);
-
-    if (error) LOG.err('Publish soal gagal', error);
-    else LOG.ok(`Soal #${STATE.qCount} dipublish: ${qText} = ${ans}`);
-  } catch (e) {
-    LOG.err('Publish soal exception', e);
-  }
-
-  startAdminTimer(QUESTION_DURATION);
+  LOG.ok(`Board ${boardIdx} rendered (${state.length} cells)`);
 }
 
-function startAdminTimer(seconds) {
+function switchBoard(idx) {
+  STATE.currentBoardIndex = idx;
+  document.querySelectorAll('.board-tab').forEach((tab, i) => {
+    tab.className = i === idx
+      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900 transition-all'
+      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all';
+  });
+  renderBoard(idx);
+}
+
+async function handleCellClick(boardIdx, cellIdx) {
+  if (!STATE.isQuestionActive || STATE.activeAnswer === null) return;
+  if (STATE.isProcessing) return;
+
+  const cell = STATE.boardStates[boardIdx][cellIdx];
+  if (cell.status !== 'default') return;
+
+  STATE.isProcessing = true;
+
+  const wrap = document.getElementById('gridContainer').children[cellIdx];
+  const btn = wrap?.querySelector('.bingo-cell');
+
+  if (cell.val === STATE.activeAnswer) {
+    cell.status = 'correct';
+    animAdd(btn, 'anim-correct-pop', 500);
+    spawnConfetti(btn);
+    addPoints(1, 'Jawaban Benar (+1)');
+    vibrate(30);
+    checkBingoBonus(boardIdx);
+  } else {
+    cell.status = 'wrong';
+    animAdd(btn, 'anim-wrong-shake', 400);
+    addPoints(-1, 'Salah Tekan (-1)');
+    vibrate([80, 40, 80]);
+  }
+
+  setTimeout(() => renderBoard(STATE.currentBoardIndex), 400);
+  STATE.isProcessing = false;
+}
+
+function checkBingoBonus(boardIdx) {
+  const state = STATE.boardStates[boardIdx];
+
+  for (let r = 0; r < 5; r++) {
+    const tag = `R-${r}`;
+    if (!STATE.lineBonusClaimed[boardIdx].includes(tag)) {
+      const rowCells = state.filter(c => c.row === r);
+      if (rowCells.every(c => c.status === 'correct')) {
+        STATE.lineBonusClaimed[boardIdx].push(tag);
+        addPoints(5, `🎉 BINGO Baris ${r + 1}! (+5)`);
+        showBingoBurst(`BINGO BARIS ${r + 1} · +5 POIN`);
+      }
+    }
+  }
+
+  for (let c = 0; c < 5; c++) {
+    const tag = `C-${c}`;
+    if (!STATE.lineBonusClaimed[boardIdx].includes(tag)) {
+      const colCells = state.filter(cell => cell.col === c);
+      if (colCells.every(cell => cell.status === 'correct')) {
+        STATE.lineBonusClaimed[boardIdx].push(tag);
+        addPoints(5, `🎉 BINGO Kolom ${c + 1}! (+5)`);
+        showBingoBurst(`BINGO KOLOM ${c + 1} · +5 POIN`);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// POINTS & FLUSH
+// ═══════════════════════════════════════════════════════════
+function addPoints(pts, reason) {
+  STATE.scoreAccumulated += pts;
+  STATE.pendingPoints += pts;
+  UI.setText('totalScoreText', STATE.scoreAccumulated);
+  UI.setText('statusMsg', reason);
+
+  flashScore(pts > 0);
+  showScorePopup(pts);
+
+  if (!STATE.flushTimer) {
+    STATE.flushTimer = setTimeout(flushPendingPoints, FLUSH_DEBOUNCE_MS);
+  }
+}
+
+async function flushPendingPoints() {
+  if (STATE.flushTimer) {
+    clearTimeout(STATE.flushTimer);
+    STATE.flushTimer = null;
+  }
+  if (STATE.pendingPoints === 0) return;
+  if (!STATE.user) return;
+
+  const toSend = STATE.pendingPoints;
+  STATE.pendingPoints = 0;
+
+  try {
+    const { error } = await supabaseClient.rpc('add_point_arithmatic_bingo', {
+      p_unique_id: STATE.user.unique_id,
+      p_name: STATE.user.full_name || String(STATE.user.unique_id),
+      p_delta: toSend
+    });
+
+    if (error) {
+      LOG.err('RPC add_point error', error);
+      STATE.pendingPoints += toSend;
+    } else {
+      LOG.ok(`Point flushed: ${toSend >= 0 ? '+' : ''}${toSend}`);
+    }
+  } catch (e) {
+    LOG.err('RPC exception', e);
+    STATE.pendingPoints += toSend;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SESSION RESET
+// ═══════════════════════════════════════════════════════════
+function resetBoardsForNewSession(reason = 'new-session') {
+  LOG.warn(`🔄 RESET SESI (${reason})`);
+  flushPendingPoints();
+
+  STATE.boards = [];
+  STATE.boardStates = [];
+  STATE.lineBonusClaimed = [[], [], [], [], []];
+  STATE.currentBoardIndex = 0;
+  STATE.pendingPoints = 0;
+  STATE.isProcessing = false;
+  STATE.activeQuestionNum = 0;
+  STATE.activeAnswer = null;
+  STATE.isQuestionActive = false;
+  STATE.lastQuestionNum = 0;
+  STATE.lastTimerWarningState = '';
+
+  if (STATE.timerInterval) {
+    clearInterval(STATE.timerInterval);
+    STATE.timerInterval = null;
+  }
+  STATE.timerEndAt = 0;
+
+  // ⭐ Generate & render papan baru
+  generateBingoBoards();
+  renderBoard(0);
+
+  // ⚠️ JANGAN reset scoreAccumulated ke 0 di sini!
+  // Poin tetap dipertahankan lintas sesi (kecuali admin reset lewat RPC)
+  UI.setText('totalScoreText', STATE.scoreAccumulated);
+
+  UI.setText('questionNum', 'Soal #-');
+  UI.setText('questionText', 'Menunggu Admin...');
+  UI.setText('statusMsg', 'Sesi baru! Bersiap...');
+  UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
+  UI.debug('reset', 0);
+
+  const timerEl = document.getElementById('timerDisplay');
+  if (timerEl) timerEl.className = 'text-xs font-mono font-bold text-rose-400 transition-all';
+
+  const qCard = document.getElementById('questionCard');
+  if (qCard) qCard.classList.remove('anim-question-glow');
+
+  document.querySelectorAll('.board-tab').forEach((tab, i) => {
+    tab.className = i === 0
+      ? 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-amber-500 text-slate-900 transition-all'
+      : 'board-tab flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-gray-400 transition-all';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROCESS QUESTION
+// ═══════════════════════════════════════════════════════════
+function processQuestionData(data) {
+  if (!data) return;
+
+  const sig = `${data.question_number || 0}|${data.start_time || ''}|${data.is_active ? 1 : 0}`;
+  if (sig === STATE.lastSig) return;
+  STATE.lastSig = sig;
+
+  const prevQNum = STATE.lastQuestionNum;
+  const currQNum = data.question_number || 0;
+
+  LOG.info(`Data masuk: Q#${currQNum}, active=${data.is_active}, prevQ=#${prevQNum}`);
+
+  const isNewSessionStart = (currQNum === 1 && prevQNum > 1);
+  const isNumberReset = (currQNum > 0 && prevQNum > currQNum && currQNum > 1);
+
+  if (isNewSessionStart || isNumberReset) {
+    LOG.ok(`🎮 SESI BARU (prev #${prevQNum} → #${currQNum})`);
+    resetBoardsForNewSession('detect-new-session');
+    STATE.lastSig = sig;
+  }
+
+  if (!data.is_active || currQNum === 0) {
+    LOG.warn('State: WAITING / CLEARED');
+
+    if (prevQNum > 0) {
+      resetBoardsForNewSession('admin-clear');
+      STATE.lastSig = sig;
+    }
+
+    STATE.isQuestionActive = false;
+    STATE.activeAnswer = null;
+    STATE.activeQuestionNum = 0;
+    STATE.lastQuestionNum = 0;
+    STATE.lastTimerWarningState = '';
+
+    if (STATE.timerInterval) {
+      clearInterval(STATE.timerInterval);
+      STATE.timerInterval = null;
+    }
+
+    UI.setText('questionNum', 'Soal #-');
+    UI.setText('questionText', 'Menunggu Admin...');
+    UI.setText('statusMsg', 'Jawab sebelum waktu habis!');
+    UI.setHTML('timerDisplay', '<i class="fas fa-clock mr-1"></i>00:20');
+    UI.debug('waiting', 0);
+
+    const timerEl = document.getElementById('timerDisplay');
+    if (timerEl) timerEl.className = 'text-xs font-mono font-bold text-rose-400 transition-all';
+
+    const qCard = document.getElementById('questionCard');
+    if (qCard) qCard.classList.remove('anim-question-glow');
+
+    const wi = document.getElementById('waitingIndicator');
+    if (wi) wi.classList.remove('hidden');
+
+    return;
+  }
+
+  const isNewQuestion = currQNum !== STATE.lastQuestionNum;
+
+  if (!isNewQuestion) {
+    if (STATE.isQuestionActive) {
+      UI.debug('active', currQNum, 'poll-ok');
+      return;
+    }
+  }
+
+  LOG.ok(`Proses soal #${currQNum}`);
+
+  // Flush poin dari soal sebelumnya
+  flushPendingPoints();
+
+  STATE.lastQuestionNum = currQNum;
+  STATE.activeQuestionNum = currQNum;
+  STATE.activeAnswer = data.correct_answer;
+  STATE.isQuestionActive = true;
+  STATE.lastTimerWarningState = '';
+
+  UI.setText('questionNum', `Soal #${currQNum}`);
+  UI.setText('questionText', data.question_text || 'SIAP MEMULAI?');
+  UI.setText('statusMsg', 'Cari jawaban di 5 papanmu!');
+  UI.debug('active', currQNum);
+
+  const qCard = document.getElementById('questionCard');
+  const qText = document.getElementById('questionText');
+  if (qCard) {
+    animAdd(qCard, 'anim-bg-flash', 700);
+    qCard.classList.add('anim-question-glow');
+  }
+  if (qText) animAdd(qText, 'anim-question-pop', 600);
+
+  const wi = document.getElementById('waitingIndicator');
+  if (wi) wi.classList.add('hidden');
+
+  playBell();
+  vibrate(50);
+
+  let remaining = QUESTION_DURATION;
+  if (data.start_time) {
+    const startMs = new Date(data.start_time).getTime();
+    const elapsed = Math.floor((now() - startMs) / 1000);
+    remaining = Math.max(0, QUESTION_DURATION - elapsed);
+    LOG.info(`Timer sync: elapsed=${elapsed}s, remaining=${remaining}s`);
+  }
+  startTimer(remaining);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════════
+function startTimer(secondsLeft) {
   if (STATE.timerInterval) {
     clearInterval(STATE.timerInterval);
     STATE.timerInterval = null;
   }
 
-  STATE.timerEndAt = Date.now() + (seconds * 1000);
+  if (secondsLeft <= 0) {
+    STATE.isQuestionActive = false;
+    UI.setText('statusMsg', 'Waktu Habis!');
+    UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
+    updateTimerDisplay(0);
+    showTimeup();
+    flushPendingPoints();
+    UI.debug('timeup', STATE.activeQuestionNum);
+    return;
+  }
+
+  STATE.timerEndAt = now() + (secondsLeft * 1000);
 
   const tick = () => {
-    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - Date.now()) / 1000));
-    UI.setHTML('timerAdmin', `<i class="fas fa-clock mr-1"></i>${remaining}`);
+    const remaining = Math.max(0, Math.ceil((STATE.timerEndAt - now()) / 1000));
+    updateTimerDisplay(remaining);
 
     if (remaining <= 0) {
       clearInterval(STATE.timerInterval);
       STATE.timerInterval = null;
+      STATE.isQuestionActive = false;
+      UI.setText('statusMsg', 'Waktu Habis! Soal ditutup.');
+      UI.setText('questionText', '⏰ Menunggu soal berikutnya...');
+      UI.debug('timeup', STATE.activeQuestionNum);
+      showTimeup();
+      flushPendingPoints();
+
+      const qCard = document.getElementById('questionCard');
+      if (qCard) qCard.classList.remove('anim-question-glow');
     }
   };
 
-  UI.setHTML('timerAdmin', `<i class="fas fa-clock mr-1"></i>${seconds}`);
+  updateTimerDisplay(secondsLeft);
   STATE.timerInterval = setInterval(tick, TIMER_TICK_MS);
 }
 
-async function toggleAutoRun() {
-  if (STATE.isProcessingStart) return;
-  STATE.isProcessingStart = true;
+function updateTimerDisplay(seconds) {
+  const s = seconds < 10 ? `0${seconds}` : seconds;
+  const el = document.getElementById('timerDisplay');
+  if (!el) return;
 
-  try {
-    if (!STATE.isAutoRunning) {
-      await startAutoRun();
-    } else {
-      stopAutoRun();
-    }
-  } finally {
-    STATE.isProcessingStart = false;
-  }
-}
+  el.innerHTML = `<i class="fas fa-clock mr-1"></i>00:${s}`;
 
-async function startAutoRun() {
-  LOG.ok(`▶ Start auto-run. qCount saat ini: ${STATE.qCount}`);
+  const newState = seconds <= 5 ? 'critical' : (seconds <= 10 ? 'warning' : '');
+  if (newState !== STATE.lastTimerWarningState) {
+    STATE.lastTimerWarningState = newState;
+    el.classList.remove('anim-timer-warning', 'anim-timer-critical');
 
-  if (STATE.qCount === 0) {
-    LOG.info('Sesi baru terdeteksi — clear DB dulu supaya kiosk reset');
-
-    try {
-      await supabaseClient
-        .from('system_arithmatic_bingo')
-        .update({
-          question_text: '',
-          correct_answer: 0,
-          question_number: 0,
-          start_time: new Date().toISOString(),
-          is_active: false
-        })
-        .eq('id', 1);
-
-      await new Promise(r => setTimeout(r, 800));
-      LOG.ok('DB cleared & kiosk notified');
-    } catch (e) {
-      LOG.err('Clear DB gagal', e);
+    if (newState === 'critical') {
+      el.classList.add('anim-timer-critical');
+      if (seconds === 5) vibrate(30);
+    } else if (newState === 'warning') {
+      el.classList.add('anim-timer-warning');
     }
   }
-
-  STATE.isAutoRunning = true;
-
-  const btn = document.getElementById('btnStartGame');
-  btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-rose-600 hover:bg-rose-500 text-white pulse-slow shadow-lg shadow-rose-600/20";
-  btn.innerHTML = `<i class="fas fa-stop"></i> Hentikan Loop Auto`;
-
-  UI.debug('running', STATE.qCount);
-
-  await generateAndPublishQuestion();
-
-  STATE.autoInterval = setInterval(() => {
-    if (!STATE.isAutoRunning) return;
-    generateAndPublishQuestion();
-  }, QUESTION_DURATION * 1000);
 }
 
-function stopAutoRun() {
-  LOG.warn('⏹ Stop auto-run');
-
-  STATE.isAutoRunning = false;
-
-  if (STATE.autoInterval) {
-    clearInterval(STATE.autoInterval);
-    STATE.autoInterval = null;
-  }
-  if (STATE.timerInterval) {
-    clearInterval(STATE.timerInterval);
-    STATE.timerInterval = null;
-  }
-
-  const btn = document.getElementById('btnStartGame');
-  btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2";
-
-  const label = STATE.qCount >= MAX_QUESTIONS
-    ? `<i class="fas fa-redo"></i> Mulai Ulang (Sesi Baru)`
-    : `<i class="fas fa-play"></i> Lanjutkan Game (Auto Loop 20s)`;
-  btn.innerHTML = label;
-
-  UI.debug(STATE.qCount >= MAX_QUESTIONS ? 'finished' : 'paused', STATE.qCount);
-}
-
-async function clearGameState() {
-  const ok = confirm(
-    "Yakin ingin CLEAR semua soal?\n\n" +
-    "• Auto loop dihentikan\n" +
-    "• Nomor soal reset ke 0\n" +
-    "• Kiosk peserta akan reset papan & skor lokal\n" +
-    "• Poin peserta di DB TIDAK dihapus\n\n" +
-    "Lanjutkan?"
-  );
-  if (!ok) return;
-
-  if (STATE.isAutoRunning) stopAutoRun();
-
-  LOG.warn('🧹 Clear game state');
-
-  try {
-    const { error } = await supabaseClient
-      .from('system_arithmatic_bingo')
-      .update({
-        question_text: '',
-        correct_answer: 0,
-        question_number: 0,
-        start_time: new Date().toISOString(),
-        is_active: false
-      })
-      .eq('id', 1);
-
-    if (error) {
-      LOG.err('Clear gagal', error);
-      alert('Gagal clear: ' + error.message);
-      return;
-    }
-  } catch (e) {
-    LOG.err('Clear exception', e);
-    alert('Gagal clear: ' + e.message);
-    return;
-  }
-
-  STATE.usedAnswers.clear();
-  STATE.qCount = 0;
-
-  UI.setText('qNumDisplay', `Soal #0 / ${MAX_QUESTIONS}`);
-  UI.setText('currentQuestion', 'Siap Memulai?');
-  UI.setText('currentAnswer', '??');
-  UI.setHTML('timerAdmin', `<i class="fas fa-clock mr-1"></i>${QUESTION_DURATION}`);
-  UI.debug('waiting', 0);
-
-  const btn = document.getElementById('btnStartGame');
-  btn.className = "px-6 py-3 rounded-xl font-black text-sm transition-all bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center gap-2";
-  btn.innerHTML = `<i class="fas fa-play"></i> Mulai Game (Auto Loop 20s)`;
-
-  STATE.isAnswerVisible = false;
-  document.getElementById('currentAnswer').classList.add('blur-sm');
-  document.getElementById('eyeIcon').className = 'fas fa-eye';
-
-  LOG.ok('✅ Clear selesai');
-  alert("✅ Soal di-clear. Kiosk & layout kembali ke state siap.");
-}
-
-function toggleAnswerVisibility() {
-  STATE.isAnswerVisible = !STATE.isAnswerVisible;
-  const ansEl = document.getElementById('currentAnswer');
-  const iconEl = document.getElementById('eyeIcon');
-
-  if (STATE.isAnswerVisible) {
-    ansEl.classList.remove('blur-sm');
-    iconEl.className = 'fas fa-eye-slash';
-  } else {
-    ansEl.classList.add('blur-sm');
-    iconEl.className = 'fas fa-eye';
-  }
-}
-
-async function switchStageView(viewName) {
-  const payload = {
-    current_view: viewName,
-    updated_at: new Date().toISOString()
-  };
-
-  if (viewName === 'leaderboard') {
-    payload.revealed_rank = 0;
-  }
-
-  try {
-    const { error } = await supabaseClient
-      .from('admin_layout_arithmatic_bingo')
-      .update(payload)
-      .eq('id', 1);
-
-    if (error) LOG.err('Switch view gagal', error);
-    else LOG.ok(`Switch view → ${viewName}`);
-  } catch (e) {
-    LOG.err('Switch view exception', e);
-  }
-}
-
-async function revealRankOnStage(rankNum) {
-  try {
-    const { error } = await supabaseClient
-      .from('admin_layout_arithmatic_bingo')
-      .update({
-        current_view: 'leaderboard',
-        revealed_rank: rankNum,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', 1);
-
-    if (error) LOG.err(`Reveal rank #${rankNum} gagal`, error);
-    else LOG.ok(`Reveal rank #${rankNum}`);
-  } catch (e) {
-    LOG.err('Reveal exception', e);
-  }
-}
-
-// ⭐ RESET POIN via RPC
-async function resetBingoScores() {
-  const ok = confirm("Yakin ingin MENGHAPUS SEMUA POIN peserta untuk Arithmetic Bingo?\n\nSemua poin di tabel point_arithmatic_bingo akan direset ke 0.");
-  if (!ok) return;
-
-  try {
-    const { error } = await supabaseClient.rpc('reset_all_points_arithmatic_bingo');
-
-    if (error) {
-      LOG.err('Reset poin gagal', error);
-      alert('Gagal reset poin: ' + error.message);
-    } else {
-      LOG.ok('Semua poin direset ke 0');
-      alert('✅ Poin peserta berhasil direset ke 0.');
-      loadScoresData();
-    }
-  } catch (e) {
-    LOG.err('Reset poin exception', e);
-  }
-}
-
-// ⭐ LOAD SCORES dari tabel baru
-async function loadScoresData() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('point_arithmatic_bingo')
-      .select('unique_id, name, point')
-      .order('point', { ascending: false });
-
-    if (error || !data) {
-      LOG.err('Load scores error', error);
-      return;
-    }
-
-    const mapped = data.map(row => ({
-      uid: row.name || String(row.unique_id),
-      total: row.point ?? 0
-    }));
-
-    renderTop10(mapped.slice(0, 10));
-    renderAllParticipants(mapped);
-  } catch (e) {
-    LOG.err('loadScoresData exception', e);
-  }
-}
-
-function renderTop10(top10) {
-  const container = document.getElementById('leaderboardList');
-  if (!container) return;
-  container.innerHTML = '';
-
-  if (top10.length === 0) {
-    container.innerHTML = `<p class="text-xs text-gray-500 text-center py-4">Belum ada skor masuk.</p>`;
-    return;
-  }
-
-  top10.forEach((item, idx) => {
-    const row = document.createElement('div');
-    row.className = `flex items-center justify-between p-2.5 rounded-xl text-xs ${
-      idx === 0
-        ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold'
-        : 'bg-slate-800/60 text-gray-300'
-    }`;
-
-    let badge = `#${idx + 1}`;
-    if (idx === 0) badge = '🥇';
-    if (idx === 1) badge = '🥈';
-    if (idx === 2) badge = '🥉';
-
-    row.innerHTML = `
-      <div class="flex items-center gap-2 overflow-hidden">
-        <span class="w-5 text-center font-bold">${badge}</span>
-        <span class="truncate">${item.uid}</span>
-      </div>
-      <span class="font-mono font-bold text-amber-400">+${item.total}</span>
-    `;
-    container.appendChild(row);
-  });
-}
-
-function renderAllParticipants(allData) {
-  const container = document.getElementById('allParticipantsList');
-  const countDisplay = document.getElementById('totalParticipantCount');
-  if (!container) return;
-
-  container.innerHTML = '';
-  if (countDisplay) countDisplay.textContent = `${allData.length} Peserta`;
-
-  if (allData.length === 0) {
-    container.innerHTML = `<p class="col-span-full text-xs text-gray-500 text-center py-4">Belum ada peserta terdaftar.</p>`;
-    return;
-  }
-
-  allData.forEach((item, idx) => {
-    const card = document.createElement('div');
-    card.className = "bg-slate-800/80 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs";
-    card.innerHTML = `
-      <div class="flex items-center gap-2 overflow-hidden">
-        <span class="text-slate-500 font-mono text-[10px]">#${idx + 1}</span>
-        <span class="font-bold text-slate-200 truncate">${item.uid}</span>
-      </div>
-      <span class="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+${item.total}</span>
-    `;
-    container.appendChild(card);
-  });
-}
-
-// ⭐ Realtime sekarang listen ke point_arithmatic_bingo
-function subscribeRealtimeScores() {
+// ═══════════════════════════════════════════════════════════
+// REALTIME + POLLING
+// ═══════════════════════════════════════════════════════════
+function subscribeToAdmin() {
   supabaseClient
-    .channel('admin_leaderboard_bingo')
+    .channel('kiosk_bingo_rt')
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
-      table: 'point_arithmatic_bingo'
-    }, () => {
-      loadScoresData();
+      table: 'system_arithmatic_bingo'
+    }, payload => {
+      LOG.info('⚡ Realtime event');
+      if (payload.new) processQuestionData(payload.new);
     })
     .subscribe(status => {
+      LOG.info(`Realtime: ${status}`);
       STATE.realtimeConnected = (status === 'SUBSCRIBED');
       UI.debug(
-        STATE.isAutoRunning ? 'running' : 'ready',
-        STATE.qCount,
+        STATE.isQuestionActive ? 'active' : 'ready',
+        STATE.lastQuestionNum,
         STATE.realtimeConnected ? 'rt' : 'poll'
       );
     });
 
-  setInterval(() => {
-    loadScoresData();
-    UI.debug(
-      STATE.isAutoRunning ? 'running' : 'ready',
-      STATE.qCount,
-      STATE.realtimeConnected ? 'rt' : 'poll'
-    );
-  }, 2000);
+  setInterval(async () => {
+    try {
+      const { data, error } = await supabaseClient
+        .from('system_arithmatic_bingo')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (!error && data) processQuestionData(data);
+      UI.debug(
+        STATE.isQuestionActive ? 'active' : 'ready',
+        STATE.lastQuestionNum,
+        STATE.realtimeConnected ? 'rt' : 'poll'
+      );
+    } catch (e) {}
+  }, POLL_INTERVAL_MS);
 }
 
-// Auto-clear sesi lama saat admin buka
-(async () => {
-  try {
-    const { data } = await supabaseClient
-      .from('system_arithmatic_bingo')
-      .select('is_active, question_number')
-      .eq('id', 1)
-      .maybeSingle();
-
-    if (data && (data.is_active || (data.question_number || 0) > 0)) {
-      LOG.warn('Sesi lama terdeteksi — reset ke state awal');
-      await supabaseClient
-        .from('system_arithmatic_bingo')
-        .update({
-          question_text: '',
-          correct_answer: 0,
-          question_number: 0,
-          start_time: new Date().toISOString(),
-          is_active: false
-        })
-        .eq('id', 1);
-
-      LOG.ok('State awal siap');
-    }
-  } catch (e) {
-    LOG.err('Auto-clear error', e);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    flushPendingPoints();
   }
+});
 
-  loadScoresData();
-  subscribeRealtimeScores();
-  UI.debug('ready', 0);
-  LOG.ok('══════════ ADMIN READY ══════════');
-})();
+window.addEventListener('beforeunload', () => {
+  flushPendingPoints();
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  LOG.ok('══════════ KIOSK BOOT ══════════');
+
+  try {
+    if (!initUser()) {
+      LOG.err('initUser gagal');
+      return;
+    }
+
+    // ⭐ STEP 1: Render papan dulu (jangan tunggu apapun)
+    LOG.info('Generating bingo boards...');
+    generateBingoBoards();
+    renderBoard(0);
+    UI.debug('ready', 0);
+
+    // ⭐ STEP 2: Cek DOM gridContainer
+    const gc = document.getElementById('gridContainer');
+    if (!gc) {
+      LOG.err('❌ FATAL: gridContainer tidak ditemukan di DOM!');
+    } else {
+      LOG.ok(`gridContainer found, ${gc.children.length} cells rendered`);
+    }
+
+    // ⭐ STEP 3: Sync clock (kalau error, tetap lanjut)
+    try {
+      LOG.info('Syncing clock...');
+      await syncClockOffset();
+    } catch (e) {
+      LOG.warn('syncClockOffset gagal, lanjut saja', e);
+    }
+
+    // ⭐ STEP 4: Load poin dari DB
+    try {
+      LOG.info('Loading saved points...');
+      STATE.scoreAccumulated = await loadMyPointsFromDB();
+      UI.setText('totalScoreText', STATE.scoreAccumulated);
+    } catch (e) {
+      LOG.warn('loadMyPointsFromDB gagal, poin mulai dari 0', e);
+      STATE.scoreAccumulated = 0;
+      UI.setText('totalScoreText', 0);
+    }
+
+    // ⭐ STEP 5: Fetch state awal
+    try {
+      const { data, error } = await supabaseClient
+        .from('system_arithmatic_bingo')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (error) LOG.err('Initial fetch error', error);
+      if (data) processQuestionData(data);
+    } catch (e) {
+      LOG.err('Initial fetch exception', e);
+    }
+
+    // ⭐ STEP 6: Subscribe
+    subscribeToAdmin();
+    setInterval(syncClockOffset, CLOCK_RESYNC_MS);
+
+    LOG.ok('══════════ KIOSK READY ══════════');
+  } catch (e) {
+    LOG.err('❌ FATAL ERROR di init()', e);
+    LOG.err('Stack:', e.stack);
+  }
+}
+
+window.switchBoard = switchBoard;
+window.handleCellClick = handleCellClick;
+
+// ⭐ Guard: tunggu DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>
