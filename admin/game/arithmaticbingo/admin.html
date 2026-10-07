@@ -628,30 +628,32 @@ async function resetBingoScores() {
 // ═══════════════════════════════════════════════════════════
 async function loadScoresData() {
   try {
-    const { data, error } = await supabaseClient
-      .from('game_scores')
-      .select('user_unique_id, score_obtained')
-      .eq('game_name', 'Bingo Math');
+    const { data, error, status } = await supabaseClient
+      .from('point_arithmatic_bingo')
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
 
-    if (error || !data) {
-      LOG.err('Load scores error', error);
+    if (error) {
+      LOG.err('❌ Load scores error:', error.message, '| status:', status);
       return;
     }
 
-    const scoreMap = {};
-    data.forEach(row => {
-      if (!row.user_unique_id) return;
-      scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + (row.score_obtained || 0);
-    });
+    if (!data) {
+      LOG.warn('Load scores: data null');
+      return;
+    }
 
-    const allSorted = Object.keys(scoreMap)
-      .map(uid => ({ uid, total: scoreMap[uid] }))
-      .sort((a, b) => b.total - a.total);
+    LOG.info(`📊 Loaded ${data.length} rows dari DB`);
 
-    renderTop10(allSorted.slice(0, 10));
-    renderAllParticipants(allSorted);
+    const mapped = data.map(row => ({
+      uid: row.name || String(row.unique_id),
+      total: row.point ?? 0
+    }));
+
+    renderTop10(mapped.slice(0, 10));
+    renderAllParticipants(mapped);
   } catch (e) {
-    LOG.err('loadScoresData exception', e);
+    LOG.err('loadScoresData exception:', e.message, e.stack);
   }
 }
 
@@ -719,18 +721,34 @@ function renderAllParticipants(allData) {
 // ═══════════════════════════════════════════════════════════
 // REALTIME SUBSCRIBE (scores)
 // ═══════════════════════════════════════════════════════════
+// ⭐ Realtime dengan logging detail + retry
 function subscribeRealtimeScores() {
-  supabaseClient
+  const channel = supabaseClient
     .channel('admin_leaderboard_bingo')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'game_scores'
-    }, () => {
-      loadScoresData();
-    })
-    .subscribe(status => {
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'point_arithmatic_bingo'
+      },
+      (payload) => {
+        LOG.ok('⚡ Realtime event diterima:', payload.eventType);
+        loadScoresData();
+      }
+    )
+    .subscribe((status, err) => {
+      LOG.info(`Realtime status: ${status}`, err || '');
       STATE.realtimeConnected = (status === 'SUBSCRIBED');
+
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        LOG.err('Realtime error, coba reconnect dalam 3s...');
+        setTimeout(() => {
+          try { supabaseClient.removeChannel(channel); } catch (e) {}
+          subscribeRealtimeScores();
+        }, 3000);
+      }
+
       UI.debug(
         STATE.isAutoRunning ? 'running' : 'ready',
         STATE.qCount,
@@ -738,7 +756,7 @@ function subscribeRealtimeScores() {
       );
     });
 
-  // Polling fallback
+  // ⭐ Polling fallback lebih cepat (1 detik) selama realtime belum connect
   setInterval(() => {
     loadScoresData();
     UI.debug(
@@ -746,7 +764,7 @@ function subscribeRealtimeScores() {
       STATE.qCount,
       STATE.realtimeConnected ? 'rt' : 'poll'
     );
-  }, 2000);
+  }, 1000);
 }
 
 // ═══════════════════════════════════════════════════════════
