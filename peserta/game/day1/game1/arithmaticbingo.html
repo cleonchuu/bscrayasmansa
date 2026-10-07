@@ -299,7 +299,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const QUESTION_DURATION = 20;
 const POLL_INTERVAL_MS = 800;
 const TIMER_TICK_MS = 200;
-const FLUSH_DEBOUNCE_MS = 500;
+const FLUSH_DEBOUNCE_MS = 1500;   // ⭐ diperlama, aman karena ada flush per ganti soal
 const CLOCK_RESYNC_MS = 60000;
 const TAG = '[KIOSK]';
 
@@ -476,6 +476,28 @@ function initUser() {
   }
 }
 
+// ⭐ NEW: Load poin dari DB saat init
+async function loadMyPointsFromDB() {
+  try {
+    const { data, error } = await supabaseClient
+      .from('point_arithmatic_bingo')
+      .select('point')
+      .eq('unique_id', STATE.user.unique_id)
+      .maybeSingle();
+
+    if (error) {
+      LOG.err('Load point error', error);
+      return 0;
+    }
+    const pt = data?.point ?? 0;
+    LOG.ok(`Poin dimuat dari DB: ${pt}`);
+    return pt;
+  } catch (e) {
+    LOG.err('Load point exception', e);
+    return 0;
+  }
+}
+
 function generateBingoBoards() {
   STATE.boards = [];
   STATE.boardStates = [];
@@ -610,26 +632,33 @@ function addPoints(pts, reason) {
   }
 }
 
+// ⭐ RPC-based flush (UPSERT atomik)
 async function flushPendingPoints() {
   if (STATE.flushTimer) {
     clearTimeout(STATE.flushTimer);
     STATE.flushTimer = null;
   }
   if (STATE.pendingPoints === 0) return;
+  if (!STATE.user) return;
 
   const toSend = STATE.pendingPoints;
   STATE.pendingPoints = 0;
 
   try {
-    const { error } = await supabaseClient.from('game_scores').insert({
-      user_unique_id: STATE.user.unique_id,
-      game_name: 'Bingo Math',
-      score_obtained: toSend
+    const { error } = await supabaseClient.rpc('add_point_arithmatic_bingo', {
+      p_unique_id: STATE.user.unique_id,
+      p_name: STATE.user.full_name || String(STATE.user.unique_id),
+      p_delta: toSend
     });
-    if (error) LOG.err('Insert score error', error);
-    else LOG.ok(`Score flushed: ${toSend} pts`);
+
+    if (error) {
+      LOG.err('RPC add_point error', error);
+      STATE.pendingPoints += toSend; // rollback
+    } else {
+      LOG.ok(`Point flushed: ${toSend >= 0 ? '+' : ''}${toSend}`);
+    }
   } catch (e) {
-    LOG.err('Insert exception', e);
+    LOG.err('RPC exception', e);
     STATE.pendingPoints += toSend;
   }
 }
@@ -748,6 +777,8 @@ function processQuestionData(data) {
   }
 
   LOG.ok(`Proses soal #${currQNum}`);
+
+  // ⭐ FLUSH sebelum masuk soal baru (kunci agar poin tidak hilang)
   flushPendingPoints();
 
   STATE.lastQuestionNum = currQNum;
@@ -887,16 +918,15 @@ function subscribeToAdmin() {
   }, POLL_INTERVAL_MS);
 }
 
-window.addEventListener('beforeunload', () => {
-  if (STATE.pendingPoints !== 0 && STATE.user) {
-    try {
-      supabaseClient.from('game_scores').insert({
-        user_unique_id: STATE.user.unique_id,
-        game_name: 'Bingo Math',
-        score_obtained: STATE.pendingPoints
-      });
-    } catch (e) {}
+// ⭐ Flush saat tab kehilangan fokus / ditutup
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    flushPendingPoints();
   }
+});
+
+window.addEventListener('beforeunload', () => {
+  flushPendingPoints();
 });
 
 async function init() {
@@ -910,6 +940,11 @@ async function init() {
 
   LOG.info('Syncing clock...');
   await syncClockOffset();
+
+  // ⭐ Load poin tersimpan dari DB
+  LOG.info('Loading saved points...');
+  STATE.scoreAccumulated = await loadMyPointsFromDB();
+  UI.setText('totalScoreText', STATE.scoreAccumulated);
 
   try {
     const { data, error } = await supabaseClient
