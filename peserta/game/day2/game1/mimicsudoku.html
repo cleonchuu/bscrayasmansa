@@ -33,7 +33,6 @@
       text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
       animation: fadeIn 0.2s ease-in-out;
     }
-
     .flash-correct { background-color: #16a34a; }
     .flash-wrong { background-color: #dc2626; }
 
@@ -82,18 +81,15 @@
       border: none;
       font-family: inherit;
     }
-
     .calc-btn:active:not(:disabled) {
       transform: scale(0.95);
       background: #475569;
     }
-
     .calc-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
 
-    /* Quota badge */
     .quota-badge {
       display: inline-flex;
       align-items: center;
@@ -108,19 +104,12 @@
     .quota-mid  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4); }
     .quota-low  { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
     .quota-none { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border-color: rgba(100, 116, 139, 0.4); }
-
-    /* Clock indicator */
-    @keyframes clockSyncPulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .clock-syncing { animation: clockSyncPulse 1s ease-in-out infinite; }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- FREEZE OVERLAY (menunggu / timeout / loading)                -->
+  <!-- FREEZE OVERLAY                                               -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
     <div id="freezeIconWrap" class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
@@ -138,9 +127,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- FLASH OVERLAY (jawaban benar/salah)                          -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FLASH OVERLAY -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
@@ -165,17 +152,13 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- STEP 1: PILIH SEKOLAH                                    -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 1: PILIH SEKOLAH -->
     <div id="stepSchool" class="space-y-4">
       <label class="block text-sm font-medium text-slate-300">1. Pilih Sekolah Peserta:</label>
       <div id="schoolList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- STEP 2: PILIH PESERTA                                    -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 2: PILIH PESERTA -->
     <div id="stepStudent" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <label class="block text-sm font-medium text-slate-300">2. Pilih Nama Peserta:</label>
@@ -184,9 +167,7 @@
       <div id="studentList" class="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- STEP 3: KALKULATOR                                       -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- STEP 3: KALKULATOR -->
     <div id="stepCalculator" class="space-y-4 hidden">
       <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between gap-2">
         <div class="min-w-0 flex-1">
@@ -237,13 +218,6 @@
 
   const CURRENT_GAME_NAME = "Mimic Sudoku";
   const DEFAULT_QUOTA = 2;
-  const CLOCK_RESYNC_MS = 60000;
-
-  const LEVEL_CONFIG = {
-    level_1: { durationSec: 120, maxPoint: 30, minPoint: 15 },
-    level_2: { durationSec: 240, maxPoint: 60, minPoint: 30 },
-    level_3: { durationSec: 300, maxPoint: 100, minPoint: 50 }
-  };
 
   // ═══════════════════════════════════════════════════════════
   // STATE
@@ -256,18 +230,17 @@
   let isFrozen = false;
   let currentQuota = DEFAULT_QUOTA;
 
-  // Session
-  let sessionStartTime = null;
-  let sessionLevel = null;
-  let sessionDurationSec = 0;
-  let kioskTimerInterval = null;
-  let lastStatusSig = '';
-  let lastLoadedLevel = null;   // ⭐ Track level yang sudah di-load
-  let isLoadingSession = false; // ⭐ Fase loading 5 detik
-
-  // ⭐ Clock sync
-  let clockOffset = 0;
-  let clockSynced = false;
+  // ⭐ Server state (dari mimic_game_state)
+  let serverState = {
+    action: 'RESET',
+    current_level: null,
+    seconds_remaining: 0,
+    duration: 0,
+    label: null,
+    is_frozen: false,
+    is_running: false
+  };
+  let lastStateSig = '';
 
   // ═══════════════════════════════════════════════════════════
   // DOM
@@ -282,166 +255,116 @@
   const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ CLOCK SYNC
-  // ═══════════════════════════════════════════════════════════
-  async function syncClockOffset() {
-    try {
-      const t0 = Date.now();
-      const { data } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('updated_at')
-        .eq('id', 5)
-        .maybeSingle();
-      const t1 = Date.now();
-
-      if (!data || !data.updated_at) {
-        clockOffset = 0;
-        clockSynced = false;
-        return;
-      }
-
-      const serverTs = new Date(data.updated_at).getTime();
-      const rtt = t1 - t0;
-      const localEstimate = t0 + (rtt / 2);
-      clockOffset = serverTs - localEstimate;
-      clockSynced = true;
-      console.log(`[CLOCK] Offset: ${Math.round(clockOffset)}ms (RTT ${rtt}ms)`);
-    } catch (e) {
-      clockOffset = 0;
-      clockSynced = false;
-    }
-  }
-
-  function now() { return Date.now() + clockOffset; }
-
-  // ═══════════════════════════════════════════════════════════
-  // HITUNG POIN (linear decay pakai jam server)
-  // ═══════════════════════════════════════════════════════════
-  function calculateScore() {
-    if (!sessionStartTime || !sessionLevel) return 0;
-
-    const cfg = LEVEL_CONFIG[sessionLevel];
-    if (!cfg) return 0;
-
-    const elapsedSec = (now() - sessionStartTime) / 1000;
-    const remainingSec = Math.max(0, cfg.durationSec - elapsedSec);
-    const range = cfg.maxPoint - cfg.minPoint;
-    const rawScore = cfg.minPoint + (remainingSec / cfg.durationSec) * range;
-    const finalScore = Math.max(cfg.minPoint, Math.min(cfg.maxPoint, rawScore));
-
-    console.log(`[SCORE] ${sessionLevel} | sisa ${remainingSec.toFixed(1)}s | poin ${finalScore.toFixed(2)}`);
-    return parseFloat(finalScore.toFixed(2));
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // POLLING STATUS GAME
+  // ⭐ SERVER STATE LISTENER (timer, freeze, start, reset)
   // ═══════════════════════════════════════════════════════════
   function listenToGameStatus() {
+    // Realtime subscription
+    supabaseClient
+      .channel('kiosk_game_state')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'mimic_game_state' },
+        (payload) => {
+          if (payload.new) handleServerState(payload.new);
+        })
+      .subscribe((status) => {
+        console.log(`[REALTIME] ${status}`);
+      });
+
+    // Fallback polling tiap 1.5 detik
     setInterval(async () => {
-      try {
-        const { data, error } = await supabaseClient
-          .from('system_mimic_sudoku')
-          .select('id, grid_data, updated_at')
-          .eq('id', 5)
-          .maybeSingle();
-
-        if (error || !data || !data.grid_data) return;
-
-        const status = data.grid_data;
-        const sig = `${status.action}|${status.current_level}|${status.session_start_time}`;
-        if (sig === lastStatusSig) return;
-        lastStatusSig = sig;
-
-        console.log(`[STATUS] ${status.action} / ${status.current_level}`);
-
-        if (status.action === 'START_GAME' && status.current_level) {
-          // ⭐ Sesi baru → fase loading 5 detik
-          await startNewSession(status);
-        } else if (status.action === 'RESET') {
-          // Reset
-          sessionStartTime = null;
-          sessionLevel = null;
-          sessionDurationSec = 0;
-          lastLoadedLevel = null;
-          isLoadingSession = false;
-
-          freezeKiosk('stopped', 'Menunggu admin memulai sesi...');
-          kioskTimerDisplay.textContent = '--:--';
-        }
-      } catch (err) {
-        console.error("[STATUS] Polling error:", err);
-      }
+      const { data } = await supabaseClient
+        .from('mimic_game_state')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+      if (data) handleServerState(data);
     }, 1500);
-
-    // Timer per detik pakai jam server
-    kioskTimerInterval = setInterval(() => {
-      if (sessionStartTime && !isFrozen && !isLoadingSession) {
-        updateKioskTimer();
-      }
-    }, 500);
   }
 
-  // ⭐ Fase loading 5 detik saat sesi baru dimulai
-  async function startNewSession(status) {
-    isLoadingSession = true;
-    lastLoadedLevel = status.current_level;
+  // ⭐ Handle perubahan state server
+  function handleServerState(row) {
+    if (!row) return;
 
-    // Tampilkan freeze dengan info loading
-    freezeKiosk('loading', `Mempersiapkan level ${status.current_level.replace('level_', '')}...`, 'LOADING');
+    const newState = {
+      action: row.action || 'RESET',
+      current_level: row.current_level || null,
+      seconds_remaining: typeof row.seconds_remaining === 'number' ? row.seconds_remaining : 0,
+      duration: row.duration || 0,
+      label: row.label || null,
+      is_frozen: !!row.is_frozen,
+      is_running: !!row.is_running
+    };
 
-    // Set session time (dari server)
-    sessionStartTime = status.session_start_time || now();
-    sessionLevel = status.current_level;
-    sessionDurationSec = status.duration || LEVEL_CONFIG[status.current_level]?.durationSec || 300;
+    // ⭐ Update timer display SETIAP kali state berubah
+    updateKioskTimer(newState.seconds_remaining);
 
-    // Sync clock sekali lagi saat mulai sesi (biar akurat)
-    await syncClockOffset();
+    // ⭐ Handle freeze
+    handleFreeze(newState);
 
-    // ⭐ Tampilkan countdown loading 5 detik
-    for (let i = 5; i > 0; i--) {
-      const msg = document.getElementById('freezeMessage');
-      if (msg) msg.textContent = `Menyiapkan sesi... ${i} detik`;
-      await new Promise(r => setTimeout(r, 1000));
+    // Deteksi perubahan signifikan
+    const sig = `${newState.action}|${newState.current_level}|${newState.is_running}|${newState.is_frozen}`;
+    if (sig === lastStateSig) {
+      serverState = newState;  // tetap update internal
+      return;
     }
+    lastStateSig = sig;
+    serverState = newState;
 
-    isLoadingSession = false;
+    console.log(`[STATE] ${newState.action} / ${newState.current_level} / frozen=${newState.is_frozen}`);
 
-    // Unfreeze
-    unfreezeKiosk();
-    updateKioskTimer();
-
-    console.log(`[SESSION] Start ${sessionLevel} (${sessionDurationSec}s)`);
+    // Route berdasarkan action
+    if (newState.action === 'START_GAME' && newState.current_level) {
+      onGameStart(newState);
+    } else if (newState.action === 'RESET' || newState.action === 'TIME_UP') {
+      onGameReset(newState.action);
+    }
   }
 
-  function updateKioskTimer() {
-    if (!sessionStartTime || sessionDurationSec === 0) return;
-
-    const elapsed = Math.floor((now() - sessionStartTime) / 1000);
-    const remaining = Math.max(0, sessionDurationSec - elapsed);
-
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
+  // ⭐ Timer dari server (bukan hitung sendiri)
+  function updateKioskTimer(seconds) {
+    const safeSec = Math.max(0, Math.floor(seconds || 0));
+    const m = Math.floor(safeSec / 60);
+    const s = safeSec % 60;
     kioskTimerDisplay.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
-    // Warna berubah saat kritis
-    if (remaining <= 10) {
+    if (safeSec <= 10) {
       kioskTimerDisplay.className = 'font-mono font-bold text-rose-500 text-sm animate-pulse';
-    } else if (remaining <= 30) {
+    } else if (safeSec <= 30) {
       kioskTimerDisplay.className = 'font-mono font-bold text-amber-400 text-sm';
     } else {
-      kioskTimerDisplay.className = 'font-mono font-bold text-amber-400 text-sm';
+      kioskTimerDisplay.className = 'font-mono font-bold text-emerald-400 text-sm';
+    }
+  }
+
+  // ⭐ Freeze handling
+  function handleFreeze(state) {
+    // Kalau belum pernah start → jangan unfreeze (masih waiting)
+    if (state.action === 'RESET' && !state.is_running) {
+      return;  // biarkan freeze "waiting"
     }
 
-    if (remaining <= 0) {
-      freezeKiosk('timeout', 'Waktu habis! Harap tunggu putaran berikutnya.', 'TIMEOUT');
+    if (state.is_frozen) {
+      freezeKiosk('frozen', 'Sesi dijeda oleh panitia. Harap tunggu...', 'PAUSED');
+    } else if (state.is_running && state.seconds_remaining > 0) {
+      unfreezeKiosk();
     }
+  }
+
+  function onGameStart(state) {
+    console.log(`[SESSION] Start ${state.current_level}`);
+    unfreezeKiosk();
+  }
+
+  function onGameReset(reason) {
+    console.log(`[RESET] ${reason}`);
+    freezeKiosk('stopped', reason === 'TIME_UP' ? 'Waktu habis! Menunggu putaran berikutnya.' : 'Menunggu admin memulai sesi...', reason === 'TIME_UP' ? 'TIME UP' : 'WAITING');
   }
 
   // ═══════════════════════════════════════════════════════════
   // FREEZE / UNFREEZE
   // ═══════════════════════════════════════════════════════════
   function freezeKiosk(status, message, label) {
-    if (isFrozen && status !== 'loading') return;
+    if (isFrozen && status !== 'frozen') return;
     isFrozen = true;
 
     const iconWrap = document.getElementById('freezeIconWrap');
@@ -456,6 +379,13 @@
       title.className = 'text-3xl md:text-4xl font-black text-rose-500 tracking-wider uppercase mb-2';
       statusText.textContent = 'TIMEOUT';
       statusText.className = 'text-rose-400 font-bold uppercase';
+    } else if (status === 'frozen') {
+      iconWrap.className = 'w-24 h-24 bg-amber-500/10 border-2 border-amber-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse';
+      iconWrap.innerHTML = '<i class="fas fa-pause text-5xl text-amber-400"></i>';
+      title.textContent = 'SESI DIJEDA';
+      title.className = 'text-3xl md:text-4xl font-black text-amber-400 tracking-wider uppercase mb-2';
+      statusText.textContent = 'PAUSED';
+      statusText.className = 'text-amber-400 font-bold uppercase';
     } else if (status === 'loading') {
       iconWrap.className = 'w-24 h-24 bg-indigo-500/10 border-2 border-indigo-500/30 rounded-full flex items-center justify-center mb-6';
       iconWrap.innerHTML = '<div class="loading-ring"></div>';
@@ -468,7 +398,7 @@
       iconWrap.innerHTML = '<i class="fas fa-hourglass-half text-5xl text-slate-400"></i>';
       title.textContent = 'MENUNGGU ADMIN';
       title.className = 'text-3xl md:text-4xl font-black text-slate-400 tracking-wider uppercase mb-2';
-      statusText.textContent = 'WAITING';
+      statusText.textContent = label || 'WAITING';
       statusText.className = 'text-slate-400 font-bold uppercase';
     }
 
@@ -480,9 +410,11 @@
   function unfreezeKiosk() {
     if (!isFrozen) return;
     isFrozen = false;
-
     freezeOverlay.classList.add('hidden');
     document.querySelectorAll('button').forEach(btn => btn.disabled = false);
+
+    // Cek kuota jika peserta sedang di kalkulator
+    if (selectedStudent) refreshQuotaUI();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -539,27 +471,48 @@
     currentInput = '';
     updateDisplay();
 
-    // ⭐ Fetch kuota dari DB
+    // ⭐ Fetch kuota
     currentQuota = await getQuota(student.unique_id);
     updateQuotaBadge(currentQuota);
 
     document.getElementById('selectedStudentName').textContent = student.full_name;
     document.getElementById('selectedStudentSchool').textContent = student.school_name;
 
-    // Kalau kuota habis → disable submit
-    const btnSubmit = document.getElementById('btnSubmitAnswer');
-    if (currentQuota <= 0) {
-      btnSubmit.disabled = true;
-      btnSubmit.classList.add('opacity-50');
-      document.getElementById('btnSubmitText').textContent = 'KUOTA HABIS';
-    } else {
-      btnSubmit.disabled = false;
-      btnSubmit.classList.remove('opacity-50');
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-    }
+    // Update tombol submit
+    updateSubmitButton();
 
     stepStudent.classList.add('hidden');
     stepCalculator.classList.remove('hidden');
+  }
+
+  function updateSubmitButton() {
+    const btnSubmit = document.getElementById('btnSubmitAnswer');
+    const btnText = document.getElementById('btnSubmitText');
+
+    if (currentQuota <= 0) {
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add('opacity-50');
+      btnText.textContent = 'KUOTA HABIS';
+    } else if (!serverState.is_running || serverState.seconds_remaining <= 0) {
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add('opacity-50');
+      btnText.textContent = 'SESI BELUM AKTIF';
+    } else if (serverState.is_frozen) {
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add('opacity-50');
+      btnText.textContent = 'SESI DIJEDA';
+    } else {
+      btnSubmit.disabled = false;
+      btnSubmit.classList.remove('opacity-50');
+      btnText.textContent = 'SUBMIT JAWABAN 🚀';
+    }
+  }
+
+  async function refreshQuotaUI() {
+    if (!selectedStudent) return;
+    currentQuota = await getQuota(selectedStudent.unique_id);
+    updateQuotaBadge(currentQuota);
+    updateSubmitButton();
   }
 
   function updateQuotaBadge(quota) {
@@ -592,29 +545,7 @@
   function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
 
   // ═══════════════════════════════════════════════════════════
-  // AMBIL JAWABAN dari id=3
-  // ═══════════════════════════════════════════════════════════
-  async function getCorrectAnswerFromDB() {
-    try {
-      const { data, error } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('grid_data')
-        .eq('id', 3)
-        .maybeSingle();
-
-      if (error || !data || data.grid_data === null || data.grid_data === undefined) {
-        console.warn("[ANSWER] Tidak tersedia");
-        return null;
-      }
-      return String(data.grid_data);
-    } catch (err) {
-      console.error("[ANSWER] Exception:", err);
-      return null;
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // KUOTA (default 2)
+  // KUOTA (read-only, karena update via RPC)
   // ═══════════════════════════════════════════════════════════
   async function getQuota(userUniqueId) {
     try {
@@ -624,12 +555,12 @@
         .eq('user_unique_id', userUniqueId)
         .maybeSingle();
 
-      if (error) { console.warn("[QUOTA] Error:", error); return DEFAULT_QUOTA; }
+      if (error) {
+        console.warn("[QUOTA] Error:", error);
+        return DEFAULT_QUOTA;
+      }
       if (!data) {
-        // Belum ada row → insert dengan default 2
-        await supabaseClient
-          .from('system_input_max_mimic_sudoku')
-          .insert([{ user_unique_id: userUniqueId, input_left: DEFAULT_QUOTA }]);
+        // Belum ada → return default, INSERT nanti saat submit via RPC
         return DEFAULT_QUOTA;
       }
       return data.input_left ?? 0;
@@ -639,92 +570,58 @@
     }
   }
 
-  async function decrementQuota(userUniqueId, currentQuota) {
-    try {
-      const newQuota = Math.max(0, currentQuota - 1);
-      const { data } = await supabaseClient
-        .from('system_input_max_mimic_sudoku')
-        .select('id')
-        .eq('user_unique_id', userUniqueId)
-        .maybeSingle();
-
-      if (!data) {
-        await supabaseClient
-          .from('system_input_max_mimic_sudoku')
-          .insert([{ user_unique_id: userUniqueId, input_left: newQuota }]);
-      } else {
-        await supabaseClient
-          .from('system_input_max_mimic_sudoku')
-          .update({ input_left: newQuota })
-          .eq('user_unique_id', userUniqueId);
-      }
-
-      return newQuota;
-    } catch (err) {
-      console.error("[QUOTA] Gagal kurangi:", err);
-      return currentQuota;
-    }
-  }
-
   // ═══════════════════════════════════════════════════════════
-  // SUBMIT JAWABAN
+  // ⭐ SUBMIT JAWABAN via RPC (anti-cheat, server-side scoring)
   // ═══════════════════════════════════════════════════════════
   async function submitAnswer() {
     if (!currentInput || isSubmitting || isFrozen) return;
-    if (!sessionStartTime || !sessionLevel) {
-      alert('Sesi belum dimulai. Tunggu admin!');
+
+    if (!serverState.is_running || serverState.seconds_remaining <= 0) {
+      alert('Sesi belum aktif atau sudah berakhir!');
+      return;
+    }
+
+    if (serverState.is_frozen) {
+      alert('Sesi sedang dijeda oleh panitia.');
       return;
     }
 
     isSubmitting = true;
     document.getElementById('btnSubmitText').textContent = 'MEMPROSES...';
+    document.getElementById('btnSubmitAnswer').disabled = true;
 
-    // 1. Cek kuota fresh
-    const quota = await getQuota(selectedStudent.unique_id);
-    if (quota <= 0) {
-      alert('Kuota jawaban Anda sudah habis!');
+    try {
+      // ⭐ Panggil RPC — semua perhitungan di server
+      const { data, error } = await supabaseClient.rpc('submit_mimic_answer', {
+        p_user_id: selectedStudent.unique_id,
+        p_answer: currentInput
+      });
+
+      if (error) {
+        console.error('[SUBMIT] RPC error:', error);
+        alert('Gagal submit: ' + error.message);
+        isSubmitting = false;
+        updateSubmitButton();
+        return;
+      }
+
+      if (!data || !data.success) {
+        alert(data?.error || 'Gagal submit jawaban');
+        isSubmitting = false;
+        updateSubmitButton();
+        return;
+      }
+
+      // ⭐ data: { success, correct, score, correct_answer, quota, seconds_remaining }
+      console.log('[SUBMIT] Result:', data);
+      triggerFlashEffect(data.correct, data.score, data.correct_answer, data.quota);
+
+    } catch (err) {
+      console.error('[SUBMIT] Exception:', err);
+      alert('Terjadi kesalahan: ' + err.message);
       isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      return;
+      updateSubmitButton();
     }
-
-    // 2. Ambil kunci jawaban
-    const correctAnswer = await getCorrectAnswerFromDB();
-    if (correctAnswer === null) {
-      alert('Gagal mengambil kunci jawaban. Pastikan sesi sudah dimulai!');
-      isSubmitting = false;
-      document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
-      return;
-    }
-
-    // 3. Evaluasi
-    const isCorrect = (currentInput.trim() === correctAnswer.trim());
-
-    // 4. Hitung poin (pakai jam server)
-    let pointsEarned = 0;
-    if (isCorrect) {
-      pointsEarned = calculateScore();
-      console.log(`[SUBMIT] BENAR! Poin: ${pointsEarned}`);
-    } else {
-      console.log(`[SUBMIT] SALAH. Input="${currentInput}", Correct="${correctAnswer}"`);
-    }
-
-    // 5. Simpan skor
-    const { error: scoreErr } = await supabaseClient
-      .from('game_scores')
-      .insert([{
-        user_unique_id: selectedStudent.unique_id,
-        game_name: CURRENT_GAME_NAME,
-        score_obtained: pointsEarned
-      }]);
-
-    if (scoreErr) console.error("[SCORE] Gagal simpan:", scoreErr);
-
-    // 6. Kurangi kuota
-    const newQuota = await decrementQuota(selectedStudent.unique_id, quota);
-
-    // 7. Flash + update badge
-    triggerFlashEffect(isCorrect, pointsEarned, correctAnswer, newQuota);
   }
 
   function triggerFlashEffect(isCorrect, pointsEarned, correctAnswer, newQuota) {
@@ -738,7 +635,7 @@
     if (isCorrect) {
       text.innerHTML = `
         <div>JAWABAN BENAR!</div>
-        <div class="text-4xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${pointsEarned.toFixed(2)} PTS</div>
+        <div class="text-4xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${Number(pointsEarned).toFixed(2)} PTS</div>
         <div class="text-lg mt-3 opacity-80">Sisa kuota: ${newQuota}</div>
       `;
     } else {
@@ -756,7 +653,6 @@
       isSubmitting = false;
       updateQuotaBadge(newQuota);
 
-      // Reset ke start
       resetToStart();
       loadAllParticipants();
     }, 3000);
@@ -786,9 +682,13 @@
   (async () => {
     console.log('[KIOSK] Boot...');
 
-    // ⭐ Sync clock dulu
-    await syncClockOffset();
-    setInterval(syncClockOffset, CLOCK_RESYNC_MS);
+    // Baca state awal
+    const { data: stateRow } = await supabaseClient
+      .from('mimic_game_state')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (stateRow) handleServerState(stateRow);
 
     // Load peserta
     await loadAllParticipants();
