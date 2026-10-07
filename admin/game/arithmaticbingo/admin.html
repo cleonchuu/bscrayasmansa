@@ -611,13 +611,13 @@ async function resetBingoScores() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SCORES: Load & Render
+// SCORES: Load & Render (TANPA hash-guard)
 // ═══════════════════════════════════════════════════════════
 async function loadScoresData() {
   try {
-    const { data, error, status } = await supabaseClient
+    const { data, error, status, count } = await supabaseClient
       .from('point_arithmatic_bingo')
-      .select('unique_id, name, point')
+      .select('unique_id, name, point', { count: 'exact' })
       .order('point', { ascending: false });
 
     if (error) {
@@ -625,17 +625,13 @@ async function loadScoresData() {
       return;
     }
 
-    if (!data) {
-      LOG.warn('Load scores: data null');
+    LOG.info(`📊 Loaded ${data?.length ?? 0} rows (count=${count})`);
+
+    if (!data || data.length === 0) {
+      renderTop10([]);
+      renderAllParticipants([]);
       return;
     }
-
-    // ⭐ Skip render kalau data tidak berubah (hemat CPU)
-    const hash = JSON.stringify(data.map(r => [r.unique_id, r.point]));
-    if (hash === STATE.lastRenderedHash) return;
-    STATE.lastRenderedHash = hash;
-
-    LOG.info(`📊 Loaded ${data.length} rows dari DB`);
 
     const mapped = data.map(row => ({
       uid: row.name || String(row.unique_id),
@@ -713,8 +709,15 @@ function renderAllParticipants(allData) {
 // ═══════════════════════════════════════════════════════════
 // REALTIME SUBSCRIBE (scores)
 // ═══════════════════════════════════════════════════════════
+let realtimeChannel = null;
+let pollingInterval = null;
+
 function subscribeRealtimeScores() {
-  const channel = supabaseClient
+  if (realtimeChannel) {
+    try { supabaseClient.removeChannel(realtimeChannel); } catch (e) {}
+  }
+
+  realtimeChannel = supabaseClient
     .channel('admin_leaderboard_bingo')
     .on(
       'postgres_changes',
@@ -725,7 +728,6 @@ function subscribeRealtimeScores() {
       },
       (payload) => {
         LOG.ok(`⚡ Realtime event: ${payload.eventType}`);
-        STATE.lastRenderedHash = ''; // force re-render
         loadScoresData();
       }
     )
@@ -736,27 +738,14 @@ function subscribeRealtimeScores() {
 
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         LOG.warn('Realtime bermasalah, reconnect dalam 3s...');
-        setTimeout(() => {
-          try { supabaseClient.removeChannel(channel); } catch (e) {}
-          subscribeRealtimeScores();
-        }, 3000);
+        setTimeout(() => subscribeRealtimeScores(), 3000);
       }
-
-      UI.debug(
-        STATE.isAutoRunning ? 'running' : 'ready',
-        STATE.qCount,
-        STATE.realtimeConnected ? 'rt' : 'poll'
-      );
     });
 
-  // Polling fallback
-  setInterval(() => {
+  // Polling fallback (selalu jalan, jangan dihapus)
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(() => {
     loadScoresData();
-    UI.debug(
-      STATE.isAutoRunning ? 'running' : 'ready',
-      STATE.qCount,
-      STATE.realtimeConnected ? 'rt' : 'poll'
-    );
   }, POLL_INTERVAL_MS);
 }
 
@@ -793,6 +782,16 @@ async function initAdmin() {
     } catch (e) {
       LOG.err('Auto-clear error', e);
     }
+
+    // Paksa refresh penuh setiap 5 detik (buat jaga-jaga)
+setInterval(() => {
+  loadScoresData();
+  UI.debug(
+    STATE.isAutoRunning ? 'running' : 'ready',
+    STATE.qCount,
+    STATE.realtimeConnected ? 'rt' : 'poll'
+  );
+}, 5000);
 
     // Load data + subscribe
     await loadScoresData();
