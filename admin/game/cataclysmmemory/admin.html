@@ -755,17 +755,34 @@
       alert("✅ Semua tim berhasil di-reset.");
     }
 
-    async function resetScores() {
-      const confirmReset = confirm("Hapus seluruh skor Cataclysm Memory?");
+        async function resetScores() {
+      const confirmReset = confirm(
+        "Reset seluruh poin Cataclysm Memory ke 0?\n\n" +
+        "• Poin semua peserta akan di-set 0\n" +
+        "• Data tim TIDAK dihapus\n" +
+        "• Status finished tim akan direset"
+      );
       if (!confirmReset) return;
 
-      const { error } = await supabaseClient
-        .from('game_scores')
-        .delete()
-        .eq('game_name', GAME_NAME);
+      try {
+        // 1. Reset poin via RPC
+        const { error: rpcErr } = await supabaseClient.rpc('reset_point_table', {
+          p_table_name: 'point_cataclysm_memory'
+        });
 
-      if (error) alert("Gagal reset: " + error.message);
-      else { alert("✅ Skor berhasil dihapus."); await loadTeamsAndParticipants(); }
+        if (rpcErr) throw rpcErr;
+
+        // 2. Reset status tim
+        await supabaseClient
+          .from('cataclysm_memory_teams')
+          .update({ finished: false, score: 0 })
+          .neq('id', 0);
+
+        alert("✅ Poin berhasil direset.");
+        await loadTeamsAndParticipants();
+      } catch (e) {
+        alert("Gagal reset: " + e.message);
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -779,17 +796,17 @@
 
       const { data: teams } = await supabaseClient.from('cataclysm_memory_teams').select('*');
 
-      const { data: scores } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained')
-        .eq('game_name', GAME_NAME);
+      // ⭐ Ambil dari tabel poin baru
+      const { data: points } = await supabaseClient
+        .from('point_cataclysm_memory')
+        .select('unique_id, point');
 
       const teamMap = {};
       (teams || []).forEach(t => { teamMap[t.unique_id] = t.team; });
 
-      let scoreMap = {};
-      (scores || []).forEach(row => {
-        scoreMap[row.user_unique_id] = (scoreMap[row.user_unique_id] || 0) + (row.score_obtained || 0);
+      const scoreMap = {};
+      (points || []).forEach(row => {
+        scoreMap[row.unique_id] = row.point || 0;
       });
 
       const merged = (users || []).map(u => ({
@@ -994,7 +1011,7 @@
     function subscribeRealtime() {
       supabaseClient
         .channel('admin_cataclysm_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'game_scores' }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'point_cataclysm_memory' }, () => {
           loadTeamsAndParticipants();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'cataclysm_memory_teams' }, () => {
