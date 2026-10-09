@@ -882,14 +882,36 @@
         return;
       }
 
-      // Insert ke game_scores
-      const { error: scoreErr } = await supabaseClient
-        .from('game_scores')
-        .insert(inserts);
+            // ⭐ INSERT KE TABEL BARU (point_number_disco_blue/red)
+      // Ganti loop supaya pakai RPC add_point_generic
+      try {
+        for (const item of inserts) {
+          // Tentukan nama tabel berdasarkan game_name
+          let tableName;
+          if (item.game_name === 'Number Disco Blue') {
+            tableName = 'point_number_disco_blue';
+          } else if (item.game_name === 'Number Disco Red') {
+            tableName = 'point_number_disco_red';
+          } else {
+            LOG.warn('SUBMIT', `Unknown game_name: ${item.game_name}`);
+            continue;
+          }
 
-      if (scoreErr) {
-        LOG.error('SUBMIT', 'Gagal insert score', scoreErr);
-        alert("Gagal mengirim jawaban: " + scoreErr.message);
+          const { error: rpcErr } = await supabaseClient.rpc('add_point_generic', {
+            p_table_name: tableName,
+            p_unique_id: item.user_unique_id,
+            p_name: selectedStudent.full_name || String(item.user_unique_id),
+            p_delta: item.score_obtained
+          });
+
+          if (rpcErr) {
+            LOG.error('SUBMIT', `RPC add_point_generic gagal (${tableName}):`, rpcErr);
+            throw rpcErr;
+          }
+        }
+      } catch (e) {
+        LOG.error('SUBMIT', 'Gagal kirim jawaban:', e);
+        alert("Gagal mengirim jawaban: " + e.message);
         isSubmitting = false;
         document.getElementById('btnSubmitText').textContent = 'SUBMIT JAWABAN 🚀';
         startRealtimeTimer();
