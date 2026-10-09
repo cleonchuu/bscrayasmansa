@@ -1488,31 +1488,48 @@ async function handleControlAction(data) {
 // ═══════════════════════════════════════════════════════════
 // FETCH SCORES
 // ═══════════════════════════════════════════════════════════
-async function fetchAndRenderStageScores(isAllPlayersView) {
-  const { data, error } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained, game_name')
-    .or('game_name.ilike.%Number Disco%,game_name.ilike.%Bingo%');
+  async function fetchAndRenderStageScores(isAllPlayersView) {
+    // ⭐ Ambil dari 2 tabel baru
+    const [blueRes, redRes] = await Promise.all([
+      supabaseClient.from('point_number_disco_blue').select('unique_id, name, point'),
+      supabaseClient.from('point_number_disco_red').select('unique_id, name, point')
+    ]);
 
-  if (error || !data) return;
+    if (blueRes.error || redRes.error) {
+      LOG.error('STAGE', 'Fetch scores error', blueRes.error || redRes.error);
+      return;
+    }
 
-  let scoreMap = {};
-  data.forEach(row => {
-    const uid = row.user_unique_id || 'Tanpa Nama';
-    scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-  });
+    const blueData = blueRes.data || [];
+    const redData  = redRes.data || [];
 
-  cachedScores = Object.keys(scoreMap)
-    .map(uid => ({ uid, total: scoreMap[uid] }))
-    .sort((a, b) => b.total - a.total);
+    // ⭐ Gabung poin Blue + Red
+    const scoreMap = {};
+    blueData.forEach(row => {
+      if (!row.unique_id) return;
+      const key = row.unique_id;
+      scoreMap[key] = scoreMap[key] || { uid: row.name || key, total: 0 };
+      scoreMap[key].total += row.point || 0;
+    });
+    redData.forEach(row => {
+      if (!row.unique_id) return;
+      const key = row.unique_id;
+      scoreMap[key] = scoreMap[key] || { uid: row.name || key, total: 0 };
+      scoreMap[key].total += row.point || 0;
+    });
 
-  if (isAllPlayersView) {
-    renderAllPlayersList();
-    startAutoScroll();
-  } else {
-    renderStageLeaderboard();
+    cachedScores = Object.values(scoreMap)
+      .sort((a, b) => b.total - a.total);
+
+    LOG.info('STAGE', `Loaded ${cachedScores.length} peserta`);
+
+    if (isAllPlayersView) {
+      renderAllPlayersList();
+      startAutoScroll();
+    } else {
+      renderStageLeaderboard();
+    }
   }
-}
 
 function renderStageLeaderboard() {
   const container = document.getElementById('stageLeaderboardGrid');
