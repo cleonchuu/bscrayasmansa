@@ -1430,51 +1430,51 @@ function stopAnswerTimer() {
 // ═══════════════════════════════════════════════════════════
 // TEAM STANDINGS
 // ═══════════════════════════════════════════════════════════
-async function fetchTeamStandings() {
-  const { data: teams } = await supabaseClient
-    .from('cataclysm_memory_teams')
-    .select('unique_id, full_name, team');
+    async function fetchTeamStandings() {
+      const { data: teams } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('unique_id, full_name, team');
 
-  const { data: scores } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained')
-    .eq('game_name', GAME_NAME);
+      // ⭐ Ambil poin dari tabel baru
+      const { data: points } = await supabaseClient
+        .from('point_cataclysm_memory')
+        .select('unique_id, point');
 
-  const scoreMap = {};
-  (scores || []).forEach(s => {
-    scoreMap[s.user_unique_id] = (scoreMap[s.user_unique_id] || 0) + (s.score_obtained || 0);
-  });
-
-  const teamTotals = {};
-  for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
-
-  (teams || []).forEach(t => {
-    if (teamTotals[t.team]) {
-      const memberScore = scoreMap[t.unique_id] || 0;
-      teamTotals[t.team].members.push({
-        unique_id: t.unique_id,
-        full_name: t.full_name || t.unique_id,
-        score: memberScore
+      const scoreMap = {};
+      (points || []).forEach(p => {
+        scoreMap[p.unique_id] = p.point || 0;
       });
-      teamTotals[t.team].sum += memberScore;
-      teamTotals[t.team].count += 1;
-    }
-  });
 
-  cachedTeamStandings = Object.keys(teamTotals)
-    .map(tn => {
-      const t = teamTotals[tn];
-      const avg = t.count > 0 ? (t.sum / t.count) : 0;
-      return {
-        team: parseInt(tn),
-        average: Math.round(avg * 10) / 10,
-        sum: t.sum,
-        count: t.count,
-        members: t.members.sort((a, b) => b.score - a.score)
-      };
-    })
-    .sort((a, b) => b.average - a.average);
-}
+      const teamTotals = {};
+      for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
+
+      (teams || []).forEach(t => {
+        if (teamTotals[t.team]) {
+          const memberScore = scoreMap[t.unique_id] || 0;
+          teamTotals[t.team].members.push({
+            unique_id: t.unique_id,
+            full_name: t.full_name || t.unique_id,
+            score: memberScore
+          });
+          teamTotals[t.team].sum += memberScore;
+          teamTotals[t.team].count += 1;
+        }
+      });
+
+      cachedTeamStandings = Object.keys(teamTotals)
+        .map(tn => {
+          const t = teamTotals[tn];
+          const avg = t.count > 0 ? (t.sum / t.count) : 0;
+          return {
+            team: parseInt(tn),
+            average: Math.round(avg * 10) / 10,
+            sum: t.sum,
+            count: t.count,
+            members: t.members.sort((a, b) => b.score - a.score)
+          };
+        })
+        .sort((a, b) => b.average - a.average);
+    }
 
 function renderTeamStandingReveal(rank) {
   const container = document.getElementById('teamStandingReveal');
@@ -1574,23 +1574,25 @@ function renderTeamStandingReveal(rank) {
 // ═══════════════════════════════════════════════════════════
 // LEADERBOARD (individu)
 // ═══════════════════════════════════════════════════════════
-async function fetchGlobalScores() {
-  const { data, error } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained');
+    async function fetchGlobalScores() {
+      // ⭐ Ambil dari point_cataclysm_memory + join dengan users untuk nama
+      const { data, error } = await supabaseClient
+        .from('point_cataclysm_memory')
+        .select('unique_id, name, point')
+        .order('point', { ascending: false });
 
-  if (error || !data) return;
+      if (error || !data) {
+        console.error('[STAGE] Fetch global scores error:', error);
+        return;
+      }
 
-  const scoreMap = {};
-  data.forEach(row => {
-    const uid = row.user_unique_id || 'Tanpa Nama';
-    scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-  });
+      cachedGlobalScores = data.map(row => ({
+        uid: row.name || row.unique_id,
+        total: row.point || 0
+      }));
 
-  cachedGlobalScores = Object.keys(scoreMap)
-    .map(uid => ({ uid, total: scoreMap[uid] }))
-    .sort((a, b) => b.total - a.total);
-}
+      LOG_OK('STAGE', `📊 Loaded ${cachedGlobalScores.length} peserta`);
+    }
 
 function renderLeaderboardReveal(rank) {
   const container = document.getElementById('leaderboardReveal');
