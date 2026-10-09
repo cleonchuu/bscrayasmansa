@@ -579,26 +579,32 @@
       }
 
       // ═══════════════════════════════════════════════════════
-      // INSERT 1 baris game_scores UNTUK SETIAP anggota tim
+      // ⭐ SIMPAN POIN KE SETIAP ANGGOTA TIM (via RPC)
+      // Tim dapat poin → semua anggota tim dapat poin yang sama
       // ═══════════════════════════════════════════════════════
       const now = new Date().toISOString();
-      const rows = teamMembers.map(m => ({
-        user_unique_id: m.unique_id,
-        game_name: GAME_NAME,
-        score_obtained: score,
-        created_at: now
-      }));
 
-      const { error } = await supabaseClient
-        .from('game_scores')
-        .insert(rows);
+      try {
+        for (const member of teamMembers) {
+          const { error: rpcErr } = await supabaseClient.rpc('add_point_generic', {
+            p_table_name: 'point_cataclysm_memory',
+            p_unique_id: member.unique_id,
+            p_name: member.full_name || member.unique_id,
+            p_delta: score
+          });
 
-      if (error) {
-        console.error('Gagal simpan skor tim:', error);
+          if (rpcErr) {
+            console.error(`RPC gagal untuk ${member.unique_id}:`, rpcErr);
+            throw rpcErr;
+          }
+        }
+        console.log(`[KIOS] Poin ${score} berhasil disimpan ke ${teamMembers.length} anggota tim`);
+      } catch (e) {
+        console.error('Gagal simpan skor tim:', e);
         alert('Gagal menyimpan skor. Hubungi panitia.');
       }
 
-      // Update status tim
+      // Update status tim (tetap, biar admin/stage tahu tim sudah selesai)
       await supabaseClient
         .from('cataclysm_memory_teams')
         .update({
