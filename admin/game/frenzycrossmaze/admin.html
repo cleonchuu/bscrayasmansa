@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin - Frenzy Cross Math</title>
+  <title>Admin Panel - Frenzy Cross Maze</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    body { background-color: #0f172a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
-    .view-btn-active { border-color: #6366f1 !important; background-color: rgba(99,102,241,0.2) !important; }
+    body {
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 10px; }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex justify-center">
@@ -19,11 +26,11 @@
     <!-- HEADER -->
     <header class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex items-center gap-4">
-        <div class="w-14 h-14 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-center text-rose-400 text-2xl font-black">
+        <div class="w-14 h-14 bg-sky-500/10 border border-sky-500/30 rounded-2xl flex items-center justify-center text-sky-400 text-2xl font-black">
           🧮
         </div>
         <div>
-          <h1 class="text-2xl font-black tracking-wide text-white">FRENZY CROSS MATH</h1>
+          <h1 class="text-2xl font-black tracking-wide text-white">FRENZY CROSS MAZE - ADMIN</h1>
           <p class="text-xs text-slate-400">Realtime Game & Stage Display Manager</p>
         </div>
       </div>
@@ -33,135 +40,268 @@
       </div>
     </header>
 
-    <!-- CONTROL PANEL -->
+    <!-- GRID DUAL PANEL -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+      <!-- PANEL KONTROL GAME -->
       <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6">
         <div>
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
-            <i class="fa-solid fa-gamepad text-rose-400"></i> Kontrol Game
+            <i class="fa-solid fa-gamepad text-sky-400"></i> Kontrol Game Stage
           </h2>
 
-          <div class="space-y-3 bg-slate-950 border border-slate-700 p-4 rounded-2xl">
-            <div class="flex justify-between items-center">
-              <span class="text-[10px] text-slate-400 uppercase font-bold">Konfigurasi Sesi:</span>
+          <!-- SESSION SELECTOR -->
+          <div class="space-y-3">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Sesi Permainan:</label>
+            <div class="grid grid-cols-5 gap-2">
+              <button onclick="selectSession(1)" id="btnS1" class="session-btn bg-slate-900 border border-sky-500 text-sky-300 py-2.5 rounded-xl text-xs font-bold transition">S1</button>
+              <button onclick="selectSession(2)" id="btnS2" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S2</button>
+              <button onclick="selectSession(3)" id="btnS3" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S3</button>
+              <button onclick="selectSession(4)" id="btnS4" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S4</button>
+              <button onclick="selectSession(5)" id="btnS5" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S5</button>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
-              <div class="bg-slate-900 p-2 rounded-lg">
-                <div class="text-slate-500 text-[10px] uppercase">Durasi/Sesi</div>
-                <div class="font-bold text-white">30 detik</div>
+          </div>
+
+          <!-- INPUT JAWABAN -->
+          <div class="mt-4">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              Target Jawaban Sesi <span id="selectedSessionLabel" class="text-sky-400">1</span>:
+            </label>
+            <input
+              type="text"
+              id="targetAnswerInput"
+              placeholder="Contoh: 42"
+              class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-sky-400"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- DURATION -->
+          <div class="mt-3">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Durasi Sesi (detik):</label>
+            <input
+              type="number"
+              id="sessionDurationInput"
+              value="30"
+              min="5"
+              max="300"
+              class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-mono focus:outline-none focus:border-sky-400"
+            />
+          </div>
+
+          <!-- KUNCI JAWABAN LIVE -->
+          <div class="mt-5 bg-slate-950 border-2 border-amber-500/40 p-4 rounded-2xl">
+            <div class="flex justify-between items-center mb-3">
+              <span class="text-[10px] text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                <i class="fas fa-key"></i> Status Live
+              </span>
+              <span id="answerStatus" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                IDLE
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="bg-sky-500/10 border border-sky-500/30 rounded-xl py-3">
+                <div class="text-[10px] text-sky-400 uppercase tracking-wider mb-1">Sesi Aktif</div>
+                <div id="liveSessionNum" class="text-3xl font-mono font-black text-sky-400">0/5</div>
               </div>
-              <div class="bg-slate-900 p-2 rounded-lg">
-                <div class="text-slate-500 text-[10px] uppercase">Total Sesi</div>
-                <div class="font-bold text-white">5 sesi</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg">
-                <div class="text-slate-500 text-[10px] uppercase">Grid</div>
-                <div class="font-bold text-white">15 × 15</div>
-              </div>
-              <div class="bg-slate-900 p-2 rounded-lg">
-                <div class="text-slate-500 text-[10px] uppercase">Poin/Sesi</div>
-                <div class="font-bold text-amber-400">5 - 10</div>
+              <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl py-3">
+                <div class="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Jawaban</div>
+                <div id="liveAnswer" class="text-3xl font-mono font-black text-amber-400">--</div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="space-y-3">
-          <button id="btnStartGame" onclick="executeGameStart()" class="w-full py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-black text-lg rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-play"></i>
-            <span>JALANKAN PERMAINAN</span>
-          </button>
-
-          <div id="countdownContainer" class="hidden bg-rose-950/60 border border-rose-500/40 p-3 rounded-xl text-center">
-            <p class="text-xs text-rose-300 font-semibold mb-1">
-              ⚡ Sesi <span id="currentSessionLabel">-</span> berjalan! Auto lanjut dalam: <span id="countText" class="font-bold text-amber-400">30s</span>
-            </p>
-            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-              <div id="progressBar" class="bg-rose-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+          <!-- ACTION BUTTONS -->
+          <div class="space-y-3 mt-5">
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btnStartSession" onclick="startSession()" class="py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-black text-sm rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-play"></i> MULAI SESI
+              </button>
+              <button id="btnStopSession" onclick="stopSession()" class="py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-stop"></i> STOP
+              </button>
             </div>
+            <button id="btnResetGame" onclick="resetGame()" class="w-full py-2.5 bg-rose-950 hover:bg-rose-900 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+              <i class="fas fa-rotate-left"></i> RESET KE IDLE (Sesi 0)
+            </button>
           </div>
         </div>
       </section>
 
-      <!-- STATUS PANEL -->
-      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
-        <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
-          <i class="fa-solid fa-database text-cyan-400"></i> Status Sesi
-        </h2>
+      <!-- PANEL STATUS LIVE SUPABASE -->
+      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-database text-cyan-400"></i> Status Server
+          </h2>
 
-        <div class="space-y-3 bg-slate-900 p-4 rounded-2xl border border-slate-700 text-sm">
-          <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Action:</span>
-            <span id="dbAction" class="font-mono font-bold text-emerald-400">-</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Sesi Ke-:</span>
-            <span id="dbSession" class="font-mono font-bold text-rose-400">0 / 5</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Jawaban:</span>
-            <span id="dbAnswer" class="font-mono font-bold text-amber-400">--</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-800 pb-2">
-            <span class="text-slate-400">Puzzle Blocks:</span>
-            <span id="dbBlocks" class="font-mono font-bold text-indigo-400">0</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Status Koneksi:</span>
-            <span id="dbConnStatus" class="font-mono font-bold text-emerald-400">● Connected</span>
+          <div class="space-y-3 bg-slate-900 p-4 rounded-2xl border border-slate-700 text-sm">
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Session Index:</span>
+              <span id="dbSessionIndex" class="font-mono font-bold text-sky-400">0</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Total Sessions:</span>
+              <span id="dbTotalSessions" class="font-mono font-bold text-purple-400">5</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Session Duration:</span>
+              <span id="dbSessionDuration" class="font-mono font-bold text-amber-400">30s</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Target Answer:</span>
+              <span id="dbTargetAnswer" class="font-mono font-bold text-emerald-400">--</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Start Time:</span>
+              <span id="dbStartTime" class="font-mono text-xs text-slate-300">-</span>
+            </div>
+            <div class="flex justify-between border-b border-slate-800 pb-2">
+              <span class="text-slate-400">Last Updated:</span>
+              <span id="dbUpdatedAt" class="font-mono text-xs text-slate-300">-</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Realtime:</span>
+              <span id="dbConnStatus" class="font-mono font-bold text-emerald-400">● Connected</span>
+            </div>
           </div>
         </div>
 
-        <button onclick="manualResetControl()" class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
-          <i class="fa-solid fa-rotate-left text-amber-400"></i> Reset (Manual)
+        <button onclick="fetchAll()" class="mt-6 w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-sync-alt text-sky-400"></i> Refresh Manual
         </button>
       </section>
     </div>
 
-    <!-- VIEW SWITCHER -->
-    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl">
+    <!-- LAYOUT VIEW SWITCHER -->
+    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
       </h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button id="btnViewGame" onclick="switchStageView('game')" class="view-btn bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-display"></i> Mode Game
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-moon text-cyan-400"></i> Idle
         </button>
-        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="view-btn bg-slate-800 hover:bg-amber-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-trophy text-amber-400"></i> Papan Peringkat
+        <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-sky-600/80 border border-slate-700 hover:border-sky-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-display"></i> Game
         </button>
-        <button id="btnViewAll" onclick="switchStageView('all_players')" class="view-btn bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-users text-emerald-400"></i> Semua Peserta
+        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-trophy text-amber-400"></i> Peringkat
+        </button>
+        <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+          <i class="fas fa-users text-emerald-400"></i> Semua
         </button>
       </div>
 
-      <div class="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4 mt-4">
-        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Pengumuman Peringkat 1 per 1:</p>
+      <div class="bg-slate-950/60 border border-amber-500/20 rounded-2xl p-4">
+        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3">Reveal Peringkat Top 10:</p>
         <div class="flex flex-wrap gap-2" id="rankButtonsContainer"></div>
+      </div>
+    </section>
+
+    <!-- KONTROL ELIMINASI -->
+    <section class="bg-slate-900/60 border border-rose-500/30 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
+      <div class="flex items-center gap-3 mb-4 border-b border-white/10 pb-3">
+        <div class="w-10 h-10 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-center text-rose-400">
+          <i class="fas fa-user-slash"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Kontrol Eliminasi</h2>
+          <p class="text-xs text-slate-400">Hitung 5 peserta terendah Frenzy Cross Maze</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 leading-relaxed mb-4">
+        <strong class="text-amber-400">⚠️ Peserta tetap bisa main</strong> sampai Anda klik "Kunci Peserta Tereliminasi".
+        <br>Setelah dikunci, kiosk mereka akan freeze permanen dan tidak bisa ikut game berikutnya.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <button onclick="executeComputeElimination()"
+          class="py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-calculator"></i> 1. Hitung Eliminasi
+        </button>
+
+        <button onclick="executeDeclareElimination()"
+          class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-lock"></i> 2. Kunci Peserta
+        </button>
+
+        <button onclick="executeUndoElimination()"
+          class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+          <i class="fas fa-rotate-left"></i> Undo / Reset
+        </button>
+      </div>
+
+      <div id="elimResultInfo" class="text-[11px] text-slate-500 font-mono hidden mt-4 p-3 bg-slate-950/60 rounded-lg border border-slate-800 max-h-[200px] overflow-y-auto custom-scroll"></div>
+    </section>
+
+    <!-- REKAP PESERTA -->
+    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fas fa-list-ol text-indigo-400"></i> Daftar Peserta & Poin
+          </h2>
+          <p class="text-xs text-slate-400">Realtime dari <code class="text-indigo-300">point_frenzy_cross_maze</code></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="resetAllScores()" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-trash-alt"></i> Reset Semua Poin
+          </button>
+          <button onclick="fetchScores()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll max-h-[400px]">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+              <th class="p-3">Rank</th>
+              <th class="p-3">Nama Peserta</th>
+              <th class="p-3 text-center">Total Poin</th>
+              <th class="p-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="adminScoreTableBody" class="divide-y divide-slate-800/50 text-sm">
+            <tr>
+              <td colspan="4" class="text-center py-8 text-slate-500">Memuat data poin...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
   </main>
 
-  <script>
-  // ═══════════════════════════════════════════════════════════
-  // KONFIGURASI
-  // ═══════════════════════════════════════════════════════════
-  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-  const supabaseClient = window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-    : null;
+  <!-- MODAL HAPUS -->
+  <div id="deleteModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-rose-500/40 p-6 rounded-3xl max-w-md w-full mx-4 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 text-rose-400">
+        <div class="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/30">
+          <i class="fas fa-triangle-exclamation text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-white">Hapus Poin Peserta?</h3>
+      </div>
+      <p class="text-slate-300 text-sm">
+        Yakin hapus semua poin <span id="targetDeleteUser" class="font-bold text-amber-400"></span>?
+      </p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-semibold transition">
+          Batal
+        </button>
+        <button id="confirmDeleteBtn" onclick="executeDeleteScore()" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/30 transition">
+          Ya, Hapus
+        </button>
+      </div>
+    </div>
+  </div>
 
-  const SESSION_CONFIG = {
-    DURATION_PER_SESSION: 30,   // detik per sesi
-    TOTAL_SESSIONS: 5,          // total sesi
-    GRID_SIZE: 15,              // 15 × 15
-    MAX_POINT: 10,              // poin max per sesi
-    MIN_POINT: 5                // poin min (½ max)
-  };
-
+<script>
   // ═══════════════════════════════════════════════════════════
   // LOGGER
   // ═══════════════════════════════════════════════════════════
@@ -175,546 +315,190 @@
   };
 
   // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+  const supabaseClient = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
+
+  const GAME_NAME = 'Frenzy Cross Maze';
+  const POINT_TABLE = 'point_frenzy_cross_maze';
+  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
+  const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
+  const TOTAL_SESSIONS = 5;
+  const DEFAULT_DURATION = 30;
+
+  // ═══════════════════════════════════════════════════════════
   // STATE
   // ═══════════════════════════════════════════════════════════
-  let countdownInterval = null;
+  let selectedSession = 1;
+  let userToDelete = null;
+  let currentQuestionRow = null;
 
   // ═══════════════════════════════════════════════════════════
-  // MATH CORE — engine matematika
+  // SAFE HELPERS
   // ═══════════════════════════════════════════════════════════
-  class MathCore {
-    static OPERATORS = ['+', '-', '×', '÷'];
+  function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
 
-    static eval(a, op, b) {
-      switch (op) {
-        case '+': return a + b;
-        case '-': return a - b;
-        case '×': return a * b;
-        case '÷': return (b !== 0 && a % b === 0) ? a / b : null;
-        default: return null;
+  // ═══════════════════════════════════════════════════════════
+  // SELECT SESSION
+  // ═══════════════════════════════════════════════════════════
+  function selectSession(num) {
+    selectedSession = num;
+    LOG.info('SESSION', `Pilih sesi: ${num}`);
+
+    for (let i = 1; i <= TOTAL_SESSIONS; i++) {
+      const btn = document.getElementById(`btnS${i}`);
+      if (!btn) continue;
+      if (i === num) {
+        btn.className = 'session-btn bg-slate-900 border border-sky-500 text-sky-300 py-2.5 rounded-xl text-xs font-bold transition';
+      } else {
+        btn.className = 'session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition';
       }
     }
 
-    static generateValidTripletDual(valA, valC, maxVal = 99) {
-      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
-      for (let op of shuffledOps) {
-        let b = null;
-        if (op === '+') b = valC - valA;
-        else if (op === '-') b = valA - valC;
-        else if (op === '×') { if (valA !== 0 && valC % valA === 0) b = valC / valA; }
-        else if (op === '÷') { if (valC !== 0 && valA % valC === 0) b = valA / valC; }
-        if (b !== null && Number.isInteger(b) && b > 0 && b <= maxVal) {
-          return { a: valA, op, b, c: valC };
-        }
-      }
-      return null;
-    }
+    safeSetText('selectedSessionLabel', num);
 
-    static generateValidTriplet(fixedValue = null, position = 'A', maxVal = 99) {
-      const shuffledOps = [...this.OPERATORS].sort(() => Math.random() - 0.5);
-      for (let op of shuffledOps) {
-        let a, b, c;
-        if (fixedValue !== null) {
-          if (position === 'A') {
-            a = fixedValue;
-            if (op === '+') { b = Math.floor(Math.random() * 20) + 1; c = a + b; }
-            else if (op === '-') { if (a > 1) { b = Math.floor(Math.random() * (a - 1)) + 1; c = a - b; } else continue; }
-            else if (op === '×') { b = Math.floor(Math.random() * 8) + 2; c = a * b; }
-            else if (op === '÷') {
-              let factors = [];
-              for (let i = 1; i <= a; i++) if (a % i === 0) factors.push(i);
-              b = factors[Math.floor(Math.random() * factors.length)];
-              c = a / b;
-            }
-          } else if (position === 'C') {
-            c = fixedValue;
-            if (op === '+') { if (c > 1) { a = Math.floor(Math.random() * (c - 1)) + 1; b = c - a; } else continue; }
-            else if (op === '-') { b = Math.floor(Math.random() * 25) + 1; a = c + b; }
-            else if (op === '×') {
-              let factors = [];
-              for (let i = 1; i <= c; i++) if (c % i === 0) factors.push(i);
-              a = factors[Math.floor(Math.random() * factors.length)];
-              b = c / a;
-            }
-            else if (op === '÷') { b = Math.floor(Math.random() * 6) + 2; a = c * b; }
-          }
-        } else {
-          a = Math.floor(Math.random() * 15) + 2;
-          b = Math.floor(Math.random() * 10) + 1;
-          c = this.eval(a, op, b);
-        }
-        if (a !== undefined && b !== undefined && c !== undefined && c !== null &&
-            a >= 0 && b >= 0 && c >= 0 && a <= maxVal && b <= maxVal && c <= maxVal) {
-          return { a, op, b, c };
-        }
-      }
-      return { a: 10, op: '+', b: 5, c: 15 };
+    // Auto-fill target answer kalau ada data
+    const targetInput = document.getElementById('targetAnswerInput');
+    if (targetInput && currentQuestionRow && currentQuestionRow.session_index === num && currentQuestionRow.target_answer != null) {
+      targetInput.value = currentQuestionRow.target_answer;
+    } else if (targetInput) {
+      targetInput.value = '';
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // GRID NODE
+  // START SESSION
   // ═══════════════════════════════════════════════════════════
-  class GridNode {
-    constructor(r, c) {
-      this.r = r; this.c = c;
-      this.id = `node_${r}_${c}`;
-      this.type = 'void';
-      this.val = null;
-      this.isHidden = true;
-      this.isTarget = false;
-      this.connectedBlocks = [];
+  async function startSession() {
+    const targetInput = document.getElementById('targetAnswerInput');
+    const durationInput = document.getElementById('sessionDurationInput');
+
+    const targetAnswer = targetInput ? targetInput.value.trim() : '';
+    const duration = parseInt(durationInput?.value || DEFAULT_DURATION);
+
+    if (!targetAnswer) {
+      alert('Isi target jawaban terlebih dahulu!');
+      return;
     }
-    reset() {
-      this.type = 'void'; this.val = null;
-      this.isHidden = true; this.isTarget = false;
-      this.connectedBlocks = [];
+
+    if (!confirm(
+      `Mulai Sesi ${selectedSession}?\n\n` +
+      `• Target Jawaban: ${targetAnswer}\n` +
+      `• Durasi: ${duration} detik\n` +
+      `• Stage akan otomatis switch ke game view`
+    )) return;
+
+    LOG.step('START', `Session ${selectedSession}, answer=${targetAnswer}, duration=${duration}s`);
+
+    const nowISO = new Date().toISOString();
+
+    const { error } = await supabaseClient
+      .from(QUESTION_TABLE)
+      .upsert({
+        id: 1,
+        session_index: selectedSession,
+        total_sessions: TOTAL_SESSIONS,
+        target_answer: targetAnswer,
+        session_start_time: nowISO,
+        session_duration: duration,
+        updated_at: nowISO
+      }, { onConflict: 'id' });
+
+    if (error) {
+      LOG.error('START', 'Gagal: ' + error.message);
+      alert('Gagal memulai sesi: ' + error.message);
+      return;
     }
+
+    // Auto-switch layout ke game
+    await supabaseClient
+      .from(LAYOUT_TABLE)
+      .update({
+        current_view: 'game',
+        revealed_rank: 0,
+        updated_at: nowISO
+      })
+      .eq('id', 1);
+
+    LOG.ok('START', `Sesi ${selectedSession} dimulai`);
+    alert(`✅ Sesi ${selectedSession} dimulai!\nTarget: ${targetAnswer}\nDurasi: ${duration}s`);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // EQUATION BLOCK
+  // STOP SESSION → balik ke idle
   // ═══════════════════════════════════════════════════════════
-  class EquationBlock {
-    constructor(id, r, c, dir, triplet, nodes) {
-      this.id = id; this.r = r; this.c = c;
-      this.dir = dir; this.triplet = triplet; this.nodes = nodes;
+  async function stopSession() {
+    if (!confirm('Hentikan sesi ini? Stage akan kembali ke idle.')) return;
+
+    LOG.warn('STOP', 'Stop session');
+
+    const nowISO = new Date().toISOString();
+
+    const { error } = await supabaseClient
+      .from(QUESTION_TABLE)
+      .update({
+        session_index: 0,
+        target_answer: null,
+        updated_at: nowISO
+      })
+      .eq('id', 1);
+
+    if (error) {
+      LOG.error('STOP', 'Gagal: ' + error.message);
+      alert('Gagal stop: ' + error.message);
+      return;
     }
-    getInputs() { return [this.nodes[0], this.nodes[2], this.nodes[4]]; }
+
+    await supabaseClient
+      .from(LAYOUT_TABLE)
+      .update({
+        current_view: 'idle',
+        revealed_rank: 0,
+        updated_at: nowISO
+      })
+      .eq('id', 1);
+
+    LOG.ok('STOP', 'Session stopped');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // DOMINO MAZE ENGINE
+  // RESET GAME
   // ═══════════════════════════════════════════════════════════
-  class DominoMazeEngine {
-    constructor(size = 15) {
-      this.size = size;
-      this.grid = Array.from({ length: size }, (_, r) =>
-        Array.from({ length: size }, (_, c) => new GridNode(r, c))
-      );
-      this.blocks = [];
-      this.numberNodes = [];
-      this.goalNode = null;
-      this.maxChainDepth = 0;
-    }
+  async function resetGame() {
+    if (!confirm('Reset seluruh state Frenzy Cross Maze ke kondisi awal?')) return;
 
-    resetGrid() {
-      for (let r = 0; r < this.size; r++)
-        for (let c = 0; c < this.size; c++)
-          this.grid[r][c].reset();
-      this.blocks = []; this.numberNodes = [];
-      this.goalNode = null; this.maxChainDepth = 0;
-    }
+    LOG.warn('RESET', 'Full reset');
 
-    getNode(r, c) {
-      if (r < 0 || r >= this.size || c < 0 || c >= this.size) return null;
-      return this.grid[r][c];
-    }
+    const nowISO = new Date().toISOString();
 
-    canPlaceBlock(r, c, dir) {
-      const dr = dir === 'V' ? 1 : 0;
-      const dc = dir === 'H' ? 1 : 0;
-      for (let i = 0; i < 5; i++) if (!this.getNode(r + dr * i, c + dc * i)) return false;
-      const prev = this.getNode(r - dr, c - dc);
-      if (prev && prev.type !== 'void') return false;
-      const next = this.getNode(r + dr * 5, c + dc * 5);
-      if (next && next.type !== 'void') return false;
-      const pattern = ['number', 'operator', 'number', 'operator', 'number'];
-      for (let i = 0; i < 5; i++) {
-        const node = this.getNode(r + dr * i, c + dc * i);
-        if (node.type !== 'void') {
-          if (node.type !== pattern[i]) return false;
-          if (pattern[i] === 'operator') return false;
-        }
-      }
-      return true;
-    }
+    await supabaseClient
+      .from(QUESTION_TABLE)
+      .update({
+        session_index: 0,
+        target_answer: null,
+        session_start_time: null,
+        updated_at: nowISO
+      })
+      .eq('id', 1);
 
-    insertBlock(r, c, dir, fixedVal = null, pos = 'A') {
-      if (!this.canPlaceBlock(r, c, dir)) return null;
-      const triplet = MathCore.generateValidTriplet(fixedVal, pos);
-      const dr = dir === 'V' ? 1 : 0;
-      const dc = dir === 'H' ? 1 : 0;
-      const layout = [
-        { r, c, type: 'number', val: triplet.a },
-        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
-        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
-        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
-        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
-      ];
-      for (let idx of [0, 2, 4]) {
-        const node = this.getNode(layout[idx].r, layout[idx].c);
-        if (node.type === 'number' && node.val !== layout[idx].val) return null;
-      }
-      const blockNodes = [];
-      layout.forEach(spec => {
-        const node = this.getNode(spec.r, spec.c);
-        node.type = spec.type; node.val = spec.val;
-        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
-        blockNodes.push(node);
-      });
-      const block = new EquationBlock(`blk_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
-      blockNodes.forEach(n => n.connectedBlocks.push(block));
-      this.blocks.push(block);
-      return block;
-    }
+    await supabaseClient
+      .from(LAYOUT_TABLE)
+      .update({
+        current_view: 'idle',
+        revealed_rank: 0,
+        updated_at: nowISO
+      })
+      .eq('id', 1);
 
-    insertJunctionBlock(r, c, dir, valA, valC) {
-      if (!this.canPlaceBlock(r, c, dir)) return null;
-      const triplet = MathCore.generateValidTripletDual(valA, valC);
-      if (!triplet) return null;
-      const dr = dir === 'V' ? 1 : 0;
-      const dc = dir === 'H' ? 1 : 0;
-      const layout = [
-        { r, c, type: 'number', val: triplet.a },
-        { r: r + dr, c: c + dc, type: 'operator', val: triplet.op },
-        { r: r + dr * 2, c: c + dc * 2, type: 'number', val: triplet.b },
-        { r: r + dr * 3, c: c + dc * 3, type: 'operator', val: '=' },
-        { r: r + dr * 4, c: c + dc * 4, type: 'number', val: triplet.c }
-      ];
-      const blockNodes = [];
-      layout.forEach(spec => {
-        const node = this.getNode(spec.r, spec.c);
-        node.type = spec.type; node.val = spec.val;
-        if (node.type === 'number' && !this.numberNodes.includes(node)) this.numberNodes.push(node);
-        blockNodes.push(node);
-      });
-      const block = new EquationBlock(`blk_junc_${this.blocks.length + 1}`, r, c, dir, triplet, blockNodes);
-      blockNodes.forEach(n => n.connectedBlocks.push(block));
-      this.blocks.push(block);
-      return block;
-    }
-
-    generateOrganicLayout() {
-      let curR = Math.floor(this.size / 3);
-      let curC = Math.floor(this.size / 3);
-      let seedVal = Math.floor(Math.random() * 10) + 2;
-      let chainLen = 0;
-      let lastDir = null;
-      const targetBlocks = Math.floor(this.size * 1.2);
-
-      while (chainLen < targetBlocks) {
-        const nextDir = (lastDir === 'H') ? 'V' : (lastDir === 'V' ? 'H' : (Math.random() > 0.5 ? 'H' : 'V'));
-        const options = [];
-        if (nextDir === 'H') {
-          options.push({ dir: 'H', r: curR, c: curC, nextR: curR, nextC: curC + 4, pos: 'A' });
-          options.push({ dir: 'H', r: curR, c: curC - 4, nextR: curR, nextC: curC - 4, pos: 'C' });
-        } else {
-          options.push({ dir: 'V', r: curR, c: curC, nextR: curR + 4, nextC: curC, pos: 'A' });
-          options.push({ dir: 'V', r: curR - 4, c: curC, nextR: curR - 4, nextC: curC, pos: 'C' });
-        }
-        options.sort(() => Math.random() - 0.5);
-        let inserted = false;
-        for (let opt of options) {
-          const block = this.insertBlock(opt.r, opt.c, opt.dir, seedVal, opt.pos);
-          if (block) {
-            curR = opt.nextR; curC = opt.nextC;
-            seedVal = this.getNode(curR, curC).val;
-            lastDir = opt.dir; chainLen++; inserted = true; break;
-          }
-        }
-        if (!inserted) break;
-      }
-
-      let queue = [...this.numberNodes].sort(() => Math.random() - 0.5);
-      let attempts = 0;
-      while (queue.length > 0 && attempts < 1000) {
-        attempts++;
-        const node = queue.shift();
-        if (!node) continue;
-        let paired = false;
-        for (let otherNode of this.numberNodes) {
-          if (otherNode !== node && (otherNode.r === node.r || otherNode.c === node.c)) {
-            if (Math.abs(otherNode.r - node.r) === 4 && otherNode.c === node.c) {
-              const minR = Math.min(node.r, otherNode.r);
-              const valA = node.r === minR ? node.val : otherNode.val;
-              const valC = node.r === minR ? otherNode.val : node.val;
-              if (this.insertJunctionBlock(minR, node.c, 'V', valA, valC)) { paired = true; break; }
-            } else if (Math.abs(otherNode.c - node.c) === 4 && otherNode.r === node.r) {
-              const minC = Math.min(node.c, otherNode.c);
-              const valA = node.c === minC ? node.val : otherNode.val;
-              const valC = node.c === minC ? otherNode.val : node.val;
-              if (this.insertJunctionBlock(node.r, minC, 'H', valA, valC)) { paired = true; break; }
-            }
-          }
-        }
-        if (paired) continue;
-        const branchOpts = [
-          { dir: 'H', r: node.r, c: node.c, pos: 'A' },
-          { dir: 'V', r: node.r, c: node.c, pos: 'A' },
-          { dir: 'H', r: node.r, c: node.c - 4, pos: 'C' },
-          { dir: 'V', r: node.r - 4, c: node.c, pos: 'C' }
-        ].sort(() => Math.random() - 0.5);
-        for (let opt of branchOpts) {
-          const block = this.insertBlock(opt.r, opt.c, opt.dir, node.val, opt.pos);
-          if (block) {
-            block.nodes.forEach(n => { if (n.type === 'number' && !queue.includes(n)) queue.push(n); });
-            break;
-          }
-        }
-      }
-    }
-
-    solveLongestPathAndSetGoal() {
-      this.numberNodes.forEach(n => { n.isHidden = true; n.isTarget = false; });
-      if (this.blocks.length === 0) return;
-      let leafBlocks = this.blocks.filter(b => b.getInputs().some(n => n.connectedBlocks.length === 1));
-      if (leafBlocks.length < 2) leafBlocks = this.blocks.slice(0, 3);
-      let knownNodes = new Set();
-      leafBlocks.forEach(b => {
-        let inputs = b.getInputs();
-        inputs[0].isHidden = false; inputs[1].isHidden = false;
-        knownNodes.add(inputs[0]); knownNodes.add(inputs[1]);
-      });
-      let solvedBlocks = new Set();
-      let stepCount = 1;
-      let progress = true;
-      let lastSolvedNode = null;
-      let maxStepRecorded = 0;
-      while (progress) {
-        progress = false;
-        for (let block of this.blocks) {
-          if (solvedBlocks.has(block)) continue;
-          const inputs = block.getInputs();
-          const knownInputs = inputs.filter(n => knownNodes.has(n));
-          if (knownInputs.length >= 2) {
-            const unknownInputs = inputs.filter(n => !knownNodes.has(n));
-            if (unknownInputs.length === 1) {
-              const targetNode = unknownInputs[0];
-              knownNodes.add(targetNode);
-              lastSolvedNode = targetNode;
-              maxStepRecorded = stepCount;
-            }
-            solvedBlocks.add(block);
-            stepCount++;
-            progress = true;
-          }
-        }
-      }
-      this.goalNode = lastSolvedNode;
-      if (this.goalNode) {
-        this.goalNode.isTarget = true;
-        this.maxChainDepth = maxStepRecorded;
-      }
-    }
-
-    generate() {
-      const minTargetBlocks = Math.floor(this.size * 0.8);
-      let maxRetries = 20;
-      let attempt = 0;
-      while (attempt < maxRetries) {
-        attempt++;
-        this.resetGrid();
-        this.generateOrganicLayout();
-        if (this.blocks.length >= minTargetBlocks) {
-          this.solveLongestPathAndSetGoal();
-          if (this.maxChainDepth >= 5) break;
-        }
-      }
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // FRENZY ADMIN — session loop controller
-  // ═══════════════════════════════════════════════════════════
-  class FrenzyAdmin {
-    constructor() {
-      this.currentSession = 0;
-      this.sessionTimer = null;
-      this.countdownTick = null;
-      this.isRunning = false;
-    }
-
-    async startGame() {
-      LOG.ok('GAME', '========== START GAME ==========');
-
-      // Update control → START_GAME
-      const { error } = await supabaseClient
-        .from('frenzy_cross_math_control')
-        .update({ action: 'START_GAME', updated_at: new Date().toISOString() })
-        .eq('id', 1);
-
-      if (error) {
-        LOG.error('GAME', 'Gagal update control', error);
-        return false;
-      }
-
-      this.isRunning = true;
-      this.currentSession = 0;
-      await this.runSession();
-      return true;
-    }
-
-    async runSession() {
-      this.currentSession++;
-      const sessionNum = this.currentSession;
-      const totalSessions = SESSION_CONFIG.TOTAL_SESSIONS;
-
-      LOG.ok('SESSION', `▶ Sesi ${sessionNum}/${totalSessions} dimulai`);
-
-      // 1. Generate puzzle
-      const engine = new DominoMazeEngine(SESSION_CONFIG.GRID_SIZE);
-      engine.generate();
-
-      const answer = engine.goalNode ? engine.goalNode.val : null;
-      LOG.ok('SESSION', `Puzzle selesai. Blocks: ${engine.blocks.length}, Depth: ${engine.maxChainDepth}, Jawaban: ${answer}`);
-
-      // Update UI
-      document.getElementById('dbSession').textContent = `${sessionNum} / ${totalSessions}`;
-      document.getElementById('dbAnswer').textContent = answer ?? '--';
-      document.getElementById('dbBlocks').textContent = engine.blocks.length;
-
-      // 2. Publish ke Supabase
-      await this.publishPuzzle(engine, answer, sessionNum);
-
-      // 3. Mulai timer countdown UI
-      this.startCountdownUI(sessionNum, totalSessions);
-    }
-
-    async publishPuzzle(engine, answer, sessionNum) {
-      try {
-        const { error } = await supabaseClient
-          .from('system_frenzy_cross_math_question')
-          .update({
-            session_index: sessionNum,
-            total_sessions: SESSION_CONFIG.TOTAL_SESSIONS,
-            target_answer: answer,
-            puzzle_json: {
-              size: engine.size,
-              grid: engine.grid.map(row => row.map(n => ({
-                type: n.type,
-                val: n.val,
-                isHidden: n.isHidden,
-                isTarget: n.isTarget
-              }))),
-              goalNode: engine.goalNode ? { r: engine.goalNode.r, c: engine.goalNode.c } : null
-            },
-            session_start_time: Date.now(),
-            session_duration: SESSION_CONFIG.DURATION_PER_SESSION,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', 1);
-
-        if (error) {
-          LOG.error('SUPA', 'Gagal publish puzzle', error);
-          return;
-        }
-        LOG.ok('SUPA', `Sesi ${sessionNum} published.`);
-      } catch (err) {
-        LOG.error('SUPA', 'Exception', err);
-      }
-    }
-
-    startCountdownUI(sessionNum, totalSessions) {
-      // Clear timer lama
-      if (this.sessionTimer) clearTimeout(this.sessionTimer);
-      if (this.countdownTick) clearInterval(this.countdownTick);
-
-      const container = document.getElementById('countdownContainer');
-      const countText = document.getElementById('countText');
-      const progressBar = document.getElementById('progressBar');
-      const label = document.getElementById('currentSessionLabel');
-
-      container.classList.remove('hidden');
-      label.textContent = `${sessionNum}/${totalSessions}`;
-
-      let remaining = SESSION_CONFIG.DURATION_PER_SESSION;
-      countText.textContent = `${remaining}s`;
-      progressBar.style.width = '100%';
-
-      this.countdownTick = setInterval(() => {
-        remaining--;
-        countText.textContent = `${remaining}s`;
-        progressBar.style.width = `${(remaining / SESSION_CONFIG.DURATION_PER_SESSION) * 100}%`;
-        if (remaining <= 0) clearInterval(this.countdownTick);
-      }, 1000);
-
-      // Timer untuk lanjut ke sesi berikutnya
-      this.sessionTimer = setTimeout(() => {
-        if (this.currentSession < SESSION_CONFIG.TOTAL_SESSIONS) {
-          this.runSession();
-        } else {
-          this.endGame();
-        }
-      }, SESSION_CONFIG.DURATION_PER_SESSION * 1000);
-    }
-
-    async endGame() {
-      LOG.ok('GAME', '========== SEMUA SESI SELESAI ==========');
-
-      // Reset question table
-      await supabaseClient
-        .from('system_frenzy_cross_math_question')
-        .update({
-          session_index: 0,
-          target_answer: null,
-          puzzle_json: null,
-          session_start_time: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      // Reset control
-      await supabaseClient
-        .from('frenzy_cross_math_control')
-        .update({ action: 'RESET', updated_at: new Date().toISOString() })
-        .eq('id', 1);
-
-      this.isRunning = false;
-      this.currentSession = 0;
-      this.resetUI();
-      LOG.ok('GAME', 'Game selesai. Semua reset.');
-    }
-
-    async stopGame() {
-      LOG.warn('GAME', 'Game dihentikan manual.');
-      if (this.sessionTimer) clearTimeout(this.sessionTimer);
-      if (this.countdownTick) clearInterval(this.countdownTick);
-
-      await supabaseClient
-        .from('system_frenzy_cross_math_question')
-        .update({
-          session_index: 0,
-          target_answer: null,
-          puzzle_json: null,
-          session_start_time: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      await supabaseClient
-        .from('frenzy_cross_math_control')
-        .update({ action: 'RESET', updated_at: new Date().toISOString() })
-        .eq('id', 1);
-
-      this.isRunning = false;
-      this.currentSession = 0;
-      this.resetUI();
-    }
-
-    resetUI() {
-      const c = document.getElementById('countdownContainer');
-      if (c) c.classList.add('hidden');
-      document.getElementById('dbSession').textContent = `0 / ${SESSION_CONFIG.TOTAL_SESSIONS}`;
-      document.getElementById('dbAnswer').textContent = '--';
-      document.getElementById('dbBlocks').textContent = '0';
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // RENDER TOMBOL PERINGKAT
-  // ═══════════════════════════════════════════════════════════
-  function renderRankButtons() {
-    const c = document.getElementById('rankButtonsContainer');
-    if (!c) return;
-    c.innerHTML = '';
-    for (let r = 10; r >= 1; r--) {
-      const btn = document.createElement('button');
-      btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-amber-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition";
-      btn.innerHTML = `<i class="fas fa-award"></i> #${r}`;
-      btn.onclick = () => switchStageView('leaderboard', r);
-      c.appendChild(btn);
-    }
+    LOG.ok('RESET', 'Full reset done');
+    alert('✅ Reset selesai.');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -724,9 +508,10 @@
     if (!supabaseClient) return;
     updateActiveViewUI(viewName, revealedRank);
 
-    LOG.step('VIEW', `Switch → ${viewName}`);
+    LOG.step('VIEW', `Switch → ${viewName} (rank ${revealedRank})`);
+
     const { error } = await supabaseClient
-      .from('admin_layout_frenzy_cross_math')
+      .from(LAYOUT_TABLE)
       .update({
         current_view: viewName,
         revealed_rank: revealedRank,
@@ -734,123 +519,301 @@
       })
       .eq('id', 1);
 
-    if (error) {
-      LOG.error('VIEW', 'Gagal switch', error);
-    } else {
-      LOG.ok('VIEW', `Switched → ${viewName}`);
-    }
+    if (error) LOG.error('VIEW', 'Gagal: ' + error.message);
+    else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
-  function updateActiveViewUI(viewName) {
-    document.querySelectorAll('.view-btn').forEach(b => {
-      b.classList.remove('border-purple-500', 'bg-purple-900/40');
+  function updateActiveViewUI(viewName, rank = 0) {
+    const btnIdle = document.getElementById('btnViewIdle');
+    const btnGame = document.getElementById('btnViewGame');
+    const btnLb = document.getElementById('btnViewLeaderboard');
+    const btnAll = document.getElementById('btnViewAll');
+    if (!btnGame) return;
+
+    [btnIdle, btnGame, btnLb, btnAll].forEach(b => {
+      if (!b) return;
+      b.classList.remove('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
     });
-    const map = { game: 'btnViewGame', leaderboard: 'btnViewLeaderboard', all_players: 'btnViewAll' };
-    const btn = document.getElementById(map[viewName]);
-    if (btn) btn.classList.add('border-purple-500', 'bg-purple-900/40');
+
+    if (viewName === 'idle') btnIdle?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
+    else if (viewName === 'game') btnGame?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
+    else if (viewName === 'leaderboard') btnLb?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
+    else if (viewName === 'all_players') btnAll?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // EXECUTE GAME START
+  // RANK BUTTONS
   // ═══════════════════════════════════════════════════════════
-  async function executeGameStart() {
-    if (!supabaseClient) return;
+  function renderRankButtons() {
+    const container = document.getElementById('rankButtonsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (let r = 10; r >= 1; r--) {
+      const btn = document.createElement('button');
+      btn.className = 'bg-slate-800 hover:bg-amber-500 hover:text-slate-950 border border-slate-700 text-amber-400 font-bold px-3.5 py-1.5 rounded-xl text-xs transition';
+      btn.innerHTML = `<i class="fas fa-award"></i> #${r}`;
+      btn.onclick = () => switchStageView('leaderboard', r);
+      container.appendChild(btn);
+    }
+  }
 
-    const btn = document.getElementById('btnStartGame');
-    btn.disabled = true;
+  // ═══════════════════════════════════════════════════════════
+  // FETCH QUESTION LIVE
+  // ═══════════════════════════════════════════════════════════
+  async function fetchQuestionLive() {
+    const { data, error } = await supabaseClient
+      .from(QUESTION_TABLE)
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
 
-    LOG.ok('EXEC', '========== JALANKAN PERMAINAN ==========');
+    if (error || !data) return;
 
-    if (!window._frenzyAdmin) {
-      window._frenzyAdmin = new FrenzyAdmin();
+    currentQuestionRow = data;
+
+    safeSetText('dbSessionIndex', data.session_index || 0);
+    safeSetText('dbTotalSessions', data.total_sessions || TOTAL_SESSIONS);
+    safeSetText('dbSessionDuration', (data.session_duration || DEFAULT_DURATION) + 's');
+    safeSetText('dbTargetAnswer', data.target_answer != null ? data.target_answer : '--');
+    safeSetText('dbStartTime', data.session_start_time ? new Date(data.session_start_time).toLocaleTimeString('id-ID') : '-');
+    safeSetText('dbUpdatedAt', data.updated_at ? new Date(data.updated_at).toLocaleTimeString('id-ID') : '-');
+
+    safeSetText('liveSessionNum', `${data.session_index || 0}/${data.total_sessions || TOTAL_SESSIONS}`);
+    safeSetText('liveAnswer', data.target_answer != null ? data.target_answer : '--');
+
+    const statusEl = document.getElementById('answerStatus');
+    if (statusEl) {
+      if (data.session_index > 0 && data.target_answer) {
+        statusEl.textContent = `LIVE S${data.session_index}`;
+        statusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      } else {
+        statusEl.textContent = 'IDLE';
+        statusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
+      }
     }
 
-    const success = await window._frenzyAdmin.startGame();
+    // Sync target input ke sesi terpilih kalau cocok
+    const targetInput = document.getElementById('targetAnswerInput');
+    if (targetInput && data.session_index === selectedSession && data.target_answer != null) {
+      targetInput.value = data.target_answer;
+    }
 
-    if (!success) {
-      btn.disabled = false;
+    // Auto-select session button
+    if (data.session_index >= 1 && data.session_index <= TOTAL_SESSIONS) {
+      selectSession(data.session_index);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FETCH SCORES
+  // ═══════════════════════════════════════════════════════════
+  async function fetchScores() {
+    const tbody = document.getElementById('adminScoreTableBody');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-400">Gagal: ${error.message}</td></tr>`;
       return;
     }
 
-    // Tombol aktif kembali setelah 3 detik
-    setTimeout(() => { btn.disabled = false; }, 3000);
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-500">Belum Ada Skor</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    data.forEach((item, idx) => {
+      const displayName = item.name || item.unique_id;
+      const pts = Number(item.point || 0).toFixed(2);
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-slate-800/30 transition border-b border-slate-800/40';
+      tr.innerHTML = `
+        <td class="p-3 font-mono font-bold text-amber-400">#${idx + 1}</td>
+        <td class="p-3 font-semibold text-white">${displayName}</td>
+        <td class="p-3 text-center font-mono font-bold text-sky-400 bg-sky-500/10 rounded-lg">+${pts} PTS</td>
+        <td class="p-3 text-right">
+          <button onclick="openDeleteModal('${item.unique_id}', '${displayName.replace(/'/g, "\\'")}')"
+            class="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition inline-flex items-center gap-1.5">
+            <i class="fas fa-trash-can"></i> Hapus Poin
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function resetAllScores() {
+    if (!confirm('Reset SEMUA poin Frenzy Cross Maze ke 0?')) return;
+
+    const { error } = await supabaseClient.rpc('reset_point_table', {
+      p_table_name: POINT_TABLE
+    });
+
+    if (error) {
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('RESET', 'All scores reset');
+    alert('✅ Semua poin direset ke 0.');
+    fetchScores();
   }
 
   // ═══════════════════════════════════════════════════════════
-  // MANUAL RESET
+  // MODAL HAPUS
   // ═══════════════════════════════════════════════════════════
-  async function manualResetControl() {
-    if (!supabaseClient) return;
+  function openDeleteModal(uniqueId, displayName) {
+    userToDelete = uniqueId;
+    document.getElementById('targetDeleteUser').textContent = displayName || uniqueId;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  }
 
-    LOG.warn('RESET', 'Manual reset dipanggil.');
+  function closeDeleteModal() {
+    userToDelete = null;
+    document.getElementById('deleteModal').classList.add('hidden');
+  }
 
-    if (window._frenzyAdmin) {
-      await window._frenzyAdmin.stopGame();
-    } else {
-      await supabaseClient
-        .from('frenzy_cross_math_control')
-        .update({ action: 'RESET', updated_at: new Date().toISOString() })
-        .eq('id', 1);
+  async function executeDeleteScore() {
+    if (!userToDelete) return;
+
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghapus...`;
+
+    const { error } = await supabaseClient
+      .from(POINT_TABLE)
+      .delete()
+      .eq('unique_id', userToDelete);
+
+    btn.disabled = false;
+    btn.innerHTML = 'Ya, Hapus Poin';
+    closeDeleteModal();
+
+    if (error) alert('Gagal: ' + error.message);
+    else {
+      LOG.ok('DELETE', `Poin ${userToDelete} dihapus`);
+      fetchScores();
     }
-
-    LOG.ok('RESET', 'Reset terkirim.');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // LIVE DATA UI
+  // ELIMINASI
   // ═══════════════════════════════════════════════════════════
-  async function fetchLiveData() {
-    try {
-      // Baca question table
-      const { data: q, error: eq } = await supabaseClient
-        .from('system_frenzy_cross_math_question')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+  async function executeComputeElimination() {
+    if (!confirm(
+      "Hitung 5 peserta terendah di Frenzy Cross Maze?\n\n" +
+      "• Masuk daftar eliminasi (belum kunci)\n" +
+      "• Peserta masih bisa main\n" +
+      "• Klik 'Kunci' untuk freeze kiosk mereka"
+    )) return;
 
-      if (!eq && q) {
-        const sessionEl = document.getElementById('dbSession');
-        const answerEl = document.getElementById('dbAnswer');
-        if (sessionEl) sessionEl.textContent = `${q.session_index} / ${q.total_sessions}`;
-        if (answerEl) answerEl.textContent = q.target_answer ?? '--';
-      }
+    LOG.step('ELIM', 'Hitung eliminasi...');
 
-      // Baca control table
-      const { data: c, error: ec } = await supabaseClient
-        .from('frenzy_cross_math_control')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+    const { data, error } = await supabaseClient.rpc('save_elimination', {
+      p_game_name: GAME_NAME,
+      p_count: 5
+    });
 
-      if (!ec && c) {
-        document.getElementById('dbAction').textContent = c.action || '-';
-      }
-    } catch (err) {
-      LOG.error('LIVE', 'Exception', err);
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
     }
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) {
+      info.classList.remove('hidden');
+      if (data && data.length > 0) {
+        info.innerHTML = `
+          <div class="text-amber-400 font-bold mb-2">📋 Tereliminasi (belum kunci):</div>
+          ${data.map(d => `<div class="pl-2 py-0.5">• ${d.name} — ${Number(d.final_score).toFixed(2)} PTS</div>`).join('')}
+        `;
+      } else {
+        info.innerHTML = `<div class="text-slate-500">Tidak ada data.</div>`;
+      }
+    }
+
+    alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.`);
+  }
+
+  async function executeDeclareElimination() {
+    if (!confirm(
+      "🔒 KUNCI peserta yang tereliminasi?\n\n" +
+      "• Kiosk mereka akan freeze permanen\n" +
+      "• Bisa di-undo kalau salah"
+    )) return;
+
+    LOG.step('ELIM', 'Deklarasi eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('declare_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta dikunci`);
+    alert(`🔒 ${data} peserta dikunci.`);
+  }
+
+  async function executeUndoElimination() {
+    if (!confirm(
+      "Undo eliminasi Frenzy Cross Maze?\n\n" +
+      "• Semua peserta dibuka kembali\n" +
+      "• Data eliminasi Frenzy dihapus"
+    )) return;
+
+    LOG.warn('ELIM', 'Undo eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('undo_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta di-unlock`);
+    alert(`✅ ${data} peserta dibuka kembali.`);
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) info.classList.add('hidden');
   }
 
   // ═══════════════════════════════════════════════════════════
   // REALTIME
   // ═══════════════════════════════════════════════════════════
-  function setupAllRealtimeChannels() {
+  function setupRealtime() {
     if (!supabaseClient) return;
-    LOG.ok('REALTIME', 'Setting up channels...');
+    LOG.ok('REALTIME', 'Setup channels...');
 
-    // Control
     supabaseClient
-      .channel('admin_frenzy_control')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'frenzy_cross_math_control'
-      }, (payload) => {
-        if (payload.new) {
-          document.getElementById('dbAction').textContent = payload.new.action || '-';
-        }
-      })
+      .channel('admin_frenzy_all')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: QUESTION_TABLE },
+        () => fetchQuestionLive())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: POINT_TABLE },
+        () => fetchScores())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: LAYOUT_TABLE },
+        (payload) => {
+          if (payload.new) {
+            updateActiveViewUI(payload.new.current_view, payload.new.revealed_rank);
+          }
+        })
       .subscribe((status) => {
-        LOG.info('REALTIME', `Control: ${status}`);
+        LOG.info('REALTIME', `Channel: ${status}`);
         const conn = document.getElementById('dbConnStatus');
         if (conn) {
           if (status === 'SUBSCRIBED') {
@@ -863,21 +826,36 @@
         }
       });
 
-    // Layout
-    supabaseClient
-      .channel('admin_frenzy_layout')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'admin_layout_frenzy_cross_math'
-      }, (payload) => {
-        if (payload.new) updateActiveViewUI(payload.new.current_view);
-      })
-      .subscribe();
-
-    // Polling fallback
-    setInterval(fetchLiveData, 3000);
+    setInterval(fetchQuestionLive, 2000);
+    setInterval(fetchScores, 3000);
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // FETCH ALL
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAll() {
+    await fetchQuestionLive();
+    await fetchScores();
+    LOG.info('FETCH', 'Manual refresh done');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSE
+  // ═══════════════════════════════════════════════════════════
+  window.selectSession = selectSession;
+  window.startSession = startSession;
+  window.stopSession = stopSession;
+  window.resetGame = resetGame;
+  window.switchStageView = switchStageView;
+  window.resetAllScores = resetAllScores;
+  window.openDeleteModal = openDeleteModal;
+  window.closeDeleteModal = closeDeleteModal;
+  window.executeDeleteScore = executeDeleteScore;
+  window.fetchScores = fetchScores;
+  window.fetchAll = fetchAll;
+  window.executeComputeElimination = executeComputeElimination;
+  window.executeDeclareElimination = executeDeclareElimination;
+  window.executeUndoElimination = executeUndoElimination;
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -885,17 +863,11 @@
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
+    selectSession(1);
     renderRankButtons();
-    await fetchLiveData();
 
-    const { data: layout } = await supabaseClient
-      .from('admin_layout_frenzy_cross_math')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
-    if (layout) updateActiveViewUI(layout.current_view);
-
-    setupAllRealtimeChannels();
+    await fetchAll();
+    setupRealtime();
 
     LOG.ok('INIT', '══════════ ADMIN READY ══════════');
   });
