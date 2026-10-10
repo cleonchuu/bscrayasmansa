@@ -50,6 +50,21 @@
       animation: fadeIn 0.3s ease-in-out;
     }
 
+    /* ⭐ ELIMINATION OVERLAY */
+    .eliminated-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.95); }
       to { opacity: 1; transform: scale(1); }
@@ -109,7 +124,33 @@
 <body class="min-h-screen flex items-center justify-center p-4">
 
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- FREEZE OVERLAY                                               -->
+  <!-- ⭐ ELIMINATION OVERLAY (baru)                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="eliminatedOverlay" class="eliminated-screen hidden text-center p-6">
+    <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+      <i class="fas fa-ban text-6xl text-rose-500"></i>
+    </div>
+    <h2 class="text-4xl md:text-5xl font-black text-rose-500 tracking-wider uppercase mb-3">
+      TERELIMINASI
+    </h2>
+    <p id="eliminatedName" class="text-white text-lg md:text-xl font-bold max-w-md mb-3">
+      Peserta
+    </p>
+    <p class="text-slate-400 text-sm md:text-base max-w-md mb-6">
+      Kamu telah tereliminasi di game sebelumnya. Tidak bisa melanjutkan ke game berikutnya.
+      <br>Terima kasih sudah berpartisipasi!
+    </p>
+    <div class="flex items-center gap-2 bg-slate-900 border border-rose-500/30 px-5 py-3 rounded-xl text-xs font-mono text-rose-300">
+      <i class="fas fa-lock"></i>
+      <span>STATUS: ELIMINATED</span>
+    </div>
+    <button onclick="hideEliminatedOverlay()" class="mt-6 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold rounded-xl transition">
+      <i class="fas fa-arrow-left mr-1"></i> Kembali
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FREEZE OVERLAY (situasional)                                 -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
     <div id="freezeIconWrap" class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
@@ -230,7 +271,6 @@
   let isFrozen = false;
   let currentQuota = DEFAULT_QUOTA;
 
-  // ⭐ Server state (dari mimic_game_state)
   let serverState = {
     action: 'RESET',
     current_level: null,
@@ -255,10 +295,46 @@
   const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ SERVER STATE LISTENER (timer, freeze, start, reset)
+  // ⭐ ELIMINATION — cek & tampilkan
+  // ═══════════════════════════════════════════════════════════
+  async function checkEliminationStatus(uniqueId) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('is_eliminated')
+        .eq('unique_id', uniqueId)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[ELIM] Cek error:', error);
+        return false;
+      }
+      return data?.is_eliminated === true;
+    } catch (e) {
+      console.warn('[ELIM] Exception:', e);
+      return false;
+    }
+  }
+
+  function showEliminatedOverlay(name) {
+    document.getElementById('eliminatedName').textContent = name || 'Peserta';
+    document.getElementById('eliminatedOverlay').classList.remove('hidden');
+  }
+
+  function hideEliminatedOverlay() {
+    document.getElementById('eliminatedOverlay').classList.add('hidden');
+    // Balik ke step awal
+    stepCalculator.classList.add('hidden');
+    stepStudent.classList.add('hidden');
+    stepSchool.classList.remove('hidden');
+  }
+
+  window.hideEliminatedOverlay = hideEliminatedOverlay;
+
+  // ═══════════════════════════════════════════════════════════
+  // SERVER STATE LISTENER
   // ═══════════════════════════════════════════════════════════
   function listenToGameStatus() {
-    // Realtime subscription
     supabaseClient
       .channel('kiosk_game_state')
       .on('postgres_changes',
@@ -270,7 +346,6 @@
         console.log(`[REALTIME] ${status}`);
       });
 
-    // Fallback polling tiap 1.5 detik
     setInterval(async () => {
       const { data } = await supabaseClient
         .from('mimic_game_state')
@@ -281,7 +356,6 @@
     }, 1500);
   }
 
-  // ⭐ Handle perubahan state server
   function handleServerState(row) {
     if (!row) return;
 
@@ -295,16 +369,12 @@
       is_running: !!row.is_running
     };
 
-    // ⭐ Update timer display SETIAP kali state berubah
     updateKioskTimer(newState.seconds_remaining);
-
-    // ⭐ Handle freeze
     handleFreeze(newState);
 
-    // Deteksi perubahan signifikan
     const sig = `${newState.action}|${newState.current_level}|${newState.is_running}|${newState.is_frozen}`;
     if (sig === lastStateSig) {
-      serverState = newState;  // tetap update internal
+      serverState = newState;
       return;
     }
     lastStateSig = sig;
@@ -312,7 +382,6 @@
 
     console.log(`[STATE] ${newState.action} / ${newState.current_level} / frozen=${newState.is_frozen}`);
 
-    // Route berdasarkan action
     if (newState.action === 'START_GAME' && newState.current_level) {
       onGameStart(newState);
     } else if (newState.action === 'RESET' || newState.action === 'TIME_UP') {
@@ -320,7 +389,6 @@
     }
   }
 
-  // ⭐ Timer dari server (bukan hitung sendiri)
   function updateKioskTimer(seconds) {
     const safeSec = Math.max(0, Math.floor(seconds || 0));
     const m = Math.floor(safeSec / 60);
@@ -336,11 +404,9 @@
     }
   }
 
-  // ⭐ Freeze handling
   function handleFreeze(state) {
-    // Kalau belum pernah start → jangan unfreeze (masih waiting)
     if (state.action === 'RESET' && !state.is_running) {
-      return;  // biarkan freeze "waiting"
+      return;
     }
 
     if (state.is_frozen) {
@@ -413,7 +479,6 @@
     freezeOverlay.classList.add('hidden');
     document.querySelectorAll('button').forEach(btn => btn.disabled = false);
 
-    // Cek kuota jika peserta sedang di kalkulator
     if (selectedStudent) refreshQuotaUI();
   }
 
@@ -453,8 +518,16 @@
     studentList.innerHTML = '';
     filtered.forEach(student => {
       const btn = document.createElement('button');
-      btn.className = 'w-full text-left p-4 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-2xl font-bold text-slate-100 flex items-center justify-between transition active:scale-95';
-      btn.innerHTML = `<span>👤 ${student.full_name}</span> <span class="text-xs text-amber-400">Jawab →</span>`;
+      const isElim = student.is_eliminated === true;
+      btn.className = `w-full text-left p-4 border rounded-2xl font-bold flex items-center justify-between transition active:scale-95 ${
+        isElim 
+          ? 'bg-slate-900 border-slate-800 text-slate-600 opacity-60' 
+          : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-100'
+      }`;
+      btn.innerHTML = `
+        <span>👤 ${student.full_name} ${isElim ? '🚫' : ''}</span> 
+        <span class="text-xs ${isElim ? 'text-rose-500' : 'text-amber-400'}">${isElim ? 'Tereliminasi' : 'Jawab →'}</span>
+      `;
       btn.onclick = () => openCalculator(student);
       studentList.appendChild(btn);
     });
@@ -466,19 +539,27 @@
   };
   document.getElementById('btnCancelCalc').onclick = resetToStart;
 
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ OPEN CALCULATOR — dengan cek eliminasi
+  // ═══════════════════════════════════════════════════════════
   async function openCalculator(student) {
+    // ⭐ CEK STATUS ELIMINASI DULU
+    const isElim = await checkEliminationStatus(student.unique_id);
+    if (isElim) {
+      showEliminatedOverlay(student.full_name);
+      return;
+    }
+
     selectedStudent = student;
     currentInput = '';
     updateDisplay();
 
-    // ⭐ Fetch kuota
     currentQuota = await getQuota(student.unique_id);
     updateQuotaBadge(currentQuota);
 
     document.getElementById('selectedStudentName').textContent = student.full_name;
     document.getElementById('selectedStudentSchool').textContent = student.school_name;
 
-    // Update tombol submit
     updateSubmitButton();
 
     stepStudent.classList.add('hidden');
@@ -545,7 +626,7 @@
   function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
 
   // ═══════════════════════════════════════════════════════════
-  // KUOTA (read-only, karena update via RPC)
+  // KUOTA
   // ═══════════════════════════════════════════════════════════
   async function getQuota(userUniqueId) {
     try {
@@ -559,10 +640,7 @@
         console.warn("[QUOTA] Error:", error);
         return DEFAULT_QUOTA;
       }
-      if (!data) {
-        // Belum ada → return default, INSERT nanti saat submit via RPC
-        return DEFAULT_QUOTA;
-      }
+      if (!data) return DEFAULT_QUOTA;
       return data.input_left ?? 0;
     } catch (err) {
       console.error("[QUOTA] Exception:", err);
@@ -571,7 +649,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ SUBMIT JAWABAN via RPC (anti-cheat, server-side scoring)
+  // SUBMIT via RPC
   // ═══════════════════════════════════════════════════════════
   async function submitAnswer() {
     if (!currentInput || isSubmitting || isFrozen) return;
@@ -591,7 +669,6 @@
     document.getElementById('btnSubmitAnswer').disabled = true;
 
     try {
-      // ⭐ Panggil RPC — semua perhitungan di server
       const { data, error } = await supabaseClient.rpc('submit_mimic_answer', {
         p_user_id: selectedStudent.unique_id,
         p_answer: currentInput
@@ -612,7 +689,6 @@
         return;
       }
 
-      // ⭐ data: { success, correct, score, correct_answer, quota, seconds_remaining }
       console.log('[SUBMIT] Result:', data);
       triggerFlashEffect(data.correct, data.score, data.correct_answer, data.quota);
 
@@ -682,7 +758,6 @@
   (async () => {
     console.log('[KIOSK] Boot...');
 
-    // Baca state awal
     const { data: stateRow } = await supabaseClient
       .from('mimic_game_state')
       .select('*')
@@ -690,13 +765,10 @@
       .maybeSingle();
     if (stateRow) handleServerState(stateRow);
 
-    // Load peserta
     await loadAllParticipants();
 
-    // Freeze awal (menunggu admin)
     freezeKiosk('stopped', 'Menunggu admin memulai sesi...', 'WAITING');
 
-    // Listen status
     listenToGameStatus();
 
     console.log('[KIOSK] Ready');
