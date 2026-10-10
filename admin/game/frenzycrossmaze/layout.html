@@ -96,7 +96,7 @@
       animation: loadingPulse 1s ease-in-out infinite;
     }
 
-    /* Scanline overlay untuk idle */
+    /* Scanline overlay */
     .scanlines {
       background: linear-gradient(
         rgba(18, 16, 16, 0) 50%,
@@ -154,6 +154,9 @@
       box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
       border: 2px solid #0284c7;
     }
+    .neon-yellow-glow {
+      box-shadow: 0 0 25px #facc15, 0 0 50px #facc15, inset 0 0 10px #ffffff;
+    }
 
     /* BGM Badge */
     .bgm-badge {
@@ -191,92 +194,12 @@
       50% { transform: translateY(-10px) scale(1.08); }
     }
 
-    /* Idle canvas */
-    #idleCanvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
+    /* Loading canvas */
     #loadingCanvas {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       z-index: 0;
       pointer-events: none;
-    }
-
-    /* Cross maze center point */
-    .center-point {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 24px; height: 24px;
-      background: #facc15;
-      border-radius: 50%;
-      box-shadow: 0 0 25px #facc15, 0 0 50px #facc15;
-      z-index: 15;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .center-point::after {
-      content: '';
-      width: 8px; height: 8px;
-      background: #ffffff;
-      border-radius: 50%;
-      animation: pulseSoft 1.5s ease-in-out infinite;
-    }
-    @keyframes pulseSoft {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       IDLE MAZE GRID
-       ═══════════════════════════════════════════════════════════ */
-    .idle-maze-cell {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 4px;
-      background: rgba(2, 6, 23, 0.4);
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s, background 0.3s;
-    }
-
-    .idle-maze-cell.dim {
-      opacity: 0.15;
-      border-color: rgba(56, 189, 248, 0.08);
-      background: transparent;
-    }
-
-    .idle-maze-cell.active {
-      opacity: 1;
-    }
-
-    .idle-maze-cell .maze-num {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: clamp(0.75rem, 1.5vw, 1.5rem);
-      font-weight: 700;
-      color: rgba(125, 211, 252, 0.8);
-      text-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
-      transition: color 0.3s, text-shadow 0.3s;
-    }
-
-    .idle-maze-cell .maze-num.highlight {
-      color: #00f2fe;
-      text-shadow: 0 0 12px #00f2fe, 0 0 20px #0ea5e9;
-    }
-
-    /* Center point size override di idle */
-    #viewIdle .center-point {
-      width: 32px;
-      height: 32px;
-      box-shadow: 0 0 30px #facc15, 0 0 60px #facc15, inset 0 0 10px rgba(255,255,255,0.5);
-    }
-    #viewIdle .center-point::after {
-      width: 12px;
-      height: 12px;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -326,13 +249,11 @@
       box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
       background: linear-gradient(145deg, rgba(69,26,3,0.6), rgba(2,6,23,0.95));
     }
-
     .player-card-h.rank-2 {
       border-color: rgba(203, 213, 225, 0.8);
       box-shadow: 0 0 35px rgba(203, 213, 225, 0.35);
       background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(2,6,23,0.95));
     }
-
     .player-card-h.rank-3 {
       border-color: rgba(217, 119, 6, 0.8);
       box-shadow: 0 0 35px rgba(217, 119, 6, 0.35);
@@ -351,15 +272,11 @@
       justify-content: center;
       margin-bottom: 0.75rem;
     }
-
     .player-card-h.rank-1 .avatar-box { border-color: #fbbf24; }
     .player-card-h.rank-2 .avatar-box { border-color: #cbd5e1; }
     .player-card-h.rank-3 .avatar-box { border-color: #d97706; }
 
-    .player-card-h .avatar-box img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
+    .player-card-h .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
 
     .player-card-h .rank-badge {
       display: inline-block;
@@ -373,7 +290,6 @@
       border: 1px solid rgba(56,189,248,0.5);
       color: #7dd3fc;
     }
-
     .player-card-h.rank-1 .rank-badge { background: #fbbf24; color: #451a03; border-color: #f59e0b; }
     .player-card-h.rank-2 .rank-badge { background: #cbd5e1; color: #0f172a; border-color: #94a3b8; }
     .player-card-h.rank-3 .rank-badge { background: #d97706; color: #fff; border-color: #b45309; }
@@ -396,13 +312,12 @@
       font-weight: 900;
       color: #7dd3fc;
     }
-
     .player-card-h.rank-1 .player-points { color: #fbbf24; }
     .player-card-h.rank-2 .player-points { color: #e2e8f0; }
     .player-card-h.rank-3 .player-points { color: #fb923c; }
 
     /* ═══════════════════════════════════════════════════════════
-       ELIMINATION — 10 KARTU GRID 5×2
+       ELIMINATION — 10 KARTU GRID
        ═══════════════════════════════════════════════════════════ */
     @keyframes elimCardFadeIn {
       0% { opacity: 0; transform: translateY(30px) scale(0.9); }
@@ -434,11 +349,7 @@
       justify-content: center;
       margin-bottom: 0.6rem;
     }
-
-    .elim-card-v .avatar-box img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
+    .elim-card-v .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
 
     .elim-card-v .elim-name {
       font-size: 0.8rem;
@@ -505,44 +416,41 @@
   <!-- MAIN -->
   <main class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
 
-    <!-- VIEW 1: IDLE (Cross Maze Grid) -->
+    <!-- VIEW 1: IDLE — Cross Maze Canvas -->
     <div id="viewIdle" class="stage-view hidden-view absolute inset-0 overflow-hidden">
-      <div class="absolute inset-0 scanlines z-50"></div>
-
-      <!-- Idle Canvas (particles, layer belakang) -->
-      <canvas id="idleCanvas" class="absolute inset-0 w-full h-full z-0 pointer-events-none"></canvas>
-
-      <!-- Cross maze grid (di atas canvas) -->
-      <div class="absolute inset-0 flex items-center justify-center z-10 px-4 py-24">
-        <div id="idleMazeContainer" class="w-full max-w-6xl relative" style="aspect-ratio: 8/5;">
-          <div id="idleMazeGrid" class="w-full h-full grid" style="grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(5, 1fr); gap: 6px;">
-            <!-- Diisi oleh JS -->
-          </div>
-
-          <!-- Center point -->
-          <div class="center-point"></div>
-        </div>
-      </div>
+      <div class="absolute inset-0 scanlines z-50 pointer-events-none"></div>
 
       <!-- Header -->
       <header class="absolute top-0 left-0 right-0 z-20 text-center pt-4 flex flex-col items-center pointer-events-none">
-        <div class="flex items-center space-x-3 mb-2">
-          <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase">
+        <div class="flex items-center space-x-3 mb-1">
+          <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase animate-pulse">
             DAY 2, GAME 2
           </span>
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           <span class="text-xs text-emerald-400 tracking-wider">SUPABASE REALTIME: STANDBY</span>
         </div>
-        <h1 class="text-5xl md:text-7xl font-vt tracking-widest text-sky-300 glitch-title uppercase" data-text="Frenzy Cross Maze">
+        <h1 class="text-4xl md:text-6xl font-vt tracking-widest text-sky-300 glitch-title uppercase" data-text="Frenzy Cross Maze">
           Frenzy Cross Maze
         </h1>
       </header>
 
-      <!-- Footer status -->
-      <footer class="absolute bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none px-4">
+      <!-- Main Arena (Canvas) -->
+      <div class="absolute inset-0 flex items-center justify-center px-4 pt-28 pb-24 z-10">
+        <div class="relative w-full max-w-4xl aspect-[16/9] md:aspect-[2/1] max-h-[60vh] rounded-xl neon-border overflow-hidden bg-slate-950/80 flex items-center justify-center shadow-2xl">
+          <canvas id="mazeCanvas" class="absolute inset-0 w-full h-full"></canvas>
+
+          <!-- Center Yellow Point -->
+          <div id="centerPoint" class="absolute w-6 h-6 bg-yellow-400 rounded-full neon-yellow-glow transition-all duration-300 z-30 flex items-center justify-center" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="absolute bottom-6 left-0 right-0 z-20 flex flex-col items-center gap-3 px-4 pointer-events-none">
         <div class="w-full max-w-md">
-          <div class="bg-slate-950/85 backdrop-blur-md border border-sky-500/40 px-6 py-3 rounded-lg text-center">
-            <div class="font-vt text-base text-sky-300 tracking-widest">
+          <div class="bg-sky-950/60 border border-sky-800/60 px-4 py-2 rounded-lg text-center">
+            <div class="font-vt text-sm md:text-base text-sky-400 tracking-wider">
               STATUS: Menunggu sinyal Supabase Realtime...
             </div>
           </div>
@@ -637,7 +545,7 @@
       </div>
     </div>
 
-    <!-- VIEW 6: ELIMINATION (10 kartu grid 5×2) -->
+    <!-- VIEW 6: ELIMINATION -->
     <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
 
@@ -682,7 +590,7 @@
 
   const POINT_TABLE = 'point_frenzy_cross_maze';
   const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
-  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
+  const QUESTION_TABLE = 'system_frenzy_cross_maze_question';
   const CURRENT_GAME_NAME = 'Frenzy Cross Maze';
 
   const LOADING_DURATION_SEC = 3;
@@ -840,171 +748,125 @@
   const audioEngine = new WebAudioEngine();
 
   // ═══════════════════════════════════════════════════════════
-  // IDLE CANVAS (particles di belakang grid)
+  // IDLE MAZE CANVAS
   // ═══════════════════════════════════════════════════════════
-  const idleCanvas = document.getElementById('idleCanvas');
-  const idleCtx = idleCanvas ? idleCanvas.getContext('2d') : null;
+  let mazeCanvas = null;
+  let mazeCtx = null;
+  let mazeW = 0, mazeH = 0;
+  let mazeNumbers = [];
+  let mazeWalls = [];
+  let mazeAnimRafId = null;
+  let mazeRunning = false;
 
-  let idleW, idleH;
-  let idleRunning = false;
-  let idleRafId = null;
-  let idleNumbers = [];
-
-  function resizeIdleCanvas() {
-    if (!idleCanvas) return;
-    idleW = idleCanvas.width = window.innerWidth;
-    idleH = idleCanvas.height = window.innerHeight;
+  function initMazeCanvas() {
+    mazeCanvas = document.getElementById('mazeCanvas');
+    if (!mazeCanvas) return false;
+    mazeCtx = mazeCanvas.getContext('2d');
+    return true;
   }
 
-  class IdleNumber {
+  function resizeMazeCanvas() {
+    if (!mazeCanvas) return;
+    const rect = mazeCanvas.parentElement.getBoundingClientRect();
+    mazeW = mazeCanvas.width = rect.width;
+    mazeH = mazeCanvas.height = rect.height;
+    generateMazeStructure();
+  }
+
+  function generateMazeStructure() {
+    mazeWalls = [];
+    const cols = 8;
+    const rows = 5;
+    const cellW = mazeW / cols;
+    const cellH = mazeH / rows;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if ((r + c) % 2 === 1) {
+          mazeWalls.push({
+            x: c * cellW + cellW * 0.1,
+            y: r * cellH + cellH * 0.1,
+            w: cellW * 0.8,
+            h: cellH * 0.8
+          });
+        }
+      }
+    }
+  }
+
+  class MazeNumber {
     constructor() { this.reset(); }
     reset() {
       this.value = Math.floor(Math.random() * 10);
-      this.x = Math.random() * idleW;
-      this.y = Math.random() * idleH;
-      this.vx = (Math.random() - 0.5) * 1.2;
-      this.vy = (Math.random() - 0.5) * 1.2;
-      this.size = Math.floor(Math.random() * 8) + 14;
-      this.color = Math.random() > 0.5 ? '#38bdf8' : '#0ea5e9';
-      this.alpha = Math.random() * 0.5 + 0.3;
+      this.x = Math.random() * mazeW;
+      this.y = Math.random() * mazeH;
+      this.vx = (Math.random() - 0.5) * 1.5;
+      this.vy = (Math.random() - 0.5) * 1.5;
+      this.size = Math.floor(Math.random() * 6) + 12;
     }
     update() {
       this.x += this.vx;
       this.y += this.vy;
-      if (this.x < 10 || this.x > idleW - 10) this.vx *= -1;
-      if (this.y < 10 || this.y > idleH - 10) this.vy *= -1;
+      if (this.x < 10 || this.x > mazeW - 10) this.vx *= -1;
+      if (this.y < 10 || this.y > mazeH - 10) this.vy *= -1;
     }
     draw() {
-      if (!idleCtx) return;
-      idleCtx.fillStyle = this.color;
-      idleCtx.font = `${this.size}px 'VT323', monospace`;
-      idleCtx.globalAlpha = this.alpha;
-      idleCtx.shadowBlur = 8;
-      idleCtx.shadowColor = this.color;
-      idleCtx.fillText(this.value, this.x, this.y);
-      idleCtx.globalAlpha = 1.0;
-      idleCtx.shadowBlur = 0;
+      if (!mazeCtx) return;
+      mazeCtx.fillStyle = '#38bdf8';
+      mazeCtx.font = `${this.size}px 'VT323', monospace`;
+      mazeCtx.fillText(this.value, this.x, this.y);
     }
   }
 
-  function initIdleNumbers() {
-    idleNumbers = [];
+  function initMazeNumbers() {
+    mazeNumbers = [];
     for (let i = 0; i < 45; i++) {
-      idleNumbers.push(new IdleNumber());
+      mazeNumbers.push(new MazeNumber());
     }
   }
 
-  function drawIdleFrame() {
-    if (!idleCtx) return;
-    idleCtx.clearRect(0, 0, idleW, idleH);
+  function animateMazeLoop() {
+    if (!mazeRunning || !mazeCtx) return;
+    mazeCtx.clearRect(0, 0, mazeW, mazeH);
 
-    // Cross lines background
-    idleCtx.beginPath();
-    idleCtx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
-    idleCtx.lineWidth = 1;
-    idleCtx.moveTo(0, idleH / 2);
-    idleCtx.lineTo(idleW, idleH / 2);
-    idleCtx.moveTo(idleW / 2, 0);
-    idleCtx.lineTo(idleW / 2, idleH);
-    idleCtx.stroke();
+    // Draw maze walls
+    mazeCtx.strokeStyle = 'rgba(2, 132, 199, 0.18)';
+    mazeCtx.lineWidth = 2;
+    mazeWalls.forEach(wall => {
+      mazeCtx.strokeRect(wall.x, wall.y, wall.w, wall.h);
+    });
 
-    idleNumbers.forEach(num => {
+    // Cross lines
+    mazeCtx.beginPath();
+    mazeCtx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+    mazeCtx.lineWidth = 1;
+    mazeCtx.moveTo(0, mazeH / 2); mazeCtx.lineTo(mazeW, mazeH / 2);
+    mazeCtx.moveTo(mazeW / 2, 0); mazeCtx.lineTo(mazeW / 2, mazeH);
+    mazeCtx.stroke();
+
+    // Update + draw numbers
+    mazeNumbers.forEach(num => {
       num.update();
       num.draw();
     });
+
+    mazeAnimRafId = requestAnimationFrame(animateMazeLoop);
   }
 
-  function startIdleCanvas() {
-    if (idleRunning || !idleCtx) return;
-    idleRunning = true;
-    resizeIdleCanvas();
-    if (idleNumbers.length === 0) initIdleNumbers();
-
-    const loop = () => {
-      if (!idleRunning) return;
-      drawIdleFrame();
-      idleRafId = requestAnimationFrame(loop);
-    };
-    loop();
+  function startMazeCanvas() {
+    if (mazeRunning) return;
+    if (!mazeCtx && !initMazeCanvas()) return;
+    mazeRunning = true;
+    resizeMazeCanvas();
+    if (mazeNumbers.length === 0) initMazeNumbers();
+    animateMazeLoop();
+    LOG.info('MAZE', '🎬 Maze canvas started');
   }
 
-  function stopIdleCanvas() {
-    idleRunning = false;
-    if (idleRafId) cancelAnimationFrame(idleRafId);
-    idleRafId = null;
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // IDLE MAZE GRID — build 8×5 grid
-  // ═══════════════════════════════════════════════════════════
-  let idleGridFlickerInterval = null;
-
-  function buildIdleMazeGrid() {
-    const gridEl = document.getElementById('idleMazeGrid');
-    if (!gridEl) return;
-    gridEl.innerHTML = '';
-
-    const COLS = 8;
-    const ROWS = 5;
-    const centerCol = Math.floor(COLS / 2);
-    const centerRow = Math.floor(ROWS / 2);
-
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'idle-maze-cell';
-
-        const isCenter = (r === centerRow && c === centerCol);
-        const rand = Math.random();
-
-        if (rand < 0.3 && !isCenter) {
-          cell.classList.add('dim');
-        } else {
-          cell.classList.add('active');
-          if (!isCenter) {
-            const num = document.createElement('span');
-            num.className = 'maze-num';
-            if (Math.random() > 0.85) num.classList.add('highlight');
-            num.textContent = Math.floor(Math.random() * 9) + 1;
-            cell.appendChild(num);
-          }
-        }
-
-        gridEl.appendChild(cell);
-      }
-    }
-
-    LOG.info('IDLE', `Grid ${COLS}×${ROWS} built`);
-    startIdleGridFlicker();
-  }
-
-  function startIdleGridFlicker() {
-    stopIdleGridFlicker();
-    idleGridFlickerInterval = setInterval(() => {
-      if (currentView !== 'idle') return;
-      const cells = document.querySelectorAll('#idleMazeGrid .idle-maze-cell.active');
-      if (cells.length === 0) return;
-
-      const count = Math.floor(Math.random() * 6) + 5;
-      for (let i = 0; i < count; i++) {
-        const cell = cells[Math.floor(Math.random() * cells.length)];
-        if (!cell) continue;
-        const numEl = cell.querySelector('.maze-num');
-        if (!numEl) continue;
-        numEl.textContent = Math.floor(Math.random() * 9) + 1;
-        if (Math.random() > 0.85) {
-          numEl.classList.add('highlight');
-          setTimeout(() => numEl.classList.remove('highlight'), 500);
-        }
-      }
-    }, 800);
-  }
-
-  function stopIdleGridFlicker() {
-    if (idleGridFlickerInterval) {
-      clearInterval(idleGridFlickerInterval);
-      idleGridFlickerInterval = null;
-    }
+  function stopMazeCanvas() {
+    mazeRunning = false;
+    if (mazeAnimRafId) cancelAnimationFrame(mazeAnimRafId);
+    mazeAnimRafId = null;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1088,58 +950,60 @@
   let currentRevealedRank = -1;
   let lastRevealedRank = -1;
   let isLoading = false;
+  let lastViewSig = '';
 
   // ═══════════════════════════════════════════════════════════
   // VIEW SWITCHER
   // ═══════════════════════════════════════════════════════════
- function showView(viewName) {
-  // ⭐ GUARD: skip kalau view sudah sama dan elemennya sudah active
-  if (currentView === viewName) {
-    const el = document.getElementById('view' + viewName.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(''));
-    if (el && el.classList.contains('active-view')) {
-      return; // sudah aktif, jangan rebuild
+  function showView(viewName) {
+    // Guard: skip kalau view sudah sama & elemen sudah active
+    if (currentView === viewName) {
+      const map = {
+        idle: 'viewIdle',
+        loading: 'viewLoading',
+        game: 'viewGame',
+        leaderboard: 'viewLeaderboard',
+        all_players: 'viewAllPlayers',
+        elimination: 'viewElimination'
+      };
+      const el = document.getElementById(map[viewName]);
+      if (el && el.classList.contains('active-view')) return;
+    }
+
+    const views = {
+      idle: document.getElementById('viewIdle'),
+      loading: document.getElementById('viewLoading'),
+      game: document.getElementById('viewGame'),
+      leaderboard: document.getElementById('viewLeaderboard'),
+      all_players: document.getElementById('viewAllPlayers'),
+      elimination: document.getElementById('viewElimination')
+    };
+
+    Object.values(views).forEach(v => {
+      if (!v) return;
+      v.classList.add('hidden-view');
+      v.classList.remove('active-view');
+    });
+
+    if (views[viewName]) {
+      views[viewName].classList.remove('hidden-view');
+      views[viewName].classList.add('active-view');
+    }
+
+    const prevView = currentView;
+    currentView = viewName;
+    playBGM(viewName);
+
+    if (viewName === 'idle') {
+      setTimeout(() => startMazeCanvas(), 100);
+    } else {
+      stopMazeCanvas();
+    }
+
+    if (viewName !== 'loading') {
+      stopLoadingCanvas();
     }
   }
-
-  const views = {
-    idle: document.getElementById('viewIdle'),
-    loading: document.getElementById('viewLoading'),
-    game: document.getElementById('viewGame'),
-    leaderboard: document.getElementById('viewLeaderboard'),
-    all_players: document.getElementById('viewAllPlayers'),
-    elimination: document.getElementById('viewElimination')
-  };
-
-  Object.values(views).forEach(v => {
-    if (!v) return;
-    v.classList.add('hidden-view');
-    v.classList.remove('active-view');
-  });
-
-  if (views[viewName]) {
-    views[viewName].classList.remove('hidden-view');
-    views[viewName].classList.add('active-view');
-  }
-
-  const prevView = currentView;
-  currentView = viewName;
-  playBGM(viewName);
-
-  // ⭐ Hanya build ulang grid kalau BARU masuk idle (dari view lain)
-  if (viewName === 'idle' && prevView !== 'idle') {
-    setTimeout(() => {
-      startIdleCanvas();
-      buildIdleMazeGrid();
-    }, 100);
-  } else if (viewName !== 'idle') {
-    stopIdleCanvas();
-    stopIdleGridFlicker();
-  }
-
-  if (viewName !== 'loading') {
-    stopLoadingCanvas();
-  }
-}
 
   // ═══════════════════════════════════════════════════════════
   // SHOW LOADING TRANSITION
@@ -1322,51 +1186,51 @@
     }, 2000);
   }
 
-function handleViewSwitch(viewName, revealedRank) {
-  // ⭐ GUARD: skip kalau view + rank sama
-  const sig = `${viewName}|${revealedRank || 0}`;
-  if (window._lastViewSig === sig) return;
-  window._lastViewSig = sig;
+  function handleViewSwitch(viewName, revealedRank) {
+    // Guard: skip kalau sig sama
+    const sig = `${viewName}|${revealedRank || 0}`;
+    if (lastViewSig === sig) return;
+    lastViewSig = sig;
 
-  if (viewName === 'game' && currentSessionIndex === 0) {
-    showView('idle');
-    return;
-  }
-
-  if (viewName === 'idle') {
-    showView('idle');
-    lastRevealedRank = -1;
-    return;
-  }
-
-  if (viewName === 'game') {
-    if (currentView !== 'game') {
-      showView('game');
-      startSessionTimer();
+    if (viewName === 'game' && currentSessionIndex === 0) {
+      showView('idle');
+      return;
     }
-    lastRevealedRank = -1;
-    return;
-  }
 
-  const newRank = revealedRank || 0;
-
-  if (viewName === 'leaderboard') {
-    showView('leaderboard');
-    if (newRank !== lastRevealedRank) {
-      currentRevealedRank = newRank;
-      lastRevealedRank = newRank;
-      fetchAndRenderScores(false);
+    if (viewName === 'idle') {
+      showView('idle');
+      lastRevealedRank = -1;
+      return;
     }
-  } else if (viewName === 'all_players') {
-    showView('all_players');
-    lastRevealedRank = -1;
-    fetchAndRenderAllPlayers();
-  } else if (viewName === 'elimination') {
-    showView('elimination');
-    lastRevealedRank = -1;
-    fetchAndRenderElimination();
+
+    if (viewName === 'game') {
+      if (currentView !== 'game') {
+        showView('game');
+        startSessionTimer();
+      }
+      lastRevealedRank = -1;
+      return;
+    }
+
+    const newRank = revealedRank || 0;
+
+    if (viewName === 'leaderboard') {
+      showView('leaderboard');
+      if (newRank !== lastRevealedRank) {
+        currentRevealedRank = newRank;
+        lastRevealedRank = newRank;
+        fetchAndRenderScores(false);
+      }
+    } else if (viewName === 'all_players') {
+      showView('all_players');
+      lastRevealedRank = -1;
+      fetchAndRenderAllPlayers();
+    } else if (viewName === 'elimination') {
+      showView('elimination');
+      lastRevealedRank = -1;
+      fetchAndRenderElimination();
+    }
   }
-}
 
   // ═══════════════════════════════════════════════════════════
   // FETCH AVATARS
@@ -1526,7 +1390,7 @@ function handleViewSwitch(viewName, revealedRank) {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ELIMINATION — 10 KARTU
+  // ELIMINATION
   // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderElimination() {
     const container = document.getElementById('eliminatedList');
@@ -1580,7 +1444,7 @@ function handleViewSwitch(viewName, revealedRank) {
   // RESIZE
   // ═══════════════════════════════════════════════════════════
   window.addEventListener('resize', () => {
-    if (idleRunning) resizeIdleCanvas();
+    if (mazeRunning) resizeMazeCanvas();
     if (lcRunning) resizeLoadingCanvas();
   });
 
