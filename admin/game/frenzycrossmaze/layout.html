@@ -540,9 +540,11 @@
   // ═══════════════════════════════════════════════════════════
   // KONFIG
   // ═══════════════════════════════════════════════════════════
-  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOHRLAKGP4dqa4nExA_6hCktIHa";
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+  const supabaseClient = window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : null;
 
   const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
   const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
