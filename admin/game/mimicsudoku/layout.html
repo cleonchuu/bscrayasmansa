@@ -260,7 +260,6 @@
       z-index: 30;
     }
 
-    /* ⭐ Freeze Overlay */
     .freeze-overlay {
       position: fixed; inset: 0;
       background: rgba(3, 8, 20, 0.85);
@@ -323,9 +322,7 @@
     <span id="bgmLabel">BGM: --</span>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       LEFT SIDEBAR
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- LEFT SIDEBAR -->
   <aside class="w-[280px] lg:w-[320px] flex-shrink-0 flex flex-col gap-4 p-4 lg:p-6 bg-slate-900/80 border-r border-slate-800 backdrop-blur-md z-20">
 
     <div class="flex items-center gap-3">
@@ -394,9 +391,7 @@
 
   </aside>
 
-  <!-- ═══════════════════════════════════════════════════════════
-       RIGHT AREA
-       ═══════════════════════════════════════════════════════════ -->
+  <!-- RIGHT AREA -->
   <main class="flex-1 relative flex items-center justify-center overflow-hidden">
 
     <!-- VIEW: IDLE -->
@@ -808,7 +803,7 @@
   window.addEventListener('resize', () => { if (idleRunning) resizeBg(); });
 
   // ═══════════════════════════════════════════════════════════
-  // AUDIO ENGINE (SFX)
+  // AUDIO ENGINE
   // ═══════════════════════════════════════════════════════════
   class WebAudioEngine {
     constructor() {
@@ -841,7 +836,7 @@
   const audioEngine = new WebAudioEngine();
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ SERVER STATE (dari mimic_game_state)
+  // SERVER STATE
   // ═══════════════════════════════════════════════════════════
   let serverState = {
     action: 'RESET',
@@ -874,11 +869,7 @@
       this.loadingTick = null;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SUBSCRIBE
-    // ═══════════════════════════════════════════════════════════
     subscribe() {
-      // ⭐ Realtime ke mimic_game_state (sumber timer utama)
       supabaseClient
         .channel('stage_game_state')
         .on('postgres_changes',
@@ -890,7 +881,6 @@
           LOG.info('SUB', `Game state channel: ${status}`);
         });
 
-      // Realtime ke system_mimic_sudoku (untuk papan soal & jawaban)
       supabaseClient
         .channel('stage_mimic_sudoku')
         .on('postgres_changes',
@@ -906,15 +896,10 @@
           if (status === 'SUBSCRIBED') this.fetchAll();
         });
 
-      // ⭐ Polling fallback (realtime bisa drop)
       setInterval(() => this.fetchAll(), 2000);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // FETCH ALL
-    // ═══════════════════════════════════════════════════════════
     async fetchAll() {
-      // State timer
       const { data: stateRows } = await supabaseClient
         .from('mimic_game_state')
         .select('*')
@@ -923,7 +908,6 @@
 
       if (stateRows) this.onServerStateUpdate(stateRows);
 
-      // Sudoku data
       const { data: supaRows } = await supabaseClient
         .from('system_mimic_sudoku')
         .select('id, grid_data, updated_at');
@@ -942,9 +926,6 @@
       if (data) this.onMasterDataUpdate(data);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ HANDLE SERVER STATE (timer, freeze, start, reset)
-    // ═══════════════════════════════════════════════════════════
     onServerStateUpdate(row) {
       if (!row) return;
 
@@ -958,20 +939,15 @@
         is_running: !!row.is_running
       };
 
-      // ⭐ Update timer display SETIAP kali state berubah
       this.renderTimer(serverState.seconds_remaining);
-
-      // ⭐ Freeze overlay
       this.updateFreezeOverlay(serverState.is_frozen);
 
-      // ⭐ Signature untuk deteksi perubahan signifikan
       const sig = `${serverState.action}|${serverState.current_level}|${serverState.is_running}`;
       if (sig === lastStateSig) return;
       lastStateSig = sig;
 
       LOG.info('STATE', `action=${serverState.action} level=${serverState.current_level} running=${serverState.is_running}`);
 
-      // Route berdasarkan action
       if (serverState.action === 'START_GAME' && serverState.current_level) {
         this.onStartGame(serverState);
       } else if (serverState.action === 'RESET' || serverState.action === 'TIME_UP') {
@@ -979,16 +955,12 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ RENDER TIMER — dari server, bukan hitung lokal
-    // ═══════════════════════════════════════════════════════════
     renderTimer(seconds) {
       const safeSec = Math.max(0, Math.floor(seconds || 0));
       const m = Math.floor(safeSec / 60);
       const s = safeSec % 60;
       safeSetText('timerDisplay', `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
 
-      // Warna kritis
       const el = document.getElementById('timerDisplay');
       if (el) {
         if (safeSec <= 10) {
@@ -1001,9 +973,6 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ FREEZE OVERLAY
-    // ═══════════════════════════════════════════════════════════
     updateFreezeOverlay(isFrozen) {
       if (isFrozen === isFrozenUI) return;
       isFrozenUI = isFrozen;
@@ -1024,9 +993,6 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // START GAME
-    // ═══════════════════════════════════════════════════════════
     async onStartGame(status) {
       LOG.ok('STAGE', `▶ START (${status.current_level})`);
 
@@ -1041,7 +1007,6 @@
 
       this.showView('loading');
 
-      // Loading countdown lokal (5 detik) — TIDAK untuk timer game
       let countdown = LOADING_DURATION_SEC;
       safeSetText('loadingCountdown', countdown);
       if (this.loadingTick) clearInterval(this.loadingTick);
@@ -1150,7 +1115,6 @@
       safeSetText('timerDisplay', '--:--');
       safeSetText('targetCellDisplay', '--');
 
-      // Pastikan freeze overlay hidden juga
       this.updateFreezeOverlay(false);
 
       this.showView('idle');
@@ -1451,18 +1415,29 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ FETCH SCORES — dari point_mimic_sudoku
+  // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderStageScores(isAll) {
-    const { data, error } = await supabaseClient.from('game_scores')
-      .select('user_unique_id, score_obtained, game_name')
-      .eq('game_name', 'Mimic Sudoku');
-    if (error || !data) return;
-    let map = {};
-    data.forEach(r => {
-      const uid = r.user_unique_id || 'Tanpa Nama';
-      map[uid] = (map[uid] || 0) + (r.score_obtained || 0);
-    });
-    cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a,b) => b.total - a.total);
-    if (isAll) renderAllPlayersList(); else renderStageLeaderboard();
+    const { data, error } = await supabaseClient
+      .from('point_mimic_sudoku')
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
+
+    if (error || !data) {
+      LOG.error('STAGE', 'Fetch scores error', error);
+      return;
+    }
+
+    cachedScores = data.map(r => ({
+      uid: r.name || r.unique_id,
+      total: Number(r.point) || 0
+    }));
+
+    LOG.info('STAGE', `Loaded ${cachedScores.length} peserta`);
+
+    if (isAll) renderAllPlayersList();
+    else renderStageLeaderboard();
   }
 
   function renderStageLeaderboard() {
@@ -1532,7 +1507,6 @@
       })
       .subscribe();
 
-    // Baca state awal
     const { data: stateData } = await supabaseClient
       .from('mimic_game_state').select('*').eq('id', 1).maybeSingle();
     if (stateData) layout.onServerStateUpdate(stateData);
