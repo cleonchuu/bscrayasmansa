@@ -1092,44 +1092,54 @@
   // ═══════════════════════════════════════════════════════════
   // VIEW SWITCHER
   // ═══════════════════════════════════════════════════════════
-  function showView(viewName) {
-    const views = {
-      idle: document.getElementById('viewIdle'),
-      loading: document.getElementById('viewLoading'),
-      game: document.getElementById('viewGame'),
-      leaderboard: document.getElementById('viewLeaderboard'),
-      all_players: document.getElementById('viewAllPlayers'),
-      elimination: document.getElementById('viewElimination')
-    };
-
-    Object.values(views).forEach(v => {
-      if (!v) return;
-      v.classList.add('hidden-view');
-      v.classList.remove('active-view');
-    });
-
-    if (views[viewName]) {
-      views[viewName].classList.remove('hidden-view');
-      views[viewName].classList.add('active-view');
-    }
-
-    currentView = viewName;
-    playBGM(viewName);
-
-    if (viewName === 'idle') {
-      setTimeout(() => {
-        startIdleCanvas();
-        buildIdleMazeGrid();
-      }, 100);
-    } else {
-      stopIdleCanvas();
-      stopIdleGridFlicker();
-    }
-
-    if (viewName !== 'loading') {
-      stopLoadingCanvas();
+ function showView(viewName) {
+  // ⭐ GUARD: skip kalau view sudah sama dan elemennya sudah active
+  if (currentView === viewName) {
+    const el = document.getElementById('view' + viewName.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(''));
+    if (el && el.classList.contains('active-view')) {
+      return; // sudah aktif, jangan rebuild
     }
   }
+
+  const views = {
+    idle: document.getElementById('viewIdle'),
+    loading: document.getElementById('viewLoading'),
+    game: document.getElementById('viewGame'),
+    leaderboard: document.getElementById('viewLeaderboard'),
+    all_players: document.getElementById('viewAllPlayers'),
+    elimination: document.getElementById('viewElimination')
+  };
+
+  Object.values(views).forEach(v => {
+    if (!v) return;
+    v.classList.add('hidden-view');
+    v.classList.remove('active-view');
+  });
+
+  if (views[viewName]) {
+    views[viewName].classList.remove('hidden-view');
+    views[viewName].classList.add('active-view');
+  }
+
+  const prevView = currentView;
+  currentView = viewName;
+  playBGM(viewName);
+
+  // ⭐ Hanya build ulang grid kalau BARU masuk idle (dari view lain)
+  if (viewName === 'idle' && prevView !== 'idle') {
+    setTimeout(() => {
+      startIdleCanvas();
+      buildIdleMazeGrid();
+    }, 100);
+  } else if (viewName !== 'idle') {
+    stopIdleCanvas();
+    stopIdleGridFlicker();
+  }
+
+  if (viewName !== 'loading') {
+    stopLoadingCanvas();
+  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // SHOW LOADING TRANSITION
@@ -1312,46 +1322,51 @@
     }, 2000);
   }
 
-  function handleViewSwitch(viewName, revealedRank) {
-    if (viewName === 'game' && currentSessionIndex === 0) {
-      showView('idle');
-      return;
-    }
+function handleViewSwitch(viewName, revealedRank) {
+  // ⭐ GUARD: skip kalau view + rank sama
+  const sig = `${viewName}|${revealedRank || 0}`;
+  if (window._lastViewSig === sig) return;
+  window._lastViewSig = sig;
 
-    if (viewName === 'idle') {
-      showView('idle');
-      lastRevealedRank = -1;
-      return;
-    }
-
-    if (viewName === 'game') {
-      if (currentView !== 'game') {
-        showView('game');
-        startSessionTimer();
-      }
-      lastRevealedRank = -1;
-      return;
-    }
-
-    const newRank = revealedRank || 0;
-
-    if (viewName === 'leaderboard') {
-      showView('leaderboard');
-      if (newRank !== lastRevealedRank) {
-        currentRevealedRank = newRank;
-        lastRevealedRank = newRank;
-        fetchAndRenderScores(false);
-      }
-    } else if (viewName === 'all_players') {
-      showView('all_players');
-      lastRevealedRank = -1;
-      fetchAndRenderAllPlayers();
-    } else if (viewName === 'elimination') {
-      showView('elimination');
-      lastRevealedRank = -1;
-      fetchAndRenderElimination();
-    }
+  if (viewName === 'game' && currentSessionIndex === 0) {
+    showView('idle');
+    return;
   }
+
+  if (viewName === 'idle') {
+    showView('idle');
+    lastRevealedRank = -1;
+    return;
+  }
+
+  if (viewName === 'game') {
+    if (currentView !== 'game') {
+      showView('game');
+      startSessionTimer();
+    }
+    lastRevealedRank = -1;
+    return;
+  }
+
+  const newRank = revealedRank || 0;
+
+  if (viewName === 'leaderboard') {
+    showView('leaderboard');
+    if (newRank !== lastRevealedRank) {
+      currentRevealedRank = newRank;
+      lastRevealedRank = newRank;
+      fetchAndRenderScores(false);
+    }
+  } else if (viewName === 'all_players') {
+    showView('all_players');
+    lastRevealedRank = -1;
+    fetchAndRenderAllPlayers();
+  } else if (viewName === 'elimination') {
+    showView('elimination');
+    lastRevealedRank = -1;
+    fetchAndRenderElimination();
+  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // FETCH AVATARS
