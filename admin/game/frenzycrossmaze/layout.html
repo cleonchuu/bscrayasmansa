@@ -9,97 +9,130 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@700;800;900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            orbitron: ['Orbitron', 'sans-serif'],
-            vt: ['VT323', 'monospace'],
-            mono: ['Share Tech Mono', 'monospace'],
-          },
-          colors: {
-            neonCyan: '#00f2fe',
-            neonMint: '#00ff87',
-            neonRose: '#ff2a6d',
-            cyberDark: '#030814',
-          }
-        }
-      }
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800;900&family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
 
   <style>
-    html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden; margin: 0; padding: 0;
+    }
 
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #030712;
+      font-family: 'Inter', sans-serif;
+      background: #030712;
       color: #fff;
     }
 
-    .font-math { font-family: 'Orbitron', sans-serif; }
-    .font-vt { font-family: 'VT323', monospace; }
+    .font-math { font-family: 'Inter', sans-serif; }
+    .font-mono-code { font-family: 'Fira Code', monospace; }
+    .font-vt323 { font-family: 'VT323', monospace; }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
 
-    .stage-view { transition: opacity 0.5s ease, transform 0.5s ease; }
+    /* ═══════════════════════════════════════════════════════
+       VIEW SWITCHER
+       ═══════════════════════════════════════════════════════ */
+    .stage-view { 
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      visibility: hidden; opacity: 0; pointer-events: none;
+    }
+    .stage-view.active-view {
+      opacity: 1; visibility: visible; pointer-events: auto;
+      position: fixed;
+    }
     .stage-view.hidden-view {
       opacity: 0; transform: scale(0.96);
       pointer-events: none; visibility: hidden;
-      position: absolute; inset: 0;
+      position: fixed;
     }
-    .stage-view.active-view {
-      opacity: 1; transform: scale(1);
-      visibility: visible; position: relative;
+
+    /* ═══════════════════════════════════════════════════════
+       CELL TYPES (untuk game view)
+       ═══════════════════════════════════════════════════════ */
+    .cell-void {
+      background: #05080f;
+      border: 1px solid rgba(255,255,255,0.02);
+      border-radius: 4px;
+    }
+    .cell-op {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #38bdf8;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cell-num-open {
+      background: #1e293b;
+      border: 1.5px solid #334155;
+      color: #fff; font-weight: 800;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+    .cell-num-hidden {
+      background: #1e1b4b;
+      border: 1.5px solid #4338ca;
+      color: #a5b4fc; font-weight: 800;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: inset 0 0 10px rgba(99,102,241,0.25);
+    }
+    .cell-goal {
+      background: #881337;
+      border: 2px solid #f43f5e;
+      color: #fff; font-weight: 900;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(244,63,94,0.7);
+      animation: pulse-glow 2s infinite alternate;
+    }
+    @keyframes pulse-glow {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.05); }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SESSION DOTS
+       ═══════════════════════════════════════════════════════ */
+    .session-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #334155;
+      border: 1px solid #475569;
+      transition: all 0.3s ease;
+    }
+    .session-dot.active {
+      background: #f43f5e;
+      border-color: #fb7185;
+      box-shadow: 0 0 10px rgba(244,63,94,0.6);
+      transform: scale(1.2);
+    }
+    .session-dot.done {
+      background: #10b981;
+      border-color: #34d399;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.5); border-radius: 10px; }
 
-    /* ═══════════════════════════════════════════════════════════
-       ANIMATIONS
-       ═══════════════════════════════════════════════════════════ */
-    @keyframes cardZoomIn {
-      0% { opacity: 0; transform: scale(0.7) translateY(40px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
+    /* ═══════════════════════════════════════════════════════
+       IDLE VIEW — Cyber maze canvas
+       ═══════════════════════════════════════════════════════ */
+    #viewIdle {
+      background: #030712;
+      overflow: hidden;
     }
-    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-
-    @keyframes pulseYellow {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 25px #facc15, 0 0 50px #facc15; }
-      50% { transform: scale(1.05); box-shadow: 0 0 40px #facc15, 0 0 80px #facc15; }
+    #mazeCanvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
     }
-    .animate-yellow-pulse { animation: pulseYellow 1.5s ease-in-out infinite; }
-
-    @keyframes spinRing {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    .loading-ring {
-      border: 6px solid rgba(56, 189, 248, 0.2);
-      border-top: 6px solid #0ea5e9;
-      border-radius: 50%;
-      width: 80px; height: 80px;
-      animation: spinRing 1s linear infinite;
-    }
-
-    @keyframes loadingPulse {
-      0%, 100% { transform: scale(1); opacity: 0.4; }
-      50% { transform: scale(1.1); opacity: 1; }
-    }
-    .loading-dot {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      background: #0ea5e9;
-      animation: loadingPulse 1s ease-in-out infinite;
-    }
-
-    /* Scanline overlay */
     .scanlines {
       background: linear-gradient(
-        rgba(18, 16, 16, 0) 50%,
+        rgba(18, 16, 16, 0) 50%, 
         rgba(0, 0, 0, 0.35) 50%
       ), linear-gradient(
         90deg,
@@ -110,8 +143,14 @@
       background-size: 100% 3px, 3px 100%;
       pointer-events: none;
     }
+    .neon-yellow-glow {
+      box-shadow: 0 0 25px #facc15, 0 0 50px #facc15, inset 0 0 10px #ffffff;
+    }
+    .neon-border {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
+      border: 2px solid #0284c7;
+    }
 
-    /* Glitch title */
     .glitch-title {
       position: relative;
       display: inline-block;
@@ -150,21 +189,102 @@
       100% { clip: rect(30px, 9999px, 70px, 0); }
     }
 
-    .neon-border {
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
-      border: 2px solid #0284c7;
+    /* ═══════════════════════════════════════════════════════
+       LOADING VIEW
+       ═══════════════════════════════════════════════════════ */
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
-    .neon-yellow-glow {
-      box-shadow: 0 0 25px #facc15, 0 0 50px #facc15, inset 0 0 10px #ffffff;
+    .loading-ring {
+      border: 6px solid rgba(56, 189, 248, 0.2);
+      border-top: 6px solid #38bdf8;
+      border-radius: 50%;
+      width: 90px; height: 90px;
+      animation: spinRing 1s linear infinite;
+    }
+    @keyframes pulseY {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    .pulse-y { animation: pulseY 1.2s ease-in-out infinite; }
+
+    .progress-track {
+      width: 340px; max-width: 100%;
+      height: 12px;
+      background: #050515;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      border-radius: 10px;
+      padding: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #0284c7, #38bdf8, #facc15);
+      border-radius: 6px;
+      transition: width 0.3s ease;
     }
 
-    /* BGM Badge */
+    /* ═══════════════════════════════════════════════════════
+       ELIMINATION VIEW — animations
+       ═══════════════════════════════════════════════════════ */
+    @keyframes cardPopIn {
+      0% { opacity: 0; transform: scale(0.5) rotate(-8deg); }
+      70% { opacity: 1; transform: scale(1.08) rotate(2deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0); }
+    }
+    .anim-card-pop { animation: cardPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes eliminationShake {
+      0%, 100% { transform: translateX(0); }
+      15%, 55% { transform: translateX(-8px); }
+      35%, 75% { transform: translateX(8px); }
+    }
+    .anim-elim-shake { animation: eliminationShake 0.6s ease-in-out; }
+
+    @keyframes cardFadeOut {
+      0% { opacity: 1; filter: grayscale(0); }
+      100% { opacity: 0.35; filter: grayscale(1); }
+    }
+    .anim-elim-fade { animation: cardFadeOut 0.8s ease-out forwards; }
+
+    @keyframes cardHighlight {
+      0% { transform: scale(1); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+      50% { transform: scale(1.15); box-shadow: 0 0 30px rgba(16, 185, 129, 0.9); }
+      100% { transform: scale(1.05); box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); }
+    }
+    .anim-survivor { animation: cardHighlight 0.7s ease-out forwards; }
+
+    @keyframes crossMark {
+      0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+      50% { opacity: 1; transform: scale(1.3) rotate(0deg); }
+      100% { opacity: 1; transform: scale(1) rotate(45deg); }
+    }
+    .anim-cross { animation: crossMark 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes titleEliminate {
+      0% { opacity: 0; transform: scale(0.3); letter-spacing: 0.5em; }
+      60% { opacity: 1; transform: scale(1.15); letter-spacing: 0.05em; }
+      100% { opacity: 1; transform: scale(1); letter-spacing: 0.1em; }
+    }
+    .anim-elim-title { animation: titleEliminate 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes survivorTitle {
+      0% { opacity: 0; transform: scale(0.3) translateY(-40px); }
+      60% { opacity: 1; transform: scale(1.15) translateY(0); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .anim-survivor-title { animation: survivorTitle 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* ═══════════════════════════════════════════════════════
+       BGM BADGE
+       ═══════════════════════════════════════════════════════ */
     .bgm-badge {
       position: fixed;
-      bottom: 20px; right: 20px;
+      bottom: 16px; right: 16px;
       font-size: 10px; font-family: monospace;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 8px;
       padding: 4px 8px;
       color: #94a3b8;
@@ -177,10 +297,12 @@
     .bgm-badge .dot.blocked { background: #f59e0b; }
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-    /* Audio unlock */
+    /* ═══════════════════════════════════════════════════════
+       AUDIO UNLOCK
+       ═══════════════════════════════════════════════════════ */
     #audioUnlockOverlay {
       position: fixed; inset: 0;
-      background: rgba(3, 8, 20, 0.94);
+      background: rgba(3, 7, 18, 0.95);
       backdrop-filter: blur(10px);
       z-index: 9999;
       display: flex; align-items: center; justify-content: center;
@@ -193,198 +315,9 @@
       0%,100% { transform: translateY(0) scale(1); }
       50% { transform: translateY(-10px) scale(1.08); }
     }
-
-    /* Loading canvas */
-    #loadingCanvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       MARQUEE (All Players)
-       ═══════════════════════════════════════════════════════════ */
-    @keyframes marqueeScroll {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-
-    .marquee-container {
-      display: flex;
-      width: 100%;
-      overflow: hidden;
-      user-select: none;
-    }
-
-    .marquee-track {
-      display: flex;
-      flex-shrink: 0;
-      gap: 1.25rem;
-      padding: 1rem 0;
-      animation: marqueeScroll var(--marquee-duration, 120s) linear infinite;
-      will-change: transform;
-    }
-
-    .marquee-track:hover {
-      animation-play-state: paused;
-    }
-
-    .player-card-h {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-      width: 200px;
-      padding: 1rem;
-      border-radius: 1.5rem;
-      background: linear-gradient(145deg, rgba(15,23,42,0.9), rgba(2,6,23,0.9));
-      border: 2px solid rgba(56, 189, 248, 0.4);
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-
-    .player-card-h.rank-1 {
-      border-color: rgba(251, 191, 36, 0.8);
-      box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
-      background: linear-gradient(145deg, rgba(69,26,3,0.6), rgba(2,6,23,0.95));
-    }
-    .player-card-h.rank-2 {
-      border-color: rgba(203, 213, 225, 0.8);
-      box-shadow: 0 0 35px rgba(203, 213, 225, 0.35);
-      background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(2,6,23,0.95));
-    }
-    .player-card-h.rank-3 {
-      border-color: rgba(217, 119, 6, 0.8);
-      box-shadow: 0 0 35px rgba(217, 119, 6, 0.35);
-      background: linear-gradient(145deg, rgba(120,53,15,0.5), rgba(2,6,23,0.95));
-    }
-
-    .player-card-h .avatar-box {
-      width: 160px;
-      height: 160px;
-      border-radius: 1rem;
-      background: rgba(15, 23, 42, 0.9);
-      border: 3px solid rgba(56, 189, 248, 0.5);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.75rem;
-    }
-    .player-card-h.rank-1 .avatar-box { border-color: #fbbf24; }
-    .player-card-h.rank-2 .avatar-box { border-color: #cbd5e1; }
-    .player-card-h.rank-3 .avatar-box { border-color: #d97706; }
-
-    .player-card-h .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-
-    .player-card-h .rank-badge {
-      display: inline-block;
-      padding: 4px 14px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 900;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-      background: rgba(56,189,248,0.2);
-      border: 1px solid rgba(56,189,248,0.5);
-      color: #7dd3fc;
-    }
-    .player-card-h.rank-1 .rank-badge { background: #fbbf24; color: #451a03; border-color: #f59e0b; }
-    .player-card-h.rank-2 .rank-badge { background: #cbd5e1; color: #0f172a; border-color: #94a3b8; }
-    .player-card-h.rank-3 .rank-badge { background: #d97706; color: #fff; border-color: #b45309; }
-
-    .player-card-h .player-name {
-      font-size: 0.95rem;
-      font-weight: 800;
-      color: #fff;
-      text-align: center;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 0.25rem;
-    }
-
-    .player-card-h .player-points {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: #7dd3fc;
-    }
-    .player-card-h.rank-1 .player-points { color: #fbbf24; }
-    .player-card-h.rank-2 .player-points { color: #e2e8f0; }
-    .player-card-h.rank-3 .player-points { color: #fb923c; }
-
-    /* ═══════════════════════════════════════════════════════════
-       ELIMINATION
-       ═══════════════════════════════════════════════════════════ */
-    @keyframes elimCardFadeIn {
-      0% { opacity: 0; transform: translateY(30px) scale(0.9); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .elim-card-v {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 0.9rem;
-      border-radius: 1.25rem;
-      background: linear-gradient(145deg, rgba(76,5,25,0.6), rgba(2,6,23,0.95));
-      border: 3px solid rgba(244, 63, 94, 0.5);
-      box-shadow: 0 0 30px rgba(244, 63, 94, 0.25);
-      animation: elimCardFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-      width: 100%;
-    }
-
-    .elim-card-v .avatar-box {
-      width: 100%;
-      aspect-ratio: 1;
-      border-radius: 0.75rem;
-      background: rgba(15, 23, 42, 0.9);
-      border: 3px solid rgba(244, 63, 94, 0.6);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.6rem;
-    }
-    .elim-card-v .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-
-    .elim-card-v .elim-name {
-      font-size: 0.8rem;
-      font-weight: 800;
-      color: #fecdd3;
-      text-align: center;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-bottom: 0.2rem;
-    }
-
-    .elim-card-v .elim-points {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 1.15rem;
-      font-weight: 900;
-      color: #f43f5e;
-    }
-
-    .elim-card-v .elim-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.6rem;
-      font-weight: 900;
-      letter-spacing: 0.08em;
-      background: rgba(244, 63, 94, 0.2);
-      border: 1px solid rgba(244, 63, 94, 0.5);
-      color: #fda4af;
-      margin-top: 0.4rem;
-    }
   </style>
 </head>
-<body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-slate-950 to-black select-none">
+<body class="h-screen w-screen overflow-hidden select-none">
 
   <!-- AUDIO -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
@@ -393,12 +326,12 @@
   <audio id="beepSound" preload="auto"
          src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
-  <!-- AUDIO UNLOCK OVERLAY -->
+  <!-- AUDIO UNLOCK -->
   <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
     <div class="text-center space-y-6 px-8">
       <div class="unlock-icon text-8xl">🔊</div>
       <div>
-        <h2 class="text-4xl font-black text-white mb-3 font-math">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <h2 class="text-4xl font-black text-white mb-3 font-orbitron">KLIK UNTUK AKTIFKAN STAGE</h2>
         <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
       </div>
       <div class="inline-block bg-sky-500/10 border border-sky-500/30 text-sky-400 font-bold px-6 py-3 rounded-xl">
@@ -413,156 +346,212 @@
     <span id="bgmLabel">BGM: --</span>
   </div>
 
-  <!-- MAIN -->
-  <main class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 0: IDLE (Cyber Maze Canvas)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view">
+    <div class="absolute inset-0 scanlines z-50 pointer-events-none"></div>
 
-    <!-- VIEW 1: IDLE — Cross Maze Canvas -->
-    <div id="viewIdle" class="stage-view hidden-view fixed inset-0 overflow-hidden">
-      <div class="absolute inset-0 scanlines z-50 pointer-events-none"></div>
+    <canvas id="mazeCanvas" class="absolute inset-0 w-full h-full z-[1]"></canvas>
 
-      <header class="absolute top-0 left-0 right-0 z-30 text-center pt-4 flex flex-col items-center pointer-events-none">
-        <div class="flex items-center space-x-3 mb-1">
-          <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase animate-pulse">
-            DAY 2, GAME 2
-          </span>
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-xs text-emerald-400 tracking-wider">SUPABASE REALTIME: STANDBY</span>
-        </div>
-        <h1 class="text-4xl md:text-6xl font-vt tracking-widest text-sky-300 glitch-title uppercase" data-text="Frenzy Cross Maze">
-          Frenzy Cross Maze
-        </h1>
-      </header>
-
-      <div class="absolute inset-0 z-10 flex items-center justify-center px-4 pt-24 pb-24">
-        <div id="mazeWrapper" class="relative rounded-xl neon-border overflow-hidden bg-slate-950/80 shadow-2xl w-full"
-             style="max-width: 900px; height: 60vh;">
-          <canvas id="mazeCanvas" class="absolute inset-0 w-full h-full"></canvas>
-
-          <div id="centerPoint" class="absolute w-6 h-6 bg-yellow-400 rounded-full neon-yellow-glow z-30 flex items-center justify-center"
-               style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
-            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-          </div>
-        </div>
-      </div>
-
-      <footer class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pointer-events-none">
-        <div class="w-full max-w-md">
-          <div class="bg-sky-950/60 border border-sky-800/60 px-4 py-2 rounded-lg text-center">
-            <div class="font-vt text-sm md:text-base text-sky-400 tracking-wider">
-              STATUS: Menunggu sinyal Supabase Realtime...
-            </div>
-          </div>
-        </div>
-      </footer>
+    <!-- Center Yellow Point -->
+    <div id="centerPoint" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-yellow-400 rounded-full neon-yellow-glow z-30 flex items-center justify-center pointer-events-none">
+      <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
     </div>
 
-    <!-- VIEW 2: LOADING -->
-    <div id="viewLoading" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <canvas id="loadingCanvas"></canvas>
-
-      <div class="relative z-10 flex flex-col items-center text-center px-6">
-        <div class="loading-ring mb-8"></div>
-        <h2 class="text-3xl md:text-4xl font-black font-math text-white tracking-wider mb-2">MEMPROSES DATA...</h2>
-        <p class="text-slate-400 text-sm mb-6">Menyiapkan arena Frenzy Cross Maze</p>
-        <div class="flex items-center gap-3 mb-8">
-          <div class="loading-dot" style="animation-delay: 0s"></div>
-          <div class="loading-dot" style="animation-delay: 0.2s"></div>
-          <div class="loading-dot" style="animation-delay: 0.4s"></div>
-        </div>
-        <div class="text-xs font-mono text-slate-500">
-          FASE PERSIAPAN: <span id="loadingCountdown" class="text-sky-400 font-bold">3</span> detik
-        </div>
-      </div>
-    </div>
-
-    <!-- VIEW 3: GAME -->
-    <div id="viewGame" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
-      <div class="w-full max-w-4xl">
-        <div class="text-center mb-6">
-          <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-            <i class="fas fa-fire"></i> FRENZY CROSS MAZE
-          </span>
-          <h1 class="text-5xl font-black text-white mt-4 font-vt tracking-wider">SESI <span id="stageSessionNum" class="text-rose-400">1</span>/<span id="stageSessionTotal">5</span></h1>
-        </div>
-
-        <div class="flex justify-center mb-6">
-          <div class="bg-slate-950 border-4 border-rose-500/60 rounded-3xl px-12 py-6 shadow-[0_0_60px_rgba(255,42,109,0.5)]">
-            <div class="text-xs text-slate-500 uppercase font-bold text-center mb-1">SISA WAKTU</div>
-            <div id="stageTimer" class="text-[80px] md:text-[120px] font-black font-mono text-rose-400 leading-none">--</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="bg-slate-900/80 border-2 border-sky-500/40 rounded-2xl p-6 text-center">
-            <div class="text-xs text-slate-500 uppercase font-bold mb-2">PERTANYAAN</div>
-            <div id="stageQuestion" class="text-4xl md:text-5xl font-black font-mono text-sky-400 leading-tight">--</div>
-          </div>
-          <div class="bg-slate-900/80 border-2 border-yellow-500/40 rounded-2xl p-6 text-center">
-            <div class="text-xs text-slate-500 uppercase font-bold mb-2">JAWABAN</div>
-            <div id="stageAnswer" class="text-4xl md:text-5xl font-black font-mono text-yellow-400 leading-tight">--</div>
-          </div>
-        </div>
-
-        <div class="text-center">
-          <span class="text-slate-500 text-sm font-mono tracking-widest">
-            <i class="fas fa-keyboard mr-1"></i> JAWAB DI KIOSK MASING-MASING
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- VIEW 4: LEADERBOARD -->
-    <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
-      <div class="text-center mb-6">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
-        <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-          <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
-        </h2>
-      </div>
-      <div id="stageLeaderboardGrid" class="w-full max-w-lg min-h-[400px] flex items-center justify-center">
-        <p class="text-slate-500 text-lg">Menunggu pengumuman...</p>
-      </div>
-    </div>
-
-    <!-- VIEW 5: ALL PLAYERS (MARQUEE) -->
-    <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
-      <div class="text-center mb-4 relative z-10">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
-          TOTAL SCORE
+    <!-- Header -->
+    <header class="absolute top-0 left-0 right-0 z-20 text-center mt-6 flex flex-col items-center pointer-events-none">
+      <div class="flex items-center space-x-3 mb-2">
+        <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase animate-pulse">
+          Day 2, Game 2
         </span>
-        <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-          <i class="fas fa-users text-indigo-400"></i> REKAP POIN PESERTA
-        </h2>
-        <p class="text-slate-500 text-sm mt-1 font-mono">Auto-scroll · Hover untuk pause</p>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs text-emerald-400 tracking-wider">SUPABASE REALTIME: STANDBY</span>
       </div>
+      <h1 class="text-5xl md:text-7xl font-vt323 tracking-widest text-sky-300 glitch-title uppercase" data-text="Frenzy Cross Maze">
+        Frenzy Cross Maze
+      </h1>
+    </header>
 
-      <div class="marquee-container w-full">
-        <div id="allPlayersTrack" class="marquee-track">
-          <p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>
+    <!-- Footer -->
+    <footer class="absolute bottom-0 left-0 right-0 z-20 w-full flex flex-col items-center gap-3 mb-6 px-4">
+      <div class="w-full max-w-md text-sky-400 text-sm md:text-base tracking-wider text-center bg-sky-950/60 px-4 py-2 rounded-lg border border-sky-800/60">
+        STATUS: Menunggu sinyal Supabase Realtime...
+      </div>
+    </footer>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 1: LOADING
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLoading" class="stage-view flex flex-col items-center justify-center p-8 bg-[#030712]">
+    <div class="absolute inset-0 scanlines z-50 pointer-events-none"></div>
+
+    <div class="loading-ring mb-8 z-10"></div>
+    <h2 class="text-3xl md:text-4xl font-black font-orbitron text-white tracking-wider mb-2 z-10">
+      MEMPROSES PUZZLE...
+    </h2>
+    <p class="text-slate-400 text-sm mb-8 z-10">Menyiapkan grid matematika dari server</p>
+
+    <div class="progress-track z-10">
+      <div id="progressBar" class="progress-fill"></div>
+    </div>
+
+    <div class="mt-6 text-xs font-mono text-sky-400 z-10">
+      <span id="loadingPercent">0</span>% — <span id="loadingStatus" class="text-amber-400">Memuat data...</span>
+    </div>
+
+    <div class="flex items-center gap-3 mt-8 z-10">
+      <div class="w-3 h-3 rounded-full bg-sky-400 pulse-y" style="animation-delay:0s"></div>
+      <div class="w-3 h-3 rounded-full bg-sky-400 pulse-y" style="animation-delay:0.2s"></div>
+      <div class="w-3 h-3 rounded-full bg-sky-400 pulse-y" style="animation-delay:0.4s"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 2: GAME
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewGame" class="stage-view flex overflow-hidden">
+    <!-- SIDEBAR -->
+    <aside class="w-[280px] lg:w-[320px] flex-shrink-0 flex flex-col gap-4 p-4 lg:p-6 bg-slate-900/80 border-r border-slate-800 backdrop-blur-md z-20">
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-rose-600/20 text-rose-400 rounded-2xl border border-rose-500/30">
+          <i class="fas fa-calculator text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-wider text-white uppercase">FRENZY</h1>
+          <p class="text-xs text-rose-400 font-bold uppercase tracking-widest">CROSS MATH</p>
         </div>
       </div>
-    </div>
 
-    <!-- VIEW 6: ELIMINATION (10 kartu grid) -->
-    <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
+      <div class="border-t border-slate-800"></div>
 
-      <div class="text-center mb-5 relative z-10">
-        <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-user-slash"></i> ELIMINASI
-        </span>
-        <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-math tracking-wider">HASIL ELIMINASI</h1>
-        <p class="text-rose-300/70 text-lg mt-2 font-mono" id="elimGameNameLabel">-</p>
+      <div id="sessionIndicator" class="hidden flex-col gap-2 bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl">
+        <div class="flex items-center gap-2 text-rose-400">
+          <i class="fas fa-layer-group text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">SESI BERJALAN</span>
+        </div>
+        <div id="sessionText" class="text-2xl font-black text-white font-mono-code">SESI 1 / 5</div>
       </div>
 
-      <div id="eliminatedList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-7xl relative z-10">
-        <p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>
+      <div class="bg-slate-950 border-2 border-emerald-500/40 p-4 rounded-2xl">
+        <div class="flex items-center gap-2 text-emerald-400 mb-2">
+          <i class="fas fa-stopwatch text-sm"></i>
+          <span class="text-[10px] font-bold uppercase tracking-widest">SISA WAKTU</span>
+        </div>
+        <div id="timerDisplay" class="text-5xl font-black text-emerald-400 font-mono-code tracking-wider">--:--</div>
       </div>
+
+      <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2 text-slate-400">
+            <i class="fas fa-info-circle text-sm"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest">STATUS</span>
+          </div>
+          <span id="statusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
+        </div>
+        <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
+
+        <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-auto">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+          </span>
+          <span class="text-amber-400 font-bold text-xs tracking-widest uppercase">AKTIF</span>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2">
+        <span class="session-dot"></span>
+        <span class="session-dot"></span>
+        <span class="session-dot"></span>
+        <span class="session-dot"></span>
+        <span class="session-dot"></span>
+      </div>
+    </aside>
+
+    <!-- GRID AREA -->
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden">
+      <div id="gridContainer" class="grid p-4"></div>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 3: LEADERBOARD
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view flex flex-col items-center justify-center p-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+    <div class="text-center mb-6">
+      <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
+        <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT
+      </h2>
+    </div>
+    <div id="stageLeaderboardGrid" class="w-full max-w-lg min-h-[400px] flex items-center justify-center">
+      <p class="text-slate-500 text-lg">Menunggu pengumuman...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 4: ALL PLAYERS
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewAllPlayers" class="stage-view flex flex-col items-center p-8 overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black">
+    <div class="text-center mb-6">
+      <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE</span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
+        <i class="fas fa-users text-indigo-400"></i> SEMUA PESERTA
+      </h2>
+    </div>
+    <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2">
+      <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 5: ELIMINATION (25 → 15)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewElimination" class="stage-view flex flex-col items-center p-6 overflow-hidden bg-[radial-gradient(ellipse_at_center,_rgba(127,29,29,0.25),_transparent_70%)]">
+
+    <!-- Header -->
+    <div id="elimHeader" class="text-center mt-2 mb-6 opacity-0">
+      <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-xs px-5 py-2 rounded-full uppercase tracking-widest">
+        <i class="fas fa-user-slash"></i> FASE ELIMINASI
+      </span>
+      <h1 class="text-4xl lg:text-5xl font-black text-white mt-4 font-orbitron tracking-wider">
+        25 &rarr; 15 PESERTA
+      </h1>
+      <p id="elimSubtitle" class="text-rose-300/80 text-sm mt-2 font-mono tracking-widest">
+        MENENTUKAN PESERTA YANG BERTAHAN...
+      </p>
     </div>
 
-  </main>
+    <!-- Grid peserta -->
+    <div id="elimGrid" class="w-full max-w-7xl flex-1 flex items-center justify-center">
+      <div id="elimCards" class="grid grid-cols-5 gap-3 md:gap-4"></div>
+    </div>
+
+    <!-- Footer title (muncul setelah animasi) -->
+    <div id="elimFooter" class="w-full text-center py-4 opacity-0">
+      <div id="elimFooterText" class="inline-block text-2xl md:text-3xl font-orbitron font-black tracking-widest px-8 py-3 rounded-2xl bg-slate-950/80 border-2"></div>
+    </div>
+
+  </div>
 
 <script>
+  // ═══════════════════════════════════════════════════════════
+  // KONFIG
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOHRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+
+  const GAME_NAME = 'Frenzy Cross Maze';
+  const POINT_TABLE = 'point_frenzy_cross_maze';
+  const ELIMINATE_COUNT = 10;  // 25 → 15
+
   // ═══════════════════════════════════════════════════════════
   // LOGGER
   // ═══════════════════════════════════════════════════════════
@@ -576,34 +565,12 @@
   };
 
   // ═══════════════════════════════════════════════════════════
-  // KONFIGURASI
-  // ═══════════════════════════════════════════════════════════
-  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
-  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
-
-  const POINT_TABLE = 'point_frenzy_cross_maze';
-  const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
-  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
-  const CURRENT_GAME_NAME = 'Frenzy Cross Maze';
-
-  const LOADING_DURATION_SEC = 3;
-
-  let audioUnlocked = false;
-  let currentView = 'idle';
-  let cachedAvatars = {};
-
-  // ═══════════════════════════════════════════════════════════
-  // BGM CONFIG
+  // BGM MANAGER
   // ═══════════════════════════════════════════════════════════
   const BGM = {
     baseUrl: `${STORAGE_BASE_URL}/bgm/`,
     tracks: {
-      idle:        'LOBBY.mp3',
+      idle:        'FRENZYCROSSMAZE.mp3',
       loading:     'TEGANG.mp3',
       game:        'TEGANG.mp3',
       leaderboard: 'WINNER.mp3',
@@ -613,7 +580,7 @@
     current: null,
     player: null,
     unlocked: false,
-    volume: 0.5,
+    volume: 0.55,
     pendingTrack: null
   };
 
@@ -649,8 +616,8 @@
     document.addEventListener('touchstart', unlock);
     document.addEventListener('keydown', unlock);
 
-    const overlay = document.getElementById('audioUnlockOverlay');
-    if (overlay) overlay.addEventListener('click', unlock);
+    const ov = document.getElementById('audioUnlockOverlay');
+    if (ov) ov.addEventListener('click', unlock);
   }
 
   function showUnlockOverlay() {
@@ -667,7 +634,6 @@
     if (dot) dot.className = 'dot ' + (status === 'playing' ? 'playing' : (status === 'blocked' ? 'blocked' : ''));
     if (label) label.textContent = `BGM: ${trackName}`;
   }
-
   function playBGM(viewName) {
     if (!BGM.player) return;
     const filename = BGM.tracks[viewName];
@@ -703,7 +669,6 @@
   }
 
   function unlockAudio() {
-    audioUnlocked = true;
     BGM.unlocked = true;
     hideUnlockOverlay();
     const target = BGM.pendingTrack || BGM.current || 'idle';
@@ -713,7 +678,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // AUDIO ENGINE (SFX)
+  // WEB AUDIO ENGINE
   // ═══════════════════════════════════════════════════════════
   class WebAudioEngine {
     constructor() {
@@ -728,10 +693,7 @@
         const audio = await this.ctx.decodeAudioData(buf);
         this.cache.set(url, audio);
         return audio;
-      } catch (e) {
-        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`);
-        return null;
-      }
+      } catch (e) { return null; }
     }
     async play(url) {
       const buf = await this.fetchAndCache(url);
@@ -746,57 +708,51 @@
   const audioEngine = new WebAudioEngine();
 
   // ═══════════════════════════════════════════════════════════
-  // IDLE MAZE CANVAS
+  // IDLE CANVAS — Maze + Numbers
   // ═══════════════════════════════════════════════════════════
-  let mazeCanvas = null;
-  let mazeCtx = null;
-  let mazeW = 0, mazeH = 0;
-  let mazeNumbers = [];
-  let mazeWalls = [];
-  let mazeAnimRafId = null;
-  let mazeRunning = false;
+  const canvas = document.getElementById('mazeCanvas');
+  const ctx = canvas ? canvas.getContext('2d') : null;
 
-  function initMazeCanvas() {
-    mazeCanvas = document.getElementById('mazeCanvas');
-    if (!mazeCanvas) return false;
-    mazeCtx = mazeCanvas.getContext('2d');
-    return true;
-  }
+  let idleW, idleH;
+  let idleNumbers = [];
+  let idleMazeWalls = [];
+  let idleRunning = false;
+  let idleRafId = null;
 
-  function resizeMazeCanvas() {
-    if (!mazeCanvas) return;
-    const wrapper = document.getElementById('mazeWrapper') || mazeCanvas.parentElement;
-    const rect = wrapper.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      setTimeout(resizeMazeCanvas, 200);
-      return;
-    }
-    mazeW = mazeCanvas.width = rect.width;
-    mazeH = mazeCanvas.height = rect.height;
+  function resizeIdleCanvas() {
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    if (!parent) return;
+    idleW = canvas.width = parent.clientWidth;
+    idleH = canvas.height = parent.clientHeight;
     generateMazeStructure();
   }
 
   function generateMazeStructure() {
-    mazeWalls = [];
-    const cols = 8;
-    const rows = 5;
-    const cellW = mazeW / cols;
-    const cellH = mazeH / rows;
+    idleMazeWalls = [];
+    const cols = 8, rows = 5;
+    const cellW = idleW / cols;
+    const cellH = idleH / rows;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if ((r + c) % 2 === 1) {
-          mazeWalls.push({ x: c * cellW + cellW * 0.1, y: r * cellH + cellH * 0.1, w: cellW * 0.8, h: cellH * 0.8 });
+          idleMazeWalls.push({
+            x: c * cellW + cellW * 0.1,
+            y: r * cellH + cellH * 0.1,
+            w: cellW * 0.8,
+            h: cellH * 0.8
+          });
         }
       }
     }
   }
 
-  class MazeNumber {
+  class IdleNumber {
     constructor() { this.reset(); }
     reset() {
       this.value = Math.floor(Math.random() * 10);
-      this.x = Math.random() * mazeW;
-      this.y = Math.random() * mazeH;
+      this.x = Math.random() * idleW;
+      this.y = Math.random() * idleH;
       this.vx = (Math.random() - 0.5) * 1.5;
       this.vy = (Math.random() - 0.5) * 1.5;
       this.size = Math.floor(Math.random() * 6) + 12;
@@ -804,653 +760,677 @@
     update() {
       this.x += this.vx;
       this.y += this.vy;
-      if (this.x < 10 || this.x > mazeW - 10) this.vx *= -1;
-      if (this.y < 10 || this.y > mazeH - 10) this.vy *= -1;
+      if (this.x < 10 || this.x > idleW - 10) this.vx *= -1;
+      if (this.y < 10 || this.y > idleH - 10) this.vy *= -1;
     }
     draw() {
-      if (!mazeCtx) return;
-      mazeCtx.fillStyle = '#38bdf8';
-      mazeCtx.font = `${this.size}px 'VT323', monospace`;
-      mazeCtx.fillText(this.value, this.x, this.y);
+      if (!ctx) return;
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = `${this.size}px 'VT323', monospace`;
+      ctx.fillText(this.value, this.x, this.y);
     }
   }
 
-  function initMazeNumbers() {
-    mazeNumbers = [];
-    for (let i = 0; i < 45; i++) mazeNumbers.push(new MazeNumber());
-  }
+  function startIdleCanvas() {
+    if (idleRunning || !ctx) return;
+    idleRunning = true;
+    resizeIdleCanvas();
 
-  function animateMazeLoop() {
-    if (!mazeRunning || !mazeCtx) return;
-    mazeCtx.clearRect(0, 0, mazeW, mazeH);
-
-    mazeCtx.strokeStyle = 'rgba(2, 132, 199, 0.18)';
-    mazeCtx.lineWidth = 2;
-    mazeWalls.forEach(wall => mazeCtx.strokeRect(wall.x, wall.y, wall.w, wall.h));
-
-    mazeCtx.beginPath();
-    mazeCtx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
-    mazeCtx.lineWidth = 1;
-    mazeCtx.moveTo(0, mazeH / 2); mazeCtx.lineTo(mazeW, mazeH / 2);
-    mazeCtx.moveTo(mazeW / 2, 0); mazeCtx.lineTo(mazeW / 2, mazeH);
-    mazeCtx.stroke();
-
-    mazeNumbers.forEach(num => { num.update(); num.draw(); });
-    mazeAnimRafId = requestAnimationFrame(animateMazeLoop);
-  }
-
-  function startMazeCanvas() {
-    if (mazeRunning) return;
-    if (!mazeCtx && !initMazeCanvas()) return;
-    mazeRunning = true;
-    resizeMazeCanvas();
-    if (mazeNumbers.length === 0) initMazeNumbers();
-    animateMazeLoop();
-    LOG.info('MAZE', '🎬 Maze canvas started');
-  }
-
-  function stopMazeCanvas() {
-    mazeRunning = false;
-    if (mazeAnimRafId) cancelAnimationFrame(mazeAnimRafId);
-    mazeAnimRafId = null;
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // LOADING CANVAS
-  // ═══════════════════════════════════════════════════════════
-  const loadingCanvas = document.getElementById('loadingCanvas');
-  const loadingCtx = loadingCanvas ? loadingCanvas.getContext('2d') : null;
-
-  let lcW, lcH;
-  let lcRunning = false;
-  let lcRafId = null;
-  let lcParticles = [];
-
-  function resizeLoadingCanvas() {
-    if (!loadingCanvas) return;
-    lcW = loadingCanvas.width = window.innerWidth;
-    lcH = loadingCanvas.height = window.innerHeight;
-  }
-
-  function initLoadingParticles() {
-    lcParticles = [];
-    for (let i = 0; i < 40; i++) {
-      lcParticles.push({
-        x: Math.random() * lcW,
-        y: Math.random() * lcH,
-        length: Math.random() * 150 + 80,
-        speed: Math.random() * 20 + 12,
-        opacity: Math.random() * 0.35 + 0.1,
-        thickness: Math.random() * 2 + 0.5
-      });
+    if (idleNumbers.length === 0) {
+      for (let i = 0; i < 45; i++) idleNumbers.push(new IdleNumber());
     }
-  }
-
-  function startLoadingCanvas() {
-    if (lcRunning || !loadingCtx) return;
-    lcRunning = true;
-    resizeLoadingCanvas();
-    if (lcParticles.length === 0) initLoadingParticles();
 
     const loop = () => {
-      if (!lcRunning || !loadingCtx) return;
-      loadingCtx.fillStyle = 'rgba(3, 8, 20, 0.15)';
-      loadingCtx.fillRect(0, 0, lcW, lcH);
+      if (!idleRunning || !ctx) return;
+      ctx.clearRect(0, 0, idleW, idleH);
 
-      lcParticles.forEach(p => {
-        p.x += p.speed;
-        if (p.x > lcW + 200) p.x = -200;
+      // Maze walls
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.18)';
+      ctx.lineWidth = 2;
+      idleMazeWalls.forEach(w => ctx.strokeRect(w.x, w.y, w.w, w.h));
 
-        loadingCtx.beginPath();
-        const grad = loadingCtx.createLinearGradient(p.x, p.y, p.x - p.length, p.y);
-        grad.addColorStop(0, `rgba(56, 189, 248, ${p.opacity})`);
-        grad.addColorStop(0.5, `rgba(14, 165, 233, ${p.opacity * 0.5})`);
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        loadingCtx.strokeStyle = grad;
-        loadingCtx.lineWidth = p.thickness;
-        loadingCtx.moveTo(p.x, p.y);
-        loadingCtx.lineTo(p.x - p.length, p.y);
-        loadingCtx.stroke();
-      });
+      // Cross lines
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+      ctx.moveTo(0, idleH / 2); ctx.lineTo(idleW, idleH / 2);
+      ctx.moveTo(idleW / 2, 0); ctx.lineTo(idleW / 2, idleH);
+      ctx.stroke();
 
-      lcRafId = requestAnimationFrame(loop);
+      // Numbers
+      idleNumbers.forEach(n => { n.update(); n.draw(); });
+
+      idleRafId = requestAnimationFrame(loop);
     };
     loop();
+    LOG.ok('IDLE', '🎬 Maze canvas started');
   }
 
-  function stopLoadingCanvas() {
-    lcRunning = false;
-    if (lcRafId) cancelAnimationFrame(lcRafId);
-    lcRafId = null;
+  function stopIdleCanvas() {
+    idleRunning = false;
+    if (idleRafId) cancelAnimationFrame(idleRafId);
+    idleRafId = null;
+  }
+
+  window.addEventListener('resize', () => { if (idleRunning) resizeIdleCanvas(); });
+
+  // ═══════════════════════════════════════════════════════════
+  // GAME LAYOUT (puzzle renderer)
+  // ═══════════════════════════════════════════════════════════
+  let currentSession = 0;
+  let totalSessions = 5;
+  let sessionStartTime = null;
+  let sessionDuration = 30;
+  let currentPuzzle = null;
+  let lastPuzzleSig = '';
+  let localTimer = null;
+
+  function renderGrid(grid) {
+    if (!grid || !grid.length) return;
+    const container = document.getElementById('gridContainer');
+    if (!container) return;
+
+    const size = grid.length;
+
+    const sidebar = document.querySelector('#viewGame aside');
+    const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+    const availW = window.innerWidth - sidebarW - 48;
+    const availH = window.innerHeight - 48;
+    const cellSize = Math.max(12, Math.floor(Math.min(availW, availH) / size) - 2);
+
+    container.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
+    container.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
+    container.style.gap = '2px';
+    container.innerHTML = '';
+
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const node = grid[r][c];
+        const div = document.createElement('div');
+        div.style.width = cellSize + 'px';
+        div.style.height = cellSize + 'px';
+        div.style.fontSize = Math.max(8, Math.floor(cellSize * 0.55)) + 'px';
+        div.className = "transition-all select-none";
+
+        if (node.type === 'void') div.className += " cell-void";
+        else if (node.type === 'operator') { div.className += " cell-op"; div.textContent = node.val; }
+        else if (node.type === 'number') {
+          if (node.isTarget) { div.className += " cell-goal"; div.textContent = "GOAL"; }
+          else if (node.isHidden) { div.className += " cell-num-hidden"; div.textContent = "?"; }
+          else { div.className += " cell-num-open"; div.textContent = node.val; }
+        }
+        container.appendChild(div);
+      }
+    }
+  }
+
+  function updateSessionUI() {
+    const sessionText = document.getElementById('sessionText');
+    if (sessionText) sessionText.textContent = `SESI ${currentSession} / ${totalSessions}`;
+
+    const sessInd = document.getElementById('sessionIndicator');
+    if (sessInd) {
+      sessInd.classList.remove('hidden');
+      sessInd.classList.add('flex');
+    }
+
+    const repInd = document.getElementById('repeatIndicator');
+    if (repInd) {
+      repInd.classList.remove('hidden');
+      repInd.classList.add('flex');
+    }
+
+    const st = document.getElementById('stageStatus');
+    if (st) st.textContent = `SESI ${currentSession} BERJALAN`;
+
+    const badge = document.getElementById('statusBadge');
+    if (badge) {
+      badge.textContent = 'ACTIVE';
+      badge.className = 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+    }
+
+    document.querySelectorAll('.session-dot').forEach((dot, idx) => {
+      dot.classList.remove('active', 'done');
+      const sessionNum = idx + 1;
+      if (sessionNum < currentSession) dot.classList.add('done');
+      else if (sessionNum === currentSession) dot.classList.add('active');
+    });
+  }
+
+  function startLocalTimer() {
+    if (localTimer) clearInterval(localTimer);
+
+    const tick = () => {
+      if (!sessionStartTime) return;
+      const elapsed = (Date.now() - sessionStartTime) / 1000;
+      const remaining = Math.max(0, sessionDuration - elapsed);
+      const m = Math.floor(remaining / 60);
+      const s = Math.floor(remaining) % 60;
+      const el = document.getElementById('timerDisplay');
+      if (el) el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      if (remaining <= 0) clearInterval(localTimer);
+    };
+
+    tick();
+    localTimer = setInterval(tick, 100);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // STATE
+  // LOADING VIEW
   // ═══════════════════════════════════════════════════════════
-  let currentSessionIndex = 0;
-  let currentSessionStartTime = null;
-  let currentSessionDuration = 30;
-  let currentQuestionSig = '';
-  let sessionTimerInterval = null;
-  let cachedScores = [];
-  let currentRevealedRank = -1;
-  let lastRevealedRank = -1;
-  let isLoading = false;
-  let lastViewSig = '';
+  async function showLoadingScreen(duration = 2500) {
+    return new Promise((resolve) => {
+      const bar = document.getElementById('progressBar');
+      const pct = document.getElementById('loadingPercent');
+      const status = document.getElementById('loadingStatus');
 
-  // ═══════════════════════════════════════════════════════════
-  // AVATARS
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAvatarMap(uniqueIds) {
-    if (!uniqueIds || uniqueIds.length === 0) return {};
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('unique_id, avatar_url')
-      .in('unique_id', uniqueIds);
+      if (bar) bar.style.width = '0%';
+      if (pct) pct.textContent = '0';
 
-    if (error) { LOG.warn('AVATAR', 'Fetch error: ' + error.message); return {}; }
+      const statuses = [
+        'Memuat data...',
+        'Generate puzzle...',
+        'Sync matrix...',
+        'Siap!'
+      ];
 
-    const map = {};
-    (data || []).forEach(u => { if (u.avatar_url) map[u.unique_id] = u.avatar_url; });
-    return map;
+      let progress = 0;
+      let statusIdx = 0;
+
+      const interval = setInterval(() => {
+        progress += Math.floor(Math.random() * 12) + 5;
+        if (progress > 100) progress = 100;
+
+        if (bar) bar.style.width = progress + '%';
+        if (pct) pct.textContent = progress;
+
+        statusIdx = Math.min(Math.floor((progress / 100) * statuses.length), statuses.length - 1);
+        if (status) status.textContent = statuses[statusIdx];
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(resolve, 400);
+        }
+      }, duration / 15);
+    });
   }
 
-  function getAvatarUrl(uniqueId, name) {
-    return cachedAvatars[uniqueId]
-      || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || uniqueId)}`;
+  // ═══════════════════════════════════════════════════════════
+  // ELIMINATION VIEW
+  // ═══════════════════════════════════════════════════════════
+  let eliminationData = null;
+  let eliminationPlayed = false;
+
+  async function fetchEliminationData() {
+    LOG.step('ELIM', 'Fetch elimination data...');
+
+    try {
+      // 1. Ambil 10 terbawah dari tabel elimination_history
+      const { data: elim, error: elimErr } = await supabaseClient
+        .from('elimination_history')
+        .select('unique_id, name, final_score')
+        .eq('game_name', GAME_NAME)
+        .order('final_score', { ascending: true });
+
+      if (elimErr) { LOG.error('ELIM', 'Error fetch elim: ' + elimErr.message); return null; }
+
+      // 2. Ambil semua peserta aktif (25)
+      const { data: users, error: usersErr } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, school_name, is_eliminated, avatar_url')
+        .eq('role', 'peserta');
+
+      if (usersErr) { LOG.error('ELIM', 'Error fetch users: ' + usersErr.message); return null; }
+
+      // 3. Ambil semua skor dari point_frenzy_cross_maze
+      const { data: points, error: ptsErr } = await supabaseClient
+        .from(POINT_TABLE)
+        .select('unique_id, point');
+
+      if (ptsErr) { LOG.warn('ELIM', 'Error fetch points: ' + ptsErr.message); }
+
+      const pointsMap = {};
+      (points || []).forEach(p => pointsMap[p.unique_id] = Number(p.point) || 0);
+
+      const elimSet = new Set((elim || []).map(e => e.unique_id));
+
+      // 4. Ambil 25 peserta yang belum di-lock (is_eliminated = FALSE)
+      // Prioritas: yang punya skor di game ini
+      const activeUsers = (users || [])
+        .filter(u => !u.is_eliminated)
+        .map(u => ({
+          unique_id: u.unique_id,
+          name: u.full_name || u.unique_id,
+          school: u.school_name || '',
+          avatar: u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.unique_id)}`,
+          score: pointsMap[u.unique_id] ?? 0,
+          isEliminated: elimSet.has(u.unique_id)
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      LOG.ok('ELIM', `Data: ${activeUsers.length} peserta aktif, ${elim?.length || 0} tereliminasi`);
+
+      return {
+        all: activeUsers,
+        eliminated: activeUsers.filter(u => u.isEliminated),
+        survivors: activeUsers.filter(u => !u.isEliminated)
+      };
+    } catch (e) {
+      LOG.error('ELIM', 'Exception: ' + e.message);
+      return null;
+    }
+  }
+
+  async function playEliminationSequence() {
+    if (eliminationPlayed) {
+      LOG.info('ELIM', 'Sudah diputar, skip.');
+      return;
+    }
+
+    const data = await fetchEliminationData();
+    if (!data || data.all.length === 0) {
+      LOG.warn('ELIM', 'Data kosong, tidak bisa animasi.');
+      return;
+    }
+
+    eliminationPlayed = true;
+    eliminationData = data;
+
+    const cardsContainer = document.getElementById('elimCards');
+    const header = document.getElementById('elimHeader');
+    const footer = document.getElementById('elimFooter');
+    const footerText = document.getElementById('elimFooterText');
+    const subtitle = document.getElementById('elimSubtitle');
+
+    if (!cardsContainer) return;
+
+    // Reset state
+    cardsContainer.innerHTML = '';
+    header.classList.add('opacity-0');
+    footer.classList.add('opacity-0');
+
+    // 1. Render semua peserta (25)
+    data.all.forEach((user, idx) => {
+      const card = document.createElement('div');
+      const isElim = user.isEliminated;
+
+      card.className = 'elim-card relative bg-slate-900/80 border-2 border-slate-700 rounded-2xl p-3 flex flex-col items-center gap-2 transition-all';
+      card.dataset.uid = user.unique_id;
+      card.dataset.elim = isElim ? '1' : '0';
+      card.style.animationDelay = (idx * 25) + 'ms';
+
+      card.innerHTML = `
+        <div class="w-16 h-16 rounded-xl bg-slate-950 border border-slate-700 overflow-hidden flex-shrink-0 relative">
+          <img src="${user.avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.unique_id)}'" />
+          <div class="cross-mark absolute inset-0 hidden items-center justify-center pointer-events-none">
+            <div class="w-full h-1.5 bg-rose-500 absolute rotate-45 rounded shadow-[0_0_15px_rgba(244,63,94,0.9)]"></div>
+            <div class="w-full h-1.5 bg-rose-500 absolute -rotate-45 rounded shadow-[0_0_15px_rgba(244,63,94,0.9)]"></div>
+          </div>
+        </div>
+        <div class="text-center w-full">
+          <div class="text-xs font-bold text-white truncate">${user.name}</div>
+          <div class="text-[10px] text-sky-400 font-mono">${Number(user.score).toFixed(2)} PTS</div>
+        </div>
+      `;
+      card.classList.add('anim-card-pop');
+      cardsContainer.appendChild(card);
+    });
+
+    // Tampilkan header
+    await sleep(200);
+    header.classList.remove('opacity-0');
+    header.classList.add('anim-elim-title');
+
+    await sleep(1800);
+
+    // 2. Highlight survivor (yang lolos duluan)
+    subtitle.textContent = 'MENGUNCI PESERTA YANG BERTAHAN...';
+
+    const survivors = data.survivors;
+    for (const s of survivors) {
+      const card = cardsContainer.querySelector(`.elim-card[data-uid="${s.unique_id}"]`);
+      if (card) {
+        card.classList.add('anim-survivor');
+        card.classList.remove('border-slate-700');
+        card.classList.add('border-emerald-500');
+      }
+    }
+    await sleep(1200);
+
+    // 3. Eliminasi satu per satu
+    subtitle.textContent = 'MENGELIMINASI PESERTA TERBAWAH...';
+
+    const eliminated = data.eliminated;
+    for (const e of eliminated) {
+      const card = cardsContainer.querySelector(`.elim-card[data-uid="${e.unique_id}"]`);
+      if (!card) continue;
+
+      // Shake dulu
+      card.classList.add('anim-elim-shake');
+      audioEngine.play(SOUND_BEEP);
+      await sleep(500);
+
+      // Fade + cross mark
+      card.classList.remove('anim-elim-shake');
+      card.classList.add('anim-elim-fade');
+      card.classList.remove('border-emerald-500');
+      card.classList.add('border-rose-700');
+
+      const crossMark = card.querySelector('.cross-mark');
+      if (crossMark) {
+        crossMark.classList.remove('hidden');
+        crossMark.classList.add('flex', 'anim-cross');
+      }
+
+      await sleep(900);
+    }
+
+    // 4. Show footer title
+    await sleep(500);
+
+    if (footerText) {
+      footerText.className = 'inline-block text-2xl md:text-3xl font-orbitron font-black tracking-widest px-8 py-3 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-300 anim-elim-title';
+      footerText.innerHTML = `<i class="fas fa-user-slash mr-2"></i> ${eliminated.length} PESERTA TERELIMINASI`;
+    }
+    footer.classList.remove('opacity-0');
+
+    // Bell akhir
+    audioEngine.play(SOUND_BELL);
+
+    LOG.ok('ELIM', '✅ Sequence selesai');
+  }
+
+  function resetEliminationView() {
+    eliminationPlayed = false;
+    eliminationData = null;
+    const cards = document.getElementById('elimCards');
+    if (cards) cards.innerHTML = '';
+    const header = document.getElementById('elimHeader');
+    if (header) header.classList.add('opacity-0');
+    const footer = document.getElementById('elimFooter');
+    if (footer) footer.classList.add('opacity-0');
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
   }
 
   // ═══════════════════════════════════════════════════════════
   // VIEW SWITCHER
   // ═══════════════════════════════════════════════════════════
-  function showView(viewName) {
-    if (currentView === viewName) {
-      const map = {
-        idle: 'viewIdle',
-        loading: 'viewLoading',
-        game: 'viewGame',
-        leaderboard: 'viewLeaderboard',
-        all_players: 'viewAllPlayers',
-        elimination: 'viewElimination'
-      };
-      const el = document.getElementById(map[viewName]);
-      if (el && el.classList.contains('active-view')) return;
+  let cachedScores = [];
+  let lastRevealedRank = -1;
+  let currentView = 'idle';
+  let isTransitioning = false;
+
+  const VIEWS = {
+    idle: 'viewIdle',
+    loading: 'viewLoading',
+    game: 'viewGame',
+    leaderboard: 'viewLeaderboard',
+    all_players: 'viewAllPlayers',
+    elimination: 'viewElimination'
+  };
+
+  async function handleViewSwitch(viewName, rank) {
+    LOG.info('VIEW', `Switch → ${viewName}`);
+
+    if (currentView === viewName && viewName !== 'leaderboard') return;
+    if (isTransitioning) return;
+
+    isTransitioning = true;
+    try {
+      // Idle → Game: lewat loading
+      if (currentView === 'idle' && viewName === 'game') {
+        // Play idle → game transition
+        stopIdleCanvas();
+        switchToView('loading');
+        playBGM('loading');
+        await showLoadingScreen(2500);
+        switchToView('game');
+        playBGM('game');
+      } else if (viewName === 'elimination') {
+        // Reset dulu, lalu play
+        switchToView('elimination');
+        playBGM('elimination');
+        await sleep(300);
+        await playEliminationSequence();
+      } else {
+        if (viewName !== 'idle') stopIdleCanvas();
+        switchToView(viewName);
+        playBGM(viewName);
+      }
+
+      currentView = viewName;
+
+      // Update data jika perlu
+      if (viewName === 'leaderboard') {
+        if (rank !== lastRevealedRank) {
+          lastRevealedRank = rank;
+          await fetchAndRenderScores(false, rank);
+        }
+      } else if (viewName === 'all_players') {
+        lastRevealedRank = -1;
+        await fetchAndRenderScores(true);
+      } else if (viewName === 'idle') {
+        lastRevealedRank = -1;
+        resetEliminationView();
+        setTimeout(() => startIdleCanvas(), 100);
+      }
+    } finally {
+      isTransitioning = false;
     }
+  }
 
-    const views = {
-      idle: document.getElementById('viewIdle'),
-      loading: document.getElementById('viewLoading'),
-      game: document.getElementById('viewGame'),
-      leaderboard: document.getElementById('viewLeaderboard'),
-      all_players: document.getElementById('viewAllPlayers'),
-      elimination: document.getElementById('viewElimination')
-    };
-
-    Object.values(views).forEach(v => {
-      if (!v) return;
-      v.classList.add('hidden-view');
-      v.classList.remove('active-view');
+  function switchToView(viewName) {
+    Object.values(VIEWS).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('hidden-view');
+      el.classList.remove('active-view');
     });
 
-    if (views[viewName]) {
-      views[viewName].classList.remove('hidden-view');
-      views[viewName].classList.add('active-view');
-    }
-
-    currentView = viewName;
-    playBGM(viewName);
-
-    if (viewName === 'idle') {
-      setTimeout(() => {
-        startMazeCanvas();
-        setTimeout(() => resizeMazeCanvas(), 500);
-      }, 100);
-    } else {
-      stopMazeCanvas();
-    }
-
-    if (viewName !== 'loading') {
-      stopLoadingCanvas();
+    const targetId = VIEWS[viewName];
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.classList.remove('hidden-view');
+      target.classList.add('active-view');
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // LOADING TRANSITION
+  // SCORES
   // ═══════════════════════════════════════════════════════════
-  async function showLoadingTransition() {
-    return new Promise((resolve) => {
-      isLoading = true;
-      showView('loading');
-      startLoadingCanvas();
-
-      let countdown = LOADING_DURATION_SEC;
-      const countdownEl = document.getElementById('loadingCountdown');
-      if (countdownEl) countdownEl.textContent = countdown;
-
-      const tick = setInterval(() => {
-        countdown--;
-        if (countdownEl) countdownEl.textContent = Math.max(0, countdown);
-
-        if (countdown <= 0) {
-          clearInterval(tick);
-          stopLoadingCanvas();
-          isLoading = false;
-          resolve();
-        }
-      }, 1000);
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // SESSION TIMER
-  // ═══════════════════════════════════════════════════════════
-  function startSessionTimer() {
-    stopSessionTimer();
-    if (!currentSessionStartTime || currentSessionIndex === 0) return;
-
-    const startMs = new Date(currentSessionStartTime).getTime();
-
-    const tick = () => {
-      const elapsed = Math.floor((Date.now() - startMs) / 1000);
-      const remaining = Math.max(0, currentSessionDuration - elapsed);
-
-      const timerEl = document.getElementById('stageTimer');
-      if (timerEl) {
-        timerEl.textContent = remaining;
-        if (remaining <= 5) {
-          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-rose-500 leading-none animate-pulse';
-        } else if (remaining <= 10) {
-          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-amber-400 leading-none';
-        } else {
-          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-rose-400 leading-none';
-        }
-      }
-
-      if (remaining <= 0) stopSessionTimer();
-    };
-
-    tick();
-    sessionTimerInterval = setInterval(tick, 500);
-  }
-
-  function stopSessionTimer() {
-    if (sessionTimerInterval) {
-      clearInterval(sessionTimerInterval);
-      sessionTimerInterval = null;
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // SUBSCRIBE QUESTION
-  // ═══════════════════════════════════════════════════════════
-  function subscribeQuestion() {
-    supabaseClient
-      .channel('stage_frenzy_question')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: QUESTION_TABLE },
-        (payload) => { if (payload.new) onQuestionUpdate(payload.new); })
-      .subscribe((status) => {
-        LOG.info('SUB', `Question channel: ${status}`);
-        if (status === 'SUBSCRIBED') fetchInitialQuestion();
-      });
-
-    setInterval(async () => {
-      const { data } = await supabaseClient.from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
-      if (data) onQuestionUpdate(data);
-    }, 2000);
-  }
-
-  async function fetchInitialQuestion() {
-    const { data } = await supabaseClient.from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
-    if (data) onQuestionUpdate(data);
-  }
-
-  async function onQuestionUpdate(row) {
-    const sig = `${row.session_index}|${row.updated_at}|${row.target_answer}`;
-    if (sig === currentQuestionSig) return;
-    currentQuestionSig = sig;
-
-    const prevSession = currentSessionIndex;
-    currentSessionIndex = row.session_index || 0;
-    currentSessionStartTime = row.session_start_time;
-    currentSessionDuration = row.session_duration || 30;
-
-    LOG.info('Q', `Session ${currentSessionIndex}/${row.total_sessions}, answer: ${row.target_answer}`);
-
-    if (currentSessionIndex === 0) {
-      stopSessionTimer();
-      showView('idle');
-      return;
-    }
-
-    if (prevSession !== currentSessionIndex) {
-      LOG.ok('SESSION', `▶ New session: ${currentSessionIndex}`);
-      audioEngine.play(SOUND_BELL);
-
-      if (currentView === 'idle' || currentView === 'loading') {
-        await showLoadingTransition();
-      }
-    }
-
-    updateGameUI(row);
-
-    if (currentView !== 'game') showView('game');
-    startSessionTimer();
-  }
-
-  function updateGameUI(row) {
-    const sessionNumEl = document.getElementById('stageSessionNum');
-    const sessionTotalEl = document.getElementById('stageSessionTotal');
-    const questionEl = document.getElementById('stageQuestion');
-    const answerEl = document.getElementById('stageAnswer');
-
-    if (sessionNumEl) sessionNumEl.textContent = currentSessionIndex;
-    if (sessionTotalEl) sessionTotalEl.textContent = row.total_sessions || 5;
-    if (questionEl) questionEl.textContent = row.question_text || row.puzzle_text || '--';
-    if (answerEl) answerEl.textContent = row.target_answer != null ? row.target_answer : '--';
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // SUBSCRIBE LAYOUT
-  // ═══════════════════════════════════════════════════════════
-  function subscribeLayout() {
-    supabaseClient
-      .channel('stage_frenzy_layout')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: LAYOUT_TABLE },
-        (payload) => { if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank); })
-      .subscribe((status) => {
-        LOG.info('SUB', `Layout channel: ${status}`);
-      });
-
-    setInterval(async () => {
-      const { data } = await supabaseClient.from(LAYOUT_TABLE).select('*').eq('id', 1).maybeSingle();
-      if (data) handleViewSwitch(data.current_view, data.revealed_rank);
-    }, 2000);
-  }
-
-  function handleViewSwitch(viewName, revealedRank) {
-    const sig = `${viewName}|${revealedRank || 0}`;
-    if (lastViewSig === sig) return;
-    lastViewSig = sig;
-
-    if (viewName === 'game' && currentSessionIndex === 0) {
-      showView('idle');
-      return;
-    }
-
-    if (viewName === 'idle') {
-      showView('idle');
-      lastRevealedRank = -1;
-      return;
-    }
-
-    if (viewName === 'game') {
-      if (currentView !== 'game') {
-        showView('game');
-        startSessionTimer();
-      }
-      lastRevealedRank = -1;
-      return;
-    }
-
-    const newRank = revealedRank || 0;
-
-    if (viewName === 'leaderboard') {
-      showView('leaderboard');
-      if (newRank !== lastRevealedRank) {
-        currentRevealedRank = newRank;
-        lastRevealedRank = newRank;
-        fetchAndRenderScores(false);
-      }
-    } else if (viewName === 'all_players') {
-      showView('all_players');
-      lastRevealedRank = -1;
-      fetchAndRenderAllPlayers();
-    } else if (viewName === 'elimination') {
-      showView('elimination');
-      lastRevealedRank = -1;
-      fetchAndRenderElimination();
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES (Leaderboard)
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAndRenderScores(isAll) {
+  async function fetchAndRenderScores(isAll, rank) {
     const { data, error } = await supabaseClient
       .from(POINT_TABLE)
       .select('unique_id, name, point')
       .order('point', { ascending: false });
 
-    if (error || !data) { LOG.error('STAGE', 'Fetch scores error', error); return; }
+    if (error || !data) {
+      LOG.error('SCORE', 'Fetch error', error);
+      return;
+    }
 
     cachedScores = data.map(r => ({
       uid: r.name || r.unique_id,
-      uniqueId: r.unique_id,
       total: Number(r.point) || 0
     }));
 
-    LOG.info('STAGE', `Loaded ${cachedScores.length} peserta`);
-
-    if (isAll) fetchAndRenderAllPlayers();
-    else renderLeaderboardReveal();
+    if (isAll) renderAllPlayers();
+    else renderLeaderboard(rank);
   }
 
-  function renderLeaderboardReveal() {
+  function renderLeaderboard(rank) {
     const c = document.getElementById('stageLeaderboardGrid');
     if (!c) return;
 
-    if (currentRevealedRank === 0 || cachedScores.length === 0) {
-      c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`;
+    if (!rank || rank === 0 || cachedScores.length === 0) {
+      c.innerHTML = `<p class="text-slate-500 text-lg">Siap-siap... Pengumuman Pemenang!</p>`;
       return;
     }
 
-    const p = cachedScores[currentRevealedRank - 1];
+    const p = cachedScores[rank - 1];
     if (!p) {
-      c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`;
+      c.innerHTML = `<p class="text-slate-400">Belum ada data #${rank}</p>`;
       return;
     }
 
-    let badge = `PERINGKAT #${currentRevealedRank}`;
+    const av = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+    let badge = `PERINGKAT #${rank}`;
     let badgeStyle = 'bg-slate-700 text-slate-200';
-    let cardTheme = 'from-slate-800 to-slate-900 border-slate-700/80';
+    let cardStyle = 'from-slate-800 to-slate-900 border-slate-700';
 
-    if (currentRevealedRank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; cardTheme = 'from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80'; }
-    else if (currentRevealedRank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardTheme = 'from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80'; }
-    else if (currentRevealedRank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardTheme = 'from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80'; }
-
-    const avatar = getAvatarUrl(p.uniqueId, p.uid);
+    if (rank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; cardStyle = 'from-amber-950 via-yellow-900/60 to-amber-950 border-amber-400'; }
+    else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardStyle = 'from-slate-800 via-slate-700 to-slate-900 border-slate-300'; }
+    else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardStyle = 'from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600'; }
 
     c.innerHTML = `
-      <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 flex flex-col items-center gap-4">
-        <div class="px-5 py-2 rounded-full text-xs md:text-sm font-black tracking-widest uppercase ${badgeStyle}">
-          ${badge}
+      <div class="bg-gradient-to-b ${cardStyle} border-2 rounded-3xl p-8 flex flex-col items-center gap-4">
+        <div class="px-5 py-2 rounded-full font-black text-sm uppercase ${badgeStyle}">${badge}</div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2">
+          <img src="${av}" class="w-full h-full object-contain" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}'" />
         </div>
-        <div class="w-36 h-36 rounded-3xl bg-slate-950 border-2 border-white/20 p-2 overflow-hidden">
-          <img src="${avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}'"/>
-        </div>
-        <h3 class="text-3xl font-black text-white">${p.uid}</h3>
-        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
-          +${p.total.toFixed(2)} PTS
-        </div>
-      </div>
-    `;
+        <h3 class="text-3xl font-black">${p.uid}</h3>
+        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${p.total.toFixed(2)} PTS</div>
+      </div>`;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // ALL PLAYERS — MARQUEE
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAndRenderAllPlayers() {
-    const track = document.getElementById('allPlayersTrack');
-    if (!track) return;
-
-    track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>';
-
-    const { data, error } = await supabaseClient
-      .from(POINT_TABLE)
-      .select('unique_id, name, point')
-      .order('point', { ascending: false });
-
-    if (error || !data || data.length === 0) {
-      track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Belum ada peserta.</p>';
-      return;
-    }
-
-    const uniqueIds = data.map(d => d.unique_id);
-    cachedAvatars = await fetchAvatarMap(uniqueIds);
-
-    const cardsHtml = data.map((p, idx) => {
-      const rank = idx + 1;
-      const avatar = getAvatarUrl(p.unique_id, p.name);
-      let rankClass = '';
-      if (rank === 1) rankClass = 'rank-1';
-      else if (rank === 2) rankClass = 'rank-2';
-      else if (rank === 3) rankClass = 'rank-3';
-
-      let badgeText = `#${rank}`;
-      if (rank === 1) badgeText = '👑 #1';
-      else if (rank === 2) badgeText = '🥈 #2';
-      else if (rank === 3) badgeText = '🥉 #3';
-
-      return `
-        <div class="player-card-h ${rankClass}">
-          <div class="rank-badge">${badgeText}</div>
-          <div class="avatar-box">
-            <img src="${avatar}" alt="${p.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.name || p.unique_id)}'"/>
-          </div>
-          <div class="player-name" title="${p.name}">${p.name || p.unique_id}</div>
-          <div class="player-points">+${Number(p.point || 0).toFixed(2)}</div>
-        </div>
-      `;
-    }).join('');
-
-    track.innerHTML = cardsHtml + cardsHtml;
-
-    const totalWidth = data.length * 220;
-    const durationSec = Math.max(60, totalWidth / 60);
-    track.style.setProperty('--marquee-duration', `${durationSec}s`);
-
-    LOG.info('MARQUEE', `${data.length} kartu, durasi ${durationSec.toFixed(1)}s`);
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // ELIMINATION — 10 kartu grid
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAndRenderElimination() {
-    const container = document.getElementById('eliminatedList');
-    const gameNameLabel = document.getElementById('elimGameNameLabel');
-    if (!container) return;
-
-    container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>';
-    if (gameNameLabel) gameNameLabel.textContent = CURRENT_GAME_NAME;
-
-    const { data: elimData, error } = await supabaseClient
-      .from('elimination_history')
-      .select('unique_id, name, final_score')
-      .eq('game_name', CURRENT_GAME_NAME)
-      .order('final_score', { ascending: true });
-
-    if (error) {
-      LOG.error('ELIM', 'Fetch error: ' + error.message);
-      container.innerHTML = '<p class="col-span-full text-center text-rose-400 py-12 text-lg">Gagal memuat data eliminasi</p>';
-      return;
-    }
-
-    if (!elimData || elimData.length === 0) {
-      container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Belum ada peserta tereliminasi.</p>';
-      return;
-    }
-
-    const uniqueIds = elimData.map(e => e.unique_id);
-    cachedAvatars = await fetchAvatarMap(uniqueIds);
-
-    container.innerHTML = '';
-    elimData.forEach((item, idx) => {
-      const avatar = getAvatarUrl(item.unique_id, item.name);
-      const card = document.createElement('div');
-      card.className = 'elim-card-v';
-      card.style.animationDelay = `${idx * 80}ms`;
-      card.innerHTML = `
-        <div class="avatar-box">
-          <img src="${avatar}" alt="${item.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.name || item.unique_id)}'"/>
-        </div>
-        <div class="elim-name" title="${item.name}">${item.name || item.unique_id}</div>
-        <div class="elim-points">${Number(item.final_score || 0).toFixed(2)}</div>
-        <div class="elim-badge">TERELIMINASI</div>
-      `;
-      container.appendChild(card);
+  function renderAllPlayers() {
+    const c = document.getElementById('allPlayersGrid');
+    if (!c) return;
+    c.innerHTML = '';
+    cachedScores.forEach((it, idx) => {
+      const d = document.createElement('div');
+      d.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex justify-between';
+      d.innerHTML = `<span class="text-sm font-semibold">#${idx+1} ${it.uid}</span><span class="text-sm font-mono font-bold text-indigo-400">+${it.total.toFixed(2)} PTS</span>`;
+      c.appendChild(d);
     });
-
-    LOG.info('ELIM', `Rendered ${elimData.length} kartu tereliminasi`);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // RESIZE
+  // SUBSCRIBE PUZZLE UPDATE (game state)
   // ═══════════════════════════════════════════════════════════
-  window.addEventListener('resize', () => {
-    if (mazeRunning) resizeMazeCanvas();
-    if (lcRunning) resizeLoadingCanvas();
-  });
+  function subscribeToPuzzle() {
+    supabaseClient
+      .channel('layout_frenzy_puzzle')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'system_frenzy_cross_math_question'
+      }, (payload) => {
+        if (payload.new) onPuzzleUpdate(payload.new);
+      })
+      .subscribe(async (status) => {
+        LOG.info('SUB', 'Puzzle channel: ' + status);
+        if (status === 'SUBSCRIBED') {
+          const { data } = await supabaseClient
+            .from('system_frenzy_cross_math_question')
+            .select('*').eq('id', 1).maybeSingle();
+          if (data) onPuzzleUpdate(data);
+        }
+      });
+  }
+
+  async function onPuzzleUpdate(row) {
+    if (!row.session_index || row.session_index === 0) {
+      LOG.info('PUZZLE', 'Idle (sesi 0)');
+      return;
+    }
+
+    const sig = `${row.session_index}|${row.updated_at}`;
+    if (sig === lastPuzzleSig) return;
+    lastPuzzleSig = sig;
+
+    currentSession = row.session_index;
+    totalSessions = row.total_sessions || 5;
+    sessionStartTime = row.session_start_time;
+    sessionDuration = row.session_duration || 30;
+    currentPuzzle = row.puzzle_json;
+
+    LOG.ok('PUZZLE', `Sesi ${currentSession}/${totalSessions}`);
+
+    if (row.puzzle_json && row.puzzle_json.grid) {
+      renderGrid(row.puzzle_json.grid);
+    }
+
+    updateSessionUI();
+    startLocalTimer();
+
+    // Bell kecuali sesi 1
+    if (currentSession > 1) {
+      audioEngine.play(currentSession === totalSessions ? SOUND_BEEP : SOUND_BELL);
+    } else {
+      audioEngine.play(SOUND_BELL);
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // INIT
   // ═══════════════════════════════════════════════════════════
-  async function init() {
-    LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+  (async () => {
+    LOG.ok('INIT', '══════════ LAYOUT BOOT ══════════');
 
     initBGM();
 
-    try {
-      await audioEngine.fetchAndCache(SOUND_BELL);
-      await audioEngine.fetchAndCache(SOUND_BEEP);
-      LOG.ok('AUDIO', 'SFX preloaded');
-    } catch (e) {
-      LOG.warn('AUDIO', 'Preload gagal');
-    }
+    // Start idle first
+    switchToView('idle');
+    playBGM('idle');
+    setTimeout(() => startIdleCanvas(), 300);
 
-    const { data: layoutData } = await supabaseClient
-      .from(LAYOUT_TABLE).select('*').eq('id', 1).maybeSingle();
+    // Subscribe puzzle updates
+    subscribeToPuzzle();
 
-    const { data: sessionData } = await supabaseClient
-      .from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
-
-    if (sessionData) onQuestionUpdate(sessionData);
-
-    let initialView = layoutData?.current_view || 'idle';
-    const initialRank = layoutData?.revealed_rank || 0;
-
-    if (initialView === 'game' && (!sessionData || sessionData.session_index === 0)) {
-      initialView = 'idle';
-    }
-
-    showView(initialView);
-    if (initialView === 'leaderboard') {
-      currentRevealedRank = initialRank;
-      lastRevealedRank = initialRank;
-      fetchAndRenderScores(false);
-    } else if (initialView === 'all_players') {
-      fetchAndRenderAllPlayers();
-    } else if (initialView === 'elimination') {
-      fetchAndRenderElimination();
-    }
-
-    subscribeQuestion();
-    subscribeLayout();
-
-    supabaseClient.channel('stage_elimination_watch')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'elimination_history' }, () => {
-        if (currentView === 'elimination') {
-          LOG.info('ELIM', 'Realtime update → re-render elimination');
-          fetchAndRenderElimination();
-        }
+    // Subscribe layout remote
+    supabaseClient.channel('layout_remote_frenzy')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_layout_frenzy_cross_math'
+      }, (p) => {
+        if (p.new) handleViewSwitch(p.new.current_view, p.new.revealed_rank);
       })
       .subscribe();
 
-    LOG.ok('INIT', '══════════ STAGE READY ══════════');
-  }
+    // Initial layout
+    const { data: layoutData } = await supabaseClient
+      .from('admin_layout_frenzy_cross_math').select('*').eq('id', 1).maybeSingle();
 
-  init();
+    if (layoutData && layoutData.current_view) {
+      currentView = layoutData.current_view;
+      switchToView(layoutData.current_view);
+      playBGM(layoutData.current_view);
+
+      if (layoutData.current_view === 'idle') {
+        setTimeout(() => startIdleCanvas(), 300);
+      } else if (layoutData.current_view === 'elimination') {
+        await sleep(400);
+        await playEliminationSequence();
+      } else if (layoutData.current_view === 'leaderboard') {
+        await fetchAndRenderScores(false, layoutData.revealed_rank);
+      } else if (layoutData.current_view === 'all_players') {
+        await fetchAndRenderScores(true);
+      }
+    }
+
+    // Resize handler
+    let rt;
+    window.addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => {
+        if (idleRunning) resizeIdleCanvas();
+        if (currentPuzzle && currentPuzzle.grid && currentView === 'game') {
+          renderGrid(currentPuzzle.grid);
+        }
+      }, 200);
+    });
+
+    LOG.ok('INIT', '══════════ LAYOUT READY ══════════');
+  })();
+
+  // Expose
+  window.unlockAudio = unlockAudio;
+  window.handleViewSwitch = handleViewSwitch;
 </script>
 </body>
 </html>
