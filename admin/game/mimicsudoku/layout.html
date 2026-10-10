@@ -404,46 +404,187 @@
     .player-card-h.rank-3 .player-points { color: #fb923c; }
 
     /* ═══════════════════════════════════════════════════════════
-       ELIMINATION — 5 KARTU HORIZONTAL
+       ELIMINATION — Animasi slide
        ═══════════════════════════════════════════════════════════ */
-    @keyframes elimCardFadeIn {
-      0% { opacity: 0; transform: translateY(30px) scale(0.9); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
+    .elim-stage {
+      width: 100%;
+      height: 340px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .elim-card-v {
+    /* Track yang bergerak */
+    .elim-slider {
+      display: flex;
+      gap: 1rem;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      will-change: transform;
+      transition: transform 0s linear;
+    }
+
+    /* Kartu peserta untuk slider (vertikal, besar) */
+    .elim-card-slide {
+      flex-shrink: 0;
+      width: 220px;
+      padding: 1rem;
+      border-radius: 1.5rem;
+      background: linear-gradient(145deg, rgba(30,41,59,0.9), rgba(2,6,23,0.95));
+      border: 3px solid rgba(99, 102, 241, 0.5);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.3);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 1.25rem;
-      border-radius: 1.5rem;
-      background: linear-gradient(145deg, rgba(76,5,25,0.6), rgba(2,6,23,0.95));
-      border: 3px solid rgba(244, 63, 94, 0.5);
-      box-shadow: 0 0 35px rgba(244, 63, 94, 0.25);
-      animation: elimCardFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-      width: 100%;
+      position: relative;
+      transition: all 0.4s ease;
     }
 
-    .elim-card-v .avatar-box {
+    .elim-card-slide .avatar-box {
+      width: 160px;
+      height: 160px;
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(99, 102, 241, 0.5);
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .elim-card-slide .avatar-box img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+
+    .elim-card-slide .elim-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .elim-card-slide .elim-points {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #a5b4fc;
+      margin-top: 0.25rem;
+    }
+
+    /* State kartu tereliminasi */
+    .elim-card-slide.is-eliminated {
+      border-color: #f43f5e;
+      background: linear-gradient(145deg, rgba(76,5,25,0.9), rgba(2,6,23,0.95));
+      box-shadow: 0 0 45px rgba(244, 63, 94, 0.6);
+      transform: scale(1.08);
+    }
+
+    .elim-card-slide.is-eliminated .avatar-box {
+      border-color: #f43f5e;
+      filter: grayscale(1) brightness(0.7);
+    }
+
+    .elim-card-slide.is-eliminated .elim-points {
+      color: #f43f5e;
+    }
+
+    /* Cross mark */
+    .elim-card-slide .cross-mark {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .elim-card-slide.is-eliminated .cross-mark {
+      display: flex;
+      animation: crossMarkIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .elim-card-slide .cross-mark::before,
+    .elim-card-slide .cross-mark::after {
+      content: '';
+      position: absolute;
+      width: 90%;
+      height: 10px;
+      background: #f43f5e;
+      border-radius: 6px;
+      box-shadow: 0 0 20px #f43f5e, 0 0 40px rgba(244, 63, 94, 0.6);
+    }
+
+    .elim-card-slide .cross-mark::before {
+      transform: rotate(45deg);
+    }
+    .elim-card-slide .cross-mark::after {
+      transform: rotate(-45deg);
+    }
+
+    @keyframes crossMarkIn {
+      0% { opacity: 0; transform: scale(0); }
+      50% { opacity: 1; transform: scale(1.3); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Shake animasi saat berhenti */
+    @keyframes elimShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .elim-card-slide.shake {
+      animation: elimShake 0.5s ease-in-out;
+    }
+
+    /* Final grid 5x2 */
+    .elim-final-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      width: 100%;
+      max-width: 1400px;
+    }
+
+    .elim-final-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      border-radius: 1.25rem;
+      background: linear-gradient(145deg, rgba(76,5,25,0.6), rgba(2,6,23,0.95));
+      border: 3px solid rgba(244, 63, 94, 0.5);
+      box-shadow: 0 0 30px rgba(244, 63, 94, 0.35);
+      animation: finalCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      position: relative;
+    }
+
+    .elim-final-card .avatar-box {
       width: 100%;
       aspect-ratio: 1;
       border-radius: 1rem;
       background: rgba(15, 23, 42, 0.9);
       border: 3px solid rgba(244, 63, 94, 0.6);
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.5rem;
+      filter: grayscale(0.5) brightness(0.85);
     }
 
-    .elim-card-v .avatar-box img {
-      width: 100%; height: 100%;
-      object-fit: cover;
+    .elim-final-card .avatar-box img {
+      width: 100%; height: 100%; object-fit: cover;
     }
 
-    .elim-card-v .elim-name {
-      font-size: 0.95rem;
+    .elim-final-card .final-name {
+      font-size: 0.85rem;
       font-weight: 800;
       color: #fecdd3;
       text-align: center;
@@ -451,27 +592,42 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      margin-bottom: 0.25rem;
     }
 
-    .elim-card-v .elim-points {
+    .elim-final-card .final-points {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 1.4rem;
+      font-size: 1.1rem;
       font-weight: 900;
       color: #f43f5e;
+      margin-top: 0.15rem;
     }
 
-    .elim-card-v .elim-badge {
+    .elim-final-card .final-badge {
       display: inline-block;
-      padding: 2px 10px;
+      padding: 2px 8px;
       border-radius: 999px;
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       font-weight: 900;
       letter-spacing: 0.08em;
-      background: rgba(244, 63, 94, 0.2);
-      border: 1px solid rgba(244, 63, 94, 0.5);
+      background: rgba(244, 63, 94, 0.25);
+      border: 1px solid rgba(244, 63, 94, 0.6);
       color: #fda4af;
-      margin-top: 0.5rem;
+      margin-top: 0.4rem;
+    }
+
+    @keyframes finalCardIn {
+      0% { opacity: 0; transform: scale(0.6) translateY(30px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Title animasi */
+    @keyframes elimTitleIn {
+      0% { opacity: 0; transform: scale(0.3); letter-spacing: 0.5em; }
+      60% { opacity: 1; transform: scale(1.15); letter-spacing: 0.05em; }
+      100% { opacity: 1; transform: scale(1); letter-spacing: 0.1em; }
+    }
+    .elim-title-in {
+      animation: elimTitleIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
   </style>
 </head>
@@ -563,9 +719,8 @@
       </div>
     </div>
 
-    <!-- VIEW: GAME (dengan sidebar) -->
+    <!-- VIEW: GAME -->
     <div id="viewGame" class="stage-view hidden-view absolute inset-0 flex">
-      <!-- SIDEBAR -->
       <aside class="w-[280px] lg:w-[320px] flex-shrink-0 flex flex-col gap-4 p-4 lg:p-6 bg-slate-900/80 border-r border-slate-800 backdrop-blur-md z-20">
         <div class="flex items-center gap-3">
           <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
@@ -628,7 +783,6 @@
         </div>
       </aside>
 
-      <!-- GAME AREA -->
       <div class="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <div id="gridWrapper" class="flex flex-col">
           <div id="columnHeaders" class="grid gap-1.5 mb-1.5"></div>
@@ -659,7 +813,7 @@
       </div>
     </div>
 
-    <!-- VIEW: ALL PLAYERS (marquee horizontal) -->
+    <!-- VIEW: ALL PLAYERS (marquee) -->
     <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
       <div class="text-center mb-4 relative z-10">
         <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
@@ -678,20 +832,35 @@
       </div>
     </div>
 
-    <!-- VIEW: ELIMINATION (5 kartu horizontal) -->
+    <!-- VIEW: ELIMINATION -->
     <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
 
-      <div class="text-center mb-8 relative z-10">
+      <div id="elimHeader" class="text-center mb-6 relative z-10">
         <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-          <i class="fas fa-user-slash"></i> ELIMINASI
+          <i class="fas fa-user-slash"></i> FASE ELIMINASI
         </span>
-        <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-math tracking-wider">HASIL ELIMINASI</h1>
-        <p class="text-rose-300/70 text-lg mt-2 font-mono" id="elimGameNameLabel">-</p>
+        <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-math tracking-wider">
+          MIMIC SUDOKU
+        </h1>
+        <p id="elimSubtitle" class="text-rose-300/70 text-lg mt-2 font-mono">
+          MENENTUKAN PESERTA TERELIMINASI...
+        </p>
       </div>
 
-      <div id="eliminatedList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 w-full max-w-7xl relative z-10">
-        <p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>
+      <!-- Slide area -->
+      <div id="elimStage" class="elim-stage relative z-10">
+        <div id="elimSlider" class="elim-slider"></div>
+      </div>
+
+      <!-- Final grid (hidden dulu) -->
+      <div id="elimFinalGrid" class="elim-final-grid mt-6 relative z-10 hidden"></div>
+
+      <!-- Footer text -->
+      <div id="elimFooter" class="mt-6 text-center relative z-10 hidden">
+        <div class="inline-block text-2xl md:text-3xl font-orbitron font-black tracking-widest px-8 py-3 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-300">
+          10 PESERTA TERELIMINASI
+        </div>
       </div>
     </div>
 
@@ -731,7 +900,7 @@
   // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
   const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
@@ -741,12 +910,13 @@
   const LOADING_DURATION_SEC = 5;
   const CURRENT_GAME_NAME = 'Mimic Sudoku';
   const POINT_TABLE = 'point_mimic_sudoku';
+  const ELIMINATE_COUNT = 10;
 
   let audioUnlocked = false;
   let currentView = 'idle';
 
   // ═══════════════════════════════════════════════════════════
-  // BGM CONFIG
+  // BGM
   // ═══════════════════════════════════════════════════════════
   const BGM = {
     baseUrl: `${STORAGE_BASE_URL}/bgm/`,
@@ -798,8 +968,8 @@
     document.addEventListener('touchstart', unlock);
     document.addEventListener('keydown', unlock);
 
-    const overlay = document.getElementById('audioUnlockOverlay');
-    if (overlay) overlay.addEventListener('click', unlock);
+    const ov = document.getElementById('audioUnlockOverlay');
+    if (ov) ov.addEventListener('click', unlock);
   }
 
   function showUnlockOverlay() {
@@ -855,9 +1025,6 @@
     audioUnlocked = true;
     BGM.unlocked = true;
     hideUnlockOverlay();
-    const statusEl = document.getElementById('stageStatus');
-    if (statusEl) statusEl.textContent = "STAGE READY";
-
     const target = BGM.pendingTrack || BGM.current || 'idle';
     BGM.pendingTrack = null;
     BGM.current = null;
@@ -870,9 +1037,7 @@
   const bgCanvas = document.getElementById('bgCanvas');
   const bgCtx = bgCanvas ? bgCanvas.getContext('2d') : null;
 
-  let bgW, bgH;
-  let bgAnimId = null;
-  let idleRunning = false;
+  let bgW, bgH, bgAnimId = null, idleRunning = false;
   const bgParticles = [];
 
   class Particle {
@@ -887,8 +1052,7 @@
       this.alpha = Math.random() * 0.5 + 0.2;
     }
     update() {
-      this.x += this.vx;
-      this.y += this.vy;
+      this.x += this.vx; this.y += this.vy;
       if (this.x < 0 || this.x > bgW) this.vx *= -1;
       if (this.y < 0 || this.y > bgH) this.vy *= -1;
     }
@@ -950,9 +1114,7 @@
     bgAnimId = null;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // IDLE 9x9 SUDOKU GRID
-  // ═══════════════════════════════════════════════════════════
+  // IDLE 9x9 grid
   let idleGridBuilt = false;
   let idleFlickerInterval = null;
   const idleDimCells = [];
@@ -1035,10 +1197,7 @@
         const audio = await this.ctx.decodeAudioData(buf);
         this.cache.set(url, audio);
         return audio;
-      } catch (e) {
-        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`);
-        return null;
-      }
+      } catch (e) { return null; }
     }
     async play(url) {
       const buf = await this.fetchAndCache(url);
@@ -1068,7 +1227,7 @@
   let isFrozenUI = false;
 
   // ═══════════════════════════════════════════════════════════
-  // MIMIC LAYOUT CLASS
+  // MIMIC LAYOUT (game view)
   // ═══════════════════════════════════════════════════════════
   class MimicLayout {
     constructor() {
@@ -1082,7 +1241,6 @@
 
       this.lastQuestionSig = '';
       this.firstRenderDone = false;
-
       this.loadingTick = null;
     }
 
@@ -1091,12 +1249,8 @@
         .channel('stage_game_state')
         .on('postgres_changes',
           { event: '*', schema: 'public', table: 'mimic_game_state' },
-          (payload) => {
-            if (payload.new) this.onServerStateUpdate(payload.new);
-          })
-        .subscribe((status) => {
-          LOG.info('SUB', `Game state channel: ${status}`);
-        });
+          (payload) => { if (payload.new) this.onServerStateUpdate(payload.new); })
+        .subscribe((status) => LOG.info('SUB', `Game state: ${status}`));
 
       supabaseClient
         .channel('stage_mimic_sudoku')
@@ -1109,7 +1263,7 @@
             else if (id === 4) this.onQuestionUpdate(payload.new);
           })
         .subscribe((status) => {
-          LOG.info('SUB', `Sudoku channel: ${status}`);
+          LOG.info('SUB', `Sudoku: ${status}`);
           if (status === 'SUBSCRIBED') this.fetchAll();
         });
 
@@ -1118,16 +1272,11 @@
 
     async fetchAll() {
       const { data: stateRows } = await supabaseClient
-        .from('mimic_game_state')
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
-
+        .from('mimic_game_state').select('*').eq('id', 1).maybeSingle();
       if (stateRows) this.onServerStateUpdate(stateRows);
 
       const { data: supaRows } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('id, grid_data, updated_at');
+        .from('system_mimic_sudoku').select('id, grid_data, updated_at');
       if (supaRows) {
         const questionRow = supaRows.find(r => r.id === 4);
         if (questionRow) this.onQuestionUpdate(questionRow);
@@ -1137,9 +1286,7 @@
 
     async refreshMasterData() {
       const { data } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('id, grid_data')
-        .in('id', [1, 2, 3]);
+        .from('system_mimic_sudoku').select('id, grid_data').in('id', [1, 2, 3]);
       if (data) this.onMasterDataUpdate(data);
     }
 
@@ -1163,8 +1310,6 @@
       if (sig === lastStateSig) return;
       lastStateSig = sig;
 
-      LOG.info('STATE', `action=${serverState.action} level=${serverState.current_level} running=${serverState.is_running}`);
-
       if (serverState.action === 'START_GAME' && serverState.current_level) {
         this.onStartGame(serverState);
       } else if (serverState.action === 'RESET' || serverState.action === 'TIME_UP') {
@@ -1180,13 +1325,9 @@
 
       const el = document.getElementById('timerDisplay');
       if (el) {
-        if (safeSec <= 10) {
-          el.className = 'text-5xl font-black text-rose-500 font-mono tracking-wider animate-pulse';
-        } else if (safeSec <= 30) {
-          el.className = 'text-5xl font-black text-amber-400 font-mono tracking-wider';
-        } else {
-          el.className = 'text-5xl font-black text-emerald-400 font-mono tracking-wider';
-        }
+        if (safeSec <= 10) el.className = 'text-5xl font-black text-rose-500 font-mono tracking-wider animate-pulse';
+        else if (safeSec <= 30) el.className = 'text-5xl font-black text-amber-400 font-mono tracking-wider';
+        else el.className = 'text-5xl font-black text-emerald-400 font-mono tracking-wider';
       }
     }
 
@@ -1217,7 +1358,6 @@
       this.isLoading = true;
       this.currentLevel = status.current_level;
       this.firstRenderDone = false;
-
       this.targetCells = [];
       this.answerValue = 0;
       safeSetText('targetCellDisplay', '--');
@@ -1233,10 +1373,7 @@
       this.loadingTick = setInterval(() => {
         countdown--;
         safeSetText('loadingCountdown', Math.max(0, countdown));
-        if (countdown <= 0) {
-          clearInterval(this.loadingTick);
-          this.loadingTick = null;
-        }
+        if (countdown <= 0) { clearInterval(this.loadingTick); this.loadingTick = null; }
       }, 1000);
 
       await Promise.all([
@@ -1261,25 +1398,17 @@
       if (this.masterGrid.length && this.targetCells.length) this.renderTargetCell();
 
       audioEngine.play(SOUND_BELL);
-
-      LOG.ok('STAGE', `✅ Game view aktif. Timer dari server.`);
     }
 
     async fetchMasterAndQuestion() {
       const { data } = await supabaseClient
-        .from('system_mimic_sudoku')
-        .select('id, grid_data')
-        .in('id', [1, 2, 3, 4]);
-
+        .from('system_mimic_sudoku').select('id, grid_data').in('id', [1, 2, 3, 4]);
       if (!data) return;
 
       const row1 = data.find(r => r.id === 1);
       if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
-        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
-          row1.grid_data.slice(r * 9, r * 9 + 9)
-        );
+        this.masterGrid = Array.from({ length: 9 }, (_, r) => row1.grid_data.slice(r * 9, r * 9 + 9));
       }
-
       const row2 = data.find(r => r.id === 2);
       if (row2 && Array.isArray(row2.grid_data)) {
         this.targetCells = row2.grid_data.map(idx => {
@@ -1287,31 +1416,21 @@
           return { r: Math.floor(i / 9), c: i % 9 };
         });
       }
-
       const row3 = data.find(r => r.id === 3);
-      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
-        this.answerValue = row3.grid_data;
-      }
-
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) this.answerValue = row3.grid_data;
       const row4 = data.find(r => r.id === 4);
       if (row4 && Array.isArray(row4.grid_data) && row4.grid_data.length === 81) {
-        this.questionGrid = Array.from({ length: 9 }, (_, r) =>
-          row4.grid_data.slice(r * 9, r * 9 + 9)
-        );
+        this.questionGrid = Array.from({ length: 9 }, (_, r) => row4.grid_data.slice(r * 9, r * 9 + 9));
       }
     }
 
     renderTargetCell() {
-      if (this.targetCells.length === 0) {
-        safeSetText('targetCellDisplay', '--');
-        return;
-      }
+      if (this.targetCells.length === 0) { safeSetText('targetCellDisplay', '--'); return; }
       const expr = this.targetCells.map(t => `${COL_LETTERS[t.c]}${t.r + 1}`).join(' + ');
       safeSetText('targetCellDisplay', expr);
     }
 
     onReset(reason = 'RESET') {
-      LOG.warn('STAGE', `🔄 ${reason}`);
       this.isPlaying = false;
       this.isLoading = false;
       this.currentLevel = null;
@@ -1333,7 +1452,6 @@
       safeSetText('targetCellDisplay', '--');
 
       this.updateFreezeOverlay(false);
-
       this.showView('idle');
     }
 
@@ -1345,15 +1463,10 @@
       const row3 = data.find(r => r.id === 3);
 
       if (row1 && Array.isArray(row1.grid_data) && row1.grid_data.length === 81) {
-        this.masterGrid = Array.from({ length: 9 }, (_, r) =>
-          row1.grid_data.slice(r * 9, r * 9 + 9)
-        );
+        this.masterGrid = Array.from({ length: 9 }, (_, r) => row1.grid_data.slice(r * 9, r * 9 + 9));
       }
 
-      if (!this.isPlaying || this.isLoading) {
-        safeSetText('targetCellDisplay', '--');
-        return;
-      }
+      if (!this.isPlaying || this.isLoading) { safeSetText('targetCellDisplay', '--'); return; }
 
       if (row2 && Array.isArray(row2.grid_data)) {
         this.targetCells = row2.grid_data.map(idx => {
@@ -1362,29 +1475,21 @@
         });
         this.renderTargetCell();
       }
-      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) {
-        this.answerValue = row3.grid_data;
-      }
+      if (row3 && row3.grid_data !== null && row3.grid_data !== undefined) this.answerValue = row3.grid_data;
     }
 
     onQuestionUpdate(row) {
       if (!row || !Array.isArray(row.grid_data) || row.grid_data.length !== 81) return;
-
       const sig = `${row.updated_at}`;
       if (sig === this.lastQuestionSig) return;
       this.lastQuestionSig = sig;
 
-      this.questionGrid = Array.from({ length: 9 }, (_, r) =>
-        row.grid_data.slice(r * 9, r * 9 + 9)
-      );
-
+      this.questionGrid = Array.from({ length: 9 }, (_, r) => row.grid_data.slice(r * 9, r * 9 + 9));
       if (this.isLoading) return;
 
       this.renderQuestionBoard();
 
-      if (this.isPlaying && this.firstRenderDone && !isFrozenUI) {
-        audioEngine.play(SOUND_BELL);
-      }
+      if (this.isPlaying && this.firstRenderDone && !isFrozenUI) audioEngine.play(SOUND_BELL);
       this.firstRenderDone = true;
     }
 
@@ -1426,7 +1531,7 @@
     }
 
     _computeCellSize() {
-      const sidebar = document.querySelector('aside');
+      const sidebar = document.querySelector('#viewGame aside');
       const sidebarW = sidebar ? sidebar.offsetWidth : 0;
       const availW = window.innerWidth - sidebarW - 60;
       const availH = window.innerHeight - 100;
@@ -1480,9 +1585,7 @@
       const wrongCells = [];
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
-          if (this.questionGrid[r][c] && this.questionGrid[r][c] !== this.masterGrid[r][c]) {
-            wrongCells.push({ r, c });
-          }
+          if (this.questionGrid[r][c] && this.questionGrid[r][c] !== this.masterGrid[r][c]) wrongCells.push({ r, c });
         }
       }
 
@@ -1571,17 +1674,13 @@
     renderClues() {
       for (let r = 0; r < 9; r++) {
         let green = 0;
-        for (let c = 0; c < 9; c++) {
-          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
-        }
+        for (let c = 0; c < 9; c++) if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
         const el = document.getElementById(`rowClueQ-${r}`);
         if (el) el.innerHTML = this.renderDots(green, 9 - green);
       }
       for (let c = 0; c < 9; c++) {
         let green = 0;
-        for (let r = 0; r < 9; r++) {
-          if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
-        }
+        for (let r = 0; r < 9; r++) if (this.questionGrid[r][c] === this.masterGrid[r][c]) green++;
         const el = document.getElementById(`colClueQ-${c}`);
         if (el) el.innerHTML = this.renderDots(green, 9 - green);
       }
@@ -1633,12 +1732,12 @@
     } else if (viewName === 'elimination') {
       layout.showView('elimination');
       lastRevealedRank = -1;
-      fetchAndRenderElimination();
+      startEliminationSequence();
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH AVATARS (map unique_id → avatar_url)
+  // AVATARS — JOIN dari users
   // ═══════════════════════════════════════════════════════════
   async function fetchAvatarMap(uniqueIds) {
     if (!uniqueIds || uniqueIds.length === 0) return {};
@@ -1660,12 +1759,12 @@
   }
 
   function getAvatarUrl(uniqueId, name) {
-    return cachedAvatars[uniqueId] 
+    return cachedAvatars[uniqueId]
       || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || uniqueId)}`;
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES (leaderboard)
+  // FETCH SCORES
   // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderStageScores(isAll) {
     const { data, error } = await supabaseClient
@@ -1694,14 +1793,26 @@
     const c = document.getElementById('stageLeaderboardGrid');
     if (!c) return;
     if (currentRevealedRank === 0 || cachedScores.length === 0) {
-      c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`; return;
+      c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`;
+      return;
     }
     const p = cachedScores[currentRevealedRank - 1];
-    if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`; return; }
+    if (!p) {
+      c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`;
+      return;
+    }
     const avatar = getAvatarUrl(p.uniqueId, p.uid);
+
+    let badgeText = `PERINGKAT #${currentRevealedRank}`;
+    let badgeClass = 'bg-slate-700 text-slate-200';
+    let cardTheme = 'from-slate-800 to-slate-900 border-slate-700/80';
+    if (currentRevealedRank === 1) { badgeText = '👑 JUARA 1'; badgeClass = 'bg-amber-400 text-slate-950'; cardTheme = 'from-amber-950 via-yellow-900/60 to-amber-950 border-amber-400'; }
+    else if (currentRevealedRank === 2) { badgeText = '🥈 JUARA 2'; badgeClass = 'bg-slate-200 text-slate-950'; cardTheme = 'from-slate-800 via-slate-700 to-slate-900 border-slate-300'; }
+    else if (currentRevealedRank === 3) { badgeText = '🥉 JUARA 3'; badgeClass = 'bg-amber-600 text-white'; cardTheme = 'from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600'; }
+
     c.innerHTML = `
-      <div class="animate-card-pop bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
-        <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${currentRevealedRank}</div>
+      <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 flex flex-col items-center gap-4">
+        <div class="px-5 py-2 rounded-full font-black text-sm uppercase ${badgeClass}">${badgeText}</div>
         <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2 overflow-hidden">
           <img src="${avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}'"/>
         </div>
@@ -1719,7 +1830,6 @@
 
     track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>';
 
-    // Fetch points
     const { data, error } = await supabaseClient
       .from(POINT_TABLE)
       .select('unique_id, name, point')
@@ -1735,11 +1845,9 @@
       return;
     }
 
-    // Fetch avatars
     const uniqueIds = data.map(d => d.unique_id);
     cachedAvatars = await fetchAvatarMap(uniqueIds);
 
-    // Build cards HTML
     const buildCards = () => data.map((p, idx) => {
       const rank = idx + 1;
       const avatar = getAvatarUrl(p.unique_id, p.name);
@@ -1766,76 +1874,198 @@
     }).join('');
 
     const cardsHtml = buildCards();
-
-    // ⭐ Duplicate untuk seamless loop
     track.innerHTML = cardsHtml + cardsHtml;
 
-    // Hitung durasi animasi: 
-    // 1 kartu ~ 200px + gap 20px = 220px
-    // Total lebar = jumlah kartu × 220px
-    // Speed target: 60px/detik
     const cardCount = data.length;
     const totalWidth = cardCount * 220;
     const durationSec = Math.max(60, totalWidth / 60);
-
     track.style.setProperty('--marquee-duration', `${durationSec}s`);
 
     LOG.info('MARQUEE', `${cardCount} kartu, durasi ${durationSec.toFixed(1)}s`);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ELIMINATION — 5 KARTU
+  // ELIMINATION — animasi slide cepat
   // ═══════════════════════════════════════════════════════════
-  async function fetchAndRenderElimination() {
-    const container = document.getElementById('eliminatedList');
-    const gameNameLabel = document.getElementById('elimGameNameLabel');
-    if (!container) return;
+  let eliminationPlaying = false;
 
-    container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>';
-    if (gameNameLabel) gameNameLabel.textContent = CURRENT_GAME_NAME;
+  async function fetchEliminationData() {
+    LOG.step('ELIM', 'Fetch elimination data...');
 
-    // Fetch eliminasi untuk game ini
-    const { data: elimData, error } = await supabaseClient
+    const { data: points } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point, refresh_at')
+      .order('point', { ascending: true });
+
+    if (!points || points.length === 0) {
+      LOG.warn('ELIM', 'Tidak ada data poin');
+      return null;
+    }
+
+    const { data: elim } = await supabaseClient
       .from('elimination_history')
       .select('unique_id, name, final_score')
-      .eq('game_name', CURRENT_GAME_NAME)
-      .order('final_score', { ascending: true });
+      .eq('game_name', CURRENT_GAME_NAME);
 
-    if (error) {
-      LOG.error('ELIM', 'Fetch error: ' + error.message);
-      container.innerHTML = '<p class="col-span-full text-center text-rose-400 py-12 text-lg">Gagal memuat data eliminasi</p>';
+    const elimSet = new Set((elim || []).map(e => e.unique_id));
+
+    // Fetch avatars untuk SEMUA peserta (yang tampil di slider)
+    const allIds = points.map(p => p.unique_id);
+    cachedAvatars = await fetchAvatarMap(allIds);
+
+    const all = points.map(p => ({
+      unique_id: p.unique_id,
+      name: p.name || p.unique_id,
+      avatar: getAvatarUrl(p.unique_id, p.name),
+      score: Number(p.point) || 0,
+      isEliminated: elimSet.has(p.unique_id)
+    }));
+
+    const eliminated = all.filter(p => p.isEliminated);
+
+    return {
+      all,
+      eliminated
+    };
+  }
+
+  async function startEliminationSequence() {
+    if (eliminationPlaying) {
+      LOG.info('ELIM', 'Sudah berjalan, skip');
+      return;
+    }
+    eliminationPlaying = true;
+
+    const slider = document.getElementById('elimSlider');
+    const stage = document.getElementById('elimStage');
+    const finalGrid = document.getElementById('elimFinalGrid');
+    const footer = document.getElementById('elimFooter');
+    const subtitle = document.getElementById('elimSubtitle');
+
+    // Reset
+    slider.innerHTML = '';
+    finalGrid.innerHTML = '';
+    finalGrid.classList.add('hidden');
+    footer.classList.add('hidden');
+    subtitle.textContent = 'MENENTUKAN PESERTA TERELIMINASI...';
+
+    const data = await fetchEliminationData();
+    if (!data || data.eliminated.length === 0) {
+      LOG.warn('ELIM', 'Tidak ada peserta tereliminasi');
+      subtitle.textContent = 'Belum ada data eliminasi.';
+      eliminationPlaying = false;
       return;
     }
 
-    if (!elimData || elimData.length === 0) {
-      container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Belum ada peserta tereliminasi.</p>';
-      return;
-    }
-
-    // Fetch avatars
-    const uniqueIds = elimData.map(e => e.unique_id);
-    cachedAvatars = await fetchAvatarMap(uniqueIds);
-
-    // Render cards
-    container.innerHTML = '';
-    elimData.forEach((item, idx) => {
-      const avatar = getAvatarUrl(item.unique_id, item.name);
+    // Build slider cards
+    data.all.forEach(p => {
       const card = document.createElement('div');
-      card.className = 'elim-card-v';
-      card.style.animationDelay = `${idx * 120}ms`;
+      card.className = 'elim-card-slide';
+      card.dataset.uid = p.unique_id;
       card.innerHTML = `
         <div class="avatar-box">
-          <img src="${avatar}" alt="${item.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.name || item.unique_id)}'"/>
+          <img src="${p.avatar}" alt="${p.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.name)}'"/>
         </div>
-        <div class="elim-name" title="${item.name}">${item.name || item.unique_id}</div>
-        <div class="elim-points">${Number(item.final_score || 0).toFixed(2)}</div>
-        <div class="elim-badge">TERELIMINASI</div>
+        <div class="elim-name">${p.name}</div>
+        <div class="elim-points">${p.score.toFixed(2)}</div>
+        <div class="cross-mark"></div>
       `;
-      container.appendChild(card);
+      slider.appendChild(card);
     });
 
-    LOG.info('ELIM', `Rendered ${elimData.length} kartu tereliminasi`);
+    // Position slider center
+    const cardWidth = 220 + 16; // 220px + gap 1rem
+    const stageWidth = stage.clientWidth;
+    const centerOffset = stageWidth / 2 - 110;
+
+    // Set initial position
+    slider.style.transform = `translate(${centerOffset}px, -50%)`;
+    await sleep(300);
+
+    // ⭐ ANIMASI: untuk setiap peserta tereliminasi, slide cepat & stop di kartunya
+    for (let i = 0; i < data.eliminated.length; i++) {
+      const elim = data.eliminated[i];
+      const targetIdx = data.all.findIndex(p => p.unique_id === elim.unique_id);
+      if (targetIdx === -1) continue;
+
+      const targetX = centerOffset - targetIdx * cardWidth;
+
+      // Slide cepat
+      subtitle.textContent = `MENGELIMINASI PESERTA KE-${i + 1} DARI ${data.eliminated.length}...`;
+      slider.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+      slider.style.transform = `translate(${targetX}px, -50%)`;
+
+      // Audio tick
+      audioEngine.play(SOUND_BEEP);
+
+      // Tunggu slide selesai
+      await sleep(600);
+
+      // Get card element & shake
+      const card = slider.querySelector(`.elim-card-slide[data-uid="${elim.unique_id}"]`);
+      if (card) {
+        card.classList.add('shake');
+        await sleep(500);
+        card.classList.remove('shake');
+        card.classList.add('is-eliminated');
+      }
+
+      // Bell saat eliminasi
+      audioEngine.play(SOUND_BELL);
+
+      await sleep(700);
+    }
+
+    // ⭐ FINAL: tampilkan 10 kartu dalam grid 5×2
+    await sleep(800);
+    subtitle.textContent = 'HASIL AKHIR ELIMINASI';
+
+    stage.style.transition = 'opacity 0.5s ease';
+    stage.style.opacity = '0';
+    await sleep(500);
+    stage.style.display = 'none';
+
+    finalGrid.classList.remove('hidden');
+    finalGrid.innerHTML = '';
+
+    data.eliminated.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'elim-final-card';
+      card.style.animationDelay = `${idx * 100}ms`;
+      card.innerHTML = `
+        <div class="avatar-box">
+          <img src="${p.avatar}" alt="${p.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.name)}'"/>
+        </div>
+        <div class="final-name">${p.name}</div>
+        <div class="final-points">${p.score.toFixed(2)}</div>
+        <div class="final-badge">TERELIMINASI</div>
+      `;
+      finalGrid.appendChild(card);
+    });
+
+    footer.classList.remove('hidden');
+    audioEngine.play(SOUND_BELL);
+
+    LOG.ok('ELIM', `✅ Selesai. ${data.eliminated.length} peserta tereliminasi`);
+
+    // Reset flag setelah selesai, tapi jangan auto re-play kalau tidak diminta
+    await sleep(500);
+    eliminationPlaying = false;
   }
+
+  function resetEliminationView() {
+    const stage = document.getElementById('elimStage');
+    const slider = document.getElementById('elimSlider');
+    const finalGrid = document.getElementById('elimFinalGrid');
+    const footer = document.getElementById('elimFooter');
+    if (stage) { stage.style.display = 'flex'; stage.style.opacity = '1'; }
+    if (slider) slider.innerHTML = '';
+    if (finalGrid) { finalGrid.classList.add('hidden'); finalGrid.innerHTML = ''; }
+    if (footer) footer.classList.add('hidden');
+    eliminationPlaying = false;
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -1853,12 +2083,13 @@
       })
       .subscribe();
 
-    // Realtime elimination_history watch
+    // Watch elimination_history
     supabaseClient.channel('stage_elimination_watch')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'elimination_history' }, () => {
-        if (currentView === 'elimination') {
-          LOG.info('ELIM', 'Realtime update → re-render elimination');
-          fetchAndRenderElimination();
+        if (currentView === 'elimination' && !eliminationPlaying) {
+          LOG.info('ELIM', 'Realtime update → re-play');
+          resetEliminationView();
+          setTimeout(() => startEliminationSequence(), 500);
         }
       })
       .subscribe();
@@ -1882,6 +2113,9 @@
 
     LOG.ok('INIT', '══════════ STAGE READY ══════════');
   })();
+
+  window.unlockAudio = unlockAudio;
+  window.handleViewSwitch = handleViewSwitch;
 </script>
 </body>
 </html>
