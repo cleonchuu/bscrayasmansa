@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin - Frenzy Cross Math</title>
+  <title>Admin - Frenzy Cross Maze</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     body { background-color: #0f172a; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
     .view-btn-active { border-color: #6366f1 !important; background-color: rgba(99,102,241,0.2) !important; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(244, 63, 94, 0.5); border-radius: 10px; }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex justify-center">
 
-  <main class="w-full max-w-4xl space-y-6">
+  <main class="w-full max-w-5xl space-y-6">
 
     <!-- HEADER -->
     <header class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
@@ -23,7 +26,7 @@
           🧮
         </div>
         <div>
-          <h1 class="text-2xl font-black tracking-wide text-white">FRENZY CROSS MATH</h1>
+          <h1 class="text-2xl font-black tracking-wide text-white">FRENZY CROSS MAZE</h1>
           <p class="text-xs text-slate-400">Realtime Game & Stage Display Manager</p>
         </div>
       </div>
@@ -36,6 +39,7 @@
     <!-- CONTROL PANEL -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+      <!-- KONTROL GAME -->
       <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6">
         <div>
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
@@ -119,20 +123,67 @@
       </section>
     </div>
 
+    <!-- KONTROL ELIMINASI -->
+    <section class="bg-slate-800 border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+        <div class="p-2 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+          <i class="fas fa-user-slash text-rose-400"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-black text-white">Kontrol Eliminasi</h2>
+          <p class="text-xs text-slate-400">Saring peserta dari 25 → 15 (10 terbawah)</p>
+        </div>
+      </div>
+
+      <div class="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4">
+        <p class="text-[12px] text-slate-300 leading-relaxed mb-3">
+          Hitung <strong class="text-rose-300">10 peserta dengan skor terendah</strong> di Frenzy Cross Maze.
+          <br>
+          <span class="text-amber-400">⚠️ Peserta tetap bisa main</span> sampai Anda klik <strong>"Kunci Eliminasi"</strong>.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <button onclick="executeComputeElimination()" 
+            class="py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-calculator"></i> 1. Hitung Eliminasi
+          </button>
+          
+          <button onclick="executeDeclareElimination()" id="btnDeclareElim"
+            class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-lock"></i> 2. Kunci Eliminasi
+          </button>
+          
+          <button onclick="executeUndoElimination()" 
+            class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+            <i class="fas fa-rotate-left"></i> Undo / Reset
+          </button>
+        </div>
+
+        <div id="elimResultInfo" class="mt-3 text-[11px] text-slate-500 font-mono hidden p-3 bg-slate-950/60 rounded-lg border border-slate-800 max-h-[200px] overflow-y-auto custom-scroll"></div>
+      </div>
+    </section>
+
     <!-- VIEW SWITCHER -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
       </h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button id="btnViewGame" onclick="switchStageView('game')" class="view-btn bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <button id="btnViewIdle" onclick="switchStageView('idle')" class="view-btn bg-slate-800 hover:bg-sky-600/80 border border-slate-700 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition text-xs">
+          <i class="fas fa-compact-disc text-sky-400"></i> Idle
+        </button>
+        <button id="btnViewGame" onclick="switchStageView('game')" class="view-btn bg-slate-800 hover:bg-indigo-600/80 border border-slate-700 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition text-xs">
           <i class="fas fa-display"></i> Mode Game
         </button>
-        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="view-btn bg-slate-800 hover:bg-amber-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-trophy text-amber-400"></i> Papan Peringkat
+        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="view-btn bg-slate-800 hover:bg-amber-600/80 border border-slate-700 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition text-xs">
+          <i class="fas fa-trophy text-amber-400"></i> Peringkat
         </button>
-        <button id="btnViewAll" onclick="switchStageView('all_players')" class="view-btn bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition">
-          <i class="fas fa-users text-emerald-400"></i> Semua Peserta
+        <button id="btnViewAll" onclick="switchStageView('all_players')" class="view-btn bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition text-xs">
+          <i class="fas fa-users text-emerald-400"></i> Semua
+        </button>
+        <button id="btnViewElim" onclick="switchStageView('elimination')" class="view-btn bg-slate-800 hover:bg-rose-600/80 border border-slate-700 text-white font-bold py-3 rounded-2xl flex items-center justify-center gap-2 transition text-xs">
+          <i class="fas fa-user-slash text-rose-400"></i> Eliminasi
         </button>
       </div>
 
@@ -142,9 +193,41 @@
       </div>
     </section>
 
+    <!-- REKAP PESERTA -->
+    <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <i class="fas fa-list-ol text-indigo-400"></i> Daftar Poin Peserta
+          </h2>
+          <p class="text-xs text-slate-400">Data dari tabel <code class="text-indigo-300">point_frenzy_cross_maze</code></p>
+        </div>
+        <button onclick="fetchScores()" class="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll max-h-[400px]">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+              <th class="p-3">Rank</th>
+              <th class="p-3">Nama Peserta</th>
+              <th class="p-3 text-center">Total Poin</th>
+            </tr>
+          </thead>
+          <tbody id="adminScoreTableBody" class="divide-y divide-slate-800/50 text-sm">
+            <tr>
+              <td colspan="3" class="text-center py-8 text-slate-500">Memuat data poin...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </main>
 
-  <script>
+<script>
   // ═══════════════════════════════════════════════════════════
   // KONFIGURASI
   // ═══════════════════════════════════════════════════════════
@@ -154,12 +237,16 @@
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
 
+  const GAME_NAME = 'Frenzy Cross Maze';
+  const POINT_TABLE = 'point_frenzy_cross_maze';
+  const ELIMINATE_COUNT = 10;  // 25 → 15
+
   const SESSION_CONFIG = {
-    DURATION_PER_SESSION: 30,   // detik per sesi
-    TOTAL_SESSIONS: 5,          // total sesi
-    GRID_SIZE: 15,              // 15 × 15
-    MAX_POINT: 10,              // poin max per sesi
-    MIN_POINT: 5                // poin min (½ max)
+    DURATION_PER_SESSION: 30,
+    TOTAL_SESSIONS: 5,
+    GRID_SIZE: 15,
+    MAX_POINT: 10,
+    MIN_POINT: 5
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -178,9 +265,10 @@
   // STATE
   // ═══════════════════════════════════════════════════════════
   let countdownInterval = null;
+  let userToDelete = null;
 
   // ═══════════════════════════════════════════════════════════
-  // MATH CORE — engine matematika
+  // MATH CORE
   // ═══════════════════════════════════════════════════════════
   class MathCore {
     static OPERATORS = ['+', '-', '×', '÷'];
@@ -253,7 +341,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // GRID NODE
+  // GRID NODE & EQUATION BLOCK
   // ═══════════════════════════════════════════════════════════
   class GridNode {
     constructor(r, c) {
@@ -272,9 +360,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // EQUATION BLOCK
-  // ═══════════════════════════════════════════════════════════
   class EquationBlock {
     constructor(id, r, c, dir, triplet, nodes) {
       this.id = id; this.r = r; this.c = c;
@@ -515,7 +600,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FRENZY ADMIN — session loop controller
+  // FRENZY ADMIN
   // ═══════════════════════════════════════════════════════════
   class FrenzyAdmin {
     constructor() {
@@ -528,7 +613,6 @@
     async startGame() {
       LOG.ok('GAME', '========== START GAME ==========');
 
-      // Update control → START_GAME
       const { error } = await supabaseClient
         .from('frenzy_cross_math_control')
         .update({ action: 'START_GAME', updated_at: new Date().toISOString() })
@@ -541,6 +625,17 @@
 
       this.isRunning = true;
       this.currentSession = 0;
+
+      // Trigger layout transition idle → loading → game
+      await supabaseClient
+        .from('admin_layout_frenzy_cross_math')
+        .update({
+          current_view: 'game',
+          revealed_rank: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
       await this.runSession();
       return true;
     }
@@ -552,22 +647,17 @@
 
       LOG.ok('SESSION', `▶ Sesi ${sessionNum}/${totalSessions} dimulai`);
 
-      // 1. Generate puzzle
       const engine = new DominoMazeEngine(SESSION_CONFIG.GRID_SIZE);
       engine.generate();
 
       const answer = engine.goalNode ? engine.goalNode.val : null;
       LOG.ok('SESSION', `Puzzle selesai. Blocks: ${engine.blocks.length}, Depth: ${engine.maxChainDepth}, Jawaban: ${answer}`);
 
-      // Update UI
       document.getElementById('dbSession').textContent = `${sessionNum} / ${totalSessions}`;
       document.getElementById('dbAnswer').textContent = answer ?? '--';
       document.getElementById('dbBlocks').textContent = engine.blocks.length;
 
-      // 2. Publish ke Supabase
       await this.publishPuzzle(engine, answer, sessionNum);
-
-      // 3. Mulai timer countdown UI
       this.startCountdownUI(sessionNum, totalSessions);
     }
 
@@ -606,7 +696,6 @@
     }
 
     startCountdownUI(sessionNum, totalSessions) {
-      // Clear timer lama
       if (this.sessionTimer) clearTimeout(this.sessionTimer);
       if (this.countdownTick) clearInterval(this.countdownTick);
 
@@ -629,7 +718,6 @@
         if (remaining <= 0) clearInterval(this.countdownTick);
       }, 1000);
 
-      // Timer untuk lanjut ke sesi berikutnya
       this.sessionTimer = setTimeout(() => {
         if (this.currentSession < SESSION_CONFIG.TOTAL_SESSIONS) {
           this.runSession();
@@ -642,7 +730,6 @@
     async endGame() {
       LOG.ok('GAME', '========== SEMUA SESI SELESAI ==========');
 
-      // Reset question table
       await supabaseClient
         .from('system_frenzy_cross_math_question')
         .update({
@@ -654,10 +741,18 @@
         })
         .eq('id', 1);
 
-      // Reset control
       await supabaseClient
         .from('frenzy_cross_math_control')
         .update({ action: 'RESET', updated_at: new Date().toISOString() })
+        .eq('id', 1);
+
+      // Balik layout ke idle
+      await supabaseClient
+        .from('admin_layout_frenzy_cross_math')
+        .update({
+          current_view: 'idle',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', 1);
 
       this.isRunning = false;
@@ -687,6 +782,14 @@
         .update({ action: 'RESET', updated_at: new Date().toISOString() })
         .eq('id', 1);
 
+      await supabaseClient
+        .from('admin_layout_frenzy_cross_math')
+        .update({
+          current_view: 'idle',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
       this.isRunning = false;
       this.currentSession = 0;
       this.resetUI();
@@ -702,7 +805,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // RENDER TOMBOL PERINGKAT
+  // RANK BUTTONS
   // ═══════════════════════════════════════════════════════════
   function renderRankButtons() {
     const c = document.getElementById('rankButtonsContainer');
@@ -722,7 +825,7 @@
   // ═══════════════════════════════════════════════════════════
   async function switchStageView(viewName, revealedRank = 0) {
     if (!supabaseClient) return;
-    updateActiveViewUI(viewName, revealedRank);
+    updateActiveViewUI(viewName);
 
     LOG.step('VIEW', `Switch → ${viewName}`);
     const { error } = await supabaseClient
@@ -734,24 +837,27 @@
       })
       .eq('id', 1);
 
-    if (error) {
-      LOG.error('VIEW', 'Gagal switch', error);
-    } else {
-      LOG.ok('VIEW', `Switched → ${viewName}`);
-    }
+    if (error) LOG.error('VIEW', 'Gagal switch', error);
+    else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
   function updateActiveViewUI(viewName) {
     document.querySelectorAll('.view-btn').forEach(b => {
       b.classList.remove('border-purple-500', 'bg-purple-900/40');
     });
-    const map = { game: 'btnViewGame', leaderboard: 'btnViewLeaderboard', all_players: 'btnViewAll' };
+    const map = {
+      idle: 'btnViewIdle',
+      game: 'btnViewGame',
+      leaderboard: 'btnViewLeaderboard',
+      all_players: 'btnViewAll',
+      elimination: 'btnViewElim'
+    };
     const btn = document.getElementById(map[viewName]);
     if (btn) btn.classList.add('border-purple-500', 'bg-purple-900/40');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // EXECUTE GAME START
+  // GAME START
   // ═══════════════════════════════════════════════════════════
   async function executeGameStart() {
     if (!supabaseClient) return;
@@ -772,7 +878,6 @@
       return;
     }
 
-    // Tombol aktif kembali setelah 3 detik
     setTimeout(() => { btn.disabled = false; }, 3000);
   }
 
@@ -781,6 +886,8 @@
   // ═══════════════════════════════════════════════════════════
   async function manualResetControl() {
     if (!supabaseClient) return;
+
+    if (!confirm("Reset semua state game?\n\n• Sesi dihentikan\n• Layout balik ke idle")) return;
 
     LOG.warn('RESET', 'Manual reset dipanggil.');
 
@@ -791,43 +898,194 @@
         .from('frenzy_cross_math_control')
         .update({ action: 'RESET', updated_at: new Date().toISOString() })
         .eq('id', 1);
+
+      await supabaseClient
+        .from('admin_layout_frenzy_cross_math')
+        .update({ current_view: 'idle', updated_at: new Date().toISOString() })
+        .eq('id', 1);
     }
 
     LOG.ok('RESET', 'Reset terkirim.');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // LIVE DATA UI
+  // LIVE DATA
   // ═══════════════════════════════════════════════════════════
   async function fetchLiveData() {
     try {
-      // Baca question table
-      const { data: q, error: eq } = await supabaseClient
+      const { data: q } = await supabaseClient
         .from('system_frenzy_cross_math_question')
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
-      if (!eq && q) {
+      if (q) {
         const sessionEl = document.getElementById('dbSession');
         const answerEl = document.getElementById('dbAnswer');
         if (sessionEl) sessionEl.textContent = `${q.session_index} / ${q.total_sessions}`;
         if (answerEl) answerEl.textContent = q.target_answer ?? '--';
       }
 
-      // Baca control table
-      const { data: c, error: ec } = await supabaseClient
+      const { data: c } = await supabaseClient
         .from('frenzy_cross_math_control')
         .select('*')
         .eq('id', 1)
         .maybeSingle();
 
-      if (!ec && c) {
+      if (c) {
         document.getElementById('dbAction').textContent = c.action || '-';
       }
     } catch (err) {
       LOG.error('LIVE', 'Exception', err);
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SCORES
+  // ═══════════════════════════════════════════════════════════
+  async function fetchScores() {
+    const tbody = document.getElementById('adminScoreTableBody');
+    if (!tbody) return;
+
+    const { data, error } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-rose-400">Gagal: ${error.message}</td></tr>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-slate-500">Belum ada poin terdaftar</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+    data.forEach((item, idx) => {
+      const rank = idx + 1;
+      const tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-800/30 transition border-b border-slate-800/40";
+      tr.innerHTML = `
+        <td class="p-3 font-mono font-bold text-amber-400">#${rank}</td>
+        <td class="p-3 font-semibold text-white">${item.name || item.unique_id}</td>
+        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${Number(item.point || 0).toFixed(2)} PTS</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — HITUNG
+  // ═══════════════════════════════════════════════════════════
+  async function executeComputeElimination() {
+    if (!confirm(
+      `Hitung ${ELIMINATE_COUNT} peserta terendah di Frenzy Cross Maze?\n\n` +
+      `• Peserta akan masuk daftar eliminasi\n` +
+      `• TAPI masih bisa main game\n` +
+      `• Klik 'Kunci Eliminasi' untuk freeze kiosk mereka`
+    )) return;
+
+    LOG.step('ELIM', 'Hitung eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('save_elimination', {
+      p_game_name: GAME_NAME,
+      p_count: ELIMINATE_COUNT
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data?.length || 0} peserta tereliminasi (belum kunci)`);
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) {
+      info.classList.remove('hidden');
+      if (data && data.length > 0) {
+        info.innerHTML = `
+          <div class="text-amber-400 font-bold mb-1">📋 Tereliminasi (belum kunci):</div>
+          ${data.map(d => `<div class="pl-2">• ${d.name} — ${Number(d.final_score).toFixed(2)} PTS</div>`).join('')}
+        `;
+      } else {
+        info.innerHTML = `<div class="text-slate-500">Tidak ada peserta yang dieliminasi (data kosong?).</div>`;
+      }
+    }
+
+    alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.\n\nMereka MASIH BISA main sampai Anda klik 'Kunci Eliminasi'.`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — KUNCI + TRIGGER LAYOUT
+  // ═══════════════════════════════════════════════════════════
+  async function executeDeclareElimination() {
+    if (!confirm(
+      "🔒 KUNCI peserta yang tereliminasi?\n\n" +
+      "• Kiosk mereka akan freeze permanen\n" +
+      "• Layout akan menampilkan animasi eliminasi\n" +
+      "• Bisa di-undo kalau ada kesalahan"
+    )) return;
+
+    LOG.step('ELIM', 'Deklarasi eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('declare_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta dikunci`);
+
+    // Trigger layout untuk tampilkan animasi eliminasi
+    await supabaseClient
+      .from('admin_layout_frenzy_cross_math')
+      .update({
+        current_view: 'elimination',
+        revealed_rank: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    updateActiveViewUI('elimination');
+
+    alert(`🔒 ${data} peserta telah dikunci.\n\nLayout akan menampilkan animasi eliminasi.`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — UNDO
+  // ═══════════════════════════════════════════════════════════
+  async function executeUndoElimination() {
+    if (!confirm(
+      "Undo eliminasi Frenzy Cross Maze?\n\n" +
+      "• Semua peserta dibuka kembali\n" +
+      "• Data eliminasi dihapus\n" +
+      "• Kiosk mereka normal kembali"
+    )) return;
+
+    LOG.warn('ELIM', 'Undo eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('undo_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta di-unlock`);
+    alert(`✅ ${data} peserta dibuka kembali.`);
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) info.classList.add('hidden');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -837,7 +1095,6 @@
     if (!supabaseClient) return;
     LOG.ok('REALTIME', 'Setting up channels...');
 
-    // Control
     supabaseClient
       .channel('admin_frenzy_control')
       .on('postgres_changes', {
@@ -863,7 +1120,6 @@
         }
       });
 
-    // Layout
     supabaseClient
       .channel('admin_frenzy_layout')
       .on('postgres_changes', {
@@ -875,9 +1131,33 @@
       })
       .subscribe();
 
+    // Realtime point table
+    supabaseClient
+      .channel('admin_frenzy_points')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: POINT_TABLE
+      }, () => {
+        fetchScores();
+      })
+      .subscribe();
+
     // Polling fallback
     setInterval(fetchLiveData, 3000);
+    setInterval(fetchScores, 3000);
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSE
+  // ═══════════════════════════════════════════════════════════
+  window.switchStageView = switchStageView;
+  window.executeGameStart = executeGameStart;
+  window.manualResetControl = manualResetControl;
+  window.fetchScores = fetchScores;
+  window.executeComputeElimination = executeComputeElimination;
+  window.executeDeclareElimination = executeDeclareElimination;
+  window.executeUndoElimination = executeUndoElimination;
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -887,6 +1167,7 @@
 
     renderRankButtons();
     await fetchLiveData();
+    await fetchScores();
 
     const { data: layout } = await supabaseClient
       .from('admin_layout_frenzy_cross_math')
