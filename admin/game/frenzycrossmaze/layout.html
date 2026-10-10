@@ -228,6 +228,19 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+    .elim-card-v .avatar-box {
+  width: 100%;
+  aspect-ratio: 1;
+  /* ... */
+}
+
+.elim-card-v .elim-name {
+  font-size: 0.8rem;  /* lebih kecil dari 0.95 */
+}
+
+.elim-card-v .elim-points {
+  font-size: 1.15rem;  /* lebih kecil dari 1.4 */
+}
   </style>
 </head>
 <body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-slate-950 to-black select-none">
@@ -376,17 +389,41 @@
   <!-- ═══════════════════════════════════════════════════════════
        VIEW 5: ALL PLAYERS
        ═══════════════════════════════════════════════════════════ -->
-  <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center p-8 overflow-hidden">
-    <div class="text-center mb-6">
-      <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE</span>
-      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-        <i class="fas fa-users text-indigo-400"></i> REKAP POIN
-      </h2>
-    </div>
-    <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2">
-      <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+<!-- VIEW 5: ALL PLAYERS (MARQUEE) -->
+<div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
+  <div class="text-center mb-4 relative z-10">
+    <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+      TOTAL SCORE
+    </span>
+    <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
+      <i class="fas fa-users text-indigo-400"></i> REKAP POIN PESERTA
+    </h2>
+    <p class="text-slate-500 text-sm mt-1 font-mono">Auto-scroll · Hover untuk pause</p>
+  </div>
+
+  <div class="marquee-container w-full">
+    <div id="allPlayersTrack" class="marquee-track">
+      <p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>
     </div>
   </div>
+</div>
+
+  <!-- VIEW 6: ELIMINATION (10 kartu grid 5×2) -->
+<div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
+
+  <div class="text-center mb-6 relative z-10">
+    <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+      <i class="fas fa-user-slash"></i> ELIMINASI
+    </span>
+    <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-math tracking-wider">HASIL ELIMINASI</h1>
+    <p class="text-rose-300/70 text-lg mt-2 font-mono" id="elimGameNameLabel">-</p>
+  </div>
+
+  <div id="eliminatedList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-7xl relative z-10">
+    <p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>
+  </div>
+</div>
 
 <script>
   // ═══════════════════════════════════════════════════════════
@@ -785,7 +822,8 @@
       loading: document.getElementById('viewLoading'),
       game: document.getElementById('viewGame'),
       leaderboard: document.getElementById('viewLeaderboard'),
-      all_players: document.getElementById('viewAllPlayers')
+      all_players: document.getElementById('viewAllPlayers'),
+      elimination: document.getElementById('viewElimination')  // ⭐ tambah
     };
 
     Object.values(views).forEach(v => {
@@ -1002,45 +1040,47 @@
     }, 2000);
   }
 
-  function handleViewSwitch(viewName, revealedRank) {
-    // Kalau view = game, tapi session = 0, balik ke idle
-    if (viewName === 'game' && currentSessionIndex === 0) {
-      showView('idle');
-      return;
-    }
-
-    if (viewName === 'idle') {
-      showView('idle');
-      lastRevealedRank = -1;
-      return;
-    }
-
-    if (viewName === 'game') {
-      if (currentView !== 'game') {
-        showView('game');
-        startSessionTimer();
-      }
-      lastRevealedRank = -1;
-      return;
-    }
-
-    stopAutoScroll();
-    const newRank = revealedRank || 0;
-
-    if (viewName === 'leaderboard') {
-      showView('leaderboard');
-      if (newRank !== lastRevealedRank) {
-        currentRevealedRank = newRank;
-        lastRevealedRank = newRank;
-        fetchAndRenderScores(false);
-      }
-    } else if (viewName === 'all_players') {
-      showView('all_players');
-      lastRevealedRank = -1;
-      fetchAndRenderScores(true);
-      setTimeout(startAutoScroll, 500);
-    }
+function handleViewSwitch(viewName, revealedRank) {
+  if (viewName === 'game' && currentSessionIndex === 0) {
+    showView('idle');
+    return;
   }
+
+  if (viewName === 'idle') {
+    showView('idle');
+    lastRevealedRank = -1;
+    return;
+  }
+
+  if (viewName === 'game') {
+    if (currentView !== 'game') {
+      showView('game');
+      startSessionTimer();
+    }
+    lastRevealedRank = -1;
+    return;
+  }
+
+  stopAutoScroll();
+  const newRank = revealedRank || 0;
+
+  if (viewName === 'leaderboard') {
+    showView('leaderboard');
+    if (newRank !== lastRevealedRank) {
+      currentRevealedRank = newRank;
+      lastRevealedRank = newRank;
+      fetchAndRenderScores(false);
+    }
+  } else if (viewName === 'all_players') {
+    showView('all_players');
+    lastRevealedRank = -1;
+    fetchAndRenderAllPlayers();  // ⭐ MARQUEE
+  } else if (viewName === 'elimination') {
+    showView('elimination');
+    lastRevealedRank = -1;
+    fetchAndRenderElimination();  // ⭐ ELIM
+  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // FETCH SCORES — dari point_frenzy_cross_maze
@@ -1213,6 +1253,10 @@
       fetchAndRenderScores(true);
       setTimeout(startAutoScroll, 500);
     }
+
+    } else if (initialView === 'elimination') {
+  fetchAndRenderElimination();
+}
 
     // Subscribe
     subscribeQuestion();
