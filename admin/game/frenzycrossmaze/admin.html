@@ -174,7 +174,7 @@
       </section>
     </div>
 
-    <!-- LAYOUT VIEW SWITCHER (5 buttons) -->
+    <!-- LAYOUT VIEW SWITCHER — 5 tombol -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
@@ -226,12 +226,12 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
         <button onclick="executeComputeElimination()"
           class="py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
-          <i class="fas fa-calculator"></i> 1. Hitung Eliminasi
+          <i class="fas fa-calculator"></i> 1. Hitung Eliminasi (10 terbawah)
         </button>
 
         <button onclick="executeDeclareElimination()"
           class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
-          <i class="fas fa-lock"></i> 2. Kunci Peserta
+          <i class="fas fa-lock"></i> 2. Kunci Peserta Tereliminasi
         </button>
 
         <button onclick="executeUndoElimination()"
@@ -330,7 +330,7 @@
 
   const GAME_NAME = 'Frenzy Cross Maze';
   const POINT_TABLE = 'point_frenzy_cross_maze';
-  const QUESTION_TABLE = 'system_frenzy_cross_maze_question';
+  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
   const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
   const TOTAL_SESSIONS = 5;
   const DEFAULT_DURATION = 30;
@@ -342,9 +342,6 @@
   let userToDelete = null;
   let currentQuestionRow = null;
 
-  // ═══════════════════════════════════════════════════════════
-  // SAFE HELPERS
-  // ═══════════════════════════════════════════════════════════
   function safeSetText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
@@ -435,7 +432,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // STOP SESSION → balik ke idle
+  // STOP SESSION
   // ═══════════════════════════════════════════════════════════
   async function stopSession() {
     if (!confirm('Hentikan sesi ini? Stage akan kembali ke idle.')) return;
@@ -526,7 +523,7 @@
     else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
-  // ⭐ UPDATED: handle elimination
+  // ⭐ UPDATE: Handle elimination
   function updateActiveViewUI(viewName, rank = 0) {
     const btnIdle = document.getElementById('btnViewIdle');
     const btnGame = document.getElementById('btnViewGame');
@@ -706,7 +703,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ELIMINASI — 10 TERBAWAH (25 → 15)
+  // ELIMINASI — 10 TERBAWAH
   // ═══════════════════════════════════════════════════════════
   async function executeComputeElimination() {
     if (!confirm(
@@ -835,9 +832,6 @@
     setInterval(fetchScores, 3000);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FETCH ALL
-  // ═══════════════════════════════════════════════════════════
   async function fetchAll() {
     await fetchQuestionLive();
     await fetchScores();
