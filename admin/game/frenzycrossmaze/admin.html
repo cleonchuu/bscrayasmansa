@@ -174,7 +174,7 @@
       </section>
     </div>
 
-    <!-- LAYOUT VIEW SWITCHER (UPDATED - 5 buttons) -->
+    <!-- LAYOUT VIEW SWITCHER (5 buttons) -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
@@ -319,6 +319,9 @@
     step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
   const supabaseClient = window.supabase
@@ -327,20 +330,29 @@
 
   const GAME_NAME = 'Frenzy Cross Maze';
   const POINT_TABLE = 'point_frenzy_cross_maze';
-  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
+  const QUESTION_TABLE = 'system_frenzy_cross_maze_question';
   const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
   const TOTAL_SESSIONS = 5;
   const DEFAULT_DURATION = 30;
 
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
   let selectedSession = 1;
   let userToDelete = null;
   let currentQuestionRow = null;
 
+  // ═══════════════════════════════════════════════════════════
+  // SAFE HELPERS
+  // ═══════════════════════════════════════════════════════════
   function safeSetText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // SELECT SESSION
+  // ═══════════════════════════════════════════════════════════
   function selectSession(num) {
     selectedSession = num;
     LOG.info('SESSION', `Pilih sesi: ${num}`);
@@ -365,6 +377,9 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // START SESSION
+  // ═══════════════════════════════════════════════════════════
   async function startSession() {
     const targetInput = document.getElementById('targetAnswerInput');
     const durationInput = document.getElementById('sessionDurationInput');
@@ -419,6 +434,9 @@
     alert(`✅ Sesi ${selectedSession} dimulai!\nTarget: ${targetAnswer}\nDurasi: ${duration}s`);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // STOP SESSION → balik ke idle
+  // ═══════════════════════════════════════════════════════════
   async function stopSession() {
     if (!confirm('Hentikan sesi ini? Stage akan kembali ke idle.')) return;
 
@@ -453,6 +471,9 @@
     LOG.ok('STOP', 'Session stopped');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // RESET GAME
+  // ═══════════════════════════════════════════════════════════
   async function resetGame() {
     if (!confirm('Reset seluruh state Frenzy Cross Maze ke kondisi awal?')) return;
 
@@ -483,6 +504,9 @@
     alert('✅ Reset selesai.');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // SWITCH VIEW
+  // ═══════════════════════════════════════════════════════════
   async function switchStageView(viewName, revealedRank = 0) {
     if (!supabaseClient) return;
     updateActiveViewUI(viewName, revealedRank);
@@ -523,6 +547,9 @@
     else if (viewName === 'elimination') btnElim?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // RANK BUTTONS
+  // ═══════════════════════════════════════════════════════════
   function renderRankButtons() {
     const container = document.getElementById('rankButtonsContainer');
     if (!container) return;
@@ -536,6 +563,9 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // FETCH QUESTION LIVE
+  // ═══════════════════════════════════════════════════════════
   async function fetchQuestionLive() {
     const { data, error } = await supabaseClient
       .from(QUESTION_TABLE)
@@ -578,6 +608,9 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // FETCH SCORES
+  // ═══════════════════════════════════════════════════════════
   async function fetchScores() {
     const tbody = document.getElementById('adminScoreTableBody');
     if (!tbody) return;
@@ -635,6 +668,9 @@
     fetchScores();
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // MODAL HAPUS
+  // ═══════════════════════════════════════════════════════════
   function openDeleteModal(uniqueId, displayName) {
     userToDelete = uniqueId;
     document.getElementById('targetDeleteUser').textContent = displayName || uniqueId;
@@ -669,7 +705,9 @@
     }
   }
 
-  // ⭐ Eliminasi: 10 peserta terendah
+  // ═══════════════════════════════════════════════════════════
+  // ELIMINASI — 10 TERBAWAH (25 → 15)
+  // ═══════════════════════════════════════════════════════════
   async function executeComputeElimination() {
     if (!confirm(
       "Hitung 10 peserta terendah di Frenzy Cross Maze?\n\n" +
@@ -757,6 +795,9 @@
     if (info) info.classList.add('hidden');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // REALTIME
+  // ═══════════════════════════════════════════════════════════
   function setupRealtime() {
     if (!supabaseClient) return;
     LOG.ok('REALTIME', 'Setup channels...');
@@ -794,12 +835,18 @@
     setInterval(fetchScores, 3000);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // FETCH ALL
+  // ═══════════════════════════════════════════════════════════
   async function fetchAll() {
     await fetchQuestionLive();
     await fetchScores();
     LOG.info('FETCH', 'Manual refresh done');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSE
+  // ═══════════════════════════════════════════════════════════
   window.selectSession = selectSession;
   window.startSession = startSession;
   window.stopSession = stopSession;
@@ -815,6 +862,9 @@
   window.executeDeclareElimination = executeDeclareElimination;
   window.executeUndoElimination = executeUndoElimination;
 
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
