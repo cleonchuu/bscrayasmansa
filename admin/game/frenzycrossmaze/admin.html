@@ -209,14 +209,16 @@
         </div>
         <div>
           <h2 class="text-lg font-bold text-white">Kontrol Eliminasi</h2>
-          <p class="text-xs text-slate-400">Hitung 5 peserta terendah Frenzy Cross Maze</p>
+          <p class="text-xs text-slate-400">Hitung 10 peserta terendah Frenzy Cross Maze (25 → 15)</p>
         </div>
       </div>
 
       <p class="text-xs text-slate-400 leading-relaxed mb-4">
-        <strong class="text-amber-400">⚠️ Peserta tetap bisa main</strong> sampai Anda klik "Kunci Peserta Tereliminasi".
-        <br>Setelah dikunci, kiosk mereka akan freeze permanen dan tidak bisa ikut game berikutnya.
-      </p>
+  <strong class="text-amber-400">⚠️ Peserta tetap bisa main</strong> sampai Anda klik "Kunci Peserta Tereliminasi".
+  <br>Setelah dikunci, kiosk mereka akan freeze permanen dan tidak bisa ikut game berikutnya.
+  <br><br>
+  <span class="text-rose-400 font-bold">🎯 Frenzy: Eliminasi 10 terbawah (25 → 15 peserta)</span>
+</p>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
         <button onclick="executeComputeElimination()"
@@ -705,19 +707,21 @@
   // ELIMINASI
   // ═══════════════════════════════════════════════════════════
   async function executeComputeElimination() {
-    if (!confirm(
-      "Hitung 5 peserta terendah di Frenzy Cross Maze?\n\n" +
-      "• Masuk daftar eliminasi (belum kunci)\n" +
-      "• Peserta masih bisa main\n" +
-      "• Klik 'Kunci' untuk freeze kiosk mereka"
-    )) return;
+  if (!confirm(
+    "Hitung 10 peserta terendah di Frenzy Cross Maze?\n\n" +
+    "• Sisa peserta setelah eliminasi: 15\n" +
+    "• Masuk daftar eliminasi (belum kunci)\n" +
+    "• Peserta masih bisa main\n" +
+    "• Klik 'Kunci' untuk freeze kiosk mereka"
+  )) return;
 
-    LOG.step('ELIM', 'Hitung eliminasi...');
+  LOG.step('ELIM', 'Hitung eliminasi (10 terbawah)...');
 
-    const { data, error } = await supabaseClient.rpc('save_elimination', {
-      p_game_name: GAME_NAME,
-      p_count: 5
-    });
+  const { data, error } = await supabaseClient.rpc('save_elimination', {
+    p_game_name: GAME_NAME,
+    p_count: 10
+  });
+  // ...
 
     if (error) {
       LOG.error('ELIM', 'Gagal: ' + error.message);
@@ -738,7 +742,7 @@
       }
     }
 
-    alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.`);
+    alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.\nSisa peserta aktif: ${25 - (data?.length || 0)} dari 25.`);
   }
 
   async function executeDeclareElimination() {
