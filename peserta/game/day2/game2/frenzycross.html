@@ -26,6 +26,15 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
 
+    /* ⭐ ELIMINATION OVERLAY */
+    .eliminated-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(14px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: scale(0.95); }
       to { opacity: 1; transform: scale(1); }
@@ -48,6 +57,27 @@
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- ⭐ ELIMINATION OVERLAY -->
+  <div id="eliminatedOverlay" class="eliminated-screen hidden text-center p-6">
+    <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+      <i class="fas fa-ban text-6xl text-rose-500"></i>
+    </div>
+    <h2 class="text-4xl md:text-5xl font-black text-rose-500 tracking-wider uppercase mb-3">
+      TERELIMINASI
+    </h2>
+    <p id="eliminatedName" class="text-white text-lg md:text-xl font-bold max-w-md mb-3">
+      Peserta
+    </p>
+    <p class="text-slate-400 text-sm md:text-base max-w-md mb-6">
+      Kamu telah tereliminasi di game sebelumnya. Tidak bisa melanjutkan ke game berikutnya.
+      <br>Terima kasih sudah berpartisipasi!
+    </p>
+    <div class="flex items-center gap-2 bg-slate-900 border border-rose-500/30 px-5 py-3 rounded-xl text-xs font-mono text-rose-300">
+      <i class="fas fa-lock"></i>
+      <span>STATUS: ELIMINATED</span>
+    </div>
+  </div>
 
   <!-- FREEZE OVERLAY -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
@@ -141,7 +171,7 @@
       <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
     </button>
 
-    <!-- LOCKED MESSAGE (muncul kalau kuota habis / sudah benar) -->
+    <!-- LOCKED MESSAGE -->
     <div id="lockedMessage" class="hidden mt-4 bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-center">
       <i class="fas fa-lock text-amber-400 text-2xl mb-2"></i>
       <p class="text-amber-400 font-bold text-sm" id="lockedReason">Menunggu sesi berikutnya...</p>
@@ -156,18 +186,15 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI PERMAINAN — UBAH DI SINI KALAU MAU
+    // KONFIGURASI PERMAINAN
     // ═══════════════════════════════════════════════════════════
     const GAME_CONFIG = {
-      MAX_POINT: 10,           // poin max kalau jawab cepat
-      MIN_POINT: 5,            // poin min untuk jawaban benar
-      WRONG_PENALTY: 2,        // poin minus kalau jawaban salah (UBAH DI SINI)
-      ATTEMPTS_PER_SESSION: 2  // jumlah attempt per sesi (UBAH DI SINI)
+      MAX_POINT: 10,
+      MIN_POINT: 5,
+      WRONG_PENALTY: 2,
+      ATTEMPTS_PER_SESSION: 2
     };
 
-    // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI SUPABASE
-    // ═══════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase
@@ -175,6 +202,7 @@
       : null;
 
     const CURRENT_GAME_NAME = "Frenzy Cross Maze";
+    const POINT_TABLE = "point_frenzy_cross_maze";
 
     // ═══════════════════════════════════════════════════════════
     // LOGGER
@@ -194,11 +222,11 @@
     let currentUser = null;
     let currentInput = '';
     let isSubmitting = false;
-    let isSessionFrozen = false;   // freeze dari admin (sesi belum mulai / selesai)
-    let isSelfLocked = false;      // lock dari diri sendiri (kuota habis / sudah benar)
+    let isSessionFrozen = false;
+    let isSelfLocked = false;
+    let isEliminated = false;
     let lockReason = '';
 
-    // Session state
     let sessionIndex = 0;
     let totalSessions = 5;
     let sessionStartTime = null;
@@ -206,7 +234,6 @@
     let currentPuzzleAnswer = null;
     let lastQuestionSig = '';
 
-    // Per-session state (kuota + lock)
     let sessionState = {
       sessionIndex: 0,
       attemptsUsed: 0,
@@ -221,10 +248,37 @@
     const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
     const calcDisplay = document.getElementById('calcDisplay');
 
-    // Setup hint text
     document.getElementById('hintQuota').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
     document.getElementById('hintPenalty').textContent = GAME_CONFIG.WRONG_PENALTY;
     document.getElementById('quotaMax').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ ELIMINATION — cek & tampilkan
+    // ═══════════════════════════════════════════════════════════
+    async function checkEliminationStatus(uniqueId) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('is_eliminated')
+          .eq('unique_id', uniqueId)
+          .maybeSingle();
+
+        if (error) {
+          LOG.warn('ELIM', 'Cek error: ' + error.message);
+          return false;
+        }
+        return data?.is_eliminated === true;
+      } catch (e) {
+        LOG.warn('ELIM', 'Exception: ' + e.message);
+        return false;
+      }
+    }
+
+    function showEliminatedOverlay(name) {
+      document.getElementById('eliminatedName').textContent = name || 'Peserta';
+      document.getElementById('eliminatedOverlay').classList.remove('hidden');
+      LOG.warn('ELIM', `Peserta tereliminasi: ${name}`);
+    }
 
     // ═══════════════════════════════════════════════════════════
     // LOAD USER
@@ -260,7 +314,7 @@
     async function fetchUserData(uid) {
       const { data, error } = await supabaseClient
         .from('users')
-        .select('unique_id, full_name, school_name, role')
+        .select('unique_id, full_name, school_name, role, is_eliminated')
         .eq('unique_id', uid)
         .maybeSingle();
 
@@ -269,7 +323,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SESSION STATE — Per user per sesi
+    // SESSION STATE
     // ═══════════════════════════════════════════════════════════
     async function fetchSessionState(uid, sIndex) {
       if (!sIndex) return { sessionIndex: 0, attemptsUsed: 0, isLocked: false, lockReason: null };
@@ -282,7 +336,6 @@
         .maybeSingle();
 
       if (error || !data) {
-        // Belum ada row untuk sesi ini → state awal
         return {
           sessionIndex: sIndex,
           attemptsUsed: 0,
@@ -309,7 +362,6 @@
         updated_at: new Date().toISOString()
       };
 
-      // Upsert berdasarkan unique constraint
       const { error } = await supabaseClient
         .from('system_frenzy_cross_maze_session_state')
         .upsert(payload, { onConflict: 'user_unique_id,session_index' });
@@ -340,7 +392,6 @@
           }
         });
 
-      // Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from('system_frenzy_cross_math_question')
@@ -368,7 +419,6 @@
       const prevSession = sessionIndex;
       LOG.info('Q', `Sesi ${row.session_index}/${row.total_sessions}, jawaban: ${row.target_answer}`);
 
-      // Update state
       sessionIndex = row.session_index || 0;
       totalSessions = row.total_sessions || 5;
       sessionStartTime = row.session_start_time;
@@ -376,7 +426,6 @@
       currentPuzzleAnswer = row.target_answer;
 
       if (sessionIndex === 0) {
-        // Idle
         freezeSession('Menunggu admin memulai sesi...', 'WAITING');
         kioskTimerDisplay.textContent = '--:--';
         const badge = document.getElementById('sessionBadge');
@@ -384,18 +433,13 @@
         return;
       }
 
-      // Cek apakah sesi berubah → reset local state
       if (prevSession !== sessionIndex) {
         LOG.ok('SESSION', `Sesi baru terdeteksi: ${sessionIndex}`);
-        // Fetch state sesi baru dari DB
         sessionState = await fetchSessionState(currentUser.unique_id, sessionIndex);
         LOG.info('SESSION', `State: attempts=${sessionState.attemptsUsed}, locked=${sessionState.isLocked}`);
       }
 
-      // Unfreeze session
       unfreezeSession();
-
-      // Update UI berdasarkan state
       updateSessionBadge();
       updateKioskTimer();
       updateQuotaDisplay();
@@ -457,7 +501,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FREEZE / UNFREEZE SESSION (dari admin)
+    // FREEZE / UNFREEZE
     // ═══════════════════════════════════════════════════════════
     function freezeSession(msg, status) {
       if (isSessionFrozen) return;
@@ -496,19 +540,19 @@
     // KALKULATOR
     // ═══════════════════════════════════════════════════════════
     function appendCalc(v) {
-      if (isSessionFrozen || isSelfLocked) return;
+      if (isSessionFrozen || isSelfLocked || isEliminated) return;
       if (currentInput.length < 10) {
         currentInput += v;
         updateDisplay();
       }
     }
     function clearCalc() {
-      if (isSessionFrozen || isSelfLocked) return;
+      if (isSessionFrozen || isSelfLocked || isEliminated) return;
       currentInput = '';
       updateDisplay();
     }
     function deleteCalc() {
-      if (isSessionFrozen || isSelfLocked) return;
+      if (isSessionFrozen || isSelfLocked || isEliminated) return;
       currentInput = currentInput.slice(0, -1);
       updateDisplay();
     }
@@ -517,10 +561,11 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SUBMIT JAWABAN
+    // ⭐ SUBMIT JAWABAN — pakai RPC add_point_generic
     // ═══════════════════════════════════════════════════════════
     async function submitAnswer() {
       if (!currentInput || isSubmitting) return;
+      if (isEliminated) { alert('Kamu tereliminasi.'); return; }
       if (isSessionFrozen) { alert('Sesi belum dimulai!'); return; }
       if (isSelfLocked) { alert(lockReason || 'Terkunci'); return; }
       if (!currentUser) { alert('Anda belum login!'); return; }
@@ -545,43 +590,53 @@
       if (isCorrect) {
         points = calculateCorrectScore();
       } else {
-        points = -GAME_CONFIG.WRONG_PENALTY;  // minus poin
+        points = -GAME_CONFIG.WRONG_PENALTY;
       }
 
       LOG.info('SUBMIT', `Input="${input}" | Correct="${correct}" | Match=${isCorrect} | Pts=${points}`);
 
-      // Insert skor
-      const { error: scoreErr } = await supabaseClient
-        .from('game_scores')
-        .insert([{
-          user_unique_id: currentUser.unique_id,
-          game_name: CURRENT_GAME_NAME,
-          score_obtained: points
-        }]);
+      // ⭐ SIMPAN VIA RPC add_point_generic
+      try {
+        const { error: rpcErr } = await supabaseClient.rpc('add_point_generic', {
+          p_table_name: POINT_TABLE,
+          p_unique_id: currentUser.unique_id,
+          p_name: currentUser.full_name || currentUser.unique_id,
+          p_delta: points
+        });
 
-      if (scoreErr) LOG.error('SCORE', 'Gagal simpan', scoreErr);
+        if (rpcErr) {
+          LOG.error('SCORE', 'Gagal simpan via RPC: ' + rpcErr.message);
+          alert('Gagal menyimpan skor: ' + rpcErr.message);
+          isSubmitting = false;
+          btn.textContent = 'SUBMIT JAWABAN 🚀';
+          return;
+        }
+
+        LOG.ok('SCORE', `Poin ${points >= 0 ? '+' : ''}${points} tersimpan`);
+      } catch (e) {
+        LOG.error('SCORE', 'Exception: ' + e.message);
+        alert('Gagal menyimpan skor: ' + e.message);
+        isSubmitting = false;
+        btn.textContent = 'SUBMIT JAWABAN 🚀';
+        return;
+      }
 
       // Update state
       sessionState.attemptsUsed++;
 
       if (isCorrect) {
-        // Sudah benar → lock sampai sesi berikutnya
         sessionState.isLocked = true;
         sessionState.lockReason = 'Sudah benar! Menunggu sesi berikutnya...';
       } else if (sessionState.attemptsUsed >= GAME_CONFIG.ATTEMPTS_PER_SESSION) {
-        // Kuota habis → lock sampai sesi berikutnya
         sessionState.isLocked = true;
         sessionState.lockReason = 'Kuota habis! Menunggu sesi berikutnya...';
       }
 
-      // Save ke DB
       await saveSessionState(currentUser.unique_id, sessionIndex, sessionState);
 
-      // Update UI
       updateQuotaDisplay();
       applySelfLockIfNeeded();
 
-      // Flash feedback
       triggerFlash(isCorrect, points, correct);
     }
 
@@ -629,35 +684,34 @@
       LOG.ok('INIT', '══════════ KIOSK BOOT ══════════');
       LOG.info('INIT', `Config: ${GAME_CONFIG.ATTEMPTS_PER_SESSION}x attempt, wrong penalty: -${GAME_CONFIG.WRONG_PENALTY}`);
 
-      // 1. Load user
       const userSession = loadUserFromStorage();
       if (!userSession) return;
 
       const userData = await fetchUserData(userSession.unique_id);
       currentUser = userData || userSession;
 
-      // 2. Update UI
+      // ⭐ Cek status eliminasi
+      isEliminated = currentUser.is_eliminated === true;
+      if (isEliminated) {
+        showEliminatedOverlay(currentUser.full_name || currentUser.unique_id);
+        LOG.warn('INIT', 'Peserta tereliminasi, kiosk di-lock');
+        return;
+      }
+
       const name = currentUser.full_name || currentUser.unique_id || '-';
       const school = currentUser.school_name || 'Peserta';
       document.getElementById('selectedStudentName').textContent = name;
       document.getElementById('selectedStudentSchool').textContent = school;
       document.getElementById('userGreeting').textContent = `Halo, ${name}!`;
 
-      // 3. Init state
       updateQuotaDisplay();
-
-      // 4. Freeze dulu
       freezeSession('Menunggu admin memulai sesi...', 'WAITING');
-
-      // 5. Subscribe
       subscribeToQuestion();
 
       LOG.ok('INIT', '══════════ KIOSK READY ══════════');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // EXPOSE
-    // ═══════════════════════════════════════════════════════════
+    // Expose
     window.appendCalc = appendCalc;
     window.clearCalc = clearCalc;
     window.deleteCalc = deleteCalc;
