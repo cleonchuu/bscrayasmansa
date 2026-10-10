@@ -963,64 +963,50 @@
   let eliminationPlayed = false;
 
   async function fetchEliminationData() {
-    LOG.step('ELIM', 'Fetch elimination data...');
+  LOG.step('ELIM', 'Fetch elimination data (dari point table)...');
 
-    try {
-      // 1. Ambil 10 terbawah dari tabel elimination_history
-      const { data: elim, error: elimErr } = await supabaseClient
-        .from('elimination_history')
-        .select('unique_id, name, final_score')
-        .eq('game_name', GAME_NAME)
-        .order('final_score', { ascending: true });
+  try {
+    // 1. Ambil semua poin dari tabel game
+    const { data: points, error: ptsErr } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point, refresh_at');
 
-      if (elimErr) { LOG.error('ELIM', 'Error fetch elim: ' + elimErr.message); return null; }
+    if (ptsErr) { LOG.error('ELIM', 'Error fetch points: ' + ptsErr.message); return null; }
 
-      // 2. Ambil semua peserta aktif (25)
-      const { data: users, error: usersErr } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name, school_name, is_eliminated, avatar_url')
-        .eq('role', 'peserta');
+    // 2. Ambil daftar 10 terbawah dari elimination_history (yang sudah dihitung admin)
+    const { data: elim, error: elimErr } = await supabaseClient
+      .from('elimination_history')
+      .select('unique_id, name, final_score')
+      .eq('game_name', GAME_NAME);
 
-      if (usersErr) { LOG.error('ELIM', 'Error fetch users: ' + usersErr.message); return null; }
+    if (elimErr) { LOG.warn('ELIM', 'Error fetch elim: ' + elimErr.message); }
 
-      // 3. Ambil semua skor dari point_frenzy_cross_maze
-      const { data: points, error: ptsErr } = await supabaseClient
-        .from(POINT_TABLE)
-        .select('unique_id, point');
+    const elimSet = new Set((elim || []).map(e => e.unique_id));
 
-      if (ptsErr) { LOG.warn('ELIM', 'Error fetch points: ' + ptsErr.message); }
+    // 3. Map semua peserta dari point table
+    const allParticipants = (points || []).map(p => ({
+      unique_id: p.unique_id,
+      name: p.name || p.unique_id,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}`,
+      score: Number(p.point) || 0,
+      isEliminated: elimSet.has(p.unique_id)
+    })).sort((a, b) => b.score - a.score);
 
-      const pointsMap = {};
-      (points || []).forEach(p => pointsMap[p.unique_id] = Number(p.point) || 0);
+    const eliminated = allParticipants.filter(p => p.isEliminated);
+    const survivors  = allParticipants.filter(p => !p.isEliminated);
 
-      const elimSet = new Set((elim || []).map(e => e.unique_id));
+    LOG.ok('ELIM', `Data: ${allParticipants.length} peserta, ${eliminated.length} tereliminasi, ${survivors.length} lolos`);
 
-      // 4. Ambil 25 peserta yang belum di-lock (is_eliminated = FALSE)
-      // Prioritas: yang punya skor di game ini
-      const activeUsers = (users || [])
-        .filter(u => !u.is_eliminated)
-        .map(u => ({
-          unique_id: u.unique_id,
-          name: u.full_name || u.unique_id,
-          school: u.school_name || '',
-          avatar: u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(u.unique_id)}`,
-          score: pointsMap[u.unique_id] ?? 0,
-          isEliminated: elimSet.has(u.unique_id)
-        }))
-        .sort((a, b) => b.score - a.score);
-
-      LOG.ok('ELIM', `Data: ${activeUsers.length} peserta aktif, ${elim?.length || 0} tereliminasi`);
-
-      return {
-        all: activeUsers,
-        eliminated: activeUsers.filter(u => u.isEliminated),
-        survivors: activeUsers.filter(u => !u.isEliminated)
-      };
-    } catch (e) {
-      LOG.error('ELIM', 'Exception: ' + e.message);
-      return null;
-    }
+    return {
+      all: allParticipants,
+      eliminated,
+      survivors
+    };
+  } catch (e) {
+    LOG.error('ELIM', 'Exception: ' + e.message);
+    return null;
   }
+}
 
   async function playEliminationSequence() {
     if (eliminationPlayed) {
