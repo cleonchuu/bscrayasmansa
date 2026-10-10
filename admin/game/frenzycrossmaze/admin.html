@@ -174,24 +174,27 @@
       </section>
     </div>
 
-    <!-- LAYOUT VIEW SWITCHER -->
+    <!-- LAYOUT VIEW SWITCHER (UPDATED - 5 buttons) -->
     <section class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
       <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
         <i class="fas fa-desktop text-amber-400"></i> Kontrol Layar Panggung
       </h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <button id="btnViewIdle" onclick="switchStageView('idle')" class="bg-slate-800 hover:bg-cyan-600/80 border border-slate-700 hover:border-cyan-500 text-white font-bold py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
           <i class="fas fa-moon text-cyan-400"></i> Idle
         </button>
-        <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-sky-600/80 border border-slate-700 hover:border-sky-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+        <button id="btnViewGame" onclick="switchStageView('game')" class="bg-slate-800 hover:bg-sky-600/80 border border-slate-700 hover:border-sky-500 text-white font-bold py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
           <i class="fas fa-display"></i> Game
         </button>
-        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+        <button id="btnViewLeaderboard" onclick="switchStageView('leaderboard')" class="bg-slate-800 hover:bg-amber-600/80 border border-slate-700 hover:border-amber-500 text-white font-bold py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
           <i class="fas fa-trophy text-amber-400"></i> Peringkat
         </button>
-        <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition">
+        <button id="btnViewAll" onclick="switchStageView('all_players')" class="bg-slate-800 hover:bg-emerald-600/80 border border-slate-700 hover:border-emerald-500 text-white font-bold py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
           <i class="fas fa-users text-emerald-400"></i> Semua
+        </button>
+        <button id="btnViewElimination" onclick="switchStageView('elimination')" class="bg-slate-800 hover:bg-rose-600/80 border border-slate-700 hover:border-rose-500 text-white font-bold py-3.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition text-sm">
+          <i class="fas fa-user-slash text-rose-400"></i> Eliminasi
         </button>
       </div>
 
@@ -214,11 +217,11 @@
       </div>
 
       <p class="text-xs text-slate-400 leading-relaxed mb-4">
-  <strong class="text-amber-400">⚠️ Peserta tetap bisa main</strong> sampai Anda klik "Kunci Peserta Tereliminasi".
-  <br>Setelah dikunci, kiosk mereka akan freeze permanen dan tidak bisa ikut game berikutnya.
-  <br><br>
-  <span class="text-rose-400 font-bold">🎯 Frenzy: Eliminasi 10 terbawah (25 → 15 peserta)</span>
-</p>
+        <strong class="text-amber-400">⚠️ Peserta tetap bisa main</strong> sampai Anda klik "Kunci Peserta Tereliminasi".
+        <br>Setelah dikunci, kiosk mereka akan freeze permanen dan tidak bisa ikut game berikutnya.
+        <br><br>
+        <span class="text-rose-400 font-bold">🎯 Frenzy: Eliminasi 10 terbawah (25 → 15 peserta)</span>
+      </p>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
         <button onclick="executeComputeElimination()"
@@ -316,9 +319,6 @@
     step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // KONFIGURASI
-  // ═══════════════════════════════════════════════════════════
   const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
   const supabaseClient = window.supabase
@@ -332,24 +332,15 @@
   const TOTAL_SESSIONS = 5;
   const DEFAULT_DURATION = 30;
 
-  // ═══════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════
   let selectedSession = 1;
   let userToDelete = null;
   let currentQuestionRow = null;
 
-  // ═══════════════════════════════════════════════════════════
-  // SAFE HELPERS
-  // ═══════════════════════════════════════════════════════════
   function safeSetText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // SELECT SESSION
-  // ═══════════════════════════════════════════════════════════
   function selectSession(num) {
     selectedSession = num;
     LOG.info('SESSION', `Pilih sesi: ${num}`);
@@ -366,7 +357,6 @@
 
     safeSetText('selectedSessionLabel', num);
 
-    // Auto-fill target answer kalau ada data
     const targetInput = document.getElementById('targetAnswerInput');
     if (targetInput && currentQuestionRow && currentQuestionRow.session_index === num && currentQuestionRow.target_answer != null) {
       targetInput.value = currentQuestionRow.target_answer;
@@ -375,9 +365,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // START SESSION
-  // ═══════════════════════════════════════════════════════════
   async function startSession() {
     const targetInput = document.getElementById('targetAnswerInput');
     const durationInput = document.getElementById('sessionDurationInput');
@@ -419,7 +406,6 @@
       return;
     }
 
-    // Auto-switch layout ke game
     await supabaseClient
       .from(LAYOUT_TABLE)
       .update({
@@ -433,9 +419,6 @@
     alert(`✅ Sesi ${selectedSession} dimulai!\nTarget: ${targetAnswer}\nDurasi: ${duration}s`);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // STOP SESSION → balik ke idle
-  // ═══════════════════════════════════════════════════════════
   async function stopSession() {
     if (!confirm('Hentikan sesi ini? Stage akan kembali ke idle.')) return;
 
@@ -470,9 +453,6 @@
     LOG.ok('STOP', 'Session stopped');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // RESET GAME
-  // ═══════════════════════════════════════════════════════════
   async function resetGame() {
     if (!confirm('Reset seluruh state Frenzy Cross Maze ke kondisi awal?')) return;
 
@@ -503,9 +483,6 @@
     alert('✅ Reset selesai.');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // SWITCH VIEW
-  // ═══════════════════════════════════════════════════════════
   async function switchStageView(viewName, revealedRank = 0) {
     if (!supabaseClient) return;
     updateActiveViewUI(viewName, revealedRank);
@@ -525,14 +502,16 @@
     else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
+  // ⭐ UPDATED: handle elimination
   function updateActiveViewUI(viewName, rank = 0) {
     const btnIdle = document.getElementById('btnViewIdle');
     const btnGame = document.getElementById('btnViewGame');
     const btnLb = document.getElementById('btnViewLeaderboard');
     const btnAll = document.getElementById('btnViewAll');
+    const btnElim = document.getElementById('btnViewElimination');
     if (!btnGame) return;
 
-    [btnIdle, btnGame, btnLb, btnAll].forEach(b => {
+    [btnIdle, btnGame, btnLb, btnAll, btnElim].forEach(b => {
       if (!b) return;
       b.classList.remove('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
     });
@@ -541,11 +520,9 @@
     else if (viewName === 'game') btnGame?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
     else if (viewName === 'leaderboard') btnLb?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
     else if (viewName === 'all_players') btnAll?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
+    else if (viewName === 'elimination') btnElim?.classList.add('ring-2', 'ring-sky-400', 'ring-offset-2', 'ring-offset-slate-900');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // RANK BUTTONS
-  // ═══════════════════════════════════════════════════════════
   function renderRankButtons() {
     const container = document.getElementById('rankButtonsContainer');
     if (!container) return;
@@ -559,9 +536,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FETCH QUESTION LIVE
-  // ═══════════════════════════════════════════════════════════
   async function fetchQuestionLive() {
     const { data, error } = await supabaseClient
       .from(QUESTION_TABLE)
@@ -594,21 +568,16 @@
       }
     }
 
-    // Sync target input ke sesi terpilih kalau cocok
     const targetInput = document.getElementById('targetAnswerInput');
     if (targetInput && data.session_index === selectedSession && data.target_answer != null) {
       targetInput.value = data.target_answer;
     }
 
-    // Auto-select session button
     if (data.session_index >= 1 && data.session_index <= TOTAL_SESSIONS) {
       selectSession(data.session_index);
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES
-  // ═══════════════════════════════════════════════════════════
   async function fetchScores() {
     const tbody = document.getElementById('adminScoreTableBody');
     if (!tbody) return;
@@ -666,9 +635,6 @@
     fetchScores();
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // MODAL HAPUS
-  // ═══════════════════════════════════════════════════════════
   function openDeleteModal(uniqueId, displayName) {
     userToDelete = uniqueId;
     document.getElementById('targetDeleteUser').textContent = displayName || uniqueId;
@@ -703,25 +669,22 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // ELIMINASI
-  // ═══════════════════════════════════════════════════════════
+  // ⭐ Eliminasi: 10 peserta terendah
   async function executeComputeElimination() {
-  if (!confirm(
-    "Hitung 10 peserta terendah di Frenzy Cross Maze?\n\n" +
-    "• Sisa peserta setelah eliminasi: 15\n" +
-    "• Masuk daftar eliminasi (belum kunci)\n" +
-    "• Peserta masih bisa main\n" +
-    "• Klik 'Kunci' untuk freeze kiosk mereka"
-  )) return;
+    if (!confirm(
+      "Hitung 10 peserta terendah di Frenzy Cross Maze?\n\n" +
+      "• Sisa peserta setelah eliminasi: 15\n" +
+      "• Masuk daftar eliminasi (belum kunci)\n" +
+      "• Peserta masih bisa main\n" +
+      "• Klik 'Kunci' untuk freeze kiosk mereka"
+    )) return;
 
-  LOG.step('ELIM', 'Hitung eliminasi (10 terbawah)...');
+    LOG.step('ELIM', 'Hitung eliminasi (10 terbawah)...');
 
-  const { data, error } = await supabaseClient.rpc('save_elimination', {
-    p_game_name: GAME_NAME,
-    p_count: 10
-  });
-  // ...
+    const { data, error } = await supabaseClient.rpc('save_elimination', {
+      p_game_name: GAME_NAME,
+      p_count: 10
+    });
 
     if (error) {
       LOG.error('ELIM', 'Gagal: ' + error.message);
@@ -794,9 +757,6 @@
     if (info) info.classList.add('hidden');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // REALTIME
-  // ═══════════════════════════════════════════════════════════
   function setupRealtime() {
     if (!supabaseClient) return;
     LOG.ok('REALTIME', 'Setup channels...');
@@ -834,18 +794,12 @@
     setInterval(fetchScores, 3000);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FETCH ALL
-  // ═══════════════════════════════════════════════════════════
   async function fetchAll() {
     await fetchQuestionLive();
     await fetchScores();
     LOG.info('FETCH', 'Manual refresh done');
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // EXPOSE
-  // ═══════════════════════════════════════════════════════════
   window.selectSession = selectSession;
   window.startSession = startSession;
   window.stopSession = stopSession;
@@ -861,9 +815,6 @@
   window.executeDeclareElimination = executeDeclareElimination;
   window.executeUndoElimination = executeUndoElimination;
 
-  // ═══════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
