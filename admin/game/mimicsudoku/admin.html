@@ -14,6 +14,9 @@
       font-family: 'Segoe UI', system-ui, sans-serif;
       user-select: none;
     }
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex justify-center">
@@ -116,6 +119,38 @@
               </p>
             </div>
           </div>
+
+          <!-- ⭐ PANEL KONTROL ELIMINASI -->
+          <div class="mt-5 bg-rose-950/40 border border-rose-500/30 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center gap-2 text-rose-400">
+              <i class="fas fa-user-slash"></i>
+              <span class="text-xs font-black uppercase tracking-wider">Kontrol Eliminasi</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Hitung <strong class="text-rose-300">5 peserta terendah</strong> di Mimic Sudoku.
+              <br>
+              <span class="text-amber-400">⚠️ Peserta tetap bisa main</span> sampai Anda klik "Kunci".
+            </p>
+            
+            <div class="grid grid-cols-1 gap-2">
+              <button onclick="executeComputeElimination()" 
+                class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-calculator"></i> 1. Hitung Eliminasi (Belum Kunci)
+              </button>
+              
+              <button onclick="executeDeclareElimination()" id="btnDeclareElim"
+                class="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-lock"></i> 2. Kunci Peserta Tereliminasi
+              </button>
+              
+              <button onclick="executeUndoElimination()" 
+                class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+                <i class="fas fa-rotate-left"></i> Undo / Reset Eliminasi
+              </button>
+            </div>
+
+            <div id="elimResultInfo" class="text-[11px] text-slate-500 font-mono hidden p-2 bg-slate-950/60 rounded-lg border border-slate-800 max-h-[200px] overflow-y-auto custom-scroll"></div>
+          </div>
         </div>
       </section>
 
@@ -199,7 +234,7 @@
           <h2 class="text-lg font-bold text-white flex items-center gap-2">
             <i class="fas fa-list-ol text-indigo-400"></i> Daftar Seluruh Peserta & Poin
           </h2>
-          <p class="text-xs text-slate-400">Data real-time dari tabel <code class="text-indigo-300">game_scores</code></p>
+          <p class="text-xs text-slate-400">Data real-time dari tabel <code class="text-indigo-300">point_mimic_sudoku</code></p>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="resetAllLimits()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2">
@@ -285,8 +320,10 @@
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
 
+  const GAME_NAME = 'Mimic Sudoku';
   const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
   const LOOP_INTERVAL_MS = 5000;
+  const DEFAULT_QUOTA = 2;
 
   const LEVEL_CONFIG = {
     level_1: { cells: 4,  durationSec: 120, label: 'LEVEL 1 (4 Sel, 2 Menit)' },
@@ -300,7 +337,6 @@
   let selectedLevel = 'level_1';
   let userToDelete = null;
 
-  // ⭐ Server Timer State (baca dari mimic_game_state)
   let serverState = {
     action: 'RESET',
     current_level: null,
@@ -311,10 +347,10 @@
     is_running: false
   };
   let tickInterval = null;
-  let localTickGuard = false;  // cegah double tick
+  let localTickGuard = false;
 
   // ═══════════════════════════════════════════════════════════
-  // SUDOKU GENERATOR (untuk generate master grid & jawaban)
+  // SUDOKU GENERATOR
   // ═══════════════════════════════════════════════════════════
   class SudokuGenerator {
     static generate() {
@@ -350,9 +386,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // CELL MEMORY
-  // ═══════════════════════════════════════════════════════════
   class CellMemory {
     constructor() { this.reset(); }
     reset() {
@@ -376,7 +409,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // MIMIC ADMIN — SERVER-SIDE TIMER VERSION
+  // MIMIC ADMIN
   // ═══════════════════════════════════════════════════════════
   class MimicAdmin {
     constructor() {
@@ -389,9 +422,6 @@
       this.loopTimer = null;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // START — dipanggil saat tombol JALANKAN PERMAINAN diklik
-    // ═══════════════════════════════════════════════════════════
     async start(level) {
       LOG.ok('GAME', `══════════ START GAME (${level}) ══════════`);
 
@@ -403,36 +433,20 @@
       this.isRunning = true;
       this.currentLevel = level;
 
-      // ═══════════════════════════════════════════════════════
-      // STEP 1: Generate master + target + jawaban
-      // ═══════════════════════════════════════════════════════
       LOG.step('GEN', 'Generate master grid...');
       this.masterGrid = SudokuGenerator.generate();
 
       LOG.step('GEN', `Pilih ${config.cells} target cell...`);
       this.targetCells = this.pickRandomCells(config.cells);
-      this.targetCells.forEach(t => {
-        LOG.info('GEN', `  → ${COL_LETTERS[t.c]}${t.r + 1} = ${this.masterGrid[t.r][t.c]}`);
-      });
-
       this.answerValue = this.targetCells.reduce((s, t) => s + this.masterGrid[t.r][t.c], 0);
       LOG.ok('GEN', `Jawaban = ${this.answerValue}`);
 
-      // ═══════════════════════════════════════════════════════
-      // STEP 2: Publish master data (grid, target, jawaban)
-      // ═══════════════════════════════════════════════════════
       const ok = await this.publishMasterData();
       if (!ok) { this.isRunning = false; return false; }
 
-      // ═══════════════════════════════════════════════════════
-      // STEP 3: Publish question board pertama
-      // ═══════════════════════════════════════════════════════
       this.cellMemory.reset();
       await this.publishQuestionBoard();
 
-      // ═══════════════════════════════════════════════════════
-      // STEP 4: RPC admin_start_game → set state di server
-      // ═══════════════════════════════════════════════════════
       LOG.step('RPC', `admin_start_game('${level}')...`);
       const { data: startRes, error: startErr } = await supabaseClient.rpc('admin_start_game', {
         p_level: level
@@ -445,28 +459,14 @@
       }
       LOG.ok('RPC', `Server state: seconds_remaining=${startRes.duration}`);
 
-      // ═══════════════════════════════════════════════════════
-      // STEP 5: Mulai loop ganti papan soal
-      // ═══════════════════════════════════════════════════════
       this.startQuestionLoop();
-
-      // ═══════════════════════════════════════════════════════
-      // STEP 6: Mulai tick timer ke server
-      // ═══════════════════════════════════════════════════════
       this.startServerTick();
-
-      // ═══════════════════════════════════════════════════════
-      // STEP 7: Update UI
-      // ═══════════════════════════════════════════════════════
       this.updateStartUI(level, config);
 
       LOG.ok('GAME', `✅ Sesi berjalan. Durasi ${config.durationSec}s (server-side)`);
       return true;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // STOP — hentikan semua timer lokal
-    // ═══════════════════════════════════════════════════════════
     async stop() {
       LOG.warn('GAME', 'Stop game (local)');
       this.isRunning = false;
@@ -474,9 +474,6 @@
       if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // PICK RANDOM CELLS
-    // ═══════════════════════════════════════════════════════════
     pickRandomCells(count) {
       const all = [];
       for (let r = 0; r < 9; r++)
@@ -489,19 +486,14 @@
       return all.slice(0, count);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // PUBLISH MASTER DATA (id=1, 2, 3)
-    // ═══════════════════════════════════════════════════════════
     async publishMasterData() {
       try {
-        LOG.step('SUPA', 'Publish master grid (id=1)...');
         await supabaseClient.from('system_mimic_sudoku').upsert({
           id: 1,
           grid_data: this.masterGrid.flat(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
-        LOG.step('SUPA', 'Publish target cells (id=2)...');
         const targetIndices = this.targetCells.map(t => (t.r * 9) + t.c + 1);
         await supabaseClient.from('system_mimic_sudoku').upsert({
           id: 2,
@@ -509,7 +501,6 @@
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
-        LOG.step('SUPA', 'Publish jawaban (id=3)...');
         await supabaseClient.from('system_mimic_sudoku').upsert({
           id: 3,
           grid_data: this.answerValue,
@@ -524,9 +515,6 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GENERATE QUESTION GRID (force 2 rows/cols perfect)
-    // ═══════════════════════════════════════════════════════════
     generateQuestionGrid() {
       const nextGrid = this.cellMemory.generateBoard();
       const isRowTarget = Math.random() < 0.5;
@@ -534,19 +522,13 @@
       if (isRowTarget) {
         const indices = this.pickUniqueIndices(2, 9);
         indices.forEach(rowIdx => {
-          for (let c = 0; c < 9; c++) {
-            nextGrid[rowIdx][c] = this.masterGrid[rowIdx][c];
-          }
+          for (let c = 0; c < 9; c++) nextGrid[rowIdx][c] = this.masterGrid[rowIdx][c];
         });
-        LOG.info('GEN', `Force 2 ROWS: ${indices.map(i => i + 1).join(', ')}`);
       } else {
         const indices = this.pickUniqueIndices(2, 9);
         indices.forEach(colIdx => {
-          for (let r = 0; r < 9; r++) {
-            nextGrid[r][colIdx] = this.masterGrid[r][colIdx];
-          }
+          for (let r = 0; r < 9; r++) nextGrid[r][colIdx] = this.masterGrid[r][colIdx];
         });
-        LOG.info('GEN', `Force 2 COLS: ${indices.map(i => COL_LETTERS[i]).join(', ')}`);
       }
 
       return nextGrid;
@@ -563,7 +545,6 @@
 
     async publishQuestionBoard() {
       const questionGrid = this.generateQuestionGrid();
-
       const { error } = await supabaseClient
         .from('system_mimic_sudoku')
         .upsert({
@@ -573,7 +554,6 @@
         }, { onConflict: 'id' });
 
       if (error) { LOG.error('SUPA', 'Publish id=4 gagal', error); return false; }
-      LOG.ok('SUPA', '✓ Question board (id=4) updated');
       return true;
     }
 
@@ -581,37 +561,26 @@
       if (this.loopTimer) clearInterval(this.loopTimer);
       this.loopTimer = setInterval(async () => {
         if (!this.isRunning) return;
-        if (serverState.is_frozen) {
-          LOG.info('LOOP', 'Skip (frozen)');
-          return;
-        }
-        LOG.step('LOOP', 'Ganti papan soal...');
+        if (serverState.is_frozen) return;
         await this.publishQuestionBoard();
       }, LOOP_INTERVAL_MS);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ SERVER TICK — decrement timer via RPC setiap 1 detik
-    // ═══════════════════════════════════════════════════════════
     startServerTick() {
       if (tickInterval) clearInterval(tickInterval);
 
       tickInterval = setInterval(async () => {
         if (!this.isRunning) return;
-        if (serverState.is_frozen) return;       // freeze → skip
-        if (!serverState.is_running) return;     // sudah stop
-        if (localTickGuard) return;              // cegah double request
+        if (serverState.is_frozen) return;
+        if (!serverState.is_running) return;
+        if (localTickGuard) return;
         localTickGuard = true;
 
         try {
           const { data, error } = await supabaseClient.rpc('admin_tick_timer');
-
           if (error) {
             LOG.error('TICK', 'RPC error', error);
           } else if (data?.success) {
-            LOG.info('TICK', `seconds_remaining = ${data.seconds_remaining}`);
-
-            // Kalau habis → stop semua
             if (data.seconds_remaining <= 0) {
               LOG.ok('TICK', '⏰ Waktu habis');
               this.onSessionEnd();
@@ -622,12 +591,9 @@
         } finally {
           localTickGuard = false;
         }
-      }, 1000); // ⭐ 1 detik
+      }, 1000);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SESSION END — cleanup lokal (state di server sudah TIME_UP)
-    // ═══════════════════════════════════════════════════════════
     async onSessionEnd() {
       LOG.ok('GAME', 'Session end → cleanup');
       this.isRunning = false;
@@ -635,24 +601,17 @@
       if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null; }
       if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
 
-      // Kosongkan papan soal
       await supabaseClient.from('system_mimic_sudoku').upsert({
         id: 4,
         grid_data: Array(81).fill(0),
         updated_at: new Date().toISOString()
       }, { onConflict: 'id' });
 
-      // Sembunyikan UI
       document.getElementById('countdownContainer')?.classList.add('hidden');
       document.getElementById('btnStartGame').disabled = false;
       document.getElementById('btnFreeze')?.classList.add('hidden');
-
-      LOG.ok('GAME', '✅ Cleanup selesai.');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // UPDATE START UI
-    // ═══════════════════════════════════════════════════════════
     updateStartUI(level, config) {
       document.getElementById('btnStartGame').disabled = true;
       document.getElementById('btnFreeze')?.classList.remove('hidden');
@@ -773,14 +732,13 @@
 
     LOG.ok('FREEZE', `is_frozen = ${data.is_frozen}`);
 
-    // Update UI tombol
     const btnFreeze = document.getElementById('btnFreeze');
     const btnFreezeText = document.getElementById('btnFreezeText');
     if (data.is_frozen) {
-      btnFreeze.className = "hidden w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
+      btnFreeze.className = "w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
       btnFreezeText.textContent = 'LANJUTKAN WAKTU';
     } else {
-      btnFreeze.className = "hidden w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
+      btnFreeze.className = "w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2";
       btnFreezeText.textContent = 'JEDA WAKTU (FREEZE)';
     }
   }
@@ -792,17 +750,14 @@
     if (!supabaseClient) return;
     LOG.warn('RESET', 'Manual reset');
 
-    // Stop timer lokal
     await window._mimicAdmin.stop();
 
-    // RPC reset di server
     const { data, error } = await supabaseClient.rpc('admin_reset_game');
     if (error || !data?.success) {
       LOG.error('RESET', 'Gagal reset', error || data);
       return;
     }
 
-    // UI
     document.getElementById('btnStartGame').disabled = false;
     document.getElementById('btnFreeze')?.classList.add('hidden');
     document.getElementById('countdownContainer')?.classList.add('hidden');
@@ -811,7 +766,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // UPDATE DB UI (dari mimic_game_state)
+  // UPDATE DB UI
   // ═══════════════════════════════════════════════════════════
   function updateDatabaseUI(stateRow) {
     if (!stateRow) return;
@@ -836,7 +791,6 @@
       safeSetText('dbUpdatedAt', new Date(stateRow.updated_at).toLocaleTimeString('id-ID'));
     }
 
-    // ⭐ Update countdown UI dari state server
     if (serverState.is_running && serverState.duration > 0) {
       const m = Math.floor(serverState.seconds_remaining / 60);
       const s = serverState.seconds_remaining % 60;
@@ -857,7 +811,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // LIVE KUNCI JAWABAN (id=2, id=3)
+  // LIVE KUNCI JAWABAN
   // ═══════════════════════════════════════════════════════════
   async function fetchLiveAnswer() {
     try {
@@ -907,16 +861,16 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES
+  // ⭐ FETCH SCORES — dari point_mimic_sudoku
   // ═══════════════════════════════════════════════════════════
   async function fetchScores() {
     const tbody = document.getElementById('adminScoreTableBody');
     if (!tbody) return;
 
     const { data, error } = await supabaseClient
-      .from('game_scores')
-      .select('user_unique_id, score_obtained, game_name')
-      .eq('game_name', 'Mimic Sudoku');
+      .from('point_mimic_sudoku')
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
 
     if (error) {
       tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-400">Gagal: ${error.message}</td></tr>`;
@@ -928,31 +882,24 @@
       return;
     }
 
-    let scoreMap = {};
-    data.forEach(row => {
-      const uid = row.user_unique_id || 'Tanpa Nama';
-      scoreMap[uid] = (scoreMap[uid] || 0) + (row.score_obtained || 0);
-    });
-
-    const sorted = Object.keys(scoreMap)
-      .map(uid => ({ uid, total: scoreMap[uid] }))
-      .sort((a, b) => b.total - a.total);
-
     tbody.innerHTML = '';
-    sorted.forEach((item, idx) => {
+    data.forEach((item, idx) => {
       const rank = idx + 1;
+      const displayName = item.name || item.unique_id;
+      const pts = Number(item.point || 0).toFixed(2);
+
       const tr = document.createElement('tr');
       tr.className = "hover:bg-slate-800/30 transition border-b border-slate-800/40";
       tr.innerHTML = `
         <td class="p-3 font-mono font-bold text-amber-400">#${rank}</td>
-        <td class="p-3 font-semibold text-white">${item.uid}</td>
-        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${item.total.toFixed(2)} PTS</td>
+        <td class="p-3 font-semibold text-white">${displayName}</td>
+        <td class="p-3 text-center font-mono font-bold text-indigo-400 bg-indigo-500/10 rounded-lg">+${pts} PTS</td>
         <td class="p-3 text-right">
           <div class="flex items-center justify-end gap-2">
-            <button onclick="resetUserLimit('${item.uid}')" class="bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+            <button onclick="resetUserLimit('${item.unique_id}')" class="bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
               <i class="fas fa-rotate text-amber-400"></i> Reset Kuota
             </button>
-            <button onclick="openDeleteModal('${item.uid}')" class="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
+            <button onclick="openDeleteModal('${item.unique_id}', '${displayName.replace(/'/g, "\\'")}')" class="bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5">
               <i class="fas fa-trash-can"></i> Hapus Poin
             </button>
           </div>
@@ -962,28 +909,34 @@
     });
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // RESET KUOTA
+  // ═══════════════════════════════════════════════════════════
   async function resetUserLimit(userUniqueId) {
     const { error } = await supabaseClient
       .from('system_input_max_mimic_sudoku')
-      .update({ input_left: 2 })
+      .update({ input_left: DEFAULT_QUOTA })
       .eq('user_unique_id', userUniqueId);
     if (error) alert("Gagal: " + error.message);
-    else alert("Kuota " + userUniqueId + " → 2");
+    else alert("Kuota " + userUniqueId + " → " + DEFAULT_QUOTA);
   }
 
   async function resetAllLimits() {
-    if (!confirm("Reset kuota SEMUA peserta ke 2?")) return;
+    if (!confirm(`Reset kuota SEMUA peserta ke ${DEFAULT_QUOTA}?`)) return;
     const { error } = await supabaseClient
       .from('system_input_max_mimic_sudoku')
-      .update({ input_left: 2 })
+      .update({ input_left: DEFAULT_QUOTA })
       .neq('user_unique_id', '');
     if (error) alert("Gagal: " + error.message);
     else alert("Berhasil!");
   }
 
-  function openDeleteModal(userUniqueId) {
-    userToDelete = userUniqueId;
-    document.getElementById('targetDeleteUser').textContent = userUniqueId;
+  // ═══════════════════════════════════════════════════════════
+  // MODAL HAPUS
+  // ═══════════════════════════════════════════════════════════
+  function openDeleteModal(uniqueId, displayName) {
+    userToDelete = uniqueId;
+    document.getElementById('targetDeleteUser').textContent = displayName || uniqueId;
     document.getElementById('deleteModal').classList.remove('hidden');
   }
 
@@ -999,15 +952,114 @@
     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Menghapus...`;
 
     const { error } = await supabaseClient
-      .from('game_scores')
+      .from('point_mimic_sudoku')
       .delete()
-      .eq('user_unique_id', userToDelete);
+      .eq('unique_id', userToDelete);
 
     btn.disabled = false;
     btn.innerHTML = `Ya, Hapus Poin`;
     closeDeleteModal();
     if (error) alert("Gagal: " + error.message);
     else fetchScores();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — HITUNG (belum kunci)
+  // ═══════════════════════════════════════════════════════════
+  async function executeComputeElimination() {
+    if (!confirm(
+      "Hitung 5 peserta terendah di Mimic Sudoku?\n\n" +
+      "• Peserta akan masuk daftar eliminasi\n" +
+      "• TAPI masih bisa main game\n" +
+      "• Klik 'Kunci Peserta' untuk freeze kiosk mereka"
+    )) return;
+
+    LOG.step('ELIM', 'Hitung eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('save_elimination', {
+      p_game_name: GAME_NAME,
+      p_count: 5
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data?.length || 0} peserta tereliminasi (belum kunci)`);
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) {
+      info.classList.remove('hidden');
+      if (data && data.length > 0) {
+        info.innerHTML = `
+          <div class="text-amber-400 font-bold mb-1">📋 Tereliminasi (belum kunci):</div>
+          ${data.map(d => `<div class="pl-2">• ${d.name} — ${Number(d.final_score).toFixed(2)} PTS</div>`).join('')}
+        `;
+      } else {
+        info.innerHTML = `<div class="text-slate-500">Tidak ada peserta yang dieliminasi (data kosong?).</div>`;
+      }
+    }
+
+    alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.\n\nMereka MASIH BISA main sampai Anda klik 'Kunci Peserta Tereliminasi'.`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — DEKLARASI (kunci)
+  // ═══════════════════════════════════════════════════════════
+  async function executeDeclareElimination() {
+    if (!confirm(
+      "🔒 KUNCI peserta yang tereliminasi?\n\n" +
+      "• Kiosk mereka akan freeze permanen\n" +
+      "• Tidak bisa ikut game berikutnya\n" +
+      "• Bisa di-undo kalau ada kesalahan"
+    )) return;
+
+    LOG.step('ELIM', 'Deklarasi eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('declare_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta dikunci`);
+    alert(`🔒 ${data} peserta telah dikunci.\n\nKiosk mereka akan freeze permanen.`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ ELIMINASI — UNDO
+  // ═══════════════════════════════════════════════════════════
+  async function executeUndoElimination() {
+    if (!confirm(
+      "Undo eliminasi Mimic Sudoku?\n\n" +
+      "• Semua peserta dibuka kembali\n" +
+      "• Data eliminasi dihapus\n" +
+      "• Kiosk mereka normal kembali"
+    )) return;
+
+    LOG.warn('ELIM', 'Undo eliminasi...');
+
+    const { data, error } = await supabaseClient.rpc('undo_elimination', {
+      p_game_name: GAME_NAME
+    });
+
+    if (error) {
+      LOG.error('ELIM', 'Gagal: ' + error.message);
+      alert('Gagal: ' + error.message);
+      return;
+    }
+
+    LOG.ok('ELIM', `${data} peserta di-unlock`);
+    alert(`✅ ${data} peserta dibuka kembali.`);
+
+    const info = document.getElementById('elimResultInfo');
+    if (info) info.classList.add('hidden');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1019,13 +1071,11 @@
 
     supabaseClient
       .channel('admin_mimic_all')
-      // ⭐ mimic_game_state → sumber utama timer
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'mimic_game_state' },
         (payload) => {
           if (payload.new) updateDatabaseUI(payload.new);
         })
-      // id=2,3 → kunci jawaban
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'system_mimic_sudoku' },
         (payload) => {
@@ -1033,11 +1083,14 @@
           const id = payload.new.id;
           if (id === 2 || id === 3) fetchLiveAnswer();
         })
-      // game_scores → refresh tabel
+      // ⭐ Listen ke point_mimic_sudoku
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'game_scores' },
+        { event: '*', schema: 'public', table: 'point_mimic_sudoku' },
         () => fetchScores())
-      // layout → view switcher
+      // ⭐ Listen ke elimination_history
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'elimination_history' },
+        () => fetchScores())
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'admin_layout_mimic_sudoku' },
         (payload) => {
@@ -1057,9 +1110,27 @@
         }
       });
 
-    // Fallback: polling jawaban tiap 3 detik
     setInterval(fetchLiveAnswer, 3000);
+    setInterval(fetchScores, 3000);
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSE ke window
+  // ═══════════════════════════════════════════════════════════
+  window.executeComputeElimination = executeComputeElimination;
+  window.executeDeclareElimination = executeDeclareElimination;
+  window.executeUndoElimination = executeUndoElimination;
+  window.switchStageView = switchStageView;
+  window.selectLevel = selectLevel;
+  window.executeGameStart = executeGameStart;
+  window.toggleFreeze = toggleFreeze;
+  window.manualResetControl = manualResetControl;
+  window.resetUserLimit = resetUserLimit;
+  window.resetAllLimits = resetAllLimits;
+  window.openDeleteModal = openDeleteModal;
+  window.closeDeleteModal = closeDeleteModal;
+  window.executeDeleteScore = executeDeleteScore;
+  window.fetchScores = fetchScores;
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -1070,7 +1141,6 @@
     selectLevel('level_1');
     renderRankButtons();
 
-    // ⭐ Baca state awal dari mimic_game_state
     const { data: stateRow } = await supabaseClient
       .from('mimic_game_state')
       .select('*')
