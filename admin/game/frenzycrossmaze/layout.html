@@ -317,7 +317,7 @@
     .player-card-h.rank-3 .player-points { color: #fb923c; }
 
     /* ═══════════════════════════════════════════════════════════
-       ELIMINATION — 10 KARTU GRID
+       ELIMINATION
        ═══════════════════════════════════════════════════════════ */
     @keyframes elimCardFadeIn {
       0% { opacity: 0; transform: translateY(30px) scale(0.9); }
@@ -417,11 +417,10 @@
   <main class="w-screen h-screen relative flex items-center justify-center overflow-hidden">
 
     <!-- VIEW 1: IDLE — Cross Maze Canvas -->
-    <div id="viewIdle" class="stage-view hidden-view absolute inset-0 overflow-hidden">
+    <div id="viewIdle" class="stage-view hidden-view fixed inset-0 overflow-hidden">
       <div class="absolute inset-0 scanlines z-50 pointer-events-none"></div>
 
-      <!-- Header -->
-      <header class="absolute top-0 left-0 right-0 z-20 text-center pt-4 flex flex-col items-center pointer-events-none">
+      <header class="absolute top-0 left-0 right-0 z-30 text-center pt-4 flex flex-col items-center pointer-events-none">
         <div class="flex items-center space-x-3 mb-1">
           <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase animate-pulse">
             DAY 2, GAME 2
@@ -434,20 +433,19 @@
         </h1>
       </header>
 
-      <!-- Main Arena (Canvas) -->
-      <div class="absolute inset-0 flex items-center justify-center px-4 pt-28 pb-24 z-10">
-        <div class="relative w-full max-w-4xl aspect-[16/9] md:aspect-[2/1] max-h-[60vh] rounded-xl neon-border overflow-hidden bg-slate-950/80 flex items-center justify-center shadow-2xl">
+      <div class="absolute inset-0 z-10 flex items-center justify-center px-4 pt-24 pb-24">
+        <div id="mazeWrapper" class="relative rounded-xl neon-border overflow-hidden bg-slate-950/80 shadow-2xl w-full"
+             style="max-width: 900px; height: 60vh;">
           <canvas id="mazeCanvas" class="absolute inset-0 w-full h-full"></canvas>
 
-          <!-- Center Yellow Point -->
-          <div id="centerPoint" class="absolute w-6 h-6 bg-yellow-400 rounded-full neon-yellow-glow transition-all duration-300 z-30 flex items-center justify-center" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
+          <div id="centerPoint" class="absolute w-6 h-6 bg-yellow-400 rounded-full neon-yellow-glow z-30 flex items-center justify-center"
+               style="top: 50%; left: 50%; transform: translate(-50%, -50%);">
             <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           </div>
         </div>
       </div>
 
-      <!-- Footer -->
-      <footer class="absolute bottom-6 left-0 right-0 z-20 flex flex-col items-center gap-3 px-4 pointer-events-none">
+      <footer class="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center gap-3 px-4 pointer-events-none">
         <div class="w-full max-w-md">
           <div class="bg-sky-950/60 border border-sky-800/60 px-4 py-2 rounded-lg text-center">
             <div class="font-vt text-sm md:text-base text-sky-400 tracking-wider">
@@ -513,7 +511,7 @@
       </div>
     </div>
 
-    <!-- VIEW 4: LEADERBOARD TOP 10 -->
+    <!-- VIEW 4: LEADERBOARD -->
     <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
       <div class="text-center mb-6">
         <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
@@ -545,7 +543,7 @@
       </div>
     </div>
 
-    <!-- VIEW 6: ELIMINATION -->
+    <!-- VIEW 6: ELIMINATION (10 kartu grid) -->
     <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
       <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
 
@@ -590,7 +588,7 @@
 
   const POINT_TABLE = 'point_frenzy_cross_maze';
   const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
-  const QUESTION_TABLE = 'system_frenzy_cross_maze_question';
+  const QUESTION_TABLE = 'system_frenzy_cross_math_question';
   const CURRENT_GAME_NAME = 'Frenzy Cross Maze';
 
   const LOADING_DURATION_SEC = 3;
@@ -767,7 +765,12 @@
 
   function resizeMazeCanvas() {
     if (!mazeCanvas) return;
-    const rect = mazeCanvas.parentElement.getBoundingClientRect();
+    const wrapper = document.getElementById('mazeWrapper') || mazeCanvas.parentElement;
+    const rect = wrapper.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      setTimeout(resizeMazeCanvas, 200);
+      return;
+    }
     mazeW = mazeCanvas.width = rect.width;
     mazeH = mazeCanvas.height = rect.height;
     generateMazeStructure();
@@ -779,16 +782,10 @@
     const rows = 5;
     const cellW = mazeW / cols;
     const cellH = mazeH / rows;
-
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if ((r + c) % 2 === 1) {
-          mazeWalls.push({
-            x: c * cellW + cellW * 0.1,
-            y: r * cellH + cellH * 0.1,
-            w: cellW * 0.8,
-            h: cellH * 0.8
-          });
+          mazeWalls.push({ x: c * cellW + cellW * 0.1, y: r * cellH + cellH * 0.1, w: cellW * 0.8, h: cellH * 0.8 });
         }
       }
     }
@@ -820,23 +817,17 @@
 
   function initMazeNumbers() {
     mazeNumbers = [];
-    for (let i = 0; i < 45; i++) {
-      mazeNumbers.push(new MazeNumber());
-    }
+    for (let i = 0; i < 45; i++) mazeNumbers.push(new MazeNumber());
   }
 
   function animateMazeLoop() {
     if (!mazeRunning || !mazeCtx) return;
     mazeCtx.clearRect(0, 0, mazeW, mazeH);
 
-    // Draw maze walls
     mazeCtx.strokeStyle = 'rgba(2, 132, 199, 0.18)';
     mazeCtx.lineWidth = 2;
-    mazeWalls.forEach(wall => {
-      mazeCtx.strokeRect(wall.x, wall.y, wall.w, wall.h);
-    });
+    mazeWalls.forEach(wall => mazeCtx.strokeRect(wall.x, wall.y, wall.w, wall.h));
 
-    // Cross lines
     mazeCtx.beginPath();
     mazeCtx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
     mazeCtx.lineWidth = 1;
@@ -844,12 +835,7 @@
     mazeCtx.moveTo(mazeW / 2, 0); mazeCtx.lineTo(mazeW / 2, mazeH);
     mazeCtx.stroke();
 
-    // Update + draw numbers
-    mazeNumbers.forEach(num => {
-      num.update();
-      num.draw();
-    });
-
+    mazeNumbers.forEach(num => { num.update(); num.draw(); });
     mazeAnimRafId = requestAnimationFrame(animateMazeLoop);
   }
 
@@ -953,10 +939,31 @@
   let lastViewSig = '';
 
   // ═══════════════════════════════════════════════════════════
+  // AVATARS
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAvatarMap(uniqueIds) {
+    if (!uniqueIds || uniqueIds.length === 0) return {};
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('unique_id, avatar_url')
+      .in('unique_id', uniqueIds);
+
+    if (error) { LOG.warn('AVATAR', 'Fetch error: ' + error.message); return {}; }
+
+    const map = {};
+    (data || []).forEach(u => { if (u.avatar_url) map[u.unique_id] = u.avatar_url; });
+    return map;
+  }
+
+  function getAvatarUrl(uniqueId, name) {
+    return cachedAvatars[uniqueId]
+      || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || uniqueId)}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // VIEW SWITCHER
   // ═══════════════════════════════════════════════════════════
   function showView(viewName) {
-    // Guard: skip kalau view sudah sama & elemen sudah active
     if (currentView === viewName) {
       const map = {
         idle: 'viewIdle',
@@ -990,12 +997,14 @@
       views[viewName].classList.add('active-view');
     }
 
-    const prevView = currentView;
     currentView = viewName;
     playBGM(viewName);
 
     if (viewName === 'idle') {
-      setTimeout(() => startMazeCanvas(), 100);
+      setTimeout(() => {
+        startMazeCanvas();
+        setTimeout(() => resizeMazeCanvas(), 500);
+      }, 100);
     } else {
       stopMazeCanvas();
     }
@@ -1006,7 +1015,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SHOW LOADING TRANSITION
+  // LOADING TRANSITION
   // ═══════════════════════════════════════════════════════════
   async function showLoadingTransition() {
     return new Promise((resolve) => {
@@ -1057,9 +1066,7 @@
         }
       }
 
-      if (remaining <= 0) {
-        stopSessionTimer();
-      }
+      if (remaining <= 0) stopSessionTimer();
     };
 
     tick();
@@ -1081,30 +1088,20 @@
       .channel('stage_frenzy_question')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: QUESTION_TABLE },
-        (payload) => {
-          if (payload.new) onQuestionUpdate(payload.new);
-        })
+        (payload) => { if (payload.new) onQuestionUpdate(payload.new); })
       .subscribe((status) => {
         LOG.info('SUB', `Question channel: ${status}`);
         if (status === 'SUBSCRIBED') fetchInitialQuestion();
       });
 
     setInterval(async () => {
-      const { data } = await supabaseClient
-        .from(QUESTION_TABLE)
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+      const { data } = await supabaseClient.from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
       if (data) onQuestionUpdate(data);
     }, 2000);
   }
 
   async function fetchInitialQuestion() {
-    const { data } = await supabaseClient
-      .from(QUESTION_TABLE)
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+    const { data } = await supabaseClient.from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
     if (data) onQuestionUpdate(data);
   }
 
@@ -1137,10 +1134,7 @@
 
     updateGameUI(row);
 
-    if (currentView !== 'game') {
-      showView('game');
-    }
-
+    if (currentView !== 'game') showView('game');
     startSessionTimer();
   }
 
@@ -1152,13 +1146,8 @@
 
     if (sessionNumEl) sessionNumEl.textContent = currentSessionIndex;
     if (sessionTotalEl) sessionTotalEl.textContent = row.total_sessions || 5;
-
-    if (questionEl) {
-      questionEl.textContent = row.question_text || row.puzzle_text || '--';
-    }
-    if (answerEl) {
-      answerEl.textContent = row.target_answer != null ? row.target_answer : '--';
-    }
+    if (questionEl) questionEl.textContent = row.question_text || row.puzzle_text || '--';
+    if (answerEl) answerEl.textContent = row.target_answer != null ? row.target_answer : '--';
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1169,25 +1158,18 @@
       .channel('stage_frenzy_layout')
       .on('postgres_changes',
         { event: '*', schema: 'public', table: LAYOUT_TABLE },
-        (payload) => {
-          if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
-        })
+        (payload) => { if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank); })
       .subscribe((status) => {
         LOG.info('SUB', `Layout channel: ${status}`);
       });
 
     setInterval(async () => {
-      const { data } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+      const { data } = await supabaseClient.from(LAYOUT_TABLE).select('*').eq('id', 1).maybeSingle();
       if (data) handleViewSwitch(data.current_view, data.revealed_rank);
     }, 2000);
   }
 
   function handleViewSwitch(viewName, revealedRank) {
-    // Guard: skip kalau sig sama
     const sig = `${viewName}|${revealedRank || 0}`;
     if (lastViewSig === sig) return;
     lastViewSig = sig;
@@ -1233,34 +1215,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH AVATARS
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAvatarMap(uniqueIds) {
-    if (!uniqueIds || uniqueIds.length === 0) return {};
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('unique_id, avatar_url')
-      .in('unique_id', uniqueIds);
-
-    if (error) {
-      LOG.warn('AVATAR', 'Fetch error: ' + error.message);
-      return {};
-    }
-
-    const map = {};
-    (data || []).forEach(u => {
-      if (u.avatar_url) map[u.unique_id] = u.avatar_url;
-    });
-    return map;
-  }
-
-  function getAvatarUrl(uniqueId, name) {
-    return cachedAvatars[uniqueId]
-      || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || uniqueId)}`;
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES (leaderboard)
+  // FETCH SCORES (Leaderboard)
   // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderScores(isAll) {
     const { data, error } = await supabaseClient
@@ -1268,10 +1223,7 @@
       .select('unique_id, name, point')
       .order('point', { ascending: false });
 
-    if (error || !data) {
-      LOG.error('STAGE', 'Fetch scores error', error);
-      return;
-    }
+    if (error || !data) { LOG.error('STAGE', 'Fetch scores error', error); return; }
 
     cachedScores = data.map(r => ({
       uid: r.name || r.unique_id,
@@ -1340,12 +1292,7 @@
       .select('unique_id, name, point')
       .order('point', { ascending: false });
 
-    if (error || !data) {
-      track.innerHTML = '<p class="text-rose-400 py-12 text-lg">Gagal memuat data</p>';
-      return;
-    }
-
-    if (data.length === 0) {
+    if (error || !data || data.length === 0) {
       track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Belum ada peserta.</p>';
       return;
     }
@@ -1353,7 +1300,7 @@
     const uniqueIds = data.map(d => d.unique_id);
     cachedAvatars = await fetchAvatarMap(uniqueIds);
 
-    const buildCards = () => data.map((p, idx) => {
+    const cardsHtml = data.map((p, idx) => {
       const rank = idx + 1;
       const avatar = getAvatarUrl(p.unique_id, p.name);
       let rankClass = '';
@@ -1378,19 +1325,17 @@
       `;
     }).join('');
 
-    const cardsHtml = buildCards();
     track.innerHTML = cardsHtml + cardsHtml;
 
-    const cardCount = data.length;
-    const totalWidth = cardCount * 220;
+    const totalWidth = data.length * 220;
     const durationSec = Math.max(60, totalWidth / 60);
     track.style.setProperty('--marquee-duration', `${durationSec}s`);
 
-    LOG.info('MARQUEE', `${cardCount} kartu, durasi ${durationSec.toFixed(1)}s`);
+    LOG.info('MARQUEE', `${data.length} kartu, durasi ${durationSec.toFixed(1)}s`);
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ELIMINATION
+  // ELIMINATION — 10 kartu grid
   // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderElimination() {
     const container = document.getElementById('eliminatedList');
@@ -1465,16 +1410,10 @@
     }
 
     const { data: layoutData } = await supabaseClient
-      .from(LAYOUT_TABLE)
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+      .from(LAYOUT_TABLE).select('*').eq('id', 1).maybeSingle();
 
     const { data: sessionData } = await supabaseClient
-      .from(QUESTION_TABLE)
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
+      .from(QUESTION_TABLE).select('*').eq('id', 1).maybeSingle();
 
     if (sessionData) onQuestionUpdate(sessionData);
 
