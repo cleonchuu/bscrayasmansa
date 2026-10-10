@@ -7,625 +7,1221 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;800;900&display=swap');
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@700;800;900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
 
-    html, body {
-      height: 100%; width: 100%;
-      overflow: hidden; margin: 0; padding: 0;
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            vt: ['VT323', 'monospace'],
+            mono: ['Share Tech Mono', 'monospace'],
+          },
+          colors: {
+            neonCyan: '#00f2fe',
+            neonMint: '#00ff87',
+            neonRose: '#ff2a6d',
+            cyberDark: '#030814',
+          }
+        }
+      }
     }
+  </script>
+
+  <style>
+    html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: #030712;
+      font-family: 'Poppins', sans-serif;
+      background-color: #030712;
       color: #fff;
     }
 
-    .font-math { font-family: 'Inter', sans-serif; }
-    .font-mono-code { font-family: 'Fira Code', monospace; }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+    .font-vt { font-family: 'VT323', monospace; }
 
-    .stage-view { transition: opacity 0.4s ease, transform 0.4s ease; }
+    .stage-view { transition: opacity 0.5s ease, transform 0.5s ease; }
     .stage-view.hidden-view {
       opacity: 0; transform: scale(0.96);
       pointer-events: none; visibility: hidden;
+      position: absolute; inset: 0;
     }
     .stage-view.active-view {
       opacity: 1; transform: scale(1);
-      visibility: visible;
-    }
-
-    /* CELL TYPES */
-    .cell-void {
-      background: #05080f;
-      border: 1px solid rgba(255,255,255,0.02);
-      border-radius: 4px;
-    }
-    .cell-op {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      color: #38bdf8;
-      font-family: 'Fira Code', monospace;
-      font-weight: 700;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cell-num-open {
-      background: #1e293b;
-      border: 1.5px solid #334155;
-      color: #fff;
-      font-weight: 800;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
-    .cell-num-hidden {
-      background: #1e1b4b;
-      border: 1.5px solid #4338ca;
-      color: #a5b4fc;
-      font-weight: 800;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 10px rgba(99,102,241,0.25);
-    }
-    .cell-goal {
-      background: #881337;
-      border: 2px solid #f43f5e;
-      color: #fff;
-      font-weight: 900;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 20px rgba(244,63,94,0.7);
-      animation: pulse-glow 2s infinite alternate;
-    }
-    @keyframes pulse-glow {
-      0% { transform: scale(1); }
-      100% { transform: scale(1.05); }
-    }
-
-    .session-dot {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      background: #334155;
-      border: 1px solid #475569;
-      transition: all 0.3s ease;
-    }
-    .session-dot.active {
-      background: #f43f5e;
-      border-color: #fb7185;
-      box-shadow: 0 0 10px rgba(244,63,94,0.6);
-      transform: scale(1.2);
-    }
-    .session-dot.done {
-      background: #10b981;
-      border-color: #34d399;
+      visibility: visible; position: relative;
     }
 
     .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.5); border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 10px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       ANIMATIONS
+       ═══════════════════════════════════════════════════════════ */
+    @keyframes cardZoomIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-card-pop { animation: cardZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    @keyframes pulseYellow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 25px #facc15, 0 0 50px #facc15; }
+      50% { transform: scale(1.05); box-shadow: 0 0 40px #facc15, 0 0 80px #facc15; }
+    }
+    .animate-yellow-pulse { animation: pulseYellow 1.5s ease-in-out infinite; }
+
+    @keyframes spinRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-ring {
+      border: 6px solid rgba(56, 189, 248, 0.2);
+      border-top: 6px solid #0ea5e9;
+      border-radius: 50%;
+      width: 80px; height: 80px;
+      animation: spinRing 1s linear infinite;
+    }
+
+    @keyframes loadingPulse {
+      0%, 100% { transform: scale(1); opacity: 0.4; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+    .loading-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #0ea5e9;
+      animation: loadingPulse 1s ease-in-out infinite;
+    }
+
+    /* Scanline overlay untuk idle */
+    .scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%,
+        rgba(0, 0, 0, 0.35) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 3px 100%;
+      pointer-events: none;
+    }
+
+    /* Glitch title */
+    .glitch-title {
+      position: relative;
+      display: inline-block;
+    }
+    .glitch-title::before, .glitch-title::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+    }
+    .glitch-title::before {
+      left: 2px;
+      text-shadow: -2px 0 #ff00c1;
+      clip: rect(24px, 550px, 90px, 0);
+      animation: glitch-anim 3s infinite linear alternate-reverse;
+    }
+    .glitch-title::after {
+      left: -2px;
+      text-shadow: -2px 0 #00fff9, 0 2px #ff00c1;
+      clip: rect(85px, 550px, 140px, 0);
+      animation: glitch-anim2 2.5s infinite linear alternate-reverse;
+    }
+    @keyframes glitch-anim {
+      0% { clip: rect(12px, 9999px, 44px, 0); }
+      20% { clip: rect(78px, 9999px, 92px, 0); }
+      40% { clip: rect(12px, 9999px, 60px, 0); }
+      60% { clip: rect(45px, 9999px, 80px, 0); }
+      80% { clip: rect(5px, 9999px, 30px, 0); }
+      100% { clip: rect(60px, 9999px, 99px, 0); }
+    }
+    @keyframes glitch-anim2 {
+      0% { clip: rect(50px, 9999px, 80px, 0); }
+      20% { clip: rect(10px, 9999px, 35px, 0); }
+      40% { clip: rect(65px, 9999px, 95px, 0); }
+      60% { clip: rect(20px, 9999px, 50px, 0); }
+      80% { clip: rect(80px, 9999px, 110px, 0); }
+      100% { clip: rect(30px, 9999px, 70px, 0); }
+    }
+
+    .neon-border {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
+      border: 2px solid #0284c7;
+    }
+
+    /* BGM Badge */
+    .bgm-badge {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      font-size: 10px; font-family: monospace;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #94a3b8;
+      z-index: 200;
+      pointer-events: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bgm-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.blocked { background: #f59e0b; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Audio unlock */
+    #audioUnlockOverlay {
+      position: fixed; inset: 0;
+      background: rgba(3, 8, 20, 0.94);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+    #audioUnlockOverlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    #audioUnlockOverlay .unlock-icon { animation: unlockBounce 1.6s ease-in-out infinite; }
+    @keyframes unlockBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.08); }
+    }
+
+    /* Idle canvas */
+    #idleCanvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+    #loadingCanvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Cross maze center point */
+    .center-point {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px; height: 24px;
+      background: #facc15;
+      border-radius: 50%;
+      box-shadow: 0 0 25px #facc15, 0 0 50px #facc15;
+      z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .center-point::after {
+      content: '';
+      width: 8px; height: 8px;
+      background: #ffffff;
+      border-radius: 50%;
+      animation: pulseSoft 1.5s ease-in-out infinite;
+    }
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
   </style>
 </head>
-<body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black select-none">
+<body class="h-screen w-screen flex overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-950 via-slate-950 to-black select-none">
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- LEFT SIDEBAR                                                -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <aside class="w-[280px] lg:w-[320px] flex-shrink-0 flex flex-col gap-4 p-4 lg:p-6 bg-slate-900/80 border-r border-slate-800 backdrop-blur-md z-20">
+  <!-- AUDIO -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
-    <!-- LOGO -->
-    <div class="flex items-center gap-3">
-      <div class="p-3 bg-rose-600/20 text-rose-400 rounded-2xl border border-rose-500/30">
-        <i class="fas fa-calculator text-2xl"></i>
-      </div>
+  <!-- AUDIO UNLOCK OVERLAY -->
+  <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
+    <div class="text-center space-y-6 px-8">
+      <div class="unlock-icon text-8xl">🔊</div>
       <div>
-        <h1 class="text-xl font-black tracking-wider text-white uppercase">FRENZY</h1>
-        <p class="text-xs text-rose-400 font-bold uppercase tracking-widest">CROSS MATH</p>
+        <h2 class="text-4xl font-black text-white mb-3 font-math">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+      </div>
+      <div class="inline-block bg-sky-500/10 border border-sky-500/30 text-sky-400 font-bold px-6 py-3 rounded-xl">
+        <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
       </div>
     </div>
+  </div>
 
-    <div class="border-t border-slate-800"></div>
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
+  </div>
 
-    <!-- SESSION INDICATOR -->
-    <div id="sessionIndicator" class="hidden flex-col gap-2 bg-rose-500/10 border border-rose-500/30 p-4 rounded-2xl">
-      <div class="flex items-center gap-2 text-rose-400">
-        <i class="fas fa-layer-group text-sm"></i>
-        <span class="text-[10px] font-bold uppercase tracking-widest">SESI BERJALAN</span>
-      </div>
-      <div id="sessionText" class="text-2xl font-black text-white font-mono-code">SESI 1 / 5</div>
-    </div>
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 1: IDLE — FRENZY CROSS MAZE
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewIdle" class="stage-view hidden-view absolute inset-0">
+    <div class="absolute inset-0 scanlines z-50"></div>
 
-    <!-- TIMER -->
-    <div class="bg-slate-950 border-2 border-emerald-500/40 p-4 rounded-2xl">
-      <div class="flex items-center gap-2 text-emerald-400 mb-2">
-        <i class="fas fa-stopwatch text-sm"></i>
-        <span class="text-[10px] font-bold uppercase tracking-widest">SISA WAKTU</span>
-      </div>
-      <div id="timerDisplay" class="text-5xl font-black text-emerald-400 font-mono-code tracking-wider">--:--</div>
-    </div>
+    <!-- Canvas untuk number particles -->
+    <canvas id="idleCanvas"></canvas>
 
-    <!-- STATUS -->
-    <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex-1 flex flex-col">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2 text-slate-400">
-          <i class="fas fa-info-circle text-sm"></i>
-          <span class="text-[10px] font-bold uppercase tracking-widest">STATUS</span>
-        </div>
-        <span id="statusBadge" class="text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5">Ready</span>
-      </div>
-      <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
+    <!-- Center point -->
+    <div class="center-point"></div>
 
-      <!-- ACTIVE INDICATOR -->
-      <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-auto">
-        <span class="relative flex h-2.5 w-2.5">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+    <!-- Header -->
+    <header class="absolute top-0 left-0 right-0 z-20 text-center mt-6 flex flex-col items-center pointer-events-none">
+      <div class="flex items-center space-x-3 mb-2">
+        <span class="px-3 py-1 bg-sky-950 border border-sky-500 text-sky-400 text-xs rounded tracking-widest uppercase animate-pulse">
+          Day 2, Game 2
         </span>
-        <span class="text-amber-400 font-bold text-xs tracking-widest uppercase">AKTIF</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs text-emerald-400 tracking-wider">SUPABASE REALTIME: STANDBY</span>
+      </div>
+      <h1 class="text-5xl md:text-7xl font-vt tracking-widest text-sky-300 glitch-title uppercase" data-text="Frenzy Cross Maze">
+        Frenzy Cross Maze
+      </h1>
+      <p class="text-sky-500 text-sm md:text-base mt-2 tracking-widest uppercase">Navigate · Calculate · Conquer</p>
+    </header>
+
+    <!-- Footer status -->
+    <footer class="absolute bottom-6 left-0 right-0 z-20 flex justify-center pointer-events-none">
+      <div class="bg-slate-950/80 backdrop-blur-md border border-sky-500/40 px-8 py-3.5 rounded-2xl flex items-center gap-4 shadow-[0_0_30px_rgba(56,189,248,0.3)]">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping"></span>
+        <span class="font-vt text-lg text-sky-300 tracking-widest">WAITING FOR ADMIN SIGNAL...</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 2: LOADING
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLoading" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+    <canvas id="loadingCanvas"></canvas>
+
+    <div class="relative z-10 flex flex-col items-center text-center px-6">
+      <div class="loading-ring mb-8"></div>
+      <h2 class="text-3xl md:text-4xl font-black font-math text-white tracking-wider mb-2">MEMPROSES DATA...</h2>
+      <p class="text-slate-400 text-sm mb-6">Menyiapkan arena Frenzy Cross Maze</p>
+      <div class="flex items-center gap-3 mb-8">
+        <div class="loading-dot" style="animation-delay: 0s"></div>
+        <div class="loading-dot" style="animation-delay: 0.2s"></div>
+        <div class="loading-dot" style="animation-delay: 0.4s"></div>
+      </div>
+      <div class="text-xs font-mono text-slate-500">
+        FASE PERSIAPAN: <span id="loadingCountdown" class="text-sky-400 font-bold">3</span> detik
       </div>
     </div>
+  </div>
 
-    <!-- SESSION DOTS -->
-    <div class="flex justify-center gap-2">
-      <span class="session-dot"></span>
-      <span class="session-dot"></span>
-      <span class="session-dot"></span>
-      <span class="session-dot"></span>
-      <span class="session-dot"></span>
-    </div>
-
-  </aside>
-
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- RIGHT AREA                                                  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <main class="flex-1 relative flex items-center justify-center overflow-hidden">
-
-    <!-- VIEW: GAME -->
-    <div id="viewGame" class="stage-view active-view absolute inset-0 flex items-center justify-center">
-      <div id="gridContainer" class="grid p-4"></div>
-    </div>
-
-    <!-- VIEW: LEADERBOARD -->
-    <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 3: GAME — SESI BERJALAN
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewGame" class="stage-view hidden-view absolute inset-0 flex items-center justify-center p-6">
+    <div class="w-full max-w-4xl">
+      <!-- Header -->
       <div class="text-center mb-6">
-        <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
-        <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-          <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT
-        </h2>
+        <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+          <i class="fas fa-fire"></i> FRENZY CROSS MAZE
+        </span>
+        <h1 class="text-5xl font-black text-white mt-4 font-vt tracking-wider">SESI <span id="stageSessionNum" class="text-rose-400">1</span>/<span id="stageSessionTotal">5</span></h1>
       </div>
-      <div id="stageLeaderboardGrid" class="w-full max-w-lg min-h-[400px] flex items-center justify-center">
-        <p class="text-slate-500 text-lg">Menunggu pengumuman...</p>
+
+      <!-- Timer -->
+      <div class="flex justify-center mb-6">
+        <div class="bg-slate-950 border-4 border-rose-500/60 rounded-3xl px-12 py-6 shadow-[0_0_60px_rgba(255,42,109,0.5)]">
+          <div class="text-xs text-slate-500 uppercase font-bold text-center mb-1">SISA WAKTU</div>
+          <div id="stageTimer" class="text-[80px] md:text-[120px] font-black font-mono text-rose-400 leading-none">--</div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-slate-900/80 border-2 border-sky-500/40 rounded-2xl p-6 text-center">
+          <div class="text-xs text-slate-500 uppercase font-bold mb-2">PERTANYAAN</div>
+          <div id="stageQuestion" class="text-4xl md:text-5xl font-black font-mono text-sky-400 leading-tight">--</div>
+        </div>
+        <div class="bg-slate-900/80 border-2 border-yellow-500/40 rounded-2xl p-6 text-center">
+          <div class="text-xs text-slate-500 uppercase font-bold mb-2">JAWABAN</div>
+          <div id="stageAnswer" class="text-4xl md:text-5xl font-black font-mono text-yellow-400 leading-tight">--</div>
+        </div>
+      </div>
+
+      <!-- Hint -->
+      <div class="text-center">
+        <span class="text-slate-500 text-sm font-mono tracking-widest">
+          <i class="fas fa-keyboard mr-1"></i> JAWAB DI KIOSK MASING-MASING
+        </span>
       </div>
     </div>
+  </div>
 
-    <!-- VIEW: ALL PLAYERS -->
-    <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center p-8 overflow-hidden">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE</span>
-        <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-          <i class="fas fa-users text-indigo-400"></i> SEMUA PESERTA
-        </h2>
-      </div>
-      <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2">
-        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-      </div>
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 4: LEADERBOARD TOP 10
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewLeaderboard" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-8">
+    <div class="text-center mb-6">
+      <span class="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">FINAL STANDINGS</span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
+        <i class="fas fa-trophy text-amber-400"></i> PAPAN PERINGKAT TOP 10
+      </h2>
     </div>
+    <div id="stageLeaderboardGrid" class="w-full max-w-lg min-h-[400px] flex items-center justify-center">
+      <p class="text-slate-500 text-lg">Menunggu pengumuman...</p>
+    </div>
+  </div>
 
-  </main>
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 5: ALL PLAYERS
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center p-8 overflow-hidden">
+    <div class="text-center mb-6">
+      <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE</span>
+      <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
+        <i class="fas fa-users text-indigo-400"></i> REKAP POIN
+      </h2>
+    </div>
+    <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2">
+      <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════
-    // SAFE HELPERS
-    // ═══════════════════════════════════════════════════════════
-    function safeSetText(id, text) {
-      const el = document.getElementById(id);
-      if (el) el.textContent = text;
-    }
-    function safeSetClass(id, className) {
-      const el = document.getElementById(id);
-      if (el) el.className = className;
-    }
-    function safeReplaceClass(id, from, to) {
-      const el = document.getElementById(id);
-      if (el) el.classList.replace(from, to);
-    }
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // LOGGER
+  // ═══════════════════════════════════════════════════════════
+  const DEBUG = true;
+  const LOG = {
+    ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
+    info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
+    warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
+    error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
+    step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+  };
 
-    // ═══════════════════════════════════════════════════════════
-    // LOGGER
-    // ═══════════════════════════════════════════════════════════
-    const DEBUG = true;
-    const LOG = {
-      ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
-      info:  (t, m, d) => DEBUG && console.log(`%c[${t}] ℹ️ ${m}`, 'color:#3b82f6;font-weight:bold', d ?? ''),
-      warn:  (t, m, d) => DEBUG && console.warn(`%c[${t}] ⚠️ ${m}`, 'color:#f59e0b;font-weight:bold', d ?? ''),
-      error: (t, m, d) => DEBUG && console.error(`%c[${t}] ❌ ${m}`, 'color:#ef4444;font-weight:bold', d ?? ''),
-      step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
+  // ═══════════════════════════════════════════════════════════
+  // KONFIGURASI
+  // ═══════════════════════════════════════════════════════════
+  const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
+  const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
+  const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+
+  const POINT_TABLE = 'point_frenzy_cross_maze';
+  const LAYOUT_TABLE = 'admin_layout_frenzy_cross_maze';
+
+  const LOADING_DURATION_SEC = 3;
+
+  let audioUnlocked = false;
+
+  // ═══════════════════════════════════════════════════════════
+  // BGM CONFIG
+  // ═══════════════════════════════════════════════════════════
+  const BGM = {
+    baseUrl: `${STORAGE_BASE_URL}/bgm/`,
+    tracks: {
+      idle:        'LOBBY.mp3',
+      loading:     'TEGANG.mp3',
+      game:        'TEGANG.mp3',
+      leaderboard: 'WINNER.mp3',
+      all_players: 'TENANG.mp3'
+    },
+    current: null,
+    player: null,
+    unlocked: false,
+    volume: 0.5,
+    pendingTrack: null
+  };
+
+  function initBGM() {
+    BGM.player = document.getElementById('bgmPlayer');
+    if (!BGM.player) return;
+
+    BGM.player.volume = BGM.volume;
+    BGM.player.loop = true;
+    BGM.player.src = BGM.baseUrl + BGM.tracks.idle;
+    BGM.current = 'idle';
+
+    BGM.player.play()
+      .then(() => { BGM.unlocked = true; updateBGMBadge('playing', 'idle'); })
+      .catch(() => { showUnlockOverlay(); updateBGMBadge('blocked', 'idle'); });
+
+    const unlock = () => {
+      if (BGM.unlocked) return;
+      BGM.unlocked = true;
+      const target = BGM.pendingTrack || BGM.current || 'idle';
+      BGM.pendingTrack = null;
+      BGM.player.src = BGM.baseUrl + BGM.tracks[target];
+      BGM.player.currentTime = 0;
+      BGM.current = target;
+      BGM.player.play().then(() => updateBGMBadge('playing', target)).catch(() => {});
+      hideUnlockOverlay();
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('keydown', unlock);
     };
 
-    // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI
-    // ═══════════════════════════════════════════════════════════
-    const SUPABASE_URL = "https://endlrberfaxqhjrpvoss.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    document.addEventListener('click', unlock);
+    document.addEventListener('touchstart', unlock);
+    document.addEventListener('keydown', unlock);
 
-    const STORAGE_BASE_URL = `${SUPABASE_URL}/storage/v1/object/public`;
-    const SOUND_BELL = `${STORAGE_BASE_URL}/sounds_effect/bell.mp3`;
-    const SOUND_BEEP = `${STORAGE_BASE_URL}/sounds_effect/beep.mp3`;
+    const overlay = document.getElementById('audioUnlockOverlay');
+    if (overlay) overlay.addEventListener('click', unlock);
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // AUDIO ENGINE
-    // ═══════════════════════════════════════════════════════════
-    class WebAudioEngine {
-      constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.cache = new Map();
-      }
-      async fetchAndCache(url) {
-        if (this.cache.has(url)) return this.cache.get(url);
-        try {
-          const res = await fetch(url);
-          const buf = await res.arrayBuffer();
-          const audio = await this.ctx.decodeAudioData(buf);
-          this.cache.set(url, audio);
-          return audio;
-        } catch (e) {
-          LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`, e.message);
-          return null;
-        }
-      }
-      async play(url) {
-        const buf = await this.fetchAndCache(url);
-        if (!buf) return;
-        if (this.ctx.state === 'suspended') await this.ctx.resume();
-        const src = this.ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(this.ctx.destination);
-        src.start(0);
-        LOG.info('AUDIO', `🔊 Playing: ${url.split('/').pop()}`);
-      }
+  function showUnlockOverlay() {
+    const el = document.getElementById('audioUnlockOverlay');
+    if (el) el.classList.remove('hidden');
+  }
+  function hideUnlockOverlay() {
+    const el = document.getElementById('audioUnlockOverlay');
+    if (el) el.classList.add('hidden');
+  }
+  function updateBGMBadge(status, trackName) {
+    const dot = document.getElementById('bgmDot');
+    const label = document.getElementById('bgmLabel');
+    if (dot) dot.className = 'dot ' + (status === 'playing' ? 'playing' : (status === 'blocked' ? 'blocked' : ''));
+    if (label) label.textContent = `BGM: ${trackName}`;
+  }
+
+  function playBGM(viewName) {
+    if (!BGM.player) return;
+    const filename = BGM.tracks[viewName];
+    if (!filename) return;
+    if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
+
+    if (!BGM.unlocked) {
+      BGM.pendingTrack = viewName;
+      BGM.current = viewName;
+      updateBGMBadge('blocked', viewName);
+      return;
     }
-    const audioEngine = new WebAudioEngine();
 
-    // ═══════════════════════════════════════════════════════════
-    // FRENZY LAYOUT — Pure Display
-    // Hanya baca dari Supabase dan render. TIDAK generate puzzle.
-    // ═══════════════════════════════════════════════════════════
-    class FrenzyLayout {
-      constructor() {
-        this.currentSession = 0;
-        this.totalSessions = 5;
-        this.sessionStartTime = null;
-        this.sessionDuration = 30;
-        this.currentPuzzle = null;
-        this.localTimer = null;
-        this.lastPuzzleSignature = '';
-      }
+    const newSrc = BGM.baseUrl + filename;
+    if (BGM.player.src === newSrc) { BGM.current = viewName; return; }
 
-      // ═══════════════════════════════════════════════════════
-      // SUBSCRIBE
-      // ═══════════════════════════════════════════════════════
-      subscribe() {
-        LOG.ok('INIT', '🎧 Subscribing ke system_frenzy_cross_math_question...');
+    BGM.current = viewName;
+    try { BGM.player.pause(); } catch (e) {}
+    BGM.player.src = newSrc;
+    BGM.player.currentTime = 0;
 
-        supabaseClient
-          .channel('layout_frenzy_puzzle')
-          .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'system_frenzy_cross_math_question'
-          }, (payload) => {
-            LOG.ok('RECV', '📡 Update dari admin');
-            if (payload.new) this.onPuzzleUpdate(payload.new);
-          })
-          .subscribe(async (status) => {
-            LOG.info('INIT', `Channel status: ${status}`);
-            if (status === 'SUBSCRIBED') {
-              LOG.ok('INIT', '✅ Subscribed. Fetch initial state...');
-              await this.fetchInitialState();
-            } else if (status === 'CHANNEL_ERROR') {
-              LOG.error('INIT', '❌ Gagal subscribe! Cek Realtime di Supabase.');
-            }
-          });
-      }
-
-      async fetchInitialState() {
-        const { data, error } = await supabaseClient
-          .from('system_frenzy_cross_math_question')
-          .select('*')
-          .eq('id', 1)
-          .maybeSingle();
-
-        if (error) { LOG.error('INIT', 'Fetch error', error); return; }
-        if (data) {
-          LOG.ok('INIT', `Initial state: sesi ${data.session_index}/${data.total_sessions}`);
-          this.onPuzzleUpdate(data);
-        }
-      }
-
-      // ═══════════════════════════════════════════════════════
-      // ON PUZZLE UPDATE
-      // ═══════════════════════════════════════════════════════
-      onPuzzleUpdate(row) {
-        // Skip kalau sesi 0 (idle) → reset display
-        if (!row.session_index || row.session_index === 0) {
-          LOG.info('LAYOUT', 'Idle state (sesi 0). Reset display.');
-          this.resetDisplay();
-          return;
-        }
-
-        // Buat signature unik untuk deteksi perubahan
-        const sig = `${row.session_index}|${row.updated_at}`;
-        if (sig === this.lastPuzzleSignature) {
-          LOG.info('LAYOUT', 'Signature sama, skip re-render.');
-          return;
-        }
-
-        const isNewSession = row.session_index !== this.currentSession;
-        this.lastPuzzleSignature = sig;
-        this.currentSession = row.session_index;
-        this.totalSessions = row.total_sessions || 5;
-        this.sessionStartTime = row.session_start_time;
-        this.sessionDuration = row.session_duration || 30;
-        this.currentPuzzle = row.puzzle_json;
-
-        LOG.ok('LAYOUT', `🎬 Sesi ${this.currentSession}/${this.totalSessions} diterima`);
-        LOG.info('LAYOUT', `Jawaban: ${row.target_answer}, Duration: ${this.sessionDuration}s`);
-
-        // Sound: bell saat sesi baru (kecuali sesi 1), beep saat sesi terakhir
-        if (isNewSession) {
-          if (row.session_index === row.total_sessions) {
-            LOG.info('AUDIO', '🔕 Beep (sesi terakhir)');
-            audioEngine.play(SOUND_BEEP);
-          } else if (row.session_index > 1) {
-            LOG.info('AUDIO', '🔔 Bell (sesi baru)');
-            audioEngine.play(SOUND_BELL);
-          } else {
-            // Sesi 1 → bell juga (mulai game)
-            LOG.info('AUDIO', '🔔 Bell (sesi 1 dimulai)');
-            audioEngine.play(SOUND_BELL);
-          }
-        }
-
-        // Render grid
-        if (row.puzzle_json && row.puzzle_json.grid) {
-          this.renderGrid(row.puzzle_json.grid);
-        }
-
-        // Update UI
-        this.updateSessionUI();
-        this.startLocalTimer();
-      }
-
-      // ═══════════════════════════════════════════════════════
-      // UPDATE UI
-      // ═══════════════════════════════════════════════════════
-      updateSessionUI() {
-        safeSetText('sessionText', `SESI ${this.currentSession} / ${this.totalSessions}`);
-        safeReplaceClass('sessionIndicator', 'hidden', 'flex');
-        safeReplaceClass('repeatIndicator', 'hidden', 'flex');
-        safeSetText('stageStatus', `SESI ${this.currentSession} BERJALAN`);
-        safeSetText('statusBadge', 'ACTIVE');
-        safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20');
-
-        // Session dots
-        document.querySelectorAll('.session-dot').forEach((dot, idx) => {
-          dot.classList.remove('active', 'done');
-          const sessionNum = idx + 1;
-          if (sessionNum < this.currentSession) dot.classList.add('done');
-          else if (sessionNum === this.currentSession) dot.classList.add('active');
+    setTimeout(() => {
+      BGM.player.load();
+      BGM.player.play()
+        .then(() => updateBGMBadge('playing', viewName))
+        .catch(() => {
+          updateBGMBadge('blocked', viewName);
+          BGM.pendingTrack = viewName;
+          BGM.unlocked = false;
+          showUnlockOverlay();
         });
+    }, 80);
+  }
+
+  function unlockAudio() {
+    audioUnlocked = true;
+    BGM.unlocked = true;
+    hideUnlockOverlay();
+    const target = BGM.pendingTrack || BGM.current || 'idle';
+    BGM.pendingTrack = null;
+    BGM.current = null;
+    playBGM(target);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // AUDIO ENGINE (SFX)
+  // ═══════════════════════════════════════════════════════════
+  class WebAudioEngine {
+    constructor() {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.cache = new Map();
+    }
+    async fetchAndCache(url) {
+      if (this.cache.has(url)) return this.cache.get(url);
+      try {
+        const res = await fetch(url);
+        const buf = await res.arrayBuffer();
+        const audio = await this.ctx.decodeAudioData(buf);
+        this.cache.set(url, audio);
+        return audio;
+      } catch (e) {
+        LOG.warn('AUDIO', `Gagal load ${url.split('/').pop()}`);
+        return null;
       }
+    }
+    async play(url) {
+      const buf = await this.fetchAndCache(url);
+      if (!buf) return;
+      if (this.ctx.state === 'suspended') await this.ctx.resume();
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.ctx.destination);
+      src.start(0);
+    }
+  }
+  const audioEngine = new WebAudioEngine();
 
-      // ═══════════════════════════════════════════════════════
-      // LOCAL TIMER (dihitung dari sessionStartTime)
-      // ═══════════════════════════════════════════════════════
-      startLocalTimer() {
-        if (this.localTimer) clearInterval(this.localTimer);
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ IDLE CANVAS — CROSS MAZE + WALKING NUMBERS
+  // ═══════════════════════════════════════════════════════════
+  const idleCanvas = document.getElementById('idleCanvas');
+  const idleCtx = idleCanvas ? idleCanvas.getContext('2d') : null;
 
-        const tick = () => {
-          if (!this.sessionStartTime) return;
-          const elapsed = (Date.now() - this.sessionStartTime) / 1000;
-          const remaining = Math.max(0, this.sessionDuration - elapsed);
-          const m = Math.floor(remaining / 60);
-          const s = Math.floor(remaining) % 60;
-          safeSetText('timerDisplay', `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-          if (remaining <= 0) clearInterval(this.localTimer);
-        };
+  let idleW, idleH;
+  let idleRunning = false;
+  let idleRafId = null;
+  let idleNumbers = [];
+  let idleMazeWalls = [];
 
-        tick();
-        this.localTimer = setInterval(tick, 100);
-      }
+  function resizeIdleCanvas() {
+    if (!idleCanvas) return;
+    idleW = idleCanvas.width = window.innerWidth;
+    idleH = idleCanvas.height = window.innerHeight;
+    generateIdleMazeStructure();
+  }
 
-      // ═══════════════════════════════════════════════════════
-      // RENDER GRID
-      // ═══════════════════════════════════════════════════════
-      renderGrid(grid) {
-        if (!grid || !grid.length) return;
-        const container = document.getElementById('gridContainer');
-        if (!container) return;
+  function generateIdleMazeStructure() {
+    idleMazeWalls = [];
+    const cols = 10;
+    const rows = 6;
+    const cellW = idleW / cols;
+    const cellH = idleH / rows;
 
-        const size = grid.length;
-
-        // Auto cell size
-        const sidebar = document.querySelector('aside');
-        const sidebarW = sidebar ? sidebar.offsetWidth : 320;
-        const availW = window.innerWidth - sidebarW - 48;
-        const availH = window.innerHeight - 48;
-        const cellSize = Math.max(12, Math.floor(Math.min(availW, availH) / size) - 2);
-
-        container.style.gridTemplateColumns = `repeat(${size}, ${cellSize}px)`;
-        container.style.gridTemplateRows = `repeat(${size}, ${cellSize}px)`;
-        container.style.gap = '2px';
-        container.innerHTML = '';
-
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            const node = grid[r][c];
-            const div = document.createElement('div');
-            div.style.width = cellSize + 'px';
-            div.style.height = cellSize + 'px';
-            div.style.fontSize = Math.max(8, Math.floor(cellSize * 0.55)) + 'px';
-            div.className = "transition-all select-none";
-
-            if (node.type === 'void') div.className += " cell-void";
-            else if (node.type === 'operator') { div.className += " cell-op"; div.textContent = node.val; }
-            else if (node.type === 'number') {
-              if (node.isTarget) { div.className += " cell-goal"; div.textContent = "GOAL"; }
-              else if (node.isHidden) { div.className += " cell-num-hidden"; div.textContent = "?"; }
-              else { div.className += " cell-num-open"; div.textContent = node.val; }
-            }
-            container.appendChild(div);
-          }
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if ((r + c) % 2 === 1) {
+          idleMazeWalls.push({
+            x: c * cellW + cellW * 0.1,
+            y: r * cellH + cellH * 0.1,
+            w: cellW * 0.8,
+            h: cellH * 0.8
+          });
         }
-        LOG.ok('RENDER', `Grid ${size}×${size} dirender (cell=${cellSize}px)`);
-      }
-
-      // ═══════════════════════════════════════════════════════
-      // RESET DISPLAY
-      // ═══════════════════════════════════════════════════════
-      resetDisplay() {
-        LOG.warn('LAYOUT', 'Reset display');
-        this.currentSession = 0;
-        this.currentPuzzle = null;
-        this.sessionStartTime = null;
-        this.lastPuzzleSignature = '';
-        if (this.localTimer) clearInterval(this.localTimer);
-
-        safeReplaceClass('sessionIndicator', 'flex', 'hidden');
-        safeReplaceClass('repeatIndicator', 'flex', 'hidden');
-        safeSetText('stageStatus', 'MENUNGGU SINYAL ADMIN...');
-        safeSetText('statusBadge', 'Ready');
-        safeSetClass('statusBadge', 'text-[10px] px-2 py-0.5 rounded font-mono bg-slate-800 text-gray-400 border border-white/5');
-        safeSetText('timerDisplay', '--:--');
-
-        const container = document.getElementById('gridContainer');
-        if (container) container.innerHTML = '';
-
-        document.querySelectorAll('.session-dot').forEach(d => d.classList.remove('active', 'done'));
       }
     }
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // VIEW SWITCHER
-    // ═══════════════════════════════════════════════════════════
-    let cachedScores = [];
-    let lastRevealedRank = -1;
-
-    function handleViewSwitch(viewName, rank) {
-      ['viewGame', 'viewLeaderboard', 'viewAllPlayers'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.classList.add('hidden-view');
-        el.classList.remove('active-view');
-      });
-
-      if (viewName === 'leaderboard') {
-        const v = document.getElementById('viewLeaderboard');
-        if (v) { v.classList.remove('hidden-view'); v.classList.add('active-view'); }
-        if (rank !== lastRevealedRank) { lastRevealedRank = rank; fetchAndRenderScores(false, rank); }
-      } else if (viewName === 'all_players') {
-        const v = document.getElementById('viewAllPlayers');
-        if (v) { v.classList.remove('hidden-view'); v.classList.add('active-view'); }
-        lastRevealedRank = -1;
-        fetchAndRenderScores(true);
-      } else {
-        const v = document.getElementById('viewGame');
-        if (v) { v.classList.remove('hidden-view'); v.classList.add('active-view'); }
-        lastRevealedRank = -1;
-      }
+  class IdleNumber {
+    constructor() { this.reset(); }
+    reset() {
+      this.value = Math.floor(Math.random() * 10);
+      this.x = Math.random() * idleW;
+      this.y = Math.random() * idleH;
+      this.vx = (Math.random() - 0.5) * 1.2;
+      this.vy = (Math.random() - 0.5) * 1.2;
+      this.size = Math.floor(Math.random() * 8) + 14;
+      this.color = Math.random() > 0.5 ? '#38bdf8' : '#0ea5e9';
     }
-
-    async function fetchAndRenderScores(isAll, rank) {
-      const { data } = await supabaseClient.from('game_scores')
-        .select('user_unique_id, score_obtained, game_name')
-        .eq('game_name', 'Frenzy Cross Maze');
-      if (!data) return;
-      let map = {};
-      data.forEach(r => {
-        const u = r.user_unique_id || 'Tanpa Nama';
-        map[u] = (map[u] || 0) + (r.score_obtained || 0);
-      });
-      cachedScores = Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a, b) => b.total - a.total);
-      if (isAll) renderAllPlayers(); else renderLeaderboard(rank);
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.x < 10 || this.x > idleW - 10) this.vx *= -1;
+      if (this.y < 10 || this.y > idleH - 10) this.vy *= -1;
     }
-
-    function renderLeaderboard(rank) {
-      const c = document.getElementById('stageLeaderboardGrid');
-      if (!c) return;
-      if (!rank || rank === 0 || cachedScores.length === 0) {
-        c.innerHTML = `<p class="text-slate-500 text-lg">Siap-siap... Pengumuman Pemenang!</p>`; return;
-      }
-      const p = cachedScores[rank - 1];
-      if (!p) { c.innerHTML = `<p class="text-slate-400">Belum ada data #${rank}</p>`; return; }
-      const av = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
-      c.innerHTML = `
-        <div class="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
-          <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${rank}</div>
-          <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${av}" class="w-full h-full object-contain"/></div>
-          <h3 class="text-3xl font-black">${p.uid}</h3>
-          <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${Math.round(p.total)} PTS</div>
-        </div>`;
+    draw() {
+      if (!idleCtx) return;
+      idleCtx.fillStyle = this.color;
+      idleCtx.font = `${this.size}px 'VT323', monospace`;
+      idleCtx.globalAlpha = 0.85;
+      idleCtx.shadowBlur = 8;
+      idleCtx.shadowColor = this.color;
+      idleCtx.fillText(this.value, this.x, this.y);
+      idleCtx.globalAlpha = 1.0;
+      idleCtx.shadowBlur = 0;
     }
+  }
 
-    function renderAllPlayers() {
-      const c = document.getElementById('allPlayersGrid');
-      if (!c) return;
-      c.innerHTML = '';
-      cachedScores.forEach((it, idx) => {
-        const d = document.createElement('div');
-        d.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex justify-between';
-        d.innerHTML = `<span class="text-sm font-semibold">#${idx+1} ${it.uid}</span><span class="text-sm font-mono font-bold text-indigo-400">+${Math.round(it.total)} PTS</span>`;
-        c.appendChild(d);
-      });
+  function initIdleNumbers() {
+    idleNumbers = [];
+    for (let i = 0; i < 45; i++) {
+      idleNumbers.push(new IdleNumber());
     }
+  }
 
-    // ═══════════════════════════════════════════════════════════
-    // INIT
-    // ═══════════════════════════════════════════════════════════
-    const layout = new FrenzyLayout();
-    layout.subscribe();
+  function drawIdleFrame() {
+    if (!idleCtx) return;
+    idleCtx.clearRect(0, 0, idleW, idleH);
 
-    // Resize handler
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        if (layout.currentPuzzle && layout.currentPuzzle.grid) {
-          layout.renderGrid(layout.currentPuzzle.grid);
-        }
-      }, 200);
+    // Draw maze walls (subtle)
+    idleCtx.strokeStyle = 'rgba(2, 132, 199, 0.18)';
+    idleCtx.lineWidth = 2;
+    idleMazeWalls.forEach(wall => {
+      idleCtx.strokeRect(wall.x, wall.y, wall.w, wall.h);
     });
 
-    // Subscribe ke layout control (view switcher)
-    supabaseClient.channel('stage_layout_remote')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'admin_layout_frenzy_cross_math'
-      }, (p) => {
-        if (p.new) {
-          LOG.info('VIEW', `Layout: ${p.new.current_view}`);
-          handleViewSwitch(p.new.current_view, p.new.revealed_rank);
+    // Cross lines
+    idleCtx.beginPath();
+    idleCtx.strokeStyle = 'rgba(56, 189, 248, 0.07)';
+    idleCtx.lineWidth = 1;
+    idleCtx.moveTo(0, idleH / 2);
+    idleCtx.lineTo(idleW, idleH / 2);
+    idleCtx.moveTo(idleW / 2, 0);
+    idleCtx.lineTo(idleW / 2, idleH);
+    idleCtx.stroke();
+
+    // Update + draw numbers
+    idleNumbers.forEach(num => {
+      num.update();
+      num.draw();
+    });
+  }
+
+  function startIdleCanvas() {
+    if (idleRunning || !idleCtx) return;
+    idleRunning = true;
+    resizeIdleCanvas();
+    if (idleNumbers.length === 0) initIdleNumbers();
+
+    const loop = () => {
+      if (!idleRunning) return;
+      drawIdleFrame();
+      idleRafId = requestAnimationFrame(loop);
+    };
+    loop();
+    LOG.info('IDLE', '🎬 Idle canvas started');
+  }
+
+  function stopIdleCanvas() {
+    idleRunning = false;
+    if (idleRafId) cancelAnimationFrame(idleRafId);
+    idleRafId = null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ LOADING CANVAS — WIND PARTICLES
+  // ═══════════════════════════════════════════════════════════
+  const loadingCanvas = document.getElementById('loadingCanvas');
+  const loadingCtx = loadingCanvas ? loadingCanvas.getContext('2d') : null;
+
+  let lcW, lcH;
+  let lcRunning = false;
+  let lcRafId = null;
+  let lcParticles = [];
+
+  function resizeLoadingCanvas() {
+    if (!loadingCanvas) return;
+    lcW = loadingCanvas.width = window.innerWidth;
+    lcH = loadingCanvas.height = window.innerHeight;
+  }
+
+  function initLoadingParticles() {
+    lcParticles = [];
+    for (let i = 0; i < 40; i++) {
+      lcParticles.push({
+        x: Math.random() * lcW,
+        y: Math.random() * lcH,
+        length: Math.random() * 150 + 80,
+        speed: Math.random() * 20 + 12,
+        opacity: Math.random() * 0.35 + 0.1,
+        thickness: Math.random() * 2 + 0.5
+      });
+    }
+  }
+
+  function startLoadingCanvas() {
+    if (lcRunning || !loadingCtx) return;
+    lcRunning = true;
+    resizeLoadingCanvas();
+    if (lcParticles.length === 0) initLoadingParticles();
+
+    const loop = () => {
+      if (!lcRunning || !loadingCtx) return;
+      loadingCtx.fillStyle = 'rgba(3, 8, 20, 0.15)';
+      loadingCtx.fillRect(0, 0, lcW, lcH);
+
+      lcParticles.forEach(p => {
+        p.x += p.speed;
+        if (p.x > lcW + 200) p.x = -200;
+
+        loadingCtx.beginPath();
+        const grad = loadingCtx.createLinearGradient(p.x, p.y, p.x - p.length, p.y);
+        grad.addColorStop(0, `rgba(56, 189, 248, ${p.opacity})`);
+        grad.addColorStop(0.5, `rgba(14, 165, 233, ${p.opacity * 0.5})`);
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        loadingCtx.strokeStyle = grad;
+        loadingCtx.lineWidth = p.thickness;
+        loadingCtx.moveTo(p.x, p.y);
+        loadingCtx.lineTo(p.x - p.length, p.y);
+        loadingCtx.stroke();
+      });
+
+      lcRafId = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  function stopLoadingCanvas() {
+    lcRunning = false;
+    if (lcRafId) cancelAnimationFrame(lcRafId);
+    lcRafId = null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let currentView = 'idle';
+  let currentSessionIndex = 0;
+  let currentSessionStartTime = null;
+  let currentSessionDuration = 30;
+  let currentQuestionSig = '';
+  let sessionTimerInterval = null;
+  let cachedScores = [];
+  let currentRevealedRank = -1;
+  let lastRevealedRank = -1;
+  let autoScrollInterval = null;
+  let isLoading = false;
+
+  // ═══════════════════════════════════════════════════════════
+  // VIEW SWITCHER
+  // ═══════════════════════════════════════════════════════════
+  function showView(viewName) {
+    const views = {
+      idle: document.getElementById('viewIdle'),
+      loading: document.getElementById('viewLoading'),
+      game: document.getElementById('viewGame'),
+      leaderboard: document.getElementById('viewLeaderboard'),
+      all_players: document.getElementById('viewAllPlayers')
+    };
+
+    Object.values(views).forEach(v => {
+      if (!v) return;
+      v.classList.add('hidden-view');
+      v.classList.remove('active-view');
+    });
+
+    if (views[viewName]) {
+      views[viewName].classList.remove('hidden-view');
+      views[viewName].classList.add('active-view');
+    }
+
+    currentView = viewName;
+    playBGM(viewName);
+
+    // Stop idle canvas kalau bukan idle
+    if (viewName !== 'idle') {
+      stopIdleCanvas();
+    } else {
+      setTimeout(() => startIdleCanvas(), 100);
+    }
+
+    // Stop loading canvas kalau bukan loading
+    if (viewName !== 'loading') {
+      stopLoadingCanvas();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ SHOW LOADING TRANSITION
+  // ═══════════════════════════════════════════════════════════
+  async function showLoadingTransition() {
+    return new Promise((resolve) => {
+      isLoading = true;
+      showView('loading');
+      startLoadingCanvas();
+
+      let countdown = LOADING_DURATION_SEC;
+      const countdownEl = document.getElementById('loadingCountdown');
+      if (countdownEl) countdownEl.textContent = countdown;
+
+      const tick = setInterval(() => {
+        countdown--;
+        if (countdownEl) countdownEl.textContent = Math.max(0, countdown);
+
+        if (countdown <= 0) {
+          clearInterval(tick);
+          stopLoadingCanvas();
+          isLoading = false;
+          resolve();
         }
-      })
-      .subscribe();
+      }, 1000);
+    });
+  }
 
-    // Initial layout
-    (async () => {
+  // ═══════════════════════════════════════════════════════════
+  // SESSION TIMER
+  // ═══════════════════════════════════════════════════════════
+  function startSessionTimer() {
+    stopSessionTimer();
+    if (!currentSessionStartTime || currentSessionIndex === 0) return;
+
+    const startMs = new Date(currentSessionStartTime).getTime();
+
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startMs) / 1000);
+      const remaining = Math.max(0, currentSessionDuration - elapsed);
+
+      const timerEl = document.getElementById('stageTimer');
+      if (timerEl) {
+        timerEl.textContent = remaining;
+        if (remaining <= 5) {
+          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-rose-500 leading-none animate-pulse';
+        } else if (remaining <= 10) {
+          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-amber-400 leading-none';
+        } else {
+          timerEl.className = 'text-[80px] md:text-[120px] font-black font-mono text-rose-400 leading-none';
+        }
+      }
+
+      if (remaining <= 0) {
+        stopSessionTimer();
+      }
+    };
+
+    tick();
+    sessionTimerInterval = setInterval(tick, 500);
+  }
+
+  function stopSessionTimer() {
+    if (sessionTimerInterval) {
+      clearInterval(sessionTimerInterval);
+      sessionTimerInterval = null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SUBSCRIBE QUESTION (system_frenzy_cross_math_question)
+  // ═══════════════════════════════════════════════════════════
+  function subscribeQuestion() {
+    supabaseClient
+      .channel('stage_frenzy_question')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'system_frenzy_cross_math_question' },
+        (payload) => {
+          if (payload.new) onQuestionUpdate(payload.new);
+        })
+      .subscribe((status) => {
+        LOG.info('SUB', `Question channel: ${status}`);
+        if (status === 'SUBSCRIBED') fetchInitialQuestion();
+      });
+
+    // Polling fallback
+    setInterval(async () => {
       const { data } = await supabaseClient
-        .from('admin_layout_frenzy_cross_math').select('*').eq('id', 1).maybeSingle();
-      if (data) handleViewSwitch(data.current_view, data.revealed_rank);
-    })();
+        .from('system_frenzy_cross_math_question')
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+      if (data) onQuestionUpdate(data);
+    }, 2000);
+  }
 
-    LOG.ok('INIT', '══════════ LAYOUT READY ══════════');
-  </script>
+  async function fetchInitialQuestion() {
+    const { data } = await supabaseClient
+      .from('system_frenzy_cross_math_question')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (data) onQuestionUpdate(data);
+  }
+
+  async function onQuestionUpdate(row) {
+    const sig = `${row.session_index}|${row.updated_at}|${row.target_answer}`;
+    if (sig === currentQuestionSig) return;
+    currentQuestionSig = sig;
+
+    const prevSession = currentSessionIndex;
+    currentSessionIndex = row.session_index || 0;
+    currentSessionStartTime = row.session_start_time;
+    currentSessionDuration = row.session_duration || 30;
+
+    LOG.info('Q', `Session ${currentSessionIndex}/${row.total_sessions}, answer: ${row.target_answer}`);
+
+    // Kalau session 0 → idle
+    if (currentSessionIndex === 0) {
+      stopSessionTimer();
+      showView('idle');
+      return;
+    }
+
+    // Kalau sesi baru → loading transition + show game
+    if (prevSession !== currentSessionIndex) {
+      LOG.ok('SESSION', `▶ New session: ${currentSessionIndex}`);
+      audioEngine.play(SOUND_BELL);
+
+      // Kalau masih di idle, tampilkan loading dulu
+      if (currentView === 'idle' || currentView === 'loading') {
+        await showLoadingTransition();
+      }
+    }
+
+    // Update UI game
+    updateGameUI(row);
+
+    // Kalau bukan view game, tampilkan
+    if (currentView !== 'game') {
+      showView('game');
+    }
+
+    startSessionTimer();
+  }
+
+  function updateGameUI(row) {
+    const sessionNumEl = document.getElementById('stageSessionNum');
+    const sessionTotalEl = document.getElementById('stageSessionTotal');
+    const questionEl = document.getElementById('stageQuestion');
+    const answerEl = document.getElementById('stageAnswer');
+
+    if (sessionNumEl) sessionNumEl.textContent = currentSessionIndex;
+    if (sessionTotalEl) sessionTotalEl.textContent = row.total_sessions || 5;
+
+    if (questionEl) {
+      questionEl.textContent = row.question_text || row.puzzle_text || '--';
+    }
+    if (answerEl) {
+      answerEl.textContent = row.target_answer != null ? row.target_answer : '--';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SUBSCRIBE LAYOUT (admin_layout_frenzy_cross_maze)
+  // ═══════════════════════════════════════════════════════════
+  function subscribeLayout() {
+    supabaseClient
+      .channel('stage_frenzy_layout')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: LAYOUT_TABLE },
+        (payload) => {
+          if (payload.new) handleViewSwitch(payload.new.current_view, payload.new.revealed_rank);
+        })
+      .subscribe((status) => {
+        LOG.info('SUB', `Layout channel: ${status}`);
+      });
+
+    setInterval(async () => {
+      const { data } = await supabaseClient
+        .from(LAYOUT_TABLE)
+        .select('*')
+        .eq('id', 1)
+        .maybeSingle();
+      if (data) handleViewSwitch(data.current_view, data.revealed_rank);
+    }, 2000);
+  }
+
+  function handleViewSwitch(viewName, revealedRank) {
+    // Kalau view = game, tapi session = 0, balik ke idle
+    if (viewName === 'game' && currentSessionIndex === 0) {
+      showView('idle');
+      return;
+    }
+
+    if (viewName === 'idle') {
+      showView('idle');
+      lastRevealedRank = -1;
+      return;
+    }
+
+    if (viewName === 'game') {
+      if (currentView !== 'game') {
+        showView('game');
+        startSessionTimer();
+      }
+      lastRevealedRank = -1;
+      return;
+    }
+
+    stopAutoScroll();
+    const newRank = revealedRank || 0;
+
+    if (viewName === 'leaderboard') {
+      showView('leaderboard');
+      if (newRank !== lastRevealedRank) {
+        currentRevealedRank = newRank;
+        lastRevealedRank = newRank;
+        fetchAndRenderScores(false);
+      }
+    } else if (viewName === 'all_players') {
+      showView('all_players');
+      lastRevealedRank = -1;
+      fetchAndRenderScores(true);
+      setTimeout(startAutoScroll, 500);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FETCH SCORES — dari point_frenzy_cross_maze
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAndRenderScores(isAll) {
+    const { data, error } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
+
+    if (error || !data) {
+      LOG.error('STAGE', 'Fetch scores error', error);
+      return;
+    }
+
+    cachedScores = data.map(r => ({
+      uid: r.name || r.unique_id,
+      total: Number(r.point) || 0
+    }));
+
+    LOG.info('STAGE', `Loaded ${cachedScores.length} peserta`);
+
+    if (isAll) renderAllPlayers();
+    else renderLeaderboardReveal();
+  }
+
+  function renderLeaderboardReveal() {
+    const c = document.getElementById('stageLeaderboardGrid');
+    if (!c) return;
+
+    if (currentRevealedRank === 0 || cachedScores.length === 0) {
+      c.innerHTML = `<p class="text-slate-500 text-lg py-12">Siap-siap... Pengumuman Pemenang!</p>`;
+      return;
+    }
+
+    const p = cachedScores[currentRevealedRank - 1];
+    if (!p) {
+      c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`;
+      return;
+    }
+
+    let badge = `PERINGKAT #${currentRevealedRank}`;
+    let badgeStyle = 'bg-slate-700 text-slate-200';
+    let cardTheme = 'from-slate-800 to-slate-900 border-slate-700/80';
+
+    if (currentRevealedRank === 1) { badge = '👑 JUARA 1'; badgeStyle = 'bg-amber-400 text-slate-950'; cardTheme = 'from-amber-950/80 via-yellow-900/60 to-amber-950/80 border-amber-400/80'; }
+    else if (currentRevealedRank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardTheme = 'from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80'; }
+    else if (currentRevealedRank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardTheme = 'from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80'; }
+
+    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+
+    c.innerHTML = `
+      <div class="animate-card-pop bg-gradient-to-b ${cardTheme} border-2 rounded-3xl p-8 flex flex-col items-center gap-4">
+        <div class="px-5 py-2 rounded-full text-xs md:text-sm font-black tracking-widest uppercase ${badgeStyle}">
+          ${badge}
+        </div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border-2 border-white/20 p-2">
+          <img src="${avatar}" class="w-full h-full object-contain"/>
+        </div>
+        <h3 class="text-3xl font-black text-white">${p.uid}</h3>
+        <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
+          +${p.total.toFixed(2)} PTS
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAllPlayers() {
+    const c = document.getElementById('allPlayersGrid');
+    if (!c) return;
+    c.innerHTML = '';
+
+    if (cachedScores.length === 0) {
+      c.innerHTML = `<p class="col-span-2 text-center text-slate-500 py-10">Belum ada peserta terdaftar.</p>`;
+      return;
+    }
+
+    cachedScores.forEach((it, idx) => {
+      const div = document.createElement('div');
+      div.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between';
+      div.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900 rounded-lg text-slate-400">#${idx + 1}</span>
+          <span class="text-sm font-semibold text-slate-200">${it.uid}</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-sky-400">+${it.total.toFixed(2)} PTS</span>
+      `;
+      c.appendChild(div);
+    });
+  }
+
+  function startAutoScroll() {
+    stopAutoScroll();
+    const el = document.getElementById('scrollContainer');
+    if (!el) return;
+    let waiting = false;
+    autoScrollInterval = setInterval(() => {
+      if (waiting) return;
+      el.scrollTop += 1.5;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+        waiting = true;
+        setTimeout(() => {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => waiting = false, 1200);
+        }, 2000);
+      }
+    }, 30);
+  }
+  function stopAutoScroll() {
+    if (autoScrollInterval) clearInterval(autoScrollInterval);
+    autoScrollInterval = null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // RESIZE
+  // ═══════════════════════════════════════════════════════════
+  window.addEventListener('resize', () => {
+    if (idleRunning) resizeIdleCanvas();
+    if (lcRunning) resizeLoadingCanvas();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
+  async function init() {
+    LOG.ok('INIT', '══════════ STAGE BOOT ══════════');
+
+    initBGM();
+
+    // Preload SFX
+    try {
+      await audioEngine.fetchAndCache(SOUND_BELL);
+      await audioEngine.fetchAndCache(SOUND_BEEP);
+      LOG.ok('AUDIO', 'SFX preloaded');
+    } catch (e) {
+      LOG.warn('AUDIO', 'Preload gagal');
+    }
+
+    // Baca layout awal
+    const { data: layoutData } = await supabaseClient
+      .from(LAYOUT_TABLE)
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    // Baca session awal
+    const { data: sessionData } = await supabaseClient
+      .from('system_frenzy_cross_math_question')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (sessionData) onQuestionUpdate(sessionData);
+
+    // Apply layout awal
+    let initialView = layoutData?.current_view || 'idle';
+    const initialRank = layoutData?.revealed_rank || 0;
+
+    // Kalau view awalnya 'game' tapi session 0, pakai idle
+    if (initialView === 'game' && (!sessionData || sessionData.session_index === 0)) {
+      initialView = 'idle';
+    }
+
+    showView(initialView);
+    if (initialView === 'leaderboard') {
+      currentRevealedRank = initialRank;
+      lastRevealedRank = initialRank;
+      fetchAndRenderScores(false);
+    } else if (initialView === 'all_players') {
+      fetchAndRenderScores(true);
+      setTimeout(startAutoScroll, 500);
+    }
+
+    // Subscribe
+    subscribeQuestion();
+    subscribeLayout();
+
+    LOG.ok('INIT', '══════════ STAGE READY ══════════');
+  }
+
+  init();
+</script>
 </body>
 </html>
