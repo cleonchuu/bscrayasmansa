@@ -1565,101 +1565,110 @@
   function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH & RENDER ELIMINASI
-  // ═══════════════════════════════════════════════════════════
-  async function fetchAndRenderElimination() {
-    const GAME_NAME = CURRENT_GAME_NAME;
+// FETCH & RENDER ELIMINASI
+// ═══════════════════════════════════════════════════════════
+async function fetchAndRenderElimination() {
+  const GAME_NAME = CURRENT_GAME_NAME;
+  const POINT_TABLE = 'point_mimic_sudoku';   // ⭐ tabel poin game ini
 
-    // 1. Ambil daftar tereliminasi untuk game ini
-    const { data: elimData, error: elimErr } = await supabaseClient
-      .from('elimination_history')
-      .select('unique_id, name, final_score, eliminated_at')
-      .eq('game_name', GAME_NAME)
-      .order('final_score', { ascending: true });
+  // 1. Ambil daftar tereliminasi untuk game ini
+  const { data: elimData, error: elimErr } = await supabaseClient
+    .from('elimination_history')
+    .select('unique_id, name, final_score')
+    .eq('game_name', GAME_NAME)
+    .order('final_score', { ascending: true });
 
-    if (elimErr) {
-      LOG.error('ELIM', 'Fetch eliminasi error: ' + elimErr.message);
-      return;
-    }
+  if (elimErr) {
+    LOG.error('ELIM', 'Fetch eliminasi error: ' + elimErr.message);
+    return;
+  }
 
-    // 2. Ambil SEMUA peserta aktif (belum tereliminasi)
-    const { data: usersData, error: usersErr } = await supabaseClient
-      .from('users')
-      .select('unique_id, full_name, is_eliminated')
-      .eq('role', 'peserta')
-      .eq('is_eliminated', false);
+  // 2. Ambil SEMUA peserta yang ada di game ini (dari tabel poin)
+  //    Ini = peserta yang benar-benar ikut main Mimic Sudoku
+  const { data: pointData, error: pointErr } = await supabaseClient
+    .from(POINT_TABLE)
+    .select('unique_id, name, point')
+    .order('point', { ascending: false });
 
-    if (usersErr) {
-      LOG.error('ELIM', 'Fetch users error: ' + usersErr.message);
-      return;
-    }
+  if (pointErr) {
+    LOG.error('ELIM', 'Fetch points error: ' + pointErr.message);
+    return;
+  }
 
-    const eliminated = elimData || [];
-    const passed = usersData || [];
+  const allParticipants = pointData || [];
+  const eliminatedIds = new Set((elimData || []).map(e => e.unique_id));
 
-    LOG.info('ELIM', `Tereliminasi: ${eliminated.length}, Lolos: ${passed.length}`);
+  // ⭐ 3. "Lolos" = peserta yang ikut game ini TAPI tidak tereliminasi
+  const passed = allParticipants.filter(p => !eliminatedIds.has(p.unique_id));
+  const eliminated = elimData || [];
 
-    const gameNameLabel = document.getElementById('elimGameNameLabel');
-    if (gameNameLabel) gameNameLabel.textContent = GAME_NAME;
+  LOG.info('ELIM', `Tereliminasi: ${eliminated.length}, Lolos: ${passed.length} (total: ${allParticipants.length})`);
 
-    const elimCountEl = document.getElementById('elimCount');
-    if (elimCountEl) elimCountEl.textContent = eliminated.length;
+  // Update label
+  const gameNameLabel = document.getElementById('elimGameNameLabel');
+  if (gameNameLabel) gameNameLabel.textContent = GAME_NAME;
 
-    const passedCountEl = document.getElementById('passedCount');
-    if (passedCountEl) passedCountEl.textContent = passed.length;
+  // Update counter
+  const elimCountEl = document.getElementById('elimCount');
+  if (elimCountEl) elimCountEl.textContent = eliminated.length;
 
-    // Render tereliminasi
-    const elimList = document.getElementById('eliminatedList');
-    if (elimList) {
-      elimList.innerHTML = '';
-      if (eliminated.length === 0) {
-        elimList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta tereliminasi.</p>`;
-      } else {
-        eliminated.forEach((item, idx) => {
-          const card = document.createElement('div');
-          card.className = 'bg-rose-950/40 border border-rose-500/40 rounded-xl p-3 flex items-center justify-between animate-elim-out';
-          card.style.animationDelay = `${idx * 100}ms`;
-          card.innerHTML = `
-            <div class="flex items-center gap-3 overflow-hidden">
-              <div class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-times text-rose-400 text-xs"></i>
-              </div>
-              <span class="text-sm font-bold text-rose-200 truncate">${item.name || item.unique_id}</span>
+  const passedCountEl = document.getElementById('passedCount');
+  if (passedCountEl) passedCountEl.textContent = passed.length;
+
+  // Render tereliminasi
+  const elimList = document.getElementById('eliminatedList');
+  if (elimList) {
+    elimList.innerHTML = '';
+    if (eliminated.length === 0) {
+      elimList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta tereliminasi.</p>`;
+    } else {
+      eliminated.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'bg-rose-950/40 border border-rose-500/40 rounded-xl p-3 flex items-center justify-between animate-elim-out';
+        card.style.animationDelay = `${idx * 100}ms`;
+        card.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-times text-rose-400 text-xs"></i>
             </div>
-            <span class="text-xs font-mono font-bold text-rose-400 flex-shrink-0">
-              ${Number(item.final_score).toFixed(2)} PTS
-            </span>
-          `;
-          elimList.appendChild(card);
-        });
-      }
-    }
-
-    // Render yang lolos
-    const passList = document.getElementById('passedList');
-    if (passList) {
-      passList.innerHTML = '';
-      if (passed.length === 0) {
-        passList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta yang lolos.</p>`;
-      } else {
-        passed.forEach((item, idx) => {
-          const card = document.createElement('div');
-          card.className = 'bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between animate-elim-in';
-          card.style.animationDelay = `${idx * 50}ms`;
-          card.innerHTML = `
-            <div class="flex items-center gap-3 overflow-hidden">
-              <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-check text-emerald-400 text-xs"></i>
-              </div>
-              <span class="text-sm font-bold text-emerald-200 truncate">${item.full_name || item.unique_id}</span>
-            </div>
-            <span class="text-xs font-mono text-emerald-400/70 flex-shrink-0">LOLOS</span>
-          `;
-          passList.appendChild(card);
-        });
-      }
+            <span class="text-sm font-bold text-rose-200 truncate">${item.name || item.unique_id}</span>
+          </div>
+          <span class="text-xs font-mono font-bold text-rose-400 flex-shrink-0">
+            ${Number(item.final_score || 0).toFixed(2)} PTS
+          </span>
+        `;
+        elimList.appendChild(card);
+      });
     }
   }
+
+  // Render yang lolos
+  const passList = document.getElementById('passedList');
+  if (passList) {
+    passList.innerHTML = '';
+    if (passed.length === 0) {
+      passList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta yang lolos.</p>`;
+    } else {
+      passed.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between animate-elim-in';
+        card.style.animationDelay = `${idx * 30}ms`;
+        card.innerHTML = `
+          <div class="flex items-center gap-3 overflow-hidden">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-check text-emerald-400 text-xs"></i>
+            </div>
+            <span class="text-sm font-bold text-emerald-200 truncate">${item.name || item.unique_id}</span>
+          </div>
+          <span class="text-xs font-mono text-emerald-400/70 flex-shrink-0">
+            ${Number(item.point || 0).toFixed(2)} PTS
+          </span>
+        `;
+        passList.appendChild(card);
+      });
+    }
+  }
+}
 
   // ═══════════════════════════════════════════════════════════
   // INIT
