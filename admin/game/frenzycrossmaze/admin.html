@@ -17,6 +17,34 @@
     .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 10px; }
+
+    .btn-start-session {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+    }
+    .btn-start-session:hover {
+      background: linear-gradient(135deg, #047857 0%, #059669 100%);
+      box-shadow: 0 15px 40px -10px rgba(16, 185, 129, 0.7);
+    }
+    .btn-start-session:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-stop-session {
+      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+      box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.5);
+    }
+    .btn-stop-session:hover {
+      background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+      box-shadow: 0 15px 40px -10px rgba(239, 68, 68, 0.7);
+    }
+    .btn-stop-session:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 flex justify-center">
@@ -43,90 +71,56 @@
     <!-- GRID DUAL PANEL -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-      <!-- PANEL KONTROL GAME -->
-      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-6">
+      <!-- PANEL KONTROL GAME (SIMPLIFIED) -->
+      <section class="bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col justify-between space-y-4">
         <div>
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2 mb-4">
             <i class="fa-solid fa-gamepad text-sky-400"></i> Kontrol Game Stage
           </h2>
 
-          <!-- SESSION SELECTOR -->
-          <div class="space-y-3">
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Sesi Permainan:</label>
-            <div class="grid grid-cols-5 gap-2">
-              <button onclick="selectSession(1)" id="btnS1" class="session-btn bg-slate-900 border border-sky-500 text-sky-300 py-2.5 rounded-xl text-xs font-bold transition">S1</button>
-              <button onclick="selectSession(2)" id="btnS2" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S2</button>
-              <button onclick="selectSession(3)" id="btnS3" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S3</button>
-              <button onclick="selectSession(4)" id="btnS4" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S4</button>
-              <button onclick="selectSession(5)" id="btnS5" class="session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition">S5</button>
-            </div>
-          </div>
-
-          <!-- INPUT JAWABAN -->
-          <div class="mt-4">
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Target Jawaban Sesi <span id="selectedSessionLabel" class="text-sky-400">1</span>:
-            </label>
-            <input
-              type="text"
-              id="targetAnswerInput"
-              placeholder="Contoh: 42"
-              class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 text-lg font-mono focus:outline-none focus:border-sky-400"
-              autocomplete="off"
-            />
-          </div>
-
-          <!-- DURATION -->
-          <div class="mt-3">
-            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Durasi Sesi (detik):</label>
-            <input
-              type="number"
-              id="sessionDurationInput"
-              value="30"
-              min="5"
-              max="300"
-              class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm font-mono focus:outline-none focus:border-sky-400"
-            />
-          </div>
-
-          <!-- KUNCI JAWABAN LIVE -->
-          <div class="mt-5 bg-slate-950 border-2 border-amber-500/40 p-4 rounded-2xl">
-            <div class="flex justify-between items-center mb-3">
-              <span class="text-[10px] text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                <i class="fas fa-key"></i> Status Live
-              </span>
-              <span id="answerStatus" class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                IDLE
-              </span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 text-center">
-              <div class="bg-sky-500/10 border border-sky-500/30 rounded-xl py-3">
-                <div class="text-[10px] text-sky-400 uppercase tracking-wider mb-1">Sesi Aktif</div>
-                <div id="liveSessionNum" class="text-3xl font-mono font-black text-sky-400">0/5</div>
+          <!-- INFO SESI SAAT INI -->
+          <div class="bg-slate-950 border-2 border-sky-500/40 rounded-2xl p-4 mb-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <div class="text-[10px] text-sky-400 uppercase tracking-wider font-bold mb-1">Sesi Aktif</div>
+                <div id="currentSessionBadge" class="text-3xl font-mono font-black text-sky-400">0 / 5</div>
               </div>
-              <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl py-3">
-                <div class="text-[10px] text-amber-400 uppercase tracking-wider mb-1">Jawaban</div>
-                <div id="liveAnswer" class="text-3xl font-mono font-black text-amber-400">--</div>
+              <div class="text-right">
+                <div class="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Status</div>
+                <div id="sessionStatusBadge" class="text-sm font-black px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700">
+                  IDLE
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- ACTION BUTTONS -->
-          <div class="space-y-3 mt-5">
-            <div class="grid grid-cols-2 gap-2">
-              <button id="btnStartSession" onclick="startSession()" class="py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-black text-sm rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                <i class="fas fa-play"></i> MULAI SESI
-              </button>
-              <button id="btnStopSession" onclick="stopSession()" class="py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                <i class="fas fa-stop"></i> STOP
-              </button>
+          <!-- TOMBOL MULAI SESI -->
+          <button id="btnStartNext" onclick="startNextSession()"
+            class="btn-start-session w-full py-6 text-white font-black text-lg rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3 mb-3">
+            <i class="fas fa-play text-2xl"></i>
+            <div class="text-left">
+              <div>MULAI SESI BERIKUTNYA</div>
+              <div id="nextSessionLabel" class="text-xs font-normal opacity-90">Sesi 1 dari 5 · Jawaban: random · 30s</div>
             </div>
-            <button id="btnResetGame" onclick="resetGame()" class="w-full py-2.5 bg-rose-950 hover:bg-rose-900 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
-              <i class="fas fa-rotate-left"></i> RESET KE IDLE (Sesi 0)
-            </button>
-          </div>
+          </button>
+
+          <!-- TOMBOL STOP -->
+          <button id="btnStopSession" onclick="stopSession()"
+            class="btn-stop-session w-full py-5 text-white font-black text-base rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-3">
+            <i class="fas fa-stop text-xl"></i>
+            STOP SESI SEKARANG
+          </button>
+
+          <!-- RESET -->
+          <button id="btnResetGame" onclick="resetGame()" class="mt-3 w-full py-3 bg-slate-900 hover:bg-rose-950 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+            <i class="fas fa-rotate-left"></i> RESET KE IDLE (Sesi 0)
+          </button>
         </div>
+
+        <p class="text-[10px] text-slate-500 leading-relaxed border-t border-slate-700 pt-3">
+          💡 <strong class="text-slate-400">Auto-Generate:</strong> Klik "Mulai Sesi Berikutnya" → sistem otomatis increment sesi, generate jawaban random 10-99, dan set durasi 30 detik.
+          <br>Kunci jawaban akan muncul di alert saat sesi dimulai.
+        </p>
       </section>
 
       <!-- PANEL STATUS LIVE SUPABASE -->
@@ -338,7 +332,6 @@
   // ═══════════════════════════════════════════════════════════
   // STATE
   // ═══════════════════════════════════════════════════════════
-  let selectedSession = 1;
   let userToDelete = null;
   let currentQuestionRow = null;
 
@@ -348,65 +341,85 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // SELECT SESSION
+  // UPDATE UI — Tombol + Info Sesi
   // ═══════════════════════════════════════════════════════════
-  function selectSession(num) {
-    selectedSession = num;
-    LOG.info('SESSION', `Pilih sesi: ${num}`);
+  function updateSessionUI() {
+    const currentSession = currentQuestionRow?.session_index || 0;
+    const isActive = currentSession > 0;
 
-    for (let i = 1; i <= TOTAL_SESSIONS; i++) {
-      const btn = document.getElementById(`btnS${i}`);
-      if (!btn) continue;
-      if (i === num) {
-        btn.className = 'session-btn bg-slate-900 border border-sky-500 text-sky-300 py-2.5 rounded-xl text-xs font-bold transition';
+    // Badge sesi
+    safeSetText('currentSessionBadge', `${currentSession} / ${TOTAL_SESSIONS}`);
+
+    // Status badge
+    const statusEl = document.getElementById('sessionStatusBadge');
+    if (statusEl) {
+      if (isActive) {
+        statusEl.textContent = `LIVE S${currentSession}`;
+        statusEl.className = 'text-sm font-black px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
       } else {
-        btn.className = 'session-btn bg-slate-900 border border-slate-700 text-slate-400 py-2.5 rounded-xl text-xs font-bold transition';
+        statusEl.textContent = 'IDLE';
+        statusEl.className = 'text-sm font-black px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700';
       }
     }
 
-    safeSetText('selectedSessionLabel', num);
+    // Tombol Mulai Sesi
+    const btnStart = document.getElementById('btnStartNext');
+    const nextLabel = document.getElementById('nextSessionLabel');
+    const nextSession = currentSession + 1;
 
-    const targetInput = document.getElementById('targetAnswerInput');
-    if (targetInput && currentQuestionRow && currentQuestionRow.session_index === num && currentQuestionRow.target_answer != null) {
-      targetInput.value = currentQuestionRow.target_answer;
-    } else if (targetInput) {
-      targetInput.value = '';
+    if (currentSession >= TOTAL_SESSIONS) {
+      btnStart.disabled = true;
+      if (nextLabel) nextLabel.textContent = `Semua sesi selesai`;
+    } else {
+      btnStart.disabled = false;
+      if (nextLabel) nextLabel.textContent = `Sesi ${nextSession} dari ${TOTAL_SESSIONS} · Jawaban: random · ${DEFAULT_DURATION}s`;
+    }
+
+    // Tombol Stop
+    const btnStop = document.getElementById('btnStopSession');
+    if (btnStop) {
+      btnStop.disabled = !isActive;
     }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // START SESSION
+  // AUTO-GENERATE + START NEXT SESSION
   // ═══════════════════════════════════════════════════════════
-  async function startSession() {
-    const targetInput = document.getElementById('targetAnswerInput');
-    const durationInput = document.getElementById('sessionDurationInput');
+  async function startNextSession() {
+    const currentSession = currentQuestionRow?.session_index || 0;
 
-    const targetAnswer = targetInput ? targetInput.value.trim() : '';
-    const duration = parseInt(durationInput?.value || DEFAULT_DURATION);
-
-    if (!targetAnswer) {
-      alert('Isi target jawaban terlebih dahulu!');
+    // Cek kalau sudah selesai
+    if (currentSession >= TOTAL_SESSIONS) {
+      alert('Semua sesi sudah selesai. Klik "RESET KE IDLE" untuk memulai ulang.');
       return;
     }
 
+    const nextSession = currentSession + 1;
+
+    // Generate jawaban random 10-99
+    const generatedAnswer = Math.floor(Math.random() * 90) + 10; // 10-99
+    const duration = DEFAULT_DURATION;
+
+    // Konfirmasi
     if (!confirm(
-      `Mulai Sesi ${selectedSession}?\n\n` +
-      `• Target Jawaban: ${targetAnswer}\n` +
+      `Mulai Sesi ${nextSession} dari ${TOTAL_SESSIONS}?\n\n` +
+      `• Target Jawaban (auto-generate): ${generatedAnswer}\n` +
       `• Durasi: ${duration} detik\n` +
-      `• Stage akan otomatis switch ke game view`
+      `• Stage akan auto-switch ke game view`
     )) return;
 
-    LOG.step('START', `Session ${selectedSession}, answer=${targetAnswer}, duration=${duration}s`);
+    LOG.step('START', `Session ${nextSession}, answer=${generatedAnswer}, duration=${duration}s`);
 
     const nowISO = new Date().toISOString();
 
+    // Update question table
     const { error } = await supabaseClient
       .from(QUESTION_TABLE)
       .upsert({
         id: 1,
-        session_index: selectedSession,
+        session_index: nextSession,
         total_sessions: TOTAL_SESSIONS,
-        target_answer: targetAnswer,
+        target_answer: String(generatedAnswer),
         session_start_time: nowISO,
         session_duration: duration,
         updated_at: nowISO
@@ -418,6 +431,7 @@
       return;
     }
 
+    // Auto-switch layout ke game
     await supabaseClient
       .from(LAYOUT_TABLE)
       .update({
@@ -427,8 +441,15 @@
       })
       .eq('id', 1);
 
-    LOG.ok('START', `Sesi ${selectedSession} dimulai`);
-    alert(`✅ Sesi ${selectedSession} dimulai!\nTarget: ${targetAnswer}\nDurasi: ${duration}s`);
+    LOG.ok('START', `Sesi ${nextSession} dimulai`);
+
+    // ⭐ ALERT kunci jawaban (muncul sekali)
+    alert(
+      `🎮 SESI ${nextSession} DIMULAI!\n\n` +
+      `🔑 KUNCI JAWABAN: ${generatedAnswer}\n` +
+      `⏱️  Durasi: ${duration} detik\n\n` +
+      `Kunci jawaban hanya muncul sekali ini. Catat kalau perlu!`
+    );
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -498,7 +519,7 @@
       .eq('id', 1);
 
     LOG.ok('RESET', 'Full reset done');
-    alert('✅ Reset selesai.');
+    alert('✅ Reset selesai. Sesi kembali ke 0.');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -523,7 +544,6 @@
     else LOG.ok('VIEW', `Switched → ${viewName}`);
   }
 
-  // ⭐ UPDATE: Handle elimination
   function updateActiveViewUI(viewName, rank = 0) {
     const btnIdle = document.getElementById('btnViewIdle');
     const btnGame = document.getElementById('btnViewGame');
@@ -581,28 +601,8 @@
     safeSetText('dbStartTime', data.session_start_time ? new Date(data.session_start_time).toLocaleTimeString('id-ID') : '-');
     safeSetText('dbUpdatedAt', data.updated_at ? new Date(data.updated_at).toLocaleTimeString('id-ID') : '-');
 
-    safeSetText('liveSessionNum', `${data.session_index || 0}/${data.total_sessions || TOTAL_SESSIONS}`);
-    safeSetText('liveAnswer', data.target_answer != null ? data.target_answer : '--');
-
-    const statusEl = document.getElementById('answerStatus');
-    if (statusEl) {
-      if (data.session_index > 0 && data.target_answer) {
-        statusEl.textContent = `LIVE S${data.session_index}`;
-        statusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-      } else {
-        statusEl.textContent = 'IDLE';
-        statusEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
-      }
-    }
-
-    const targetInput = document.getElementById('targetAnswerInput');
-    if (targetInput && data.session_index === selectedSession && data.target_answer != null) {
-      targetInput.value = data.target_answer;
-    }
-
-    if (data.session_index >= 1 && data.session_index <= TOTAL_SESSIONS) {
-      selectSession(data.session_index);
-    }
+    // Update tombol
+    updateSessionUI();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -841,8 +841,7 @@
   // ═══════════════════════════════════════════════════════════
   // EXPOSE
   // ═══════════════════════════════════════════════════════════
-  window.selectSession = selectSession;
-  window.startSession = startSession;
+  window.startNextSession = startNextSession;
   window.stopSession = stopSession;
   window.resetGame = resetGame;
   window.switchStageView = switchStageView;
@@ -862,7 +861,6 @@
   window.addEventListener('DOMContentLoaded', async () => {
     LOG.ok('INIT', '══════════ ADMIN BOOT ══════════');
 
-    selectSession(1);
     renderRankButtons();
 
     await fetchAll();
