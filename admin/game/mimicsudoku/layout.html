@@ -281,63 +281,197 @@
     }
     .pause-icon { animation: pausePulse 1.4s ease-in-out infinite; }
 
-    /* Animasi eliminasi */
-    @keyframes elimFadeOut {
-      0% { opacity: 1; transform: translateX(0); }
-      100% { opacity: 0.4; transform: translateX(-20px); filter: grayscale(0.7); }
+    /* ═══════════════════════════════════════════════════════════
+       MARQUEE (All Players)
+       ═══════════════════════════════════════════════════════════ */
+    @keyframes marqueeScroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
-    @keyframes elimPopIn {
-      0% { opacity: 0; transform: scale(0.8) translateX(20px); }
-      100% { opacity: 1; transform: scale(1) translateX(0); }
-    }
-    .animate-elim-out { animation: elimFadeOut 0.6s ease-out forwards; }
-    .animate-elim-in { animation: elimPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    /* Elimination card - avatar besar */
-    .elim-card {
+    .marquee-container {
       display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem;
-      border-radius: 1rem;
-      transition: all 0.2s;
-    }
-    .elim-avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 1rem;
-      object-fit: cover;
-      border: 3px solid;
-      background: #0f172a;
-      flex-shrink: 0;
-    }
-    @media (min-width: 1024px) {
-      .elim-avatar {
-        width: 96px;
-        height: 96px;
-      }
-    }
-    .elim-scroll {
-      max-height: 70vh;
-      overflow-y: auto;
-      padding-right: 8px;
+      width: 100%;
+      overflow: hidden;
+      user-select: none;
     }
 
-    /* Sidebar (di dalam viewGame) */
-    #sidebar {
-      width: 280px;
+    .marquee-track {
+      display: flex;
       flex-shrink: 0;
+      gap: 1.25rem;
+      padding: 1rem 0;
+      animation: marqueeScroll var(--marquee-duration, 120s) linear infinite;
+      will-change: transform;
+    }
+
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+
+    .player-card-h {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      align-items: center;
+      flex-shrink: 0;
+      width: 200px;
       padding: 1rem;
-      background: rgba(15, 23, 42, 0.8);
-      border-right: 1px solid #1e293b;
-      backdrop-filter: blur(12px);
-      z-index: 20;
+      border-radius: 1.5rem;
+      background: linear-gradient(145deg, rgba(15,23,42,0.9), rgba(2,6,23,0.9));
+      border: 2px solid rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.15);
+      transition: transform 0.3s, box-shadow 0.3s;
     }
-    @media (min-width: 1024px) {
-      #sidebar { width: 320px; padding: 1.5rem; }
+
+    .player-card-h.rank-1 {
+      border-color: rgba(251, 191, 36, 0.8);
+      box-shadow: 0 0 40px rgba(251, 191, 36, 0.4);
+      background: linear-gradient(145deg, rgba(69,26,3,0.6), rgba(2,6,23,0.95));
+    }
+
+    .player-card-h.rank-2 {
+      border-color: rgba(203, 213, 225, 0.8);
+      box-shadow: 0 0 35px rgba(203, 213, 225, 0.35);
+      background: linear-gradient(145deg, rgba(30,41,59,0.8), rgba(2,6,23,0.95));
+    }
+
+    .player-card-h.rank-3 {
+      border-color: rgba(217, 119, 6, 0.8);
+      box-shadow: 0 0 35px rgba(217, 119, 6, 0.35);
+      background: linear-gradient(145deg, rgba(120,53,15,0.5), rgba(2,6,23,0.95));
+    }
+
+    .player-card-h .avatar-box {
+      width: 160px;
+      height: 160px;
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(99, 102, 241, 0.5);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .player-card-h.rank-1 .avatar-box { border-color: #fbbf24; }
+    .player-card-h.rank-2 .avatar-box { border-color: #cbd5e1; }
+    .player-card-h.rank-3 .avatar-box { border-color: #d97706; }
+
+    .player-card-h .avatar-box img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    .player-card-h .rank-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      background: rgba(99,102,241,0.2);
+      border: 1px solid rgba(99,102,241,0.5);
+      color: #a5b4fc;
+    }
+
+    .player-card-h.rank-1 .rank-badge { background: #fbbf24; color: #451a03; border-color: #f59e0b; }
+    .player-card-h.rank-2 .rank-badge { background: #cbd5e1; color: #0f172a; border-color: #94a3b8; }
+    .player-card-h.rank-3 .rank-badge { background: #d97706; color: #fff; border-color: #b45309; }
+
+    .player-card-h .player-name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 0.25rem;
+    }
+
+    .player-card-h .player-points {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #a5b4fc;
+    }
+
+    .player-card-h.rank-1 .player-points { color: #fbbf24; }
+    .player-card-h.rank-2 .player-points { color: #e2e8f0; }
+    .player-card-h.rank-3 .player-points { color: #fb923c; }
+
+    /* ═══════════════════════════════════════════════════════════
+       ELIMINATION — 5 KARTU HORIZONTAL
+       ═══════════════════════════════════════════════════════════ */
+    @keyframes elimCardFadeIn {
+      0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .elim-card-v {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.25rem;
+      border-radius: 1.5rem;
+      background: linear-gradient(145deg, rgba(76,5,25,0.6), rgba(2,6,23,0.95));
+      border: 3px solid rgba(244, 63, 94, 0.5);
+      box-shadow: 0 0 35px rgba(244, 63, 94, 0.25);
+      animation: elimCardFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      width: 100%;
+    }
+
+    .elim-card-v .avatar-box {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(244, 63, 94, 0.6);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .elim-card-v .avatar-box img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    .elim-card-v .elim-name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fecdd3;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 0.25rem;
+    }
+
+    .elim-card-v .elim-points {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #f43f5e;
+    }
+
+    .elim-card-v .elim-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      background: rgba(244, 63, 94, 0.2);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      color: #fda4af;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
@@ -432,7 +566,7 @@
     <!-- VIEW: GAME (dengan sidebar) -->
     <div id="viewGame" class="stage-view hidden-view absolute inset-0 flex">
       <!-- SIDEBAR -->
-      <aside id="sidebar">
+      <aside class="w-[280px] lg:w-[320px] flex-shrink-0 flex flex-col gap-4 p-4 lg:p-6 bg-slate-900/80 border-r border-slate-800 backdrop-blur-md z-20">
         <div class="flex items-center gap-3">
           <div class="p-3 bg-indigo-600/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
             <i class="fas fa-th fa-spin text-2xl"></i>
@@ -479,6 +613,11 @@
           </div>
           <p id="stageStatus" class="text-sm text-slate-300 font-semibold leading-relaxed">MENUNGGU SINYAL ADMIN...</p>
 
+          <div id="loopTimerDisplay" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-3">
+            <i class="fas fa-sync-alt fa-spin text-amber-400 text-xs"></i>
+            <span class="text-amber-400 font-bold text-xs tracking-widest">GANTI PAPAN...</span>
+          </div>
+
           <div id="repeatIndicator" class="hidden items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-xl mt-auto">
             <span class="relative flex h-2.5 w-2.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -490,7 +629,7 @@
       </aside>
 
       <!-- GAME AREA -->
-      <div class="flex-1 flex items-center justify-center p-4">
+      <div class="flex-1 flex items-center justify-center p-4 overflow-hidden">
         <div id="gridWrapper" class="flex flex-col">
           <div id="columnHeaders" class="grid gap-1.5 mb-1.5"></div>
           <div id="gridQuestionArea" class="grid gap-1.5"></div>
@@ -520,61 +659,39 @@
       </div>
     </div>
 
-    <!-- VIEW: ALL PLAYERS -->
-    <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center p-8 overflow-hidden">
-      <div class="text-center mb-6">
-        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">TOTAL SCORE</span>
+    <!-- VIEW: ALL PLAYERS (marquee horizontal) -->
+    <div id="viewAllPlayers" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
+      <div class="text-center mb-4 relative z-10">
+        <span class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 font-black text-xs px-4 py-1.5 rounded-full uppercase tracking-widest">
+          TOTAL SCORE
+        </span>
         <h2 class="text-4xl lg:text-5xl font-black text-white mt-3">
-          <i class="fas fa-users text-indigo-400"></i> REKAP POIN
+          <i class="fas fa-users text-indigo-400"></i> REKAP POIN PESERTA
         </h2>
+        <p class="text-slate-500 text-sm mt-1 font-mono">Auto-scroll · Hover untuk pause</p>
       </div>
-      <div id="scrollContainer" class="w-full max-w-4xl flex-1 overflow-y-auto custom-scroll pr-2">
-        <div id="allPlayersGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+
+      <div class="marquee-container w-full">
+        <div id="allPlayersTrack" class="marquee-track">
+          <p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>
+        </div>
       </div>
     </div>
 
-    <!-- VIEW: ELIMINATION (tanpa sidebar, avatar besar) -->
+    <!-- VIEW: ELIMINATION (5 kartu horizontal) -->
     <div id="viewElimination" class="stage-view hidden-view absolute inset-0 flex flex-col items-center justify-center p-6">
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.3),_transparent_70%)] pointer-events-none"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
 
-      <div class="text-center mb-5 relative z-10">
+      <div class="text-center mb-8 relative z-10">
         <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
           <i class="fas fa-user-slash"></i> ELIMINASI
         </span>
-        <h1 class="text-5xl font-black text-white mt-3 font-math tracking-wider">HASIL ELIMINASI</h1>
-        <p class="text-rose-300/70 text-lg mt-1 font-mono" id="elimGameNameLabel">-</p>
+        <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-math tracking-wider">HASIL ELIMINASI</h1>
+        <p class="text-rose-300/70 text-lg mt-2 font-mono" id="elimGameNameLabel">-</p>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-7xl relative z-10">
-        <!-- KIRI: TERELIMINASI -->
-        <div class="bg-slate-900/80 border-2 border-rose-500/40 rounded-3xl p-5">
-          <div class="text-center mb-4 border-b border-rose-500/20 pb-3">
-            <div class="text-rose-400 font-black text-lg uppercase tracking-widest">
-              <i class="fas fa-times-circle"></i> TERELIMINASI
-            </div>
-            <div class="text-rose-300/60 text-xs font-mono mt-1">
-              <span id="elimCount">0</span> peserta
-            </div>
-          </div>
-          <div id="eliminatedList" class="elim-scroll space-y-3 custom-scroll">
-            <p class="text-center text-slate-500 py-8">Memuat data...</p>
-          </div>
-        </div>
-
-        <!-- KANAN: LOLOS -->
-        <div class="bg-slate-900/80 border-2 border-emerald-500/40 rounded-3xl p-5">
-          <div class="text-center mb-4 border-b border-emerald-500/20 pb-3">
-            <div class="text-emerald-400 font-black text-lg uppercase tracking-widest">
-              <i class="fas fa-check-circle"></i> LOLOS
-            </div>
-            <div class="text-emerald-300/60 text-xs font-mono mt-1">
-              <span id="passedCount">0</span> peserta lanjut
-            </div>
-          </div>
-          <div id="passedList" class="elim-scroll space-y-3 custom-scroll">
-            <p class="text-center text-slate-500 py-8">Memuat data...</p>
-          </div>
-        </div>
+      <div id="eliminatedList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 w-full max-w-7xl relative z-10">
+        <p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>
       </div>
     </div>
 
@@ -622,9 +739,11 @@
   const COL_LETTERS = ['A','B','C','D','E','F','G','H','I'];
 
   const LOADING_DURATION_SEC = 5;
-  const CURRENT_GAME_NAME = 'Mimic Sudoku';  // ⭐ FIX: konstanta global
+  const CURRENT_GAME_NAME = 'Mimic Sudoku';
+  const POINT_TABLE = 'point_mimic_sudoku';
 
   let audioUnlocked = false;
+  let currentView = 'idle';
 
   // ═══════════════════════════════════════════════════════════
   // BGM CONFIG
@@ -638,7 +757,7 @@
       blank:       'TENANG.mp3',
       leaderboard: 'WINNER.mp3',
       all_players: 'TENANG.mp3',
-      elimination: 'TEGANG.mp3'   // ⭐ FIX: tambah track eliminasi
+      elimination: 'TEGANG.mp3'
     },
     current: null,
     player: null,
@@ -948,11 +1067,8 @@
   let lastStateSig = '';
   let isFrozenUI = false;
 
-  // ⭐ FIX: Variabel global untuk current view
-  let currentView = 'idle';
-
   // ═══════════════════════════════════════════════════════════
-  // MIMIC LAYOUT
+  // MIMIC LAYOUT CLASS
   // ═══════════════════════════════════════════════════════════
   class MimicLayout {
     constructor() {
@@ -1294,9 +1410,7 @@
         views[viewName].classList.add('active-view');
       }
 
-      // ⭐ FIX: update currentView
       currentView = viewName;
-
       playBGM(viewName);
 
       if (viewName === 'idle') {
@@ -1313,7 +1427,7 @@
 
     _computeCellSize() {
       const sidebar = document.querySelector('aside');
-      const sidebarW = sidebar ? sidebar.offsetWidth : 320;
+      const sidebarW = sidebar ? sidebar.offsetWidth : 0;
       const availW = window.innerWidth - sidebarW - 60;
       const availH = window.innerHeight - 100;
       return Math.max(28, Math.floor(Math.min(availW / 10.3, availH / 10.3)) - 2);
@@ -1485,9 +1599,9 @@
   // VIEW SWITCHER
   // ═══════════════════════════════════════════════════════════
   let cachedScores = [];
+  let cachedAvatars = {};
   let currentRevealedRank = -1;
   let lastRevealedRank = -1;
-  let autoScrollInterval = null;
 
   function handleViewSwitch(viewName, revealedRank) {
     if (viewName === 'game') {
@@ -1503,7 +1617,6 @@
       return;
     }
 
-    stopAutoScroll();
     const newRank = revealedRank || 0;
 
     if (viewName === 'leaderboard') {
@@ -1516,8 +1629,7 @@
     } else if (viewName === 'all_players') {
       layout.showView('all_players');
       lastRevealedRank = -1;
-      fetchAndRenderStageScores(true);
-      setTimeout(startAutoScroll, 500);
+      fetchAndRenderAllPlayers();
     } else if (viewName === 'elimination') {
       layout.showView('elimination');
       lastRevealedRank = -1;
@@ -1526,11 +1638,38 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FETCH SCORES
+  // FETCH AVATARS (map unique_id → avatar_url)
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAvatarMap(uniqueIds) {
+    if (!uniqueIds || uniqueIds.length === 0) return {};
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('unique_id, avatar_url')
+      .in('unique_id', uniqueIds);
+
+    if (error) {
+      LOG.warn('AVATAR', 'Fetch error: ' + error.message);
+      return {};
+    }
+
+    const map = {};
+    (data || []).forEach(u => {
+      if (u.avatar_url) map[u.unique_id] = u.avatar_url;
+    });
+    return map;
+  }
+
+  function getAvatarUrl(uniqueId, name) {
+    return cachedAvatars[uniqueId] 
+      || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name || uniqueId)}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FETCH SCORES (leaderboard)
   // ═══════════════════════════════════════════════════════════
   async function fetchAndRenderStageScores(isAll) {
     const { data, error } = await supabaseClient
-      .from('point_mimic_sudoku')
+      .from(POINT_TABLE)
       .select('unique_id, name, point')
       .order('point', { ascending: false });
 
@@ -1541,12 +1680,13 @@
 
     cachedScores = data.map(r => ({
       uid: r.name || r.unique_id,
+      uniqueId: r.unique_id,
       total: Number(r.point) || 0
     }));
 
     LOG.info('STAGE', `Loaded ${cachedScores.length} peserta`);
 
-    if (isAll) renderAllPlayersList();
+    if (isAll) fetchAndRenderAllPlayers();
     else renderStageLeaderboard();
   }
 
@@ -1558,169 +1698,144 @@
     }
     const p = cachedScores[currentRevealedRank - 1];
     if (!p) { c.innerHTML = `<p class="text-slate-400 text-lg py-12">Belum ada #${currentRevealedRank}</p>`; return; }
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    const avatar = getAvatarUrl(p.uniqueId, p.uid);
     c.innerHTML = `
       <div class="animate-card-pop bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-amber-400/80 rounded-3xl p-8 flex flex-col items-center gap-4">
         <div class="px-5 py-2 rounded-full bg-amber-400 text-slate-950 font-black text-sm uppercase">PERINGKAT #${currentRevealedRank}</div>
-        <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2"><img src="${avatar}" class="w-full h-full object-contain"/></div>
+        <div class="w-36 h-36 rounded-3xl bg-slate-950 border border-white/20 p-2 overflow-hidden">
+          <img src="${avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}'"/>
+        </div>
         <h3 class="text-3xl font-black">${p.uid}</h3>
         <div class="text-2xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl">+${p.total.toFixed(2)} PTS</div>
       </div>`;
   }
 
-  function renderAllPlayersList() {
-    const c = document.getElementById('allPlayersGrid');
-    if (!c) return;
-    c.innerHTML = '';
-    cachedScores.forEach((it, idx) => {
-      const div = document.createElement('div');
-      div.className = 'p-3 rounded-xl border border-slate-800 bg-slate-800/50 flex items-center justify-between';
-      div.innerHTML = `
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-mono font-bold px-2.5 py-1 bg-slate-900 rounded-lg text-slate-400">#${idx+1}</span>
-          <span class="text-sm font-semibold text-slate-200">${it.uid}</span>
-        </div>
-        <span class="text-sm font-mono font-bold text-indigo-400">+${it.total.toFixed(2)} PTS</span>`;
-      c.appendChild(div);
-    });
-  }
+  // ═══════════════════════════════════════════════════════════
+  // ALL PLAYERS — MARQUEE
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAndRenderAllPlayers() {
+    const track = document.getElementById('allPlayersTrack');
+    if (!track) return;
 
-  function startAutoScroll() {
-    stopAutoScroll();
-    const el = document.getElementById('scrollContainer');
-    if (!el) return;
-    let waiting = false;
-    autoScrollInterval = setInterval(() => {
-      if (waiting) return;
-      el.scrollTop += 1.5;
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
-        waiting = true;
-        setTimeout(() => { el.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => waiting = false, 1200); }, 2000);
-      }
-    }, 30);
+    track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Memuat data peserta...</p>';
+
+    // Fetch points
+    const { data, error } = await supabaseClient
+      .from(POINT_TABLE)
+      .select('unique_id, name, point')
+      .order('point', { ascending: false });
+
+    if (error || !data) {
+      track.innerHTML = '<p class="text-rose-400 py-12 text-lg">Gagal memuat data</p>';
+      return;
+    }
+
+    if (data.length === 0) {
+      track.innerHTML = '<p class="text-slate-500 py-12 text-lg">Belum ada peserta.</p>';
+      return;
+    }
+
+    // Fetch avatars
+    const uniqueIds = data.map(d => d.unique_id);
+    cachedAvatars = await fetchAvatarMap(uniqueIds);
+
+    // Build cards HTML
+    const buildCards = () => data.map((p, idx) => {
+      const rank = idx + 1;
+      const avatar = getAvatarUrl(p.unique_id, p.name);
+      let rankClass = '';
+      if (rank === 1) rankClass = 'rank-1';
+      else if (rank === 2) rankClass = 'rank-2';
+      else if (rank === 3) rankClass = 'rank-3';
+
+      let badgeText = `#${rank}`;
+      if (rank === 1) badgeText = '👑 #1';
+      else if (rank === 2) badgeText = '🥈 #2';
+      else if (rank === 3) badgeText = '🥉 #3';
+
+      return `
+        <div class="player-card-h ${rankClass}">
+          <div class="rank-badge">${badgeText}</div>
+          <div class="avatar-box">
+            <img src="${avatar}" alt="${p.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.name || p.unique_id)}'"/>
+          </div>
+          <div class="player-name" title="${p.name}">${p.name || p.unique_id}</div>
+          <div class="player-points">+${Number(p.point || 0).toFixed(2)}</div>
+        </div>
+      `;
+    }).join('');
+
+    const cardsHtml = buildCards();
+
+    // ⭐ Duplicate untuk seamless loop
+    track.innerHTML = cardsHtml + cardsHtml;
+
+    // Hitung durasi animasi: 
+    // 1 kartu ~ 200px + gap 20px = 220px
+    // Total lebar = jumlah kartu × 220px
+    // Speed target: 60px/detik
+    const cardCount = data.length;
+    const totalWidth = cardCount * 220;
+    const durationSec = Math.max(60, totalWidth / 60);
+
+    track.style.setProperty('--marquee-duration', `${durationSec}s`);
+
+    LOG.info('MARQUEE', `${cardCount} kartu, durasi ${durationSec.toFixed(1)}s`);
   }
-  function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); }
 
   // ═══════════════════════════════════════════════════════════
-// FETCH & RENDER ELIMINASI
-// ═══════════════════════════════════════════════════════════
-async function fetchAndRenderElimination() {
-  const GAME_NAME = CURRENT_GAME_NAME;
-  const POINT_TABLE = 'point_mimic_sudoku';
+  // ELIMINATION — 5 KARTU
+  // ═══════════════════════════════════════════════════════════
+  async function fetchAndRenderElimination() {
+    const container = document.getElementById('eliminatedList');
+    const gameNameLabel = document.getElementById('elimGameNameLabel');
+    if (!container) return;
 
-  // 1. Ambil tereliminasi
-  const { data: elimData, error: elimErr } = await supabaseClient
-    .from('elimination_history')
-    .select('unique_id, name, final_score')
-    .eq('game_name', GAME_NAME)
-    .order('final_score', { ascending: true });
+    container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data peserta tereliminasi...</p>';
+    if (gameNameLabel) gameNameLabel.textContent = CURRENT_GAME_NAME;
 
-  if (elimErr) {
-    LOG.error('ELIM', 'Fetch eliminasi error: ' + elimErr.message);
-    return;
-  }
+    // Fetch eliminasi untuk game ini
+    const { data: elimData, error } = await supabaseClient
+      .from('elimination_history')
+      .select('unique_id, name, final_score')
+      .eq('game_name', CURRENT_GAME_NAME)
+      .order('final_score', { ascending: true });
 
-  // 2. Ambil semua yang ikut main
-  const { data: pointData, error: pointErr } = await supabaseClient
-    .from(POINT_TABLE)
-    .select('unique_id, name, point')
-    .order('point', { ascending: false });
+    if (error) {
+      LOG.error('ELIM', 'Fetch error: ' + error.message);
+      container.innerHTML = '<p class="col-span-full text-center text-rose-400 py-12 text-lg">Gagal memuat data eliminasi</p>';
+      return;
+    }
 
-  if (pointErr) {
-    LOG.error('ELIM', 'Fetch points error: ' + pointErr.message);
-    return;
-  }
+    if (!elimData || elimData.length === 0) {
+      container.innerHTML = '<p class="col-span-full text-center text-slate-500 py-12 text-lg">Belum ada peserta tereliminasi.</p>';
+      return;
+    }
 
-  const eliminatedIds = new Set((elimData || []).map(e => e.unique_id));
-  const allParticipants = pointData || [];
-  const passed = allParticipants.filter(p => !eliminatedIds.has(p.unique_id));
-  const eliminated = elimData || [];
+    // Fetch avatars
+    const uniqueIds = elimData.map(e => e.unique_id);
+    cachedAvatars = await fetchAvatarMap(uniqueIds);
 
-  // ⭐ 3. Ambil SEMUA avatar_url dari tabel users
-  const allIds = [
-    ...eliminated.map(e => e.unique_id),
-    ...passed.map(p => p.unique_id)
-  ];
-  let avatarMap = {};
-
-  if (allIds.length > 0) {
-    const { data: userData } = await supabaseClient
-      .from('users')
-      .select('unique_id, avatar_url')
-      .in('unique_id', allIds);
-
-    (userData || []).forEach(u => {
-      if (u.avatar_url) avatarMap[u.unique_id] = u.avatar_url;
-    });
-  }
-
-  LOG.info('ELIM', `Tereliminasi: ${eliminated.length}, Lolos: ${passed.length}`);
-
-  // Update counter
-  document.getElementById('elimCount').textContent = eliminated.length;
-  document.getElementById('passedCount').textContent = passed.length;
-
-  // Helper get avatar
-  const getAvatar = (uid) => avatarMap[uid] || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`;
-
-  // Render tereliminasi
-  const elimList = document.getElementById('eliminatedList');
-  elimList.innerHTML = '';
-  if (eliminated.length === 0) {
-    elimList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta tereliminasi.</p>`;
-  } else {
-    eliminated.forEach((item, idx) => {
+    // Render cards
+    container.innerHTML = '';
+    elimData.forEach((item, idx) => {
+      const avatar = getAvatarUrl(item.unique_id, item.name);
       const card = document.createElement('div');
-      card.className = 'elim-card bg-rose-950/40 border-2 border-rose-500/40 animate-elim-out';
-      card.style.animationDelay = `${idx * 80}ms`;
+      card.className = 'elim-card-v';
+      card.style.animationDelay = `${idx * 120}ms`;
       card.innerHTML = `
-        <img src="${getAvatar(item.unique_id)}"
-             alt="${item.name}"
-             class="elim-avatar border-rose-500/60"
-             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.unique_id)}'" />
-        <div class="flex-1 min-w-0">
-          <div class="text-base lg:text-lg font-black text-rose-100 truncate">${item.name || item.unique_id}</div>
-          <div class="text-sm font-mono font-bold text-rose-400 mt-1">
-            ${Number(item.final_score || 0).toFixed(2)} PTS
-          </div>
-          <div class="text-[10px] text-rose-300/60 uppercase tracking-wider mt-0.5">
-            <i class="fas fa-ban mr-1"></i> TERELIMINASI
-          </div>
+        <div class="avatar-box">
+          <img src="${avatar}" alt="${item.name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.name || item.unique_id)}'"/>
         </div>
+        <div class="elim-name" title="${item.name}">${item.name || item.unique_id}</div>
+        <div class="elim-points">${Number(item.final_score || 0).toFixed(2)}</div>
+        <div class="elim-badge">TERELIMINASI</div>
       `;
-      elimList.appendChild(card);
+      container.appendChild(card);
     });
-  }
 
-  // Render lolos
-  const passList = document.getElementById('passedList');
-  passList.innerHTML = '';
-  if (passed.length === 0) {
-    passList.innerHTML = `<p class="text-center text-slate-500 py-8 text-sm">Tidak ada peserta yang lolos.</p>`;
-  } else {
-    passed.forEach((item, idx) => {
-      const card = document.createElement('div');
-      card.className = 'elim-card bg-emerald-950/40 border-2 border-emerald-500/40 animate-elim-in';
-      card.style.animationDelay = `${idx * 30}ms`;
-      card.innerHTML = `
-        <img src="${getAvatar(item.unique_id)}"
-             alt="${item.name}"
-             class="elim-avatar border-emerald-500/60"
-             onerror="this.src='https://api.dicebear.com/7.x/dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.unique_id)}'" />
-        <div class="flex-1 min-w-0">
-          <div class="text-base lg:text-lg font-black text-emerald-100 truncate">${item.name || item.unique_id}</div>
-          <div class="text-sm font-mono font-bold text-emerald-400 mt-1">
-            ${Number(item.point || 0).toFixed(2)} PTS
-          </div>
-          <div class="text-[10px] text-emerald-300/60 uppercase tracking-wider mt-0.5">
-            <i class="fas fa-check mr-1"></i> LOLOS
-          </div>
-        </div>
-      `;
-      passList.appendChild(card);
-    });
+    LOG.info('ELIM', `Rendered ${elimData.length} kartu tereliminasi`);
   }
-}
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -1738,7 +1853,7 @@ async function fetchAndRenderElimination() {
       })
       .subscribe();
 
-    // ⭐ FIX: Realtime elimination_history watch
+    // Realtime elimination_history watch
     supabaseClient.channel('stage_elimination_watch')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'elimination_history' }, () => {
         if (currentView === 'elimination') {
