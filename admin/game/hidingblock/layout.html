@@ -684,21 +684,22 @@ function switchView(viewName, revealedRank = 0) {
 // ═══════════════════════════════════════════════════════════
 async function loadScores() {
   const { data, error } = await supabaseClient
-    .from('game_scores')
-    .select('user_unique_id, score_obtained')
-    .eq('game_name', 'Hiding Block');
+    .from('point_hiding_block')
+    .select('unique_id, name, point, finished_at')
+    .order('point', { ascending: false })
+    .order('finished_at', { ascending: true, nullsFirst: false });
 
-  if (error) { LOG.warn('loadScores', error.message); return; }
+  if (error) { 
+    LOG.warn('loadScores', error.message); 
+    return; 
+  }
 
-  const map = {};
-  (data || []).forEach(r => {
-    if (!r.user_unique_id) return;
-    map[r.user_unique_id] = (map[r.user_unique_id] || 0) + (r.score_obtained || 0);
-  });
-
-  STATE.scores = Object.keys(map)
-    .map(uid => ({ uid, total: map[uid] }))
-    .sort((a, b) => b.total - a.total);
+  STATE.scores = (data || []).map(r => ({
+    uid: r.unique_id,
+    name: r.name || r.unique_id,
+    total: Number(r.point) || 0,
+    finished_at: r.finished_at
+  }));
 }
 
 async function loadParticipants() {
@@ -1174,7 +1175,7 @@ function renderLeaderboardCard(rank) {
       <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
         <img src="${avatar}" class="w-full h-full object-cover rounded-2xl" alt="${p.uid}" />
       </div>
-      <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
+      <h3 class="text-5xl font-math font-black text-white text-center">${p.name || p.uid}</h3>
       <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
         ${Number(p.total).toFixed(2)} PTS
       </div>
@@ -1213,7 +1214,7 @@ async function fetchAndRenderElimination() {
       <div class="px-4 py-1.5 rounded-full bg-rose-700/80 text-white font-math font-black text-sm uppercase">
         ❌ ELIMINATED
       </div>
-      <div class="text-2xl font-black text-white text-center truncate w-full">${p.uid}</div>
+      <div class="text-2xl font-black text-white text-center truncate w-full">${p.name || p.uid}</div>
       <div class="text-2xl font-math font-black text-rose-400">${Number(p.total).toFixed(2)}</div>
     `;
     c.appendChild(card);
@@ -1267,7 +1268,7 @@ async function fetchAndRenderAllPlayers() {
       </div>
       <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0 object-cover" />
       <div class="flex-1 min-w-0">
-        <div class="font-bold text-white truncate">${p.uid}</div>
+        <div class="font-bold text-white truncate">${p.name || p.uid}</div>
         <div class="text-[10px] text-slate-500 font-mono">Panitia: ${STATE.panitiaMap[p.uid] || '-'}</div>
       </div>
       <div class="text-right">
@@ -1450,6 +1451,15 @@ function setupRealtime() {
     });
 
   channel.on('postgres_changes',
+  { event: '*', schema: 'public', table: 'point_hiding_block' },
+  () => {
+    LOG.info('Point update');
+    if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(STATE.revealedRank);
+    else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
+    else if (STATE.currentView === 'eliminasi') fetchAndRenderElimination();
+  });
+
+  channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'hiding_block_progress' },
     async (payload) => {
       LOG.info('Progress event', payload.eventType);
@@ -1478,14 +1488,6 @@ function setupRealtime() {
     async () => {
       await loadParticipants();
       if (STATE.currentView === 'game') renderGameGrid();
-    });
-
-  channel.on('postgres_changes',
-    { event: '*', schema: 'public', table: 'game_scores' },
-    () => {
-      if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(STATE.revealedRank);
-      else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
-      else if (STATE.currentView === 'eliminasi') fetchAndRenderElimination();
     });
 
   channel.subscribe(status => {
