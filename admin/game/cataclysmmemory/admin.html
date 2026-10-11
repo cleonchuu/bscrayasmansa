@@ -231,6 +231,9 @@
           <button onclick="switchStageView('leaderboard')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
             <i class="fas fa-trophy"></i> Top 10 Akumulasi
           </button>
+          <button onclick="switchStageView('elimination')" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-skull-crossbones"></i> Eliminasi
+          </button>
         </div>
       </div>
 
@@ -295,6 +298,10 @@
         </div>
 
         <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          <button onclick="showElimination()" 
+  class="px-6 py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
+  <i class="fas fa-skull-crossbones"></i> Tampilkan Eliminasi
+</button>
           <button onclick="revealIndividualRank(10)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
             <span class="text-[10px] opacity-60">RANK</span><span>#10</span>
           </button>
@@ -1056,7 +1063,26 @@
         })
         .subscribe();
     }
+async function showElimination() {
+  if (!confirm('Tampilkan animasi ELIMINASI?\n\nIni akan menampilkan 30 peserta lulus + sisanya tereliminasi.')) return;
+  
+  const { error } = await supabaseClient
+    .from('admin_layout_cataclysm_memory')
+    .update({
+      current_view: 'elimination',
+      revealed_rank: 0,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', 1);
+  
+  if (error) {
+    alert('Gagal: ' + error.message);
+  } else {
+    console.log('[ADMIN] Elimination triggered');
+  }
+}
 
+window.showElimination = showElimination;
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
@@ -1093,6 +1119,8 @@
       await loadTeamsAndParticipants();
       subscribeRealtime();
     }
+
+    
 
     // Expose
     window.startMemorizeSession = startMemorizeSession;
