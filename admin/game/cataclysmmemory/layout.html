@@ -209,6 +209,104 @@
       transition: opacity 0.3s ease;
     }
     #fireTransitionCanvas.show { opacity: 1; }
+
+        /* ═══════════════════════════════════════════════════════
+       ELIMINATION VIEW — Animated Card Reveal
+       ═══════════════════════════════════════════════════════ */
+
+    /* Kartu survivor reveal */
+    @keyframes survivorCardIn {
+      0% { opacity: 0; transform: scale(0.3) rotate(-15deg); filter: blur(10px); }
+      60% { opacity: 1; transform: scale(1.08) rotate(3deg); filter: blur(0); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
+    }
+    @keyframes survivorCardOut {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.6) translateY(-50px); }
+    }
+
+    .survivor-card {
+      animation: survivorCardIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .survivor-card.out {
+      animation: survivorCardOut 0.4s ease-in forwards;
+    }
+
+    /* Rank badge glow */
+    .rank-1-glow { box-shadow: 0 0 60px rgba(251, 191, 36, 0.7), 0 0 100px rgba(251, 191, 36, 0.4); }
+    .rank-2-glow { box-shadow: 0 0 60px rgba(226, 232, 240, 0.6), 0 0 100px rgba(226, 232, 240, 0.3); }
+    .rank-3-glow { box-shadow: 0 0 60px rgba(217, 119, 6, 0.7), 0 0 100px rgba(217, 119, 6, 0.4); }
+
+    /* Kartu tereliminasi */
+    @keyframes elimCardIn {
+      0% { opacity: 0; transform: scale(0.5) translateY(30px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .elim-final-card {
+      animation: elimCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .elim-final-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      border-radius: 1.25rem;
+      background: linear-gradient(145deg, rgba(76,5,25,0.6), rgba(2,6,23,0.95));
+      border: 3px solid rgba(244, 63, 94, 0.5);
+      box-shadow: 0 0 30px rgba(244, 63, 94, 0.35);
+      position: relative;
+    }
+    .elim-final-card .elim-avatar {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(244, 63, 94, 0.6);
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 0.5rem;
+      filter: grayscale(0.7) brightness(0.8);
+    }
+    .elim-final-card .elim-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .elim-final-card .elim-name {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #fecdd3;
+      text-align: center;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .elim-final-card .elim-points {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 900;
+      color: #f43f5e;
+      margin-top: 0.15rem;
+    }
+    .elim-final-card .elim-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.55rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      background: rgba(244, 63, 94, 0.25);
+      border: 1px solid rgba(244, 63, 94, 0.6);
+      color: #fda4af;
+      margin-top: 0.35rem;
+    }
+
+    /* Fade transition between phases */
+    .elim-phase {
+      transition: opacity 0.5s ease;
+    }
+    .elim-phase.hidden-phase {
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+    }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
@@ -461,6 +559,72 @@
     </div>
   </div>
 
+    <!-- ═══════════════════════════════════════════════════════════
+       VIEW 6: ELIMINATION (30 LULUS + TERELIMINASI)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="viewElimination" class="stage-view flex flex-col items-center justify-center p-6 overflow-hidden">
+
+    <!-- Background -->
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
+
+    <!-- Confetti canvas (untuk fase reveal) -->
+    <canvas id="confettiCanvas" class="fixed inset-0 w-full h-full z-30 pointer-events-none"></canvas>
+
+    <!-- FASE 1: Reveal survivor 1-per-1 -->
+    <div id="elimSurvivorPhase" class="relative z-20 w-full h-full flex flex-col items-center justify-center">
+      
+      <div class="text-center mb-6">
+        <span class="bg-emerald-500/20 border-2 border-emerald-400/50 text-emerald-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em]">
+          <i class="fas fa-medal"></i> LOLOS KE HARI 2
+        </span>
+        <h2 class="text-3xl md:text-4xl font-black text-white mt-4 font-cinzel tracking-wider">
+          <span id="survivorProgressText">1</span> / 30
+        </h2>
+      </div>
+
+      <div id="survivorCardContainer" class="w-full max-w-2xl min-h-[560px] flex items-center justify-center">
+        <p class="text-slate-500 text-xl">Memuat peserta...</p>
+      </div>
+    </div>
+
+    <!-- FASE 2: Grid tereliminasi -->
+    <div id="elimEliminatedPhase" class="relative z-20 w-full h-full flex-col items-center justify-center p-8 hidden">
+      
+      <div class="text-center mb-6">
+        <span class="bg-rose-500/20 border-2 border-rose-400/50 text-rose-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em] animate-pulse">
+          <i class="fas fa-skull-crossbones"></i> TERELIMINASI
+        </span>
+        <h2 id="eliminatedCountText" class="text-4xl md:text-5xl font-black text-rose-500 mt-4 font-cinzel tracking-wider">
+          0 PESERTA
+        </h2>
+      </div>
+
+      <div id="eliminatedGrid" class="grid grid-cols-5 gap-4 w-full max-w-7xl relative z-10"></div>
+    </div>
+
+    <!-- FASE 3: Summary -->
+    <div id="elimSummaryPhase" class="relative z-20 w-full h-full flex-col items-center justify-center hidden">
+      <div class="text-center space-y-8">
+        <div class="text-8xl md:text-9xl mb-4">🏆</div>
+        <h2 class="text-5xl md:text-7xl font-black text-white font-cinzel tracking-wider">
+          SELAMAT!
+        </h2>
+        <div class="flex items-center justify-center gap-12 mt-12">
+          <div class="text-center">
+            <div class="text-6xl md:text-7xl font-black text-emerald-400 font-math">30</div>
+            <div class="text-sm text-slate-400 uppercase tracking-widest mt-2">Lolos ke Hari 2</div>
+          </div>
+          <div class="w-px h-24 bg-slate-700"></div>
+          <div class="text-center">
+            <div id="elimSummaryEliminatedCount" class="text-6xl md:text-7xl font-black text-rose-500 font-math">0</div>
+            <div class="text-sm text-slate-400 uppercase tracking-widest mt-2">Tereliminasi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- ═══════════════════════════════════════════════════════════
        LOADING SCREEN
        ═══════════════════════════════════════════════════════════ -->
@@ -638,6 +802,8 @@ function playBeepTimes(times = 3, gapMs = 400) {
     setTimeout(() => playBeep(), i * gapMs);
   }
 }
+
+
 
 // ═══════════════════════════════════════════════════════════
 // BGM MANAGER
@@ -1751,7 +1917,8 @@ function applyViewSwitch(viewName, revealedRank) {
     disaster_phase: document.getElementById('viewDisasterPhase'),
     answer_phase: document.getElementById('viewAnswerPhase'),
     team_standings: document.getElementById('viewTeamStandings'),
-    leaderboard: document.getElementById('viewLeaderboard')
+    leaderboard: document.getElementById('viewLeaderboard'),
+    elimination: document.getElementById('viewElimination')   // ⭐ TAMBAH INI
   };
 
   Object.values(views).forEach(v => {
@@ -1782,6 +1949,8 @@ function applyViewSwitch(viewName, revealedRank) {
     fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
   } else if (viewName === 'leaderboard') {
     fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
+  } else if (viewName === 'elimination') {                    // ⭐ TAMBAH INI
+    playEliminationSequence();
   }
 }
 
@@ -1925,6 +2094,334 @@ window.addEventListener('resize', () => {
   if (loadingCanvasRunning) resizeLoadingCanvas();
   resizeFireCanvas();
 });
+
+  // ═══════════════════════════════════════════════════════════
+// ELIMINATION — Animasi reveal 30 lulus + grid tereliminasi
+// ═══════════════════════════════════════════════════════════
+let eliminationPlaying = false;
+let eliminationData = null;
+let confettiRunning = false;
+let confettiRafId = null;
+
+const CONFETTI_COLORS = ['#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb7185'];
+
+// Confetti canvas
+const confettiCanvas = document.getElementById('confettiCanvas');
+const confettiCtx = confettiCanvas ? confettiCanvas.getContext('2d') : null;
+
+function resizeConfetti() {
+  if (!confettiCanvas) return;
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConfetti);
+
+class ConfettiPiece {
+  constructor(cx, cy) {
+    this.x = cx + (Math.random() - 0.5) * 100;
+    this.y = cy + (Math.random() - 0.5) * 100;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 15 + 8;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed - 5;
+    this.size = Math.random() * 10 + 6;
+    this.color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.3;
+    this.life = 1;
+    this.decay = 0.008 + Math.random() * 0.008;
+    this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
+  }
+  update() {
+    this.vy += 0.4;
+    this.vx *= 0.99;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.rotation += this.rotSpeed;
+    this.life -= this.decay;
+  }
+  draw() {
+    if (!confettiCtx) return;
+    confettiCtx.save();
+    confettiCtx.translate(this.x, this.y);
+    confettiCtx.rotate(this.rotation);
+    confettiCtx.globalAlpha = Math.max(0, this.life);
+    confettiCtx.fillStyle = this.color;
+    if (this.shape === 'rect') {
+      confettiCtx.fillRect(-this.size / 2, -this.size / 4, this.size, this.size / 2);
+    } else {
+      confettiCtx.beginPath();
+      confettiCtx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+      confettiCtx.fill();
+    }
+    confettiCtx.restore();
+  }
+}
+
+let confettiPieces = [];
+
+function burstConfetti(cx, cy, count = 80) {
+  for (let i = 0; i < count; i++) {
+    confettiPieces.push(new ConfettiPiece(cx, cy));
+  }
+}
+
+function startConfettiLoop() {
+  if (confettiRunning || !confettiCtx) return;
+  confettiRunning = true;
+  resizeConfetti();
+
+  const loop = () => {
+    if (!confettiRunning || !confettiCtx) return;
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    
+    for (let i = confettiPieces.length - 1; i >= 0; i--) {
+      const p = confettiPieces[i];
+      p.update();
+      p.draw();
+      if (p.life <= 0) confettiPieces.splice(i, 1);
+    }
+    
+    confettiRafId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function stopConfettiLoop() {
+  confettiRunning = false;
+  if (confettiRafId) cancelAnimationFrame(confettiRafId);
+  confettiRafId = null;
+  confettiPieces = [];
+  if (confettiCtx && confettiCanvas) {
+    confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
+// Fetch data eliminasi dari RPC
+async function fetchCataclysmElimination() {
+  const { data, error } = await supabaseClient.rpc('get_cataclysm_elimination');
+  
+  if (error || !data) {
+    console.error('[ELIM] Fetch error:', error);
+    return [];
+  }
+  
+  // Fetch avatars untuk semua peserta
+  const uids = data.map(r => r.unique_id);
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('unique_id, avatar_url, school_name')
+    .in('unique_id', uids);
+  
+  const userMap = {};
+  (users || []).forEach(u => { userMap[u.unique_id] = u; });
+  
+  return data.map(r => ({
+    unique_id: r.unique_id,
+    name: r.name,
+    total: Number(r.total_point) || 0,
+    finished_at: r.finished_at,
+    rank: r.rank_final,
+    avatar: userMap[r.unique_id]?.avatar_url 
+      || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(r.unique_id)}`,
+    school: userMap[r.unique_id]?.school_name || ''
+  }));
+}
+
+// Main sequence
+async function playEliminationSequence() {
+  if (eliminationPlaying) {
+    console.log('[ELIM] Already playing, skip');
+    return;
+  }
+  eliminationPlaying = true;
+  
+  console.log('[ELIM] ▶ Starting elimination sequence');
+  
+  // Reset UI
+  showElimPhase('survivor');
+  document.getElementById('survivorCardContainer').innerHTML = '<p class="text-slate-500 text-xl">Memuat peserta...</p>';
+  document.getElementById('eliminatedGrid').innerHTML = '';
+  
+  // Fetch data
+  const data = await fetchCataclysmElimination();
+  
+  if (data.length === 0) {
+    document.getElementById('survivorCardContainer').innerHTML = 
+      '<p class="text-slate-500 text-xl">Belum ada data peserta.</p>';
+    eliminationPlaying = false;
+    return;
+  }
+  
+  // Split
+  const survivors = data.slice(0, 30);
+  const eliminated = data.slice(30);
+  
+  eliminationData = { all: data, survivors, eliminated };
+  
+  console.log(`[ELIM] ${survivors.length} lulus, ${eliminated.length} tereliminasi`);
+  
+  // ═══════════════════════════════════════════════
+  // FASE 1: REVEAL SURVIVORS (30 × 1 detik + animasi)
+  // ═══════════════════════════════════════════════
+  playBGM('team_standings'); // WINNER.mp3
+  
+  startConfettiLoop();
+  
+  for (let i = 0; i < survivors.length; i++) {
+    const p = survivors[i];
+    
+    // Update counter
+    document.getElementById('survivorProgressText').textContent = i + 1;
+    
+    // Render kartu
+    renderSurvivorCard(p, i + 1);
+    
+    // Konfeti burst
+    burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 60);
+    
+    // Bell sound
+    playBell();
+    
+    // Hold 1 detik
+    await delay(1000);
+    
+    // Fade out kartu (kecuali terakhir)
+    if (i < survivors.length - 1) {
+      const card = document.querySelector('.survivor-card');
+      if (card) {
+        card.classList.add('out');
+        await delay(400);
+      }
+    }
+  }
+  
+  // Hold kartu terakhir lebih lama
+  await delay(1500);
+  
+  // ═══════════════════════════════════════════════
+  // FASE 2: REVEAL ELIMINATED (grid per 10, 5 detik/grup)
+  // ═══════════════════════════════════════════════
+  playBGM('disaster_phase'); // TEGANG.mp3
+  
+  stopConfettiLoop();
+  
+  showElimPhase('eliminated');
+  
+  document.getElementById('eliminatedCountText').textContent = `${eliminated.length} PESERTA`;
+  
+  const grid = document.getElementById('eliminatedGrid');
+  const GROUP_SIZE = 10;
+  const totalGroups = Math.ceil(eliminated.length / GROUP_SIZE);
+  
+  for (let g = 0; g < totalGroups; g++) {
+    const start = g * GROUP_SIZE;
+    const end = Math.min(start + GROUP_SIZE, eliminated.length);
+    const groupItems = eliminated.slice(start, end);
+    
+    // Render grup ke grid
+    groupItems.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'elim-final-card';
+      card.style.animationDelay = `${idx * 80}ms`;
+      card.innerHTML = `
+        <div class="elim-avatar">
+          <img src="${p.avatar}" alt="${p.name}" 
+               onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+        </div>
+        <div class="elim-name">${p.name}</div>
+        <div class="elim-points">${p.total.toFixed(2)}</div>
+        <div class="elim-badge">#${p.rank} · TERELIMINASI</div>
+      `;
+      grid.appendChild(card);
+    });
+    
+    playBeep();
+    
+    // Hold 5 detik per grup (kecuali grup terakhir)
+    if (g < totalGroups - 1) {
+      await delay(5000);
+    }
+  }
+  
+  // ═══════════════════════════════════════════════
+  // FASE 3: SUMMARY
+  // ═══════════════════════════════════════════════
+  await delay(3000);
+  
+  showElimPhase('summary');
+  document.getElementById('elimSummaryEliminatedCount').textContent = eliminated.length;
+  
+  playBGM('leaderboard'); // WINNER.mp3
+  
+  console.log('[ELIM] ✅ Sequence complete');
+  eliminationPlaying = false;
+}
+
+function renderSurvivorCard(p, rank) {
+  const container = document.getElementById('survivorCardContainer');
+  if (!container) return;
+  
+  let rankBadge = `#${rank}`;
+  let rankColor = 'bg-slate-700 text-slate-200';
+  let cardGlow = '';
+  let cardBorder = 'border-slate-600';
+  
+  if (rank === 1) {
+    rankBadge = '👑 JUARA 1';
+    rankColor = 'bg-amber-400 text-slate-950';
+    cardGlow = 'rank-1-glow';
+    cardBorder = 'border-amber-400';
+  } else if (rank === 2) {
+    rankBadge = '🥈 RANK 2';
+    rankColor = 'bg-slate-200 text-slate-950';
+    cardGlow = 'rank-2-glow';
+    cardBorder = 'border-slate-300';
+  } else if (rank === 3) {
+    rankBadge = '🥉 RANK 3';
+    rankColor = 'bg-amber-600 text-white';
+    cardGlow = 'rank-3-glow';
+    cardBorder = 'border-amber-600';
+  }
+  
+  container.innerHTML = `
+    <div class="survivor-card bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 ${cardBorder} border-4 rounded-[2.5rem] p-8 md:p-12 ${cardGlow} flex flex-col items-center gap-6 max-w-lg w-full">
+      <div class="px-6 py-2.5 rounded-full ${rankColor} font-math font-black text-xl uppercase tracking-wider shadow-xl">
+        ${rankBadge}
+      </div>
+      <div class="w-52 h-52 md:w-64 md:h-64 rounded-3xl bg-slate-950/80 border-4 border-emerald-500/40 p-3 shadow-2xl">
+        <img src="${p.avatar}" class="w-full h-full object-cover rounded-2xl" alt="${p.name}"
+             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+      </div>
+      <div class="text-center space-y-3">
+        <h3 class="text-4xl md:text-5xl font-black text-white tracking-wide">${p.name}</h3>
+        ${p.school ? `<p class="text-slate-400 text-sm">${p.school}</p>` : ''}
+        <div class="inline-block text-2xl font-mono font-black text-emerald-400 bg-emerald-500/15 px-8 py-3 rounded-2xl border border-emerald-500/40">
+          ${p.total.toFixed(2)} PTS
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showElimPhase(phase) {
+  const phases = {
+    survivor: document.getElementById('elimSurvivorPhase'),
+    eliminated: document.getElementById('elimEliminatedPhase'),
+    summary: document.getElementById('elimSummaryPhase')
+  };
+  
+  Object.values(phases).forEach(el => {
+    if (!el) return;
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+  });
+  
+  if (phases[phase]) {
+    phases[phase].classList.remove('hidden');
+    phases[phase].classList.add('flex');
+  }
+}
 
 // ═══════════════════════════════════════════════════════════
 // INIT
