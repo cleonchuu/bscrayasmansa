@@ -252,53 +252,65 @@
       animation: sunPulse 4s ease-in-out infinite;
     }
 
-    /* PLANET ORBIT */
-    @keyframes orbitSpin {
-      from { transform: translate(-50%, -50%) rotate(var(--start-angle, 0deg)); }
-      to   { transform: translate(-50%, -50%) rotate(calc(var(--start-angle, 0deg) + 360deg)); }
-    }
-
-    .planet-orbit {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 0; height: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
-
-    /* PLANET = SCHOOL LOGO */
-    .planet {
-      position: absolute;
-      width: 90px; height: 90px;
-      margin-left: -45px;
-      margin-top: -45px;
-      background: radial-gradient(circle, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.9));
-      border: 3px solid rgba(139, 92, 246, 0.8);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      padding: 10px;
-      box-shadow: 0 0 30px rgba(139, 92, 246, 0.7),
-                  inset 0 0 15px rgba(139, 92, 246, 0.4);
-      will-change: transform;
-      z-index: 15;
-    }
-    .planet img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
-      animation: counterSpin 60s linear infinite;
-    }
 
     @keyframes counterSpin {
       from { transform: rotate(0deg); }
       to   { transform: rotate(-360deg); }
     }
 
-    /* MOON = PARTICIPANT CARD */
+    /* ═══════════════════════════════════════════════════════
+       SOLAR SYSTEM — JS-driven positions
+       ═══════════════════════════════════════════════════════ */
+    #planetsContainer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .orbit-ring {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border-radius: 50%;
+      border: 1px dashed rgba(139, 92, 246, 0.12);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .planet {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 90px;
+      height: 90px;
+      margin-left: -45px;
+      margin-top: -45px;
+      background: radial-gradient(circle, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.9));
+      border: 3px solid rgba(139, 92, 246, 0.8);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), inset 0 0 15px rgba(139, 92, 246, 0.4);
+      z-index: 15;
+      will-change: transform;
+    }
+    .planet img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+    }
+
     .moon {
       position: absolute;
+      left: 0;
+      top: 0;
       width: 60px;
       padding: 3px;
+      margin-left: -30px;
+      margin-top: -30px;
       background: linear-gradient(145deg, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.98));
       border: 2px solid rgba(99, 102, 241, 0.7);
       border-radius: 0.6rem;
@@ -306,7 +318,6 @@
       z-index: 12;
       will-change: transform;
     }
-
     .moon-avatar {
       width: 100%;
       aspect-ratio: 1;
@@ -315,8 +326,11 @@
       overflow: hidden;
       margin-bottom: 2px;
     }
-    .moon-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
+    .moon-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
     .moon-name {
       font-size: 0.42rem;
       font-weight: 800;
@@ -335,7 +349,6 @@
       text-align: center;
       margin-top: 1px;
     }
-
     /* ═══════════════════════════════════════════════════════
        FINALISTS
        ═══════════════════════════════════════════════════════ */
@@ -1141,10 +1154,21 @@
   // ═══════════════════════════════════════════════════════════
   // VIEW 3: SOLAR SYSTEM
   // ═══════════════════════════════════════════════════════════
+  // ⭐ Data untuk JS animation loop
+  const SOLAR_STATE = {
+    planets: [],       // { school, radius, duration, startAngle, el, moonOrbitEl, moons: [...] }
+    startTime: 0,
+    rafId: null,
+    running: false
+  };
+
   function buildSolarSystem(participants) {
     const container = document.getElementById('planetsContainer');
     if (!container) return;
     container.innerHTML = '';
+
+    // ⭐ Stop loop lama
+    stopSolarLoop();
 
     const schools = Object.keys(SCHOOL_LOGO_MAP);
     const totalSchools = schools.length;
@@ -1158,91 +1182,137 @@
       }
     });
 
-    // ⭐ Distribusi radius per planet (bertingkat, jauhkan jalurnya)
-    // Mulai dari 200 px, tiap planet lebih jauh 45px
-    const RADIUS_START = 200;
-    const RADIUS_STEP = 45;
+    // ⭐ Radius pool (acak, tidak sama)
+    const RADIUS_POOL = [200, 245, 290, 335, 380, 425, 470, 515, 560];
+    const shuffledRadii = [...RADIUS_POOL].sort(() => Math.random() - 0.5);
 
-    // ⭐ Durasi orbit menyesuaikan jarak (semakin jauh → makin lambat, seperti tata surya asli)
-    // Planet terdekat: 40 detik. Planet terjauh: ~90 detik.
-    const BASE_DURATION = 40;
-    const DURATION_STEP = 6;
+    // ⭐ Shuffle schools juga biar urutan sudut tidak berurutan
+    const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
 
-    schools.forEach((school, sIdx) => {
-      const startAngle = (sIdx / totalSchools) * 360;
-      const radius = RADIUS_START + (sIdx * RADIUS_STEP);
-      const duration = BASE_DURATION + (sIdx * DURATION_STEP);
+    // Reset state
+    SOLAR_STATE.planets = [];
 
-      // ⭐ Planet orbit wrapper
-      const orbitWrapper = document.createElement('div');
-      orbitWrapper.className = 'planet-orbit';
-      orbitWrapper.style.setProperty('--start-angle', startAngle + 'deg');
-      orbitWrapper.style.animation = `orbitSpin ${duration}s linear infinite`;
+    shuffledSchools.forEach((school, sIdx) => {
+      // ⭐ Sudut start acak (0-360 derajat)
+      const startAngle = Math.random() * 360;
 
-      // ⭐ Orbit ring visual (garis lingkaran tipis sebagai jalur revolusi)
+      // ⭐ Radius dari pool
+      const radius = shuffledRadii[sIdx];
+
+      // ⭐ Durasi orbit: radius besar → lebih lambat
+      const radiusRatio = (radius - 200) / (560 - 200);   // 0-1
+      const duration = 40 + (radiusRatio * 50);           // 40-90 detik
+
+      // ⭐ Orbit ring
       const orbitRing = document.createElement('div');
-      orbitRing.style.position = 'absolute';
-      orbitRing.style.left = '50%';
-      orbitRing.style.top = '50%';
+      orbitRing.className = 'orbit-ring';
       orbitRing.style.width = (radius * 2) + 'px';
       orbitRing.style.height = (radius * 2) + 'px';
       orbitRing.style.marginLeft = (-radius) + 'px';
       orbitRing.style.marginTop = (-radius) + 'px';
-      orbitRing.style.borderRadius = '50%';
-      orbitRing.style.border = '1px dashed rgba(139, 92, 246, 0.15)';
-      orbitRing.style.pointerEvents = 'none';
-      orbitRing.style.zIndex = '3';
       container.appendChild(orbitRing);
 
-      // ⭐ Planet (logo sekolah) di ujung radius
+      // ⭐ Planet element
       const planet = document.createElement('div');
       planet.className = 'planet';
-      planet.style.transform = `translate(${radius}px, 0)`;
-
       const logoUrl = getSchoolLogoUrl(school);
       planet.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
-      orbitWrapper.appendChild(planet);
+      container.appendChild(planet);
 
-      // ⭐ Moons (kartu peserta) mengorbit planet
+      // ⭐ Moons (kartu peserta)
       const members = groupBySchool[school] || [];
-      const moonOrbit = document.createElement('div');
-      moonOrbit.style.position = 'absolute';
-      moonOrbit.style.width = '0';
-      moonOrbit.style.height = '0';
-      // Arah putaran bulan berlawanan dengan planet untuk efek dinamis
-      moonOrbit.style.animation = `orbitSpin ${MOON_ORBIT_DURATION}s linear infinite`;
-      moonOrbit.style.animationDirection = 'reverse';
+      const moons = [];
 
-      const moonCount = members.length;
       members.forEach((m, mIdx) => {
-        const moonAngle = (mIdx / Math.max(moonCount, 1)) * 360;
-
-        const moonWrapper = document.createElement('div');
-        moonWrapper.style.position = 'absolute';
-        moonWrapper.style.width = '0';
-        moonWrapper.style.height = '0';
-        moonWrapper.style.transform = `rotate(${moonAngle}deg)`;
+        const moonAngle = (mIdx / Math.max(members.length, 1)) * 360;
 
         const moon = document.createElement('div');
         moon.className = 'moon';
-        moon.style.transform = `translate(${MOON_ORBIT_RADIUS}px, 0) translateX(-30px)`;
 
         const avatar = getAvatarUrl(m.unique_id, m.avatar_url);
         moon.innerHTML = `
           <div class="moon-avatar">
-            <img src="${avatar}" alt="${m.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}'"/>
+            <img src="${avatar}" alt="${m.full_name}" onerror="this.src='https://api.dicebear.com/7.x/botd…'"/>
           </div>
           <div class="moon-name">${(m.full_name || m.unique_id).slice(0, 12)}</div>
           <div class="moon-pts">${Number(m.total_point || 0).toFixed(0)}</div>
         `;
 
-        moonWrapper.appendChild(moon);
-        moonOrbit.appendChild(moonWrapper);
+        container.appendChild(moon);
+        moons.push({ el: moon, angleOffset: moonAngle });
       });
 
-      planet.appendChild(moonOrbit);
-      container.appendChild(orbitWrapper);
+      SOLAR_STATE.planets.push({
+        school,
+        radius,
+        duration,
+        startAngle,
+        el: planet,
+        moons,
+        moonOrbitRadius: MOON_ORBIT_RADIUS,
+        moonOrbitDuration: MOON_ORBIT_DURATION
+      });
     });
+
+    // ⭐ Mulai loop
+    startSolarLoop();
+  }
+
+  function startSolarLoop() {
+    if (SOLAR_STATE.running) return;
+    SOLAR_STATE.running = true;
+    SOLAR_STATE.startTime = performance.now();
+
+    const loop = (now) => {
+      if (!SOLAR_STATE.running) return;
+
+      const elapsed = (now - SOLAR_STATE.startTime) / 1000;  // detik
+
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const cx = W / 2;
+      const cy = H / 2;
+
+      SOLAR_STATE.planets.forEach(p => {
+        // Sudut planet saat ini
+        const planetAngleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
+
+        const px = cx + Math.cos(planetAngleRad) * p.radius;
+        const py = cy + Math.sin(planetAngleRad) * p.radius;
+
+        // ⭐ Set posisi planet (fixed positioning)
+        p.el.style.left = px + 'px';
+        p.el.style.top = py + 'px';
+        p.el.style.marginLeft = '-45px';
+        p.el.style.marginTop = '-45px';
+
+        // ⭐ Posisi moons di sekitar planet
+        p.moons.forEach(m => {
+          const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
+          const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
+          const my = py + Math.sin(moonAngleRad) * p.moonOrbitRadius;
+
+          m.el.style.left = mx + 'px';
+          m.el.style.top = my + 'px';
+          m.el.style.marginLeft = '-30px';
+          m.el.style.marginTop = '-30px';
+
+          // ⭐ Kartu bulan selalu tegak (tidak ikut rotasi)
+          m.el.style.transform = 'rotate(0deg)';
+        });
+      });
+
+      SOLAR_STATE.rafId = requestAnimationFrame(loop);
+    };
+
+    SOLAR_STATE.rafId = requestAnimationFrame(loop);
+  }
+
+  function stopSolarLoop() {
+    SOLAR_STATE.running = false;
+    if (SOLAR_STATE.rafId) cancelAnimationFrame(SOLAR_STATE.rafId);
+    SOLAR_STATE.rafId = null;
+    SOLAR_STATE.planets = [];
   }
 
   // ═══════════════════════════════════════════════════════════
