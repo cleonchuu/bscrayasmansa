@@ -838,26 +838,32 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- VIEW 5: ELIMINATION                                       -->
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <div id="viewElimination" class="stage-view hidden-view flex flex-col items-center justify-center p-8">
-    <div class="text-center space-y-6 max-w-3xl">
-      <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl flex items-center justify-center mx-auto animate-shimmer-glow">
-        <i class="fas fa-skull-crossbones text-6xl text-rose-400"></i>
-      </div>
-      <span class="bg-rose-500/10 border border-rose-500/30 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
-        <i class="fas fa-hourglass-half mr-1"></i> TAHAP ELIMINASI
-      </span>
-      <h1 class="text-5xl font-black text-white font-display tracking-wider">
-        SISTEM ELIMINASI
-      </h1>
-      <p class="text-slate-400 text-lg leading-relaxed">
-        Menunggu panitia menentukan sistem eliminasi.<br>
-        Kontrol akan tersedia setelah konfigurasi selesai.
-      </p>
+  <!-- VIEW 5: ELIMINATION -->
+<div id="viewElimination" class="stage-view hidden-view flex flex-col items-center justify-center p-6">
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
+
+  <div class="text-center mb-6 relative z-10">
+    <span class="bg-rose-500/10 border border-rose-500/40 text-rose-400 font-black text-sm px-5 py-2 rounded-full uppercase tracking-widest">
+      <i class="fas fa-skull-crossbones"></i> HASIL ELIMINASI
+    </span>
+    <h1 class="text-5xl lg:text-6xl font-black text-white mt-4 font-display tracking-wider">
+      FORSAKEN CITY RECALL
+    </h1>
+    <p class="text-rose-300/70 text-lg mt-2 font-mono">
+      5 PESERTA DENGAN TOTAL POIN TERENDAH
+    </p>
+  </div>
+
+  <div id="elimFinalGrid" class="grid grid-cols-5 gap-4 w-full max-w-6xl relative z-10">
+    <p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat data eliminasi...</p>
+  </div>
+
+  <div class="mt-6 text-center relative z-10">
+    <div class="inline-block text-2xl md:text-3xl font-display font-black tracking-widest px-8 py-3 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-rose-300">
+      <i class="fas fa-skull-crossbones mr-2"></i> 5 PESERTA TERELIMINASI
     </div>
   </div>
+</div>
 
   <!-- ═══════════════════════════════════════════════════════ -->
   <!-- VIEW 6: LEADERBOARD                                       -->
@@ -1434,48 +1440,34 @@
     // COMBO REVEAL
     // ═══════════════════════════════════════════════════════════
     async function fetchComboData(sessionNum) {
-      const { data: scores } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, game_name, score_obtained')
-        .like('game_name', 'Recall Type%');
+  // Combo = peserta yang dapat 30 poin di SEMUA sesi 1..N
+  const { data: points, error } = await supabaseClient
+    .from('point_forsaken_city_recall')
+    .select('unique_id, name, point1, point2, point3, point4, point5, combo_streak');
 
-      if (!scores || scores.length === 0) return [];
+  if (error || !points) return [];
 
-      const userScoresMap = {};
-      scores.forEach(row => {
-        if (!userScoresMap[row.user_unique_id]) userScoresMap[row.user_unique_id] = {};
-        userScoresMap[row.user_unique_id][row.game_name] = row.score_obtained;
-      });
+  // Filter peserta dengan combo_streak >= sessionNum
+  const qualified = points.filter(p => (p.combo_streak || 0) >= sessionNum);
 
-      const qualified = [];
-      Object.keys(userScoresMap).forEach(uid => {
-        let isPerfect = true;
-        for (let s = 1; s <= sessionNum; s++) {
-          if (userScoresMap[uid][`Recall Type ${s}`] !== 30) {
-            isPerfect = false;
-            break;
-          }
-        }
-        if (isPerfect) qualified.push(uid);
-      });
+  if (qualified.length === 0) return [];
 
-      if (qualified.length === 0) return [];
+  const uids = qualified.map(p => p.unique_id);
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('unique_id, full_name, avatar_url, school_name')
+    .in('unique_id', uids);
 
-      const { data: users } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name, avatar_url, school_name')
-        .in('unique_id', qualified);
+  const userMap = {};
+  (users || []).forEach(u => userMap[u.unique_id] = u);
 
-      const userMap = {};
-      (users || []).forEach(u => userMap[u.unique_id] = u);
-
-      return qualified.map(uid => ({
-        uid,
-        full_name: userMap[uid]?.full_name || uid,
-        avatar_url: userMap[uid]?.avatar_url,
-        school_name: userMap[uid]?.school_name
-      }));
-    }
+  return qualified.map(p => ({
+    uid: p.unique_id,
+    full_name: userMap[p.unique_id]?.full_name || p.name || p.unique_id,
+    avatar_url: userMap[p.unique_id]?.avatar_url,
+    school_name: userMap[p.unique_id]?.school_name
+  }));
+}
 
     async function renderComboReveal(sessionNum, revealedRank) {
       const container = document.getElementById('comboRevealContainer');
@@ -1565,41 +1557,32 @@
     // LEADERBOARD
     // ═══════════════════════════════════════════════════════════
     async function fetchLeaderboardData() {
-      const { data: scores } = await supabaseClient
-        .from('game_scores')
-        .select('user_unique_id, score_obtained')
-        .like('game_name', 'Recall Type%');
+  const { data: points, error } = await supabaseClient
+    .from('point_forsaken_city_recall')
+    .select('unique_id, name, total, combo_streak, finished_at')
+    .order('total', { ascending: false })
+    .order('combo_streak', { ascending: false })
+    .order('finished_at', { ascending: true, nullsFirst: false });
 
-      if (!scores || scores.length === 0) return [];
+  if (error || !points) return [];
 
-      const totals = {};
-      scores.forEach(row => {
-        totals[row.user_unique_id] = (totals[row.user_unique_id] || 0) + (row.score_obtained || 0);
-      });
+  const uids = points.map(p => p.unique_id);
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('unique_id, full_name, avatar_url, school_name')
+    .in('unique_id', uids);
 
-      const ranked = Object.keys(totals)
-        .map(uid => ({ uid, total: totals[uid] }))
-        .sort((a, b) => b.total - a.total);
+  const userMap = {};
+  (users || []).forEach(u => userMap[u.unique_id] = u);
 
-      if (ranked.length === 0) return [];
-
-      const uids = ranked.map(r => r.uid);
-      const { data: users } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name, avatar_url, school_name')
-        .in('unique_id', uids);
-
-      const userMap = {};
-      (users || []).forEach(u => userMap[u.unique_id] = u);
-
-      return ranked.map(r => ({
-        uid: r.uid,
-        total: r.total,
-        full_name: userMap[r.uid]?.full_name || r.uid,
-        avatar_url: userMap[r.uid]?.avatar_url,
-        school_name: userMap[r.uid]?.school_name
-      }));
-    }
+  return points.map(p => ({
+    uid: p.unique_id,
+    total: p.total,
+    full_name: userMap[p.unique_id]?.full_name || p.name || p.unique_id,
+    avatar_url: userMap[p.unique_id]?.avatar_url,
+    school_name: userMap[p.unique_id]?.school_name
+  }));
+}
 
     async function renderLeaderboard() {
       const container = document.getElementById('leaderboardContainer');
@@ -1820,8 +1803,60 @@
         await renderComboReveal(comboSession, revealedRank);
       } else if (viewName === 'leaderboard') {
         await renderLeaderboard();
-      }
-    }
+      } else if (viewName === 'elimination') {
+        const target = document.getElementById('viewElimination');
+        if (target) { target.classList.remove('hidden-view'); target.classList.add('active-view'); }
+        await fetchAndRenderElimination();
+    }}
+
+      async function fetchAndRenderElimination() {
+  const grid = document.getElementById('elimFinalGrid');
+  if (!grid) return;
+
+  grid.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12 text-lg">Memuat...</p>`;
+
+  const { data: elim, error } = await supabaseClient
+    .from('elimination_history')
+    .select('unique_id, name, final_score')
+    .eq('game_name', 'Forsaken City Recall')
+    .order('final_score', { ascending: true });
+
+  if (error || !elim) {
+    grid.innerHTML = `<p class="col-span-full text-center text-rose-400 py-12 text-lg">Gagal memuat.</p>`;
+    return;
+  }
+
+  if (elim.length === 0) {
+    grid.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12 text-lg">Belum ada peserta tereliminasi.</p>`;
+    return;
+  }
+
+  const uids = elim.map(e => e.unique_id);
+  const { data: users } = await supabaseClient
+    .from('users').select('unique_id, avatar_url').in('unique_id', uids);
+
+  const avatarMap = {};
+  (users || []).forEach(u => avatarMap[u.unique_id] = u.avatar_url);
+
+  grid.innerHTML = '';
+  elim.forEach((item, idx) => {
+    const avatar = avatarMap[item.unique_id] || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.name || item.unique_id)}`;
+    const card = document.createElement('div');
+    card.className = 'flex flex-col items-center p-4 rounded-2xl bg-gradient-to-b from-rose-950/60 to-slate-950 border-3 border-rose-500/50 shadow-2xl shadow-rose-500/30';
+    card.style.animation = `cardPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 100}ms both`;
+    card.innerHTML = `
+      <div class="w-full aspect-square rounded-xl bg-slate-950 border-3 border-rose-500/60 overflow-hidden mb-2" style="filter:grayscale(0.5) brightness(0.85)">
+        <img src="${avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.unique_id)}'"/>
+      </div>
+      <div class="text-sm font-bold text-rose-200 text-center truncate w-full">${item.name || item.unique_id}</div>
+      <div class="text-lg font-mono font-black text-rose-400 mt-1">${item.final_score || 0}</div>
+      <div class="text-[10px] font-black tracking-widest bg-rose-500/25 border border-rose-500/60 text-rose-300 px-2 py-0.5 rounded-full mt-2">
+        TERELIMINASI
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
 
     // ═══════════════════════════════════════════════════════════
     // REALTIME: LAYOUT
