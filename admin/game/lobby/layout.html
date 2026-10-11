@@ -1192,36 +1192,61 @@
       }
     });
 
-    // Create planet orbit untuk tiap sekolah
+    // ⭐ Distribusi radius per planet (bertingkat, jauhkan jalurnya)
+    // Mulai dari 200 px, tiap planet lebih jauh 45px
+    const RADIUS_START = 200;
+    const RADIUS_STEP = 45;
+
+    // ⭐ Durasi orbit menyesuaikan jarak (semakin jauh → makin lambat, seperti tata surya asli)
+    // Planet terdekat: 40 detik. Planet terjauh: ~90 detik.
+    const BASE_DURATION = 40;
+    const DURATION_STEP = 6;
+
     schools.forEach((school, sIdx) => {
       const startAngle = (sIdx / totalSchools) * 360;
+      const radius = RADIUS_START + (sIdx * RADIUS_STEP);
+      const duration = BASE_DURATION + (sIdx * DURATION_STEP);
 
-      // Container planet (rotating)
+      // ⭐ Planet orbit wrapper
       const orbitWrapper = document.createElement('div');
       orbitWrapper.className = 'planet-orbit';
       orbitWrapper.style.setProperty('--start-angle', startAngle + 'deg');
-      orbitWrapper.style.animation = `orbitSpin ${PLANET_ORBIT_DURATION}s linear infinite`;
+      orbitWrapper.style.animation = `orbitSpin ${duration}s linear infinite`;
 
-      // Planet (logo sekolah)
+      // ⭐ Orbit ring visual (garis lingkaran tipis sebagai jalur revolusi)
+      const orbitRing = document.createElement('div');
+      orbitRing.style.position = 'absolute';
+      orbitRing.style.left = '50%';
+      orbitRing.style.top = '50%';
+      orbitRing.style.width = (radius * 2) + 'px';
+      orbitRing.style.height = (radius * 2) + 'px';
+      orbitRing.style.marginLeft = (-radius) + 'px';
+      orbitRing.style.marginTop = (-radius) + 'px';
+      orbitRing.style.borderRadius = '50%';
+      orbitRing.style.border = '1px dashed rgba(139, 92, 246, 0.15)';
+      orbitRing.style.pointerEvents = 'none';
+      orbitRing.style.zIndex = '3';
+      container.appendChild(orbitRing);
+
+      // ⭐ Planet (logo sekolah) di ujung radius
       const planet = document.createElement('div');
       planet.className = 'planet';
-      planet.style.transform = `translate(${PLANET_ORBIT_RADIUS}px, 0)`;
+      planet.style.transform = `translate(${radius}px, 0)`;
 
       const logoUrl = getSchoolLogoUrl(school);
       planet.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
       orbitWrapper.appendChild(planet);
 
-      // Moons (kartu peserta) — mengorbit planet
+      // ⭐ Moons (kartu peserta) mengorbit planet
       const members = groupBySchool[school] || [];
       const moonOrbit = document.createElement('div');
       moonOrbit.style.position = 'absolute';
       moonOrbit.style.width = '0';
       moonOrbit.style.height = '0';
-      // Putar searah jarum jam tapi lebih cepat dari planet
+      // Arah putaran bulan berlawanan dengan planet untuk efek dinamis
       moonOrbit.style.animation = `orbitSpin ${MOON_ORBIT_DURATION}s linear infinite`;
       moonOrbit.style.animationDirection = 'reverse';
 
-      // Bagi moons merata di sekitar planet
       const moonCount = members.length;
       members.forEach((m, mIdx) => {
         const moonAngle = (mIdx / Math.max(moonCount, 1)) * 360;
