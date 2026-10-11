@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembukaan - Smansa Battle Of Champions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Poppins:wght@400;600;800;900&family=Cinzel:wght@700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden; margin: 0; padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: radial-gradient(ellipse at top, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+      color: #fff;
+    }
+    .font-math { font-family: 'Orbitron', sans-serif; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    .font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW SWITCHER
+       ═══════════════════════════════════════════════════════ */
+    .stage-view {
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .stage-view.active-view {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       BGM BADGE
+       ═══════════════════════════════════════════════════════ */
+    .bgm-badge {
+      position: fixed;
+      bottom: 16px; right: 16px;
+      font-size: 10px; font-family: monospace;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #c4b5fd;
+      z-index: 200;
+      pointer-events: none;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .bgm-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #64748b; }
+    .bgm-badge .dot.playing { background: #10b981; animation: bgmPulse 1.4s infinite; }
+    .bgm-badge .dot.muted { background: #f43f5e; }
+    @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ═══════════════════════════════════════════════════════
+       AUDIO UNLOCK OVERLAY
+       ═══════════════════════════════════════════════════════ */
+    #audioUnlockOverlay {
+      position: fixed; inset: 0;
+      background: rgba(2, 6, 23, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: opacity 0.4s;
+    }
+    #audioUnlockOverlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+    #audioUnlockOverlay .unlock-icon { animation: unlockBounce 1.6s ease-in-out infinite; }
+    @keyframes unlockBounce {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.08); }
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW 1: IDLE
+       ═══════════════════════════════════════════════════════ */
+    @keyframes gradientShift {
+      0%,100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .animated-gradient {
+      background: linear-gradient(270deg, #4338ca, #7c3aed, #db2777, #f59e0b, #4338ca);
+      background-size: 400% 400%;
+      animation: gradientShift 12s ease infinite;
+    }
+    .animated-gradient-text {
+      background: linear-gradient(270deg, #818cf8, #c084fc, #f472b6, #fbbf24, #818cf8);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 12s ease infinite;
+    }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50%     { transform: translateY(-20px) rotate(3deg); }
+    }
+    .floaty   { animation: floaty 6s ease-in-out infinite; }
+    .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
+    .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW 2: PER SEKOLAH (REEL) — KARTU PESERTA
+       ═══════════════════════════════════════════════════════ */
+    @keyframes reelCardIn {
+      0% { opacity: 0; transform: scale(0.4) rotate(-12deg); filter: blur(20px); }
+      60% { opacity: 1; transform: scale(1.06) rotate(2deg); filter: blur(0); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
+    }
+    @keyframes reelCardOut {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.6) translateY(-60px); filter: blur(10px); }
+    }
+    .reel-card {
+      animation: reelCardIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    .reel-card.out {
+      animation: reelCardOut 0.4s ease-in forwards;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW 3: ALL PARTICIPANTS — FLOATING CARDS + ORBIT LOGOS
+       ═══════════════════════════════════════════════════════ */
+    @keyframes floatCard {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(15px, -25px) rotate(4deg); }
+      66% { transform: translate(-10px, 20px) rotate(-3deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .float-card {
+      animation: floatCard var(--float-dur, 8s) ease-in-out infinite;
+      animation-delay: var(--float-delay, 0s);
+    }
+
+    /* Orbit logo */
+    @keyframes orbitSpin {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    @keyframes orbitCounterSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(-360deg); }
+    }
+
+    #logoOrbit {
+      position: fixed;
+      top: 50%; left: 50%;
+      width: 600px; height: 600px;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      pointer-events: none;
+      animation: orbitSpin 40s linear infinite;
+    }
+
+    .logo-orbit-item {
+      position: absolute;
+      width: 80px; height: 80px;
+      top: 50%; left: 50%;
+      margin-left: -40px;
+      margin-top: -40px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(139, 92, 246, 0.6);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px;
+      box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+      animation: orbitCounterSpin 40s linear infinite;
+    }
+    .logo-orbit-item img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+
+    /* Center glow */
+    #orbitCenter {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0.1) 50%, transparent 70%);
+      z-index: 4;
+      pointer-events: none;
+      animation: floaty 5s ease-in-out infinite;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW 4: FINALISTS
+       ═══════════════════════════════════════════════════════ */
+    @keyframes rankCardIn {
+      0% { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(15px); }
+      60% { opacity: 1; transform: scale(1.1) rotate(4deg); filter: blur(0); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
+    }
+    .rank-card { animation: rankCardIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+    /* Rank glows */
+    .glow-rank-1 { box-shadow: 0 0 60px rgba(251, 191, 36, 0.9), 0 0 120px rgba(251, 191, 36, 0.5); }
+    .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
+    .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
+
+    /* ═══════════════════════════════════════════════════════
+       CONFETTI CANVAS
+       ═══════════════════════════════════════════════════════ */
+    #confettiCanvas {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       ELIMINATED STATE (Hari 2/3)
+       ═══════════════════════════════════════════════════════ */
+    .eliminated-card {
+      filter: grayscale(1) brightness(0.4) !important;
+      opacity: 0.5;
+      position: relative;
+    }
+    .eliminated-card::after {
+      content: '❌';
+      position: absolute;
+      top: 8px; right: 8px;
+      font-size: 24px;
+      filter: none !important;
+      z-index: 10;
+      text-shadow: 0 0 10px rgba(244, 63, 94, 0.9);
+    }
+    .eliminated-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 38, 38, 0.4);
+      border-radius: inherit;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+
+  <!-- AUDIO -->
+  <audio id="bgmPlayer" loop preload="auto"></audio>
+  <audio id="bellSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
+
+  <!-- AUDIO UNLOCK -->
+  <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
+    <div class="text-center space-y-6 px-8">
+      <div class="unlock-icon text-8xl">🔊</div>
+      <div>
+        <h2 class="text-4xl font-black text-white mb-3 font-cinzel">KLIK UNTUK AKTIFKAN STAGE</h2>
+        <p class="text-slate-400 text-lg">Browser memerlukan interaksi user sebelum audio bisa diputar.</p>
+      </div>
+      <div class="inline-block bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold px-6 py-3 rounded-xl">
+        <i class="fas fa-hand-pointer mr-2"></i> Klik di mana saja
+      </div>
+    </div>
+  </div>
+
+  <!-- BGM BADGE -->
+  <div class="bgm-badge">
+    <span id="bgmDot" class="dot"></span>
+    <span id="bgmLabel">BGM: --</span>
+  </div>
+
+  <!-- CONFETTI -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- DEBUG -->
+  <div id="dbgBadge" class="fixed top-2 right-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-[200] pointer-events-none">
+    <span id="dbgView">boot</span> · <span id="dbgSchool">-</span> · <span id="dbgCount">0</span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 1: IDLE
+       ═══════════════════════════════════════════════════════ -->
+  <section id="viewIdle" class="stage-view active-view">
+    <div class="absolute inset-0 animated-gradient opacity-20"></div>
+
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute top-[10%] left-[8%] w-24 h-24 bg-indigo-500/30 rounded-2xl floaty border border-indigo-400/30"></div>
+      <div class="absolute top-[70%] left-[15%] w-16 h-16 bg-purple-500/30 rounded-xl floaty-2 border border-purple-400/30"></div>
+      <div class="absolute top-[20%] right-[12%] w-32 h-32 bg-amber-500/25 rounded-3xl floaty-3 border border-amber-400/30"></div>
+      <div class="absolute top-[65%] right-[20%] w-20 h-20 bg-pink-500/25 rounded-2xl floaty border border-pink-400/30"></div>
+      <div class="absolute bottom-[15%] left-1/2 w-14 h-14 bg-emerald-500/30 rounded-xl floaty-2 border border-emerald-400/30"></div>
+    </div>
+
+    <div class="relative z-10 w-full h-full flex flex-col items-center justify-center px-8 text-center">
+      <div class="mb-6">
+        <div class="inline-flex items-center gap-3 px-6 py-2.5 bg-purple-500/20 border border-purple-400/40 rounded-full backdrop-blur-md">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-sm font-bold text-purple-200 tracking-widest uppercase">Opening Ceremony</span>
+        </div>
+      </div>
+
+      <h1 class="text-7xl md:text-9xl font-bebas text-white leading-none mb-2">
+        SMANSA
+      </h1>
+      <h1 class="text-7xl md:text-9xl font-bebas leading-none mb-8">
+        <span class="animated-gradient-text">BATTLE OF CHAMPIONS</span>
+      </h1>
+
+      <p class="text-xl md:text-2xl text-slate-300 font-semibold mb-12 max-w-3xl leading-relaxed">
+        Selamat datang para pejuang dari <span class="text-amber-400 font-black">9 sekolah</span> se-<span class="text-purple-400 font-black">Natuna</span>
+      </p>
+
+      <div class="flex items-center gap-3 text-slate-500 text-sm">
+        <i class="fas fa-hourglass-start"></i>
+        <span>Menunggu panitia memulai upacara pembukaan...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 2: PER SEKOLAH (REEL)
+       ═══════════════════════════════════════════════════════ -->
+  <section id="viewPerSchool" class="stage-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.25),_transparent_70%)] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl bg-slate-900/80 border border-purple-500/40 flex items-center justify-center overflow-hidden p-1.5">
+          <img id="perSchoolLogo" src="" class="w-full h-full object-contain" onerror="this.style.opacity=0.2"/>
+        </div>
+        <div>
+          <div class="text-[10px] text-purple-400 uppercase tracking-widest font-bold">Kontingen dari</div>
+          <div id="perSchoolName" class="text-2xl md:text-3xl font-black text-white">—</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest">Peserta</div>
+        <div class="text-2xl font-mono font-black text-purple-400">
+          <span id="perSchoolIndex">0</span><span class="text-slate-500">/</span><span id="perSchoolTotal">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reel container -->
+    <div id="perSchoolCardContainer" class="relative z-10 w-full h-full flex items-center justify-center">
+      <p class="text-slate-500 text-xl">Memuat peserta...</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 3: ALL PARTICIPANTS (FLOATING + ORBIT)
+       ═══════════════════════════════════════════════════════ -->
+  <section id="viewAllParticipants" class="stage-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/40 to-slate-950"></div>
+
+    <!-- Center glow -->
+    <div id="orbitCenter"></div>
+
+    <!-- Orbit logos -->
+    <div id="logoOrbit">
+      <!-- Logos generated via JS -->
+    </div>
+
+    <!-- Floating cards -->
+    <div id="floatingCards" class="absolute inset-0 z-10 pointer-events-none">
+      <!-- Cards generated via JS -->
+    </div>
+
+    <!-- Header -->
+    <div class="absolute top-0 left-0 right-0 z-30 p-6 text-center">
+      <div class="inline-block bg-slate-900/80 backdrop-blur-md border border-purple-500/40 rounded-full px-8 py-3">
+        <div class="text-xs text-purple-400 uppercase tracking-widest font-bold">Para Pejuang</div>
+        <div class="text-xl md:text-2xl font-black text-white">SMANSA BATTLE OF CHAMPIONS</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="absolute bottom-0 left-0 right-0 z-30 p-6 text-center">
+      <div id="allParticipantsCount" class="inline-block bg-slate-900/80 backdrop-blur-md border border-purple-500/40 rounded-full px-8 py-3 text-sm font-bold text-purple-300">
+        0 Peserta
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 4: FINALISTS (TOP 10)
+       ═══════════════════════════════════════════════════════ -->
+  <section id="viewFinalists" class="stage-view">
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-amber-950/20 to-slate-950"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.2),_transparent_70%)] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="absolute top-0 left-0 right-0 z-20 p-6 text-center">
+      <div class="inline-block bg-amber-500/20 backdrop-blur-md border border-amber-400/50 rounded-full px-8 py-3">
+        <div class="text-xs text-amber-300 uppercase tracking-widest font-black">
+          <i class="fas fa-crown"></i> 10 Finalis Hari 3
+        </div>
+      </div>
+    </div>
+
+    <!-- Card container -->
+    <div id="finalistCardContainer" class="relative z-10 w-full h-full flex items-center justify-center">
+      <p class="text-slate-500 text-xl">Memuat finalis...</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRIPT
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    // ═══════════════════════════════════════════════════════
+    // KONFIG
+    // ═══════════════════════════════════════════════════════
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
+    const SCHOOL_LOGO_BASE = `${STORAGE_BASE}/SCHOOL_LOGO`;
+
+    // Mapping sekolah → file logo
+    const SCHOOL_LOGO_MAP = {
+      'MTS DARUSSALAM':             'MTSDARUSSALAM.png',
+      'MTS IBNU RUSYD':             'MTSIBNURUSYD.png',
+      'MTSN 2 Natuna':              'MTSN2NATUNA.png',
+      'SMPIT NIQ':                  'SMPITNIQ.png',
+      'SMPN 1 Bunguran Tengah':     'SMPN1BUNGURANTENGAH.png',
+      'SMPN 1 Bunguran Timur':      'SMPN1BUNGURANTIMUR.png',
+      'SMPN 2 Bunguran Timur':      'SMPN2BUNGURANTIMUR.png',
+      'SMPN 2 Bunguran Timur Laut': 'SMPN2BUNGURANTIMURLAUT.png',
+      'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
+    };
+
+    const REEL_DURATION = 3000;   // 3 detik per peserta
+    const FINALIST_DURATION = 3000;
+
+    // ═══════════════════════════════════════════════════════
+    // LOGGER
+    // ═══════════════════════════════════════════════════════
+    const TAG = '[OPENING]';
+    const LOG = {
+      ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
+      info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
+      warn: (m,d) => console.warn(`%c${TAG} ⚠️ ${m}`,'color:#f59e0b;font-weight:bold',d??''),
+      err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════
+    const STATE = {
+      audioUnlocked: false,
+      currentView: 'idle',
+      currentMode: null,
+      currentSchool: null,
+      currentDay: 1,
+      lastSig: '',
+      realtimeConnected: false,
+
+      // Per school reel
+      reelData: [],
+      reelIndex: 0,
+      reelTimer: null,
+      reelActive: false,
+
+      // Finalists
+      finalistData: [],
+      finalistIndex: 0,
+      finalistTimer: null,
+
+      // Data cache
+      allParticipants: []
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // BGM
+    // ═══════════════════════════════════════════════════════
+    const BGM = {
+      baseUrl: `${STORAGE_BASE}/bgm/`,
+      tracks: {
+        idle:               'OPENING.mp3',
+        per_school:         'OPENING.mp3',
+        all_participants:   'LOBBY.mp3',
+        finalists:          'WINNER.mp3'
+      },
+      current: null,
+      player: null,
+      unlocked: false,
+      volume: 0.55,
+      pendingTrack: null
+    };
+
+    function initBGM() {
+      BGM.player = document.getElementById('bgmPlayer');
+      if (!BGM.player) return;
+      BGM.player.volume = BGM.volume;
+      BGM.player.loop = true;
+
+      const unlock = () => {
+        if (BGM.unlocked) return;
+        BGM.unlocked = true;
+        hideUnlockOverlay();
+        const target = BGM.pendingTrack || BGM.current || 'idle';
+        BGM.pendingTrack = null;
+        BGM.current = null;
+        playBGM(target);
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('keydown', unlock);
+      };
+
+      document.addEventListener('click', unlock);
+      document.addEventListener('touchstart', unlock);
+      document.addEventListener('keydown', unlock);
+
+      const ov = document.getElementById('audioUnlockOverlay');
+      if (ov) ov.addEventListener('click', unlock);
+    }
+
+    function showUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.remove('hidden');
+    }
+    function hideUnlockOverlay() {
+      const el = document.getElementById('audioUnlockOverlay');
+      if (el) el.classList.add('hidden');
+    }
+    function updateBGMBadge(status, trackName) {
+      const dot = document.getElementById('bgmDot');
+      const label = document.getElementById('bgmLabel');
+      if (dot) dot.className = 'dot ' + (status === 'playing' ? 'playing' : (status === 'muted' ? 'muted' : ''));
+      if (label) label.textContent = `BGM: ${trackName}`;
+    }
+
+    function playBGM(viewName) {
+      if (!BGM.player) return;
+      const filename = BGM.tracks[viewName];
+      if (!filename) return;
+      if (BGM.current === viewName && BGM.player.src && BGM.player.src.includes(filename)) return;
+
+      if (!BGM.unlocked) {
+        BGM.pendingTrack = viewName;
+        BGM.current = viewName;
+        updateBGMBadge('', viewName);
+        return;
+      }
+
+      const newSrc = BGM.baseUrl + filename;
+      if (BGM.player.src === newSrc) { BGM.current = viewName; return; }
+
+      BGM.current = viewName;
+      try { BGM.player.pause(); } catch(e) {}
+      BGM.player.src = newSrc;
+      BGM.player.currentTime = 0;
+
+      setTimeout(() => {
+        BGM.player.load();
+        BGM.player.play()
+          .then(() => { updateBGMBadge('playing', viewName); LOG.ok(`BGM → ${viewName}`); })
+          .catch(() => {
+            updateBGMBadge('muted', viewName);
+            BGM.pendingTrack = viewName;
+            BGM.unlocked = false;
+            showUnlockOverlay();
+          });
+      }, 80);
+    }
+
+    function unlockAudio() {
+      BGM.unlocked = true;
+      hideUnlockOverlay();
+      const target = BGM.pendingTrack || BGM.current || 'idle';
+      BGM.pendingTrack = null;
+      BGM.current = null;
+      playBGM(target);
+    }
+
+    function playBell() {
+      const b = document.getElementById('bellSound');
+      if (!b) return;
+      try { b.currentTime = 0; b.play().catch(() => {}); } catch(e) {}
+    }
+    function playBeep() {
+      const b = document.getElementById('beepSound');
+      if (!b) return;
+      try { b.currentTime = 0; b.play().catch(() => {}); } catch(e) {}
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // CONFETTI ENGINE
+    // ═══════════════════════════════════════════════════════
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiPieces = [];
+    let confettiRafId = null;
+    let confettiRunning = false;
+
+    const CONFETTI_COLORS = ['#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb7185', '#facc15'];
+
+    function resizeConfetti() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    resizeConfetti();
+    window.addEventListener('resize', resizeConfetti);
+
+    class ConfettiPiece {
+      constructor(x, y, fromTop = false) {
+        if (fromTop) {
+          this.x = Math.random() * confettiCanvas.width;
+          this.y = -20;
+          this.vx = (Math.random() - 0.5) * 3;
+          this.vy = Math.random() * 3 + 2;
+        } else {
+          this.x = x + (Math.random() - 0.5) * 80;
+          this.y = y + (Math.random() - 0.5) * 80;
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 12 + 6;
+          this.vx = Math.cos(angle) * speed;
+          this.vy = Math.sin(angle) * speed - 4;
+        }
+        this.size = Math.random() * 10 + 5;
+        this.color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.3;
+        this.life = 1;
+        this.decay = 0.006 + Math.random() * 0.006;
+        this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
+      }
+      update() {
+        this.vy += 0.35;
+        this.vx *= 0.99;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.rotation += this.rotSpeed;
+        this.life -= this.decay;
+      }
+      draw() {
+        confettiCtx.save();
+        confettiCtx.translate(this.x, this.y);
+        confettiCtx.rotate(this.rotation);
+        confettiCtx.globalAlpha = Math.max(0, this.life);
+        confettiCtx.fillStyle = this.color;
+        if (this.shape === 'rect') {
+          confettiCtx.fillRect(-this.size/2, -this.size/4, this.size, this.size/2);
+        } else {
+          confettiCtx.beginPath();
+          confettiCtx.arc(0, 0, this.size/2, 0, Math.PI * 2);
+          confettiCtx.fill();
+        }
+        confettiCtx.restore();
+      }
+    }
+
+    function startConfettiLoop() {
+      if (confettiRunning) return;
+      confettiRunning = true;
+      const loop = () => {
+        if (!confettiRunning) return;
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        for (let i = confettiPieces.length - 1; i >= 0; i--) {
+          const p = confettiPieces[i];
+          p.update();
+          p.draw();
+          if (p.life <= 0) confettiPieces.splice(i, 1);
+        }
+        confettiRafId = requestAnimationFrame(loop);
+      };
+      loop();
+    }
+
+    function stopConfettiLoop() {
+      confettiRunning = false;
+      if (confettiRafId) cancelAnimationFrame(confettiRafId);
+      confettiRafId = null;
+      confettiPieces = [];
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+
+    function burstConfetti(cx, cy, count = 100) {
+      for (let i = 0; i < count; i++) {
+        confettiPieces.push(new ConfettiPiece(cx, cy, false));
+      }
+    }
+
+    function rainConfetti(count = 3) {
+      for (let i = 0; i < count; i++) {
+        confettiPieces.push(new ConfettiPiece(0, 0, true));
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════
+    function getSchoolLogoUrl(schoolName) {
+      const filename = SCHOOL_LOGO_MAP[schoolName];
+      if (!filename) return null;
+      return `${SCHOOL_LOGO_BASE}/${filename}`;
+    }
+
+    function getAvatarUrl(uid, avatarUrl) {
+      if (avatarUrl && avatarUrl.trim()) return avatarUrl;
+      return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`;
+    }
+
+    function delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VIEW SWITCH
+    // ═══════════════════════════════════════════════════════
+    function switchView(viewName) {
+      LOG.info(`Switch view → ${viewName}`);
+
+      // Stop semua animasi
+      stopReel();
+      stopFinalistReel();
+      stopConfettiLoop();
+      stopFloatingCards();
+
+      // Hide all
+      ['viewIdle','viewPerSchool','viewAllParticipants','viewFinalists'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active-view');
+      });
+
+      // Show target
+      const map = {
+        idle: 'viewIdle',
+        per_school: 'viewPerSchool',
+        all_participants: 'viewAllParticipants',
+        finalists: 'viewFinalists'
+      };
+      const targetId = map[viewName];
+      if (targetId) {
+        const el = document.getElementById(targetId);
+        if (el) el.classList.add('active-view');
+      }
+
+      STATE.currentView = viewName;
+      playBGM(viewName);
+
+      // Special handlers
+      if (viewName === 'per_school') {
+        startReel();
+      } else if (viewName === 'all_participants') {
+        startAllParticipants();
+      } else if (viewName === 'finalists') {
+        startFinalists();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // FETCH FUNCTIONS
+    // ═══════════════════════════════════════════════════════
+    async function fetchParticipantsBySchool(school) {
+      const { data, error } = await supabaseClient.rpc('get_participants_by_school', {
+        p_school: school
+      });
+      if (error) { LOG.err('fetchParticipantsBySchool', error); return []; }
+      return data || [];
+    }
+
+    async function fetchAllParticipants() {
+      const { data, error } = await supabaseClient.rpc('get_all_participants_accumulated');
+      if (error) { LOG.err('fetchAllParticipants', error); return []; }
+      return data || [];
+    }
+
+    async function fetchFinalists() {
+      const { data, error } = await supabaseClient.rpc('get_finalists_top10');
+      if (error) { LOG.err('fetchFinalists', error); return []; }
+      return data || [];
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VIEW 2: PER SEKOLAH (REEL)
+    // ═══════════════════════════════════════════════════════
+    async function startReel() {
+      const school = STATE.currentSchool;
+      if (!school) {
+        document.getElementById('perSchoolCardContainer').innerHTML =
+          '<p class="text-slate-500 text-xl">Belum ada sekolah dipilih.</p>';
+        return;
+      }
+
+      const logoUrl = getSchoolLogoUrl(school);
+      document.getElementById('perSchoolLogo').src = logoUrl || '';
+      document.getElementById('perSchoolName').textContent = school;
+
+      const participants = await fetchParticipantsBySchool(school);
+      STATE.reelData = participants;
+      STATE.reelIndex = 0;
+      STATE.reelActive = true;
+
+      document.getElementById('perSchoolTotal').textContent = participants.length;
+
+      if (participants.length === 0) {
+        document.getElementById('perSchoolCardContainer').innerHTML =
+          '<p class="text-slate-500 text-xl">Tidak ada peserta dari sekolah ini.</p>';
+        return;
+      }
+
+      startConfettiLoop();
+
+      // Loop reel
+      const tick = async () => {
+        if (!STATE.reelActive) return;
+        if (STATE.currentView !== 'per_school') return;
+
+        const p = STATE.reelData[STATE.reelIndex];
+        renderReelCard(p, STATE.reelIndex + 1, participants.length);
+
+        document.getElementById('perSchoolIndex').textContent = STATE.reelIndex + 1;
+
+        // Confetti burst dari tengah layar
+        burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+        // Rain dari atas
+        for (let i = 0; i < 15; i++) rainConfetti(2);
+        playBell();
+
+        await delay(REEL_DURATION);
+
+        // Next
+        STATE.reelIndex = (STATE.reelIndex + 1) % STATE.reelData.length;
+        STATE.reelTimer = setTimeout(tick, 400);
+      };
+
+      tick();
+    }
+
+    function renderReelCard(p, idx, total) {
+      const container = document.getElementById('perSchoolCardContainer');
+      if (!container) return;
+
+      const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+      const isEliminated = p.is_eliminated === true;
+
+      container.innerHTML = `
+        <div class="reel-card ${isEliminated ? 'eliminated-card' : ''} bg-gradient-to-br from-purple-950/70 via-slate-900 to-slate-950 border-4 ${isEliminated ? 'border-rose-500/60' : 'border-purple-500/50'} rounded-[3rem] p-10 md:p-14 flex flex-col items-center gap-6 max-w-2xl w-full shadow-2xl"
+             style="box-shadow: 0 0 80px rgba(139,92,246,0.5);">
+          
+          <div class="px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest ${isEliminated ? 'bg-rose-500 text-white' : 'bg-purple-500 text-white'}">
+            ${isEliminated ? '❌ TERELIMINASI' : `PESERTA ${idx} / ${total}`}
+          </div>
+
+          <div class="w-64 h-64 md:w-80 md:h-80 rounded-[2.5rem] bg-slate-950/80 border-4 ${isEliminated ? 'border-rose-500/60' : 'border-purple-500/60'} overflow-hidden flex items-center justify-center p-3 shadow-2xl">
+            <img src="${avatar}" class="w-full h-full object-cover rounded-[2rem]"
+                 onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+          </div>
+
+          <div class="text-center space-y-3 max-w-xl">
+            <h2 class="text-4xl md:text-5xl font-black text-white tracking-wide leading-tight">
+              ${p.full_name || p.unique_id}
+            </h2>
+            <div class="text-purple-300 text-sm md:text-base font-semibold">
+              <i class="fas fa-school mr-2"></i>${p.school_name || ''}
+            </div>
+            <div class="inline-block text-3xl md:text-4xl font-mono font-black text-amber-400 bg-amber-500/10 px-8 py-3 rounded-2xl border-2 border-amber-500/40 mt-2">
+              ${Number(p.total_point || 0).toFixed(2)} PTS
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function stopReel() {
+      STATE.reelActive = false;
+      if (STATE.reelTimer) { clearTimeout(STATE.reelTimer); STATE.reelTimer = null; }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VIEW 3: ALL PARTICIPANTS (FLOATING + ORBIT LOGOS)
+    // ═══════════════════════════════════════════════════════
+    let floatingAnimId = null;
+
+    async function startAllParticipants() {
+      const participants = await fetchAllParticipants();
+      STATE.allParticipants = participants;
+
+      // Build orbit logos
+      buildOrbitLogos();
+
+      // Build floating cards
+      buildFloatingCards(participants);
+
+      document.getElementById('allParticipantsCount').textContent = `${participants.length} Peserta`;
+    }
+
+    function buildOrbitLogos() {
+      const orbit = document.getElementById('logoOrbit');
+      if (!orbit) return;
+      orbit.innerHTML = '';
+
+      const schools = Object.keys(SCHOOL_LOGO_MAP);
+      const total = schools.length;
+      const radius = 250;  // jarak dari pusat orbit
+
+      schools.forEach((school, i) => {
+        const angle = (i / total) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+
+        const item = document.createElement('div');
+        item.className = 'logo-orbit-item';
+        // Posisi via transform, tapi counter-rotate sudah di CSS
+        item.style.transform = `translate(${x}px, ${y}px)`;
+        // Karena parent rotate, kita perlu unrotate
+        item.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+
+        const logoUrl = getSchoolLogoUrl(school);
+        item.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
+        orbit.appendChild(item);
+      });
+    }
+
+    function buildFloatingCards(participants) {
+      const container = document.getElementById('floatingCards');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // Batasi max 40 kartu biar tidak overwhelm
+      const maxCards = Math.min(participants.length, 40);
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+
+      // Range posisi: hindari area tengah (orbit)
+      const forbiddenRadius = 350; // px
+      const cx = W / 2, cy = H / 2;
+
+      for (let i = 0; i < maxCards; i++) {
+        const p = participants[i];
+
+        // Cari posisi random yang tidak di tengah
+        let x, y, tries = 0;
+        do {
+          x = Math.random() * (W - 160) + 80;
+          y = Math.random() * (H - 200) + 100;
+          tries++;
+          const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+          if (dist > forbiddenRadius) break;
+        } while (tries < 20);
+
+        const card = document.createElement('div');
+        card.className = 'float-card absolute';
+        card.style.left = x + 'px';
+        card.style.top = y + 'px';
+        card.style.width = '120px';
+        card.style.setProperty('--float-dur', (6 + Math.random() * 6) + 's');
+        card.style.setProperty('--float-delay', (-Math.random() * 6) + 's');
+
+        const isEliminated = p.is_eliminated === true;
+        const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+
+        card.innerHTML = `
+          <div class="${isEliminated ? 'eliminated-card' : ''} bg-slate-900/90 backdrop-blur-sm border-2 ${isEliminated ? 'border-rose-500/60' : 'border-purple-500/40'} rounded-2xl p-2 shadow-xl"
+               style="box-shadow: 0 0 20px ${isEliminated ? 'rgba(244,63,94,0.3)' : 'rgba(139,92,246,0.3)'};">
+            <div class="aspect-square rounded-xl overflow-hidden bg-slate-950 mb-1.5">
+              <img src="${avatar}" class="w-full h-full object-cover"
+                   onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+            </div>
+            <div class="text-[9px] font-bold text-white text-center leading-tight truncate">
+              ${p.full_name || p.unique_id}
+            </div>
+            <div class="text-[8px] text-purple-300 text-center truncate">
+              ${(p.school_name || '').slice(0, 20)}
+            </div>
+            <div class="text-[10px] font-mono font-black text-amber-400 text-center mt-0.5">
+              ${Number(p.total_point || 0).toFixed(0)} PTS
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    function stopFloatingCards() {
+      if (floatingAnimId) cancelAnimationFrame(floatingAnimId);
+      floatingAnimId = null;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // VIEW 4: FINALISTS (RANK #10 → #1)
+    // ═══════════════════════════════════════════════════════
+    async function startFinalists() {
+      const finalists = await fetchFinalists();
+      STATE.finalistData = finalists;
+
+      if (finalists.length === 0) {
+        document.getElementById('finalistCardContainer').innerHTML =
+          '<p class="text-slate-500 text-xl">Belum ada finalis.</p>';
+        return;
+      }
+
+      // Reverse: dari #10 ke #1
+      const ordered = [...finalists].reverse();
+
+      startConfettiLoop();
+
+      let i = 0;
+      const tick = async () => {
+        if (STATE.currentView !== 'finalists') return;
+
+        const p = ordered[i];
+        renderFinalistCard(p);
+
+        burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 100);
+        for (let k = 0; k < 20; k++) rainConfetti(2);
+        playBell();
+
+        await delay(FINALIST_DURATION);
+
+        i++;
+        if (i < ordered.length) {
+          STATE.finalistTimer = setTimeout(tick, 400);
+        } else {
+          // Selesai — konfeti hujan terus
+          const rainInterval = setInterval(() => {
+            if (STATE.currentView !== 'finalists') {
+              clearInterval(rainInterval);
+              return;
+            }
+            for (let k = 0; k < 8; k++) rainConfetti(1);
+          }, 200);
+        }
+      };
+
+      tick();
+    }
+
+    function renderFinalistCard(p) {
+      const container = document.getElementById('finalistCardContainer');
+      if (!container) return;
+
+      const rank = p.rank_final;
+      const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+
+      let badge = `RANK #${rank}`;
+      let rankClass = '';
+      let badgeClass = 'bg-slate-700 text-slate-200';
+      let borderClass = 'border-slate-500/60';
+      let glowClass = '';
+
+      if (rank === 1) {
+        badge = '👑 JUARA 1';
+        badgeClass = 'bg-amber-400 text-slate-950';
+        borderClass = 'border-amber-400';
+        glowClass = 'glow-rank-1';
+      } else if (rank === 2) {
+        badge = '🥈 JUARA 2';
+        badgeClass = 'bg-slate-200 text-slate-950';
+        borderClass = 'border-slate-200';
+        glowClass = 'glow-rank-2';
+      } else if (rank === 3) {
+        badge = '🥉 JUARA 3';
+        badgeClass = 'bg-amber-600 text-white';
+        borderClass = 'border-amber-600';
+        glowClass = 'glow-rank-3';
+      } else {
+        badge = `RANK #${rank}`;
+      }
+
+      container.innerHTML = `
+        <div class="rank-card bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 border-4 ${borderClass} rounded-[3rem] p-10 md:p-14 flex flex-col items-center gap-6 max-w-3xl w-full ${glowClass}">
+          
+          <div class="px-8 py-3 rounded-full font-black text-xl md:text-2xl uppercase tracking-widest ${badgeClass} shadow-2xl">
+            ${badge}
+          </div>
+
+          <div class="w-64 h-64 md:w-80 md:h-80 rounded-[2.5rem] bg-slate-950/80 border-4 ${borderClass} overflow-hidden flex items-center justify-center p-3 shadow-2xl">
+            <img src="${avatar}" class="w-full h-full object-cover rounded-[2rem]"
+                 onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+          </div>
+
+          <div class="text-center space-y-3 max-w-xl">
+            <h2 class="text-4xl md:text-5xl font-black text-white tracking-wide leading-tight">
+              ${p.full_name || p.unique_id}
+            </h2>
+            <div class="text-purple-300 text-sm md:text-base font-semibold">
+              <i class="fas fa-school mr-2"></i>${p.school_name || ''}
+            </div>
+            <div class="inline-block text-3xl md:text-4xl font-mono font-black text-amber-400 bg-amber-500/10 px-8 py-3 rounded-2xl border-2 border-amber-500/40 mt-2">
+              ${Number(p.total_point || 0).toFixed(2)} PTS
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function stopFinalistReel() {
+      if (STATE.finalistTimer) {
+        clearTimeout(STATE.finalistTimer);
+        STATE.finalistTimer = null;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SYNC LAYOUT STATE
+    // ═══════════════════════════════════════════════════════
+    async function syncLayout() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('opening_ceremony_state')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+
+        if (error || !data) return;
+
+        const view = data.current_view || 'idle';
+        const school = data.current_school || null;
+        const day = data.current_day || 1;
+        const sig = `${view}|${school}|${day}|${data.updated_at}`;
+
+        if (sig === STATE.lastSig) return;
+        STATE.lastSig = sig;
+
+        LOG.ok(`Layout state: ${view} / ${school || '-'} / Day ${day}`);
+
+        STATE.currentDay = day;
+
+        if (view === 'per_school' && school) {
+          STATE.currentSchool = school;
+          switchView('per_school');
+        } else if (view === 'all_participants') {
+          switchView('all_participants');
+        } else if (view === 'finalists') {
+          switchView('finalists');
+        } else {
+          switchView('idle');
+        }
+
+        // Debug
+        document.getElementById('dbgView').textContent = view;
+        document.getElementById('dbgSchool').textContent = school || '-';
+      } catch (e) { LOG.err('syncLayout', e); }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // REALTIME
+    // ═══════════════════════════════════════════════════════
+    function setupRealtime() {
+      supabaseClient.channel('opening_ceremony_rt')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'opening_ceremony_state'
+        }, () => {
+          STATE.lastSig = '';
+          syncLayout();
+        })
+        .subscribe(status => {
+          LOG.info(`Realtime: ${status}`);
+          STATE.realtimeConnected = status === 'SUBSCRIBED';
+        });
+
+      // Polling fallback
+      setInterval(syncLayout, 2000);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════
+    (async function init() {
+      LOG.ok('══════════ OPENING CEREMONY BOOT ══════════');
+      initBGM();
+      await syncLayout();
+      setupRealtime();
+      LOG.ok('══════════ READY ══════════');
+    })();
+
+    window.unlockAudio = unlockAudio;
+  </script>
+</body>
+</html>
