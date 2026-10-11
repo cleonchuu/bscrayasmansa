@@ -44,6 +44,28 @@
       80%     { transform: rotate(12deg); }
     }
     .ring-bell { animation: ringBell 0.9s ease-in-out infinite; }
+
+    /* Fullscreen overlay */
+    #fullscreenOverlay {
+      display: none;
+    }
+    #fullscreenOverlay.show {
+      display: flex;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    /* Alert image zoom */
+    #alertImg {
+      cursor: zoom-in;
+      transition: transform 0.2s ease, opacity 0.3s ease;
+    }
+    #alertImg:hover {
+      transform: scale(1.02);
+    }
+
+    #alertImgError {
+      animation: fadeIn 0.3s ease-out;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-6">
@@ -86,7 +108,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- WAITING VIEW (belum di-assign peserta) -->
+    <!-- WAITING VIEW -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="waitingView" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
       <div class="w-20 h-20 mx-auto bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center text-amber-400 text-3xl pulse-ring">
@@ -109,35 +131,35 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-<!-- PANEL PILIH PESERTA -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div id="chooseView" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-  <div class="text-center space-y-2">
-    <div class="w-16 h-16 mx-auto bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl">
-      <i class="fas fa-hand-pointer"></i>
-    </div>
-    <h2 class="text-xl font-black">PILIH PESERTA ASUHAN</h2>
-    <p class="text-xs text-slate-400">Pilih <b>1 peserta</b> yang akan kamu dampingi selama sesi ini.</p>
-  </div>
+    <!-- CHOOSE VIEW -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="chooseView" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 mx-auto bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl">
+          <i class="fas fa-hand-pointer"></i>
+        </div>
+        <h2 class="text-xl font-black">PILIH PESERTA ASUHAN</h2>
+        <p class="text-xs text-slate-400">Pilih <b>1 peserta</b> yang akan kamu dampingi selama sesi ini.</p>
+      </div>
 
-  <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
-    <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
-      <i class="fas fa-users"></i> Peserta Siap
-      <span id="choosePesertaCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded">0</span>
-    </h3>
-    <div id="choosePesertaList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
-      <p class="text-xs text-slate-500 text-center py-4">Memuat peserta...</p>
-    </div>
-  </div>
+      <div class="bg-slate-950/50 border border-slate-800 rounded-2xl p-4">
+        <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+          <i class="fas fa-users"></i> Peserta Siap
+          <span id="choosePesertaCount" class="ml-auto text-[10px] bg-slate-800 px-2 py-0.5 rounded">0</span>
+        </h3>
+        <div id="choosePesertaList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
+          <p class="text-xs text-slate-500 text-center py-4">Memuat peserta...</p>
+        </div>
+      </div>
 
-  <div class="text-[11px] text-slate-500 text-center">
-    <i class="fas fa-info-circle text-cyan-400"></i>
-    Setelah memilih, tugas tidak dapat dibatalkan sampai sesi selesai.
-  </div>
-</div>
+      <div class="text-[11px] text-slate-500 text-center">
+        <i class="fas fa-info-circle text-cyan-400"></i>
+        Setelah memilih, tugas tidak dapat dibatalkan sampai sesi selesai.
+      </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- ACTIVE VIEW (sudah di-assign peserta) -->
+    <!-- ACTIVE VIEW -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="activeView" class="hidden space-y-4">
 
@@ -183,11 +205,11 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <div class="text-[10px] text-slate-500 uppercase tracking-wider">Poin Sementara</div>
-          <div id="statPoints" class="text-3xl font-black text-amber-400 font-mono">0</div>
+          <div id="statPoints" class="text-3xl font-black text-amber-400 font-mono">0.00</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <div class="text-[10px] text-slate-500 uppercase tracking-wider">Gambar Selesai</div>
-          <div id="statLocked" class="text-3xl font-black text-emerald-400 font-mono">0</div>
+          <div id="statLocked" class="text-3xl font-black text-emerald-400 font-mono">0/10</div>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <div class="text-[10px] text-slate-500 uppercase tracking-wider">Attempt</div>
@@ -195,70 +217,117 @@
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <div class="text-[10px] text-slate-500 uppercase tracking-wider">Bank Tersisa</div>
-          <div id="statBank" class="text-3xl font-black text-rose-400 font-mono">--:--</div>
+          <div id="statBank" class="text-3xl font-black text-slate-500 font-mono">30:00</div>
         </div>
       </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- ALERT ZONE: peserta tekan bel -->
+      <!-- ALERT ZONE — dengan preview gambar -->
       <!-- ═══════════════════════════════════════════════════════ -->
-      <div id="alertZone" class="hidden bg-gradient-to-br from-amber-950/80 via-amber-900/50 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-8 glow-amber space-y-6 fade-in">
-        <div class="text-center space-y-3">
-          <div class="w-24 h-24 mx-auto bg-amber-500/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-400 text-5xl ring-bell">
+      <div id="alertZone" class="hidden bg-gradient-to-br from-amber-950/80 via-amber-900/50 to-slate-950 border-2 border-amber-500/60 rounded-3xl p-6 glow-amber space-y-5 fade-in">
+
+        <!-- Header -->
+        <div class="text-center space-y-2">
+          <div class="w-20 h-20 mx-auto bg-amber-500/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-amber-400 text-4xl ring-bell">
             <i class="fas fa-bell"></i>
           </div>
           <div class="space-y-1">
             <h2 class="text-2xl font-black text-amber-300">PESERTA MENEKAN BEL!</h2>
-            <p class="text-sm text-amber-200/80">Periksa hasil kerja peserta, lalu pilih keputusan:</p>
+            <div class="flex items-center justify-center gap-2">
+              <span id="alertModeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 uppercase tracking-wider">
+                MODE: GAME
+              </span>
+            </div>
+            <p class="text-xs text-amber-200/80 mt-1">Periksa gambar peserta, lalu pilih keputusan:</p>
           </div>
         </div>
 
-        <!-- Info Attempt -->
-        <div class="bg-slate-950/60 border border-amber-500/30 rounded-2xl p-5 space-y-3">
-          <div class="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Level</div>
-              <div id="alertLevel" class="text-3xl font-black text-white font-mono">-</div>
+        <!-- Layout 2 kolom -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <!-- KIRI: Preview Gambar -->
+          <div class="space-y-3">
+            <div class="bg-slate-950/80 border-2 border-amber-500/30 rounded-2xl overflow-hidden aspect-square relative">
+              <div id="alertImgLoading" class="absolute inset-0 flex items-center justify-center bg-slate-950 z-20">
+                <div class="text-center space-y-2">
+                  <i class="fas fa-spinner fa-spin text-3xl text-amber-400"></i>
+                  <p class="text-[10px] text-slate-400">Memuat gambar...</p>
+                </div>
+              </div>
+
+              <div id="alertImgError" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 p-4 text-center space-y-3">
+                <i class="fas fa-image text-4xl text-rose-400"></i>
+                <p class="text-xs text-rose-300">Gambar gagal dimuat</p>
+                <p id="alertImgErrorUrl" class="text-[9px] text-slate-500 font-mono break-all max-w-full"></p>
+                <button onclick="retryAlertImage()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition active:scale-95">
+                  <i class="fas fa-rotate"></i> Coba Lagi
+                </button>
+              </div>
+
+              <img id="alertImg" 
+                   src="" 
+                   alt="Gambar peserta"
+                   class="w-full h-full object-contain"
+                   onclick="openImageFullscreen()" />
+
+              <div class="absolute bottom-2 right-2 bg-slate-950/80 text-amber-400 text-[10px] font-bold px-3 py-1.5 rounded-xl border border-amber-500/40 pointer-events-none">
+                <i class="fas fa-search-plus"></i> Klik untuk perbesar
+              </div>
             </div>
-            <div>
-              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Pilihan</div>
-              <div id="alertChoice" class="text-3xl font-black text-white font-mono uppercase">-</div>
+
+            <button onclick="openImageFullscreen()" 
+                    class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs transition active:scale-95 flex items-center justify-center gap-2">
+              <i class="fas fa-expand"></i> Lihat Fullscreen
+            </button>
+          </div>
+
+          <!-- KANAN: Info + Verdict -->
+          <div class="space-y-3">
+            <div class="bg-slate-950/60 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+              <div class="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <div class="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1">Level</div>
+                  <div id="alertLevel" class="text-3xl font-black text-white font-mono">-</div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1">Pilihan</div>
+                  <div id="alertChoice" class="text-3xl font-black text-white font-mono uppercase">-</div>
+                </div>
+                <div>
+                  <div class="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1">Waktu</div>
+                  <div id="alertDuration" class="text-3xl font-black text-amber-300 font-mono">-</div>
+                </div>
+              </div>
+
+              <div class="border-t border-amber-500/20 pt-3 text-center">
+                <div class="text-[9px] text-amber-400/70 uppercase tracking-wider mb-1">Poin Jika Benar</div>
+                <div id="alertPoin" class="text-2xl font-black text-emerald-400 font-mono">+0.00</div>
+              </div>
             </div>
-            <div>
-              <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Waktu</div>
-              <div id="alertDuration" class="text-3xl font-black text-amber-300 font-mono">-</div>
+
+            <div class="grid grid-cols-1 gap-2.5">
+              <button onclick="verdict('benar')" id="btnBenar"
+                      class="py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base transition active:scale-95 glow-emerald flex items-center justify-center gap-3 shadow-lg">
+                <i class="fas fa-check-circle text-2xl"></i>
+                <span>BENAR</span>
+              </button>
+              <button onclick="verdict('salah')" id="btnSalah"
+                      class="py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-base transition active:scale-95 glow-rose flex items-center justify-center gap-3 shadow-lg">
+                <i class="fas fa-times-circle text-2xl"></i>
+                <span>SALAH</span>
+              </button>
+            </div>
+
+            <div class="text-center text-[10px] text-amber-400/60 leading-relaxed">
+              <i class="fas fa-info-circle"></i>
+              Keputusan <b>TIDAK BISA</b> dibatalkan. Periksa gambar dengan teliti.
             </div>
           </div>
 
-          <div class="border-t border-amber-500/20 pt-3 text-center">
-            <div class="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">Poin Jika Benar</div>
-            <div id="alertPoin" class="text-2xl font-black text-emerald-400 font-mono">+0</div>
-          </div>
-        </div>
-
-        <!-- Tombol Keputusan -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <button onclick="verdict('benar')" id="btnBenar"
-                  class="py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg transition active:scale-95 glow-emerald flex items-center justify-center gap-3 shadow-lg">
-            <i class="fas fa-check-circle text-2xl"></i>
-            <span>BENAR</span>
-          </button>
-          <button onclick="verdict('salah')" id="btnSalah"
-                  class="py-5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-lg transition active:scale-95 glow-rose flex items-center justify-center gap-3 shadow-lg">
-            <i class="fas fa-times-circle text-2xl"></i>
-            <span>SALAH</span>
-          </button>
-        </div>
-
-        <div class="text-center text-[11px] text-amber-400/60">
-          <i class="fas fa-info-circle"></i>
-          Keputusan <b>TIDAK BISA</b> dibatalkan. Pastikan sudah yakin sebelum menekan.
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- IDLE ZONE: peserta sedang mengerjakan -->
-      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- IDLE ZONE -->
       <div id="idleZone" class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-3">
         <div class="w-16 h-16 mx-auto bg-slate-800 border border-slate-700 rounded-full flex items-center justify-center text-slate-500 text-2xl">
           <i class="fas fa-eye"></i>
@@ -270,9 +339,7 @@
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- RIWAYAT ATTEMPT -->
-      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- Riwayat Attempt -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
         <h3 class="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2 border-b border-slate-800 pb-2">
           <i class="fas fa-list-ul text-indigo-400"></i> Riwayat Attempt Peserta
@@ -283,9 +350,7 @@
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- BOTTOM BAR: tidak bisa logout -->
-      <!-- ═══════════════════════════════════════════════════════ -->
+      <!-- Bottom Bar -->
       <div class="bg-slate-900 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
         <div class="flex items-center gap-2 text-amber-400">
           <i class="fas fa-lock"></i>
@@ -300,9 +365,7 @@
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- MODAL KONFIRMASI VERDICT -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- MODAL -->
   <div id="modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-md w-full space-y-4 fade-in">
       <div id="modalIconWrap" class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto">
@@ -317,12 +380,49 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- FULLSCREEN IMAGE OVERLAY -->
+  <div id="fullscreenOverlay" 
+       class="hidden fixed inset-0 bg-black/98 z-[200] flex-col items-center justify-center p-4 cursor-zoom-out"
+       onclick="closeImageFullscreen()">
+    
+    <button onclick="event.stopPropagation(); closeImageFullscreen()" 
+            class="absolute top-4 right-4 w-12 h-12 rounded-full bg-slate-800 hover:bg-rose-600 border-2 border-slate-600 hover:border-rose-400 text-white font-bold flex items-center justify-center text-xl transition z-10">
+      <i class="fas fa-times"></i>
+    </button>
+
+    <div class="absolute top-4 left-4 bg-slate-950/80 border border-amber-500/40 rounded-xl px-4 py-2 z-10">
+      <div class="text-[10px] text-amber-400/70 uppercase tracking-wider">Level</div>
+      <div id="fullscreenLevel" class="text-lg font-black text-white font-mono">-</div>
+    </div>
+
+    <img id="fullscreenImg" 
+         src="" 
+         alt="Fullscreen"
+         class="max-w-[95vw] max-h-[85vh] object-contain rounded-2xl border-4 border-amber-500/40 shadow-2xl"
+         onclick="event.stopPropagation()" />
+
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-950/80 border border-amber-500/40 rounded-2xl px-6 py-3 flex items-center gap-6 text-sm z-10">
+      <div class="text-center">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Level</div>
+        <div id="fullscreenLevelBottom" class="text-xl font-black text-white font-mono">-</div>
+      </div>
+      <div class="w-px h-8 bg-slate-700"></div>
+      <div class="text-center">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Durasi</div>
+        <div id="fullscreenDuration" class="text-xl font-black text-amber-400 font-mono">-</div>
+      </div>
+      <div class="w-px h-8 bg-slate-700"></div>
+      <div class="text-center">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Jika Benar</div>
+        <div id="fullscreenPoin" class="text-xl font-black text-emerald-400 font-mono">+0.00</div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST -->
-  <!-- ═══════════════════════════════════════════════════════ -->
   <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
 
-  <!-- AUDIO NOTIF -->
+  <!-- AUDIO -->
   <audio id="bellNotif" src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3" preload="auto"></audio>
 
 <script>
@@ -334,7 +434,8 @@ const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TAG = '[PANITIA-HB]';
-const BANK_GAME_SEC = 1800;
+const STORAGE_KEY = 'panitia_hb_context';
+const BUCKET_BLOCK = `${SUPABASE_URL}/storage/v1/object/public/block`;
 
 // ═══════════════════════════════════════════════════════════
 // LOGGER
@@ -354,21 +455,56 @@ const STATE = {
   pesertaId: null,
   sessionId: null,
 
-  // Attempt yang sedang dinilai
   pendingAttempt: null,
-
-  // Cache
   history: [],
   stats: {
     points: 0,
     locked: 0,
-    attempt: 0,
-    bankRemaining: 0
+    attempt: 0
   },
 
+  busy: false,
   realtimeConnected: false,
-  bankTick: null
+  realtimeChannel: null,
+  pollingTimer: null,
+  lastKnownSessionId: null
 };
+
+// ═══════════════════════════════════════════════════════════
+// LOCALSTORAGE CONTEXT
+// ═══════════════════════════════════════════════════════════
+function saveContext() {
+  try {
+    const ctx = {
+      panitiaId: STATE.panitiaId || null,
+      sessionId: STATE.sessionId || null,
+      pesertaId: STATE.pesertaId || null,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ctx));
+    LOG.info('Context saved', ctx);
+  } catch (e) { LOG.warn('saveContext error', e); }
+}
+
+function loadContext() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const ctx = JSON.parse(raw);
+    if (ctx.savedAt && Date.now() - ctx.savedAt > 12 * 60 * 60 * 1000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return ctx;
+  } catch (e) { LOG.warn('loadContext error', e); return null; }
+}
+
+function clearContext() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    LOG.info('Context cleared');
+  } catch (e) {}
+}
 
 // ═══════════════════════════════════════════════════════════
 // UI HELPERS
@@ -379,6 +515,9 @@ const UI = {
   html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
   show(id) { UI.el(id)?.classList.remove('hidden'); },
   hide(id) { UI.el(id)?.classList.add('hidden'); },
+  hideAll() {
+    ['loginView','waitingView','chooseView','activeView'].forEach(id => UI.hide(id));
+  },
   dbg(state, peserta, rt) {
     UI.txt('dbgState', state);
     if (peserta !== undefined) UI.txt('dbgPeserta', peserta || '-');
@@ -427,12 +566,12 @@ function playBell() {
   if (!bell) return;
   try {
     bell.currentTime = 0;
-    bell.play().catch(() => LOG.warn('Autoplay bell diblokir browser'));
-  } catch (e) { LOG.warn('bell error', e); }
+    bell.play().catch(() => LOG.warn('Autoplay bell diblokir'));
+  } catch (e) {}
 }
 
 // ═══════════════════════════════════════════════════════════
-// AUDIT LOG
+// AUDIT
 // ═══════════════════════════════════════════════════════════
 async function writeAudit(action, metadata = {}) {
   try {
@@ -447,6 +586,35 @@ async function writeAudit(action, metadata = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// FETCH HELPERS
+// ═══════════════════════════════════════════════════════════
+async function getCurrentSessionId() {
+  try {
+    const { data } = await supabaseClient
+      .from('system_hiding_block_state')
+      .select('session_id')
+      .eq('id', 1)
+      .maybeSingle();
+    return data?.session_id || null;
+  } catch { return null; }
+}
+
+async function validatePanitiaId(uniqueId) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('unique_id, full_name, role')
+      .eq('unique_id', uniqueId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data;
+  } catch (e) {
+    LOG.warn('validatePanitiaId', e);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════
 async function loginPanitia() {
@@ -457,25 +625,32 @@ async function loginPanitia() {
   if (val.length < 3) { toast('Unique ID minimal 3 karakter', 'warn'); return; }
 
   LOG.info(`Login panitia: ${val}`);
-  STATE.panitiaId = val;
-  sessionStorage.setItem('panitia_hb_id', val);
 
-  // Ambil session_id dari state
+  const user = await validatePanitiaId(val);
+  if (!user) {
+    toast('Unique ID tidak ditemukan di database.', 'error');
+    return;
+  }
+
+  LOG.ok(`User valid: ${user.full_name || val} (role: ${user.role})`);
+
+  STATE.panitiaId = val;
+
   const sid = await getCurrentSessionId();
   if (!sid) {
     toast('Session belum aktif. Tunggu admin memulai sesi.', 'warn');
     return;
   }
   STATE.sessionId = sid;
+  STATE.lastKnownSessionId = sid;
 
-  // Register ke registry
   try {
     const { error } = await supabaseClient
       .from('hiding_block_panitia_registry')
       .upsert({
         session_id: sid,
         panitia_unique_id: val,
-        full_name: val,
+        full_name: user.full_name || val,
         status: 'idle',
         registered_at: new Date().toISOString()
       }, { onConflict: 'session_id,panitia_unique_id' });
@@ -488,14 +663,12 @@ async function loginPanitia() {
     return;
   }
 
-  // Cek assignment yang sudah ada
-  await checkAssignment();
+  saveContext();
 
-  // Subscribe realtime
-  subscribeRealtime();
+  await checkAssignment();
+  setupRealtime();
 
   UI.hide('loginView');
-  LOG.ok(`Panitia logged in: ${val}`);
 }
 
 function logoutPanitia() {
@@ -503,38 +676,92 @@ function logoutPanitia() {
     toast('Tugas aktif — tidak bisa logout sampai sesi selesai.', 'error');
     return;
   }
-  sessionStorage.removeItem('panitia_hb_id');
+  clearContext();
+  if (STATE.realtimeChannel) {
+    try { supabaseClient.removeChannel(STATE.realtimeChannel); } catch(e) {}
+    STATE.realtimeChannel = null;
+  }
   STATE.panitiaId = null;
   STATE.pesertaId = null;
+  STATE.sessionId = null;
+  UI.hideAll();
   UI.show('loginView');
-  UI.hide('waitingView');
-  UI.hide('activeView');
+  UI.el('inputPanitiaId').value = '';
 }
 
-async function getCurrentSessionId() {
+// ═══════════════════════════════════════════════════════════
+// CHECK ASSIGNMENT
+// ═══════════════════════════════════════════════════════════
+async function checkAssignment() {
+  if (!STATE.panitiaId) return;
+
   try {
-    const { data } = await supabaseClient
-      .from('system_hiding_block_state')
-      .select('session_id')
-      .eq('id', 1)
+    const currentSysSession = await getCurrentSessionId();
+    const ctx = loadContext();
+
+    const { data, error } = await supabaseClient
+      .from('hiding_block_panitia')
+      .select('*')
+      .eq('panitia_unique_id', STATE.panitiaId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
-    return data?.session_id || null;
-  } catch { return null; }
+
+    if (error) LOG.warn('checkAssignment', error.message);
+
+    if (data && data.peserta_unique_id) {
+      STATE.pesertaId = data.peserta_unique_id;
+      STATE.sessionId = data.session_id;
+      STATE.lastKnownSessionId = currentSysSession || data.session_id;
+
+      saveContext();
+
+      if (currentSysSession && currentSysSession !== data.session_id) {
+        LOG.warn('Session berbeda dengan assignment — auto-reset');
+        toast('Session di-reset oleh admin. Silakan pilih peserta kembali.', 'warn', 6000);
+        STATE.pesertaId = null;
+        STATE.sessionId = currentSysSession;
+        saveContext();
+        await enterChooseView();
+        return;
+      }
+
+      await enterActiveView();
+      return;
+    }
+
+    if (!currentSysSession) {
+      LOG.warn('Tidak ada session aktif');
+      UI.hideAll();
+      UI.show('waitingView');
+      UI.txt('waitingPanitiaId', STATE.panitiaId);
+      return;
+    }
+
+    STATE.sessionId = ctx?.sessionId || currentSysSession;
+    if (currentSysSession !== STATE.sessionId) {
+      STATE.sessionId = currentSysSession;
+      saveContext();
+    }
+
+    await enterChooseView();
+  } catch (e) {
+    LOG.err('checkAssignment exception', e);
+  }
 }
-  async function enterChooseView() {
-  UI.hide('loginView');
-  UI.hide('waitingView');
-  UI.hide('activeView');
+
+// ═══════════════════════════════════════════════════════════
+// CHOOSE VIEW
+// ═══════════════════════════════════════════════════════════
+async function enterChooseView() {
+  UI.hideAll();
   UI.show('chooseView');
-
   await loadAvailablePeserta();
-
   UI.dbg('choose', '-', STATE.realtimeConnected ? 'rt' : 'poll');
 }
 
 async function loadAvailablePeserta() {
   try {
-    // Ambil semua peserta ready di session ini
     const { data: allPeserta, error: err1 } = await supabaseClient
       .from('system_hiding_block_login')
       .select('user_unique_id, status, joined_at')
@@ -542,26 +769,29 @@ async function loadAvailablePeserta() {
       .in('status', ['ready', 'playing'])
       .order('joined_at', { ascending: true });
 
-    if (err1) { LOG.warn('loadAvailablePeserta', err1.message); }
+    if (err1) LOG.warn('loadAvailablePeserta', err1.message);
 
-    // Ambil yang sudah diassign
     const { data: assigned, error: err2 } = await supabaseClient
       .from('hiding_block_panitia')
-      .select('peserta_unique_id')
+      .select('peserta_unique_id, panitia_unique_id')
       .eq('session_id', STATE.sessionId);
 
-    if (err2) { LOG.warn('loadAssigned', err2.message); }
+    if (err2) LOG.warn('loadAssigned', err2.message);
 
-    const assignedSet = new Set((assigned || []).map(a => a.peserta_unique_id));
-
-    // Filter: exclude peserta yang sudah di-assign ke panitia lain
-    // (kalau peserta sudah di-assign ke diri sendiri, tetap tampil)
-    const available = (allPeserta || []).filter(p => {
-      const isAssigned = assignedSet.has(p.user_unique_id);
-      // Kalau belum di-assign sama sekali → tampil
-      // Kalau sudah di-assign ke kita sendiri → tetap tampil sebagai "sudah kamu pegang"
-      return !isAssigned;
+    const assignMap = {};
+    (assigned || []).forEach(a => {
+      assignMap[a.peserta_unique_id] = a.panitia_unique_id;
     });
+
+    const available = (allPeserta || []).filter(p => {
+      const assignedTo = assignMap[p.user_unique_id];
+      if (!assignedTo) return true;
+      if (assignedTo === STATE.panitiaId) return true;
+      return false;
+    }).map(p => ({
+      ...p,
+      assignedTo: assignMap[p.user_unique_id] || null
+    }));
 
     renderChoosePesertaList(available);
   } catch (e) { LOG.err('loadAvailablePeserta exception', e); }
@@ -585,20 +815,27 @@ function renderChoosePesertaList(pesertaList) {
 
   c.innerHTML = '';
   pesertaList.forEach(p => {
+    const isMine = p.assignedTo === STATE.panitiaId;
     const div = document.createElement('button');
-    div.className = 'w-full p-3 rounded-xl border bg-slate-800/50 hover:bg-indigo-500/20 border-slate-700 hover:border-indigo-500/50 transition text-left flex items-center justify-between';
+    div.className = `w-full p-3 rounded-xl border transition text-left flex items-center justify-between ${
+      isMine
+        ? 'bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/20'
+        : 'bg-slate-800/50 hover:bg-indigo-500/20 border-slate-700 hover:border-indigo-500/50'
+    }`;
     div.onclick = () => choosePeserta(p.user_unique_id);
     div.innerHTML = `
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+        <div class="w-10 h-10 rounded-xl ${isMine ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' : 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-400'} flex items-center justify-center">
           <i class="fas fa-user"></i>
         </div>
         <div>
           <div class="font-bold text-white text-sm">${p.user_unique_id}</div>
-          <div class="text-[10px] text-slate-500">Status: ${p.status}</div>
+          <div class="text-[10px] ${isMine ? 'text-emerald-400' : 'text-slate-500'}">
+            ${isMine ? '✓ Sudah kamu pegang' : `Status: ${p.status}`}
+          </div>
         </div>
       </div>
-      <i class="fas fa-arrow-right text-slate-500"></i>
+      <i class="fas fa-arrow-right ${isMine ? 'text-emerald-400' : 'text-slate-500'}"></i>
     `;
     c.appendChild(div);
   });
@@ -609,6 +846,26 @@ async function choosePeserta(pesertaId) {
   STATE.busy = true;
 
   try {
+    const { data: existing } = await supabaseClient
+      .from('hiding_block_panitia')
+      .select('panitia_unique_id')
+      .eq('session_id', STATE.sessionId)
+      .eq('peserta_unique_id', pesertaId)
+      .maybeSingle();
+
+    if (existing && existing.panitia_unique_id !== STATE.panitiaId) {
+      toast('Peserta sudah di-assign ke panitia lain', 'warn');
+      await loadAvailablePeserta();
+      return;
+    }
+
+    if (existing && existing.panitia_unique_id === STATE.panitiaId) {
+      STATE.pesertaId = pesertaId;
+      saveContext();
+      await enterActiveView();
+      return;
+    }
+
     const { error } = await supabaseClient
       .from('hiding_block_panitia')
       .insert({
@@ -617,18 +874,8 @@ async function choosePeserta(pesertaId) {
         peserta_unique_id: pesertaId
       });
 
-    if (error) {
-      // Kalau sudah ada (unique constraint), berarti baru saja di-assign
-      if (error.code === '23505') {
-        toast('Peserta sudah di-assign ke panitia lain', 'warn');
-        await loadAvailablePeserta();
-      } else {
-        throw error;
-      }
-      return;
-    }
+    if (error) throw error;
 
-    // Update status registry
     await supabaseClient
       .from('hiding_block_panitia_registry')
       .update({ status: 'assigned' })
@@ -636,8 +883,12 @@ async function choosePeserta(pesertaId) {
       .eq('panitia_unique_id', STATE.panitiaId);
 
     STATE.pesertaId = pesertaId;
+    saveContext();
+
     toast(`✅ Kamu mendampingi ${pesertaId}`, 'success');
     LOG.ok(`Assigned to ${pesertaId}`);
+
+    await writeAudit('assign_self_to_peserta', { peserta: pesertaId });
 
     await enterActiveView();
   } catch (e) {
@@ -649,49 +900,15 @@ async function choosePeserta(pesertaId) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CEK ASSIGNMENT
+// ACTIVE VIEW
 // ═══════════════════════════════════════════════════════════
-async function checkAssignment() {
-  if (!STATE.panitiaId) return;
-
-  try {
-    const { data, error } = await supabaseClient
-      .from('hiding_block_panitia')
-      .select('*')
-      .eq('panitia_unique_id', STATE.panitiaId)
-      .eq('session_id', STATE.sessionId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) { LOG.warn('checkAssignment', error.message); }
-
-    if (data && data.peserta_unique_id) {
-      STATE.pesertaId = data.peserta_unique_id;
-      await enterActiveView();
-    } else {
-      // Belum assign → tampil panel pilih peserta
-      await enterChooseView();
-    }
-  } catch (e) { LOG.err('checkAssignment exception', e); }
-}
-
-function enterWaitingView() {
-  UI.hide('loginView');
-  UI.hide('activeView');
-  UI.show('waitingView');
-  UI.txt('waitingPanitiaId', STATE.panitiaId);
-  UI.dbg('waiting', '-', STATE.realtimeConnected ? 'rt' : 'poll');
-}
-
 async function enterActiveView() {
-  UI.hide('loginView');
-  UI.hide('waitingView');
-  UI.hide('chooseView');
+  UI.hideAll();
   UI.show('activeView');
 
   UI.txt('activePanitiaId', STATE.panitiaId);
   UI.txt('activePesertaId', STATE.pesertaId);
+  UI.txt('sessionIdDisplay', (STATE.sessionId || '').slice(0, 8));
 
   LOG.ok(`Peserta asuhan: ${STATE.pesertaId}`);
 
@@ -703,7 +920,7 @@ async function enterActiveView() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// STATS PESERTA
+// STATS
 // ═══════════════════════════════════════════════════════════
 async function loadStats() {
   if (!STATE.pesertaId) return;
@@ -729,11 +946,6 @@ function renderStats() {
   UI.txt('statPoints', STATE.stats.points.toFixed(2));
   UI.txt('statLocked', `${STATE.stats.locked}/10`);
   UI.txt('statAttempt', STATE.stats.attempt);
-
-  // ⏸ Bank stuck 30:00 (info only — hitung di kiosk)
-  UI.txt('statBank', '30:00');
-  const bankEl = UI.el('statBank');
-  if (bankEl) bankEl.className = 'text-3xl font-black text-slate-500 font-mono';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -743,14 +955,13 @@ async function loadHistory() {
   if (!STATE.pesertaId) return;
 
   try {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
       .from('hiding_block_progress')
       .select('*')
       .eq('user_unique_id', STATE.pesertaId)
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) { LOG.warn('loadHistory', error.message); }
     STATE.history = data || [];
     renderHistory();
   } catch (e) { LOG.err('loadHistory exception', e); }
@@ -794,7 +1005,7 @@ function renderHistory() {
           </span>
           <span class="text-[10px] text-slate-500">${dur}</span>
         </div>
-        ${h.points_awarded ? `<div class="text-[10px] text-emerald-400 font-mono mt-1">+${h.points_awarded} pts</div>` : ''}
+        ${h.points_awarded ? `<div class="text-[10px] text-emerald-400 font-mono mt-1">+${Number(h.points_awarded).toFixed(2)} pts</div>` : ''}
       </div>
       <div class="text-[10px] text-slate-500 font-mono text-right">
         ${new Date(h.created_at).toLocaleTimeString('id-ID')}
@@ -805,13 +1016,13 @@ function renderHistory() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CEK PENDING ATTEMPT (saat buka halaman, ada peserta tekan bel?)
+// PENDING ATTEMPT
 // ═══════════════════════════════════════════════════════════
 async function checkPendingAttempt() {
   if (!STATE.pesertaId) return;
 
   try {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
       .from('hiding_block_progress')
       .select('*')
       .eq('user_unique_id', STATE.pesertaId)
@@ -819,8 +1030,6 @@ async function checkPendingAttempt() {
       .order('submitted_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-
-    if (error) { LOG.warn('checkPendingAttempt', error.message); }
 
     if (data) {
       LOG.ok('Pending attempt ditemukan — tampilkan alert');
@@ -845,33 +1054,84 @@ function showAlert(attempt) {
   const ss = String(dur % 60).padStart(2, '0');
   UI.txt('alertDuration', `${mm}:${ss}`);
 
-  // Hitung poin jika benar
-// Di dalam showAlert(attempt):
-const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
-const TARGET = 600;
-let multiplier;
-if (dur <= TARGET) {
-  multiplier = 1 - (0.5 * dur / TARGET);
-} else {
-  multiplier = 0.5;
-}
-const poin = Number((poinMax * multiplier).toFixed(2));
-UI.txt('alertPoin', `+${poin.toFixed(2)}`);   // ✅ 2 desimal
+  const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
+  const TARGET = 600;
+  let multiplier;
+  if (dur <= TARGET) {
+    multiplier = 1 - (0.5 * dur / TARGET);
+  } else {
+    multiplier = 0.5;
+  }
+  const poin = Number((poinMax * multiplier).toFixed(2));
+  UI.txt('alertPoin', `+${poin.toFixed(2)}`);
+
+  // Mode badge
+  const mode = attempt.mode || 'game';
+  const modeBadge = UI.el('alertModeBadge');
+  if (modeBadge) {
+    modeBadge.textContent = `MODE: ${mode.toUpperCase()}`;
+    modeBadge.className = mode === 'simulasi'
+      ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 uppercase tracking-wider'
+      : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase tracking-wider';
+  }
+
+  // Load gambar
+  loadAlertImage(attempt.level, attempt.choice, mode);
 
   UI.show('alertZone');
   UI.hide('idleZone');
   UI.el('alertZone').classList.add('shake');
   setTimeout(() => UI.el('alertZone').classList.remove('shake'), 400);
 
-  // Bunyi bel notif
   playBell();
 
-  // Update status badge
   UI.txt('statusBadge', 'MENUNGGU PENILAIAN');
   const badge = UI.el('statusBadge');
   badge.className = 'text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-amber-500/20 text-amber-300 border-amber-500/40 font-mono pulse-ring';
 
   UI.dbg('alert', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
+}
+
+function loadAlertImage(level, choice, mode) {
+  const img = UI.el('alertImg');
+  const loading = UI.el('alertImgLoading');
+  const errorEl = UI.el('alertImgError');
+  const errUrl = UI.el('alertImgErrorUrl');
+  if (!img) return;
+
+  const prefix = mode === 'simulasi' ? 's' : '';
+  const fileName = `${prefix}${level}${choice}.png`;
+  const url = `${BUCKET_BLOCK}/${fileName}?t=${Date.now()}`;
+
+  loading.classList.remove('hidden');
+  errorEl.classList.add('hidden');
+  img.style.opacity = '0';
+
+  if (errUrl) errUrl.textContent = url;
+
+  img.dataset.url = url;
+  img.dataset.level = `${level}${choice.toUpperCase()}`;
+
+  img.onload = () => {
+    loading.classList.add('hidden');
+    img.style.opacity = '1';
+    LOG.ok(`Gambar loaded: ${fileName}`);
+  };
+
+  img.onerror = () => {
+    loading.classList.add('hidden');
+    errorEl.classList.remove('hidden');
+    img.style.opacity = '0';
+    LOG.err(`Gambar gagal: ${fileName}`);
+  };
+
+  img.src = url;
+}
+
+function retryAlertImage() {
+  if (!STATE.pendingAttempt) return;
+  const mode = STATE.pendingAttempt.mode || 'game';
+  loadAlertImage(STATE.pendingAttempt.level, STATE.pendingAttempt.choice, mode);
 }
 
 function hideAlert() {
@@ -881,11 +1141,75 @@ function hideAlert() {
   UI.txt('statusBadge', 'MENGAWASI');
   const badge = UI.el('statusBadge');
   badge.className = 'text-[10px] font-bold px-3 py-1.5 rounded-lg border bg-slate-800 text-slate-400 border-slate-700 font-mono';
+
+  const img = UI.el('alertImg');
+  if (img) {
+    img.src = '';
+    img.style.opacity = '1';
+  }
+
   UI.dbg('active', STATE.pesertaId, STATE.realtimeConnected ? 'rt' : 'poll');
 }
 
 // ═══════════════════════════════════════════════════════════
-// VERDICT (BENAR / SALAH)
+// FULLSCREEN IMAGE
+// ═══════════════════════════════════════════════════════════
+function openImageFullscreen() {
+  const img = UI.el('alertImg');
+  if (!img || !img.src) {
+    toast('Gambar belum dimuat.', 'warn');
+    return;
+  }
+
+  const overlay = UI.el('fullscreenOverlay');
+  const fullImg = UI.el('fullscreenImg');
+  if (!overlay || !fullImg) return;
+
+  fullImg.src = img.src;
+
+  const attempt = STATE.pendingAttempt;
+  if (attempt) {
+    const dur = attempt.duration_sec || 0;
+    const mm = String(Math.floor(dur / 60)).padStart(2, '0');
+    const ss = String(dur % 60).padStart(2, '0');
+
+    const levelStr = `${attempt.level}${attempt.choice.toUpperCase()}`;
+
+    UI.txt('fullscreenLevel', levelStr);
+    UI.txt('fullscreenLevelBottom', levelStr);
+    UI.txt('fullscreenDuration', `${mm}:${ss}`);
+
+    const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
+    const TARGET = 600;
+    const multiplier = dur <= TARGET ? 1 - (0.5 * dur / TARGET) : 0.5;
+    const poin = Number((poinMax * multiplier).toFixed(2));
+    UI.txt('fullscreenPoin', `+${poin.toFixed(2)}`);
+  }
+
+  overlay.classList.remove('hidden');
+  overlay.classList.add('show');
+  LOG.info('Fullscreen open');
+}
+
+function closeImageFullscreen() {
+  const overlay = UI.el('fullscreenOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hidden');
+  overlay.classList.remove('show');
+  LOG.info('Fullscreen close');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const overlay = UI.el('fullscreenOverlay');
+    if (overlay && !overlay.classList.contains('hidden')) {
+      closeImageFullscreen();
+    }
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// VERDICT
 // ═══════════════════════════════════════════════════════════
 async function verdict(keputusan) {
   if (!STATE.pendingAttempt) {
@@ -894,7 +1218,6 @@ async function verdict(keputusan) {
   }
 
   const attempt = STATE.pendingAttempt;
-
   const isBenar = keputusan === 'benar';
   const icon = isBenar ? 'fa-check-circle' : 'fa-times-circle';
   const title = isBenar ? 'Konfirmasi: BENAR?' : 'Konfirmasi: SALAH?';
@@ -920,10 +1243,8 @@ async function submitVerdict(attempt, keputusan) {
   const poinMax = { 1: 20, 2: 25, 3: 30, 4: 35, 5: 40 }[attempt.level] || 0;
   const TARGET = 600;
   let multiplier = dur <= TARGET ? 1 - (0.5 * dur / TARGET) : 0.5;
-  
-  // ✅ Poin desimal 2 angka
-  const poin = keputusan === 'benar' 
-    ? Number((poinMax * multiplier).toFixed(2)) 
+  const poin = keputusan === 'benar'
+    ? Number((poinMax * multiplier).toFixed(2))
     : 0;
 
   const newStatus = keputusan === 'benar' ? 'locked' : 'wrong_continued';
@@ -951,8 +1272,8 @@ async function submitVerdict(attempt, keputusan) {
     });
 
     toast(
-      keputusan === 'benar' 
-        ? `✅ BENAR! +${poin.toFixed(2)} pts` 
+      keputusan === 'benar'
+        ? `✅ BENAR! +${poin.toFixed(2)} pts`
         : '⚠ SALAH — peserta pilih lanjut/ulangi',
       keputusan === 'benar' ? 'success' : 'warn'
     );
@@ -973,49 +1294,84 @@ async function submitVerdict(attempt, keputusan) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// REALTIME SUBSCRIPTION
+// SESSION CHANGE DETECTION
 // ═══════════════════════════════════════════════════════════
-function subscribeRealtime() {
+async function detectSessionChange() {
   if (!STATE.panitiaId) return;
 
-  supabaseClient
-    .channel(`panitia_hb_${STATE.panitiaId}`)
+  const currentSysSession = await getCurrentSessionId();
+  if (!currentSysSession) return;
 
-    // 1. Assignment berubah (admin assign/unassign)
+  if (STATE.lastKnownSessionId && currentSysSession !== STATE.lastKnownSessionId) {
+    LOG.warn(`Session changed: ${STATE.lastKnownSessionId} → ${currentSysSession}`);
+    toast('Session di-reset oleh admin. Silakan pilih peserta kembali.', 'warn', 8000);
+
+    STATE.pesertaId = null;
+    STATE.sessionId = currentSysSession;
+    STATE.lastKnownSessionId = currentSysSession;
+    STATE.pendingAttempt = null;
+    saveContext();
+
+    await setupRealtime();
+
+    if (STATE.pesertaId) {
+      await enterActiveView();
+    } else {
+      await enterChooseView();
+    }
+  } else if (!STATE.lastKnownSessionId) {
+    STATE.lastKnownSessionId = currentSysSession;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME
+// ═══════════════════════════════════════════════════════════
+async function setupRealtime() {
+  if (!STATE.panitiaId) return;
+
+  if (STATE.realtimeChannel) {
+    try { supabaseClient.removeChannel(STATE.realtimeChannel); } catch(e) {}
+    STATE.realtimeChannel = null;
+  }
+
+  const channel = supabaseClient.channel(`panitia_hb_${STATE.panitiaId}`);
+
+  channel
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'hiding_block_panitia',
       filter: `panitia_unique_id=eq.${STATE.panitiaId}`
     }, async (payload) => {
       LOG.info('Assignment update', payload);
+
       if (payload.eventType === 'DELETE') {
         STATE.pesertaId = null;
-        enterWaitingView();
+        saveContext();
+        await enterChooseView();
       } else if (payload.new?.peserta_unique_id) {
-        STATE.pesertaId = payload.new.peserta_unique_id;
-        STATE.sessionId = payload.new.session_id;
-        await enterActiveView();
+        if (STATE.pesertaId !== payload.new.peserta_unique_id) {
+          STATE.pesertaId = payload.new.peserta_unique_id;
+          STATE.sessionId = payload.new.session_id;
+          saveContext();
+          await enterActiveView();
+        }
       }
     })
-
-    // 2. Progress peserta — cek apakah ada yang waiting_verdict
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'hiding_block_progress',
       filter: `user_unique_id=eq.${STATE.pesertaId || 'NONE'}`
-    }, async (payload) => {
-      LOG.info('Progress update', payload);
+    }, async () => {
+      LOG.info('Progress update');
       await loadStats();
       await loadHistory();
       await checkPendingAttempt();
     })
-
-    // 3. Bank peserta (untuk update stats)
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'system_hiding_block_login',
       filter: `user_unique_id=eq.${STATE.pesertaId || 'NONE'}`
     }, () => {
       loadStats();
     })
-
     .subscribe(status => {
       STATE.realtimeConnected = status === 'SUBSCRIBED';
       const badge = UI.el('connBadge');
@@ -1035,10 +1391,12 @@ function subscribeRealtime() {
       );
     });
 
-  // Polling fallback (setiap 2 detik)
-  setInterval(async () => {
+  STATE.realtimeChannel = channel;
+
+  if (STATE.pollingTimer) clearInterval(STATE.pollingTimer);
+  STATE.pollingTimer = setInterval(async () => {
     if (!STATE.panitiaId) return;
-    await checkAssignment();
+    await detectSessionChange();
     if (STATE.pesertaId) {
       await loadStats();
       await checkPendingAttempt();
@@ -1047,16 +1405,57 @@ function subscribeRealtime() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SESSION RESTORE (kalau refresh)
+// AUTO-LOGIN
 // ═══════════════════════════════════════════════════════════
-async function tryRestoreSession() {
-  const saved = sessionStorage.getItem('panitia_hb_id');
-  if (saved) {
-    LOG.info(`Restore session panitia: ${saved}`);
-    STATE.panitiaId = saved;
-    UI.el('inputPanitiaId').value = saved;
-    await loginPanitia();
+async function autoLoginFromContext() {
+  const ctx = loadContext();
+  if (!ctx || !ctx.panitiaId) return false;
+
+  LOG.info('Auto-login dari context', ctx);
+
+  STATE.panitiaId = ctx.panitiaId;
+  STATE.sessionId = ctx.sessionId;
+  STATE.pesertaId = ctx.pesertaId;
+
+  UI.el('inputPanitiaId').value = ctx.panitiaId;
+
+  const user = await validatePanitiaId(ctx.panitiaId);
+  if (!user) {
+    LOG.warn('User dari context tidak valid — clear');
+    clearContext();
+    return false;
   }
+
+  const currentSysSession = await getCurrentSessionId();
+  STATE.lastKnownSessionId = currentSysSession;
+
+  if (ctx.sessionId && currentSysSession && ctx.sessionId !== currentSysSession) {
+    LOG.warn('Session di context berbeda dengan session aktif');
+    toast('Session sudah berubah. Silakan pilih peserta kembali.', 'warn', 6000);
+    STATE.pesertaId = null;
+    STATE.sessionId = currentSysSession;
+    saveContext();
+  }
+
+  if (currentSysSession) {
+    try {
+      await supabaseClient
+        .from('hiding_block_panitia_registry')
+        .upsert({
+          session_id: currentSysSession,
+          panitia_unique_id: ctx.panitiaId,
+          full_name: user.full_name || ctx.panitiaId,
+          status: ctx.pesertaId ? 'assigned' : 'idle',
+          registered_at: new Date().toISOString()
+        }, { onConflict: 'session_id,panitia_unique_id' });
+    } catch (e) { LOG.warn('register from context failed', e); }
+  }
+
+  UI.hideAll();
+  await checkAssignment();
+  setupRealtime();
+
+  return true;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1066,9 +1465,10 @@ async function tryRestoreSession() {
   LOG.ok('══════════ PANITIA HIDING BLOCK BOOT ══════════');
   UI.dbg('boot', '-', '-');
 
-  await tryRestoreSession();
+  const restored = await autoLoginFromContext();
 
-  if (!STATE.panitiaId) {
+  if (!restored) {
+    UI.hideAll();
     UI.show('loginView');
     UI.dbg('login', '-', '-');
   }
@@ -1081,6 +1481,9 @@ window.loginPanitia = loginPanitia;
 window.logoutPanitia = logoutPanitia;
 window.verdict = verdict;
 window.closeModal = closeModal;
+window.retryAlertImage = retryAlertImage;
+window.openImageFullscreen = openImageFullscreen;
+window.closeImageFullscreen = closeImageFullscreen;
 </script>
 </body>
 </html>
