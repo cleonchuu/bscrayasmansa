@@ -63,20 +63,17 @@
       animation: gradientShift 12s ease infinite;
     }
 
-    /* Glow */
     .glow-gold    { box-shadow: 0 0 80px rgba(245, 158, 11, 0.35); }
     .glow-indigo  { box-shadow: 0 0 80px rgba(99, 102, 241, 0.35); }
     .glow-emerald { box-shadow: 0 0 80px rgba(16, 185, 129, 0.30); }
     .glow-rose    { box-shadow: 0 0 80px rgba(244, 63, 94, 0.35); }
 
-    /* Card pop */
     @keyframes cardPop {
       0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
     .animate-card-pop { animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    /* Elimination */
     @keyframes elimShake {
       0%,100% { transform: translateX(0) scale(1); filter: brightness(1); }
       20%     { transform: translateX(-12px) scale(1.02); filter: brightness(1.3) hue-rotate(-20deg); }
@@ -91,7 +88,6 @@
     }
     .elim-faded { animation: fadeGrey 1.2s ease-in forwards; }
 
-    /* Pulse ring */
     @keyframes pulseRing {
       0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
       70%  { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
@@ -99,25 +95,146 @@
     }
     .pulse-ring { animation: pulseRing 1.8s infinite; }
 
-    /* Particle drift */
-    @keyframes drift {
-      0%   { transform: translate(0,0) rotate(0deg); opacity: 0; }
-      10%  { opacity: 1; }
-      90%  { opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) rotate(360deg); opacity: 0; }
-    }
-    .drift {
-      position: absolute;
-      animation: drift var(--dur) linear infinite;
-      animation-delay: var(--delay);
-    }
-
     /* Custom scroll */
     .custom-scroll::-webkit-scrollbar { width: 8px; }
     .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
 
-    /* Live timer bar */
+    /* ═══════════════════════════════════════════════════════
+       MARQUEE — untuk view GAME
+       ═══════════════════════════════════════════════════════ */
+    .marquee-outer {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .marquee-track {
+      display: flex;
+      gap: 2rem;
+      padding: 2rem 1rem;
+      transition: transform 0.08s linear;
+      will-change: transform;
+    }
+
+    /* Kartu peserta */
+    .pcard {
+      flex-shrink: 0;
+      width: 420px;
+      background: linear-gradient(145deg, rgba(15,23,42,0.95), rgba(2,6,23,0.98));
+      border: 3px solid rgba(100,116,139,0.5);
+      border-radius: 2rem;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+      transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+    }
+
+    /* Status border warna */
+    .pcard.status-in_progress     { border-color: rgba(99,102,241,0.7); }
+    .pcard.status-waiting_verdict { border-color: rgba(245,158,11,0.9); }
+    .pcard.status-locked          { border-color: rgba(16,185,129,0.7); }
+    .pcard.status-wrong_continued { border-color: rgba(244,63,94,0.7); }
+    .pcard.status-finished        { border-color: rgba(100,116,139,0.5); }
+
+    /* Kartu yang di-sorot */
+    .pcard.highlight {
+      transform: scale(1.08);
+      box-shadow: 0 0 60px rgba(245, 158, 11, 0.7), 0 0 100px rgba(245, 158, 11, 0.3);
+      z-index: 10;
+    }
+
+    .pcard.highlight.waiting_verdict {
+      box-shadow: 0 0 60px rgba(245, 158, 11, 0.9), 0 0 100px rgba(245, 158, 11, 0.5);
+    }
+    .pcard.highlight.locked {
+      box-shadow: 0 0 60px rgba(16, 185, 129, 0.9), 0 0 100px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Foto peserta */
+    .pcard-avatar {
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 140px;
+      border-radius: 1.25rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 3px solid rgba(99, 102, 241, 0.5);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .pcard-avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+
+    /* Badge status */
+    .pcard-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Update badge (muncul saat kartu disorot) */
+    @keyframes updateBadgePop {
+      0% { opacity: 0; transform: scale(0.5) translateY(-10px); }
+      60% { opacity: 1; transform: scale(1.15) translateY(0); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .pcard-update-badge {
+      position: absolute;
+      top: -14px; right: -14px;
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 0.7rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.9);
+      animation: updateBadgePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      z-index: 20;
+      border: 2px solid #fff;
+    }
+
+    /* Progress bar bank */
+    .pcard-bank-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(100, 116, 139, 0.3);
+    }
+    .pcard-bank-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      transition: width 0.5s ease;
+      border-radius: 999px;
+    }
+    .pcard-bank-bar-fill.warn {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+    .pcard-bank-bar-fill.critical {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+      animation: pulseRing 1.5s infinite;
+    }
+
+    /* Pulse highlight untuk kartu baru berubah */
+    @keyframes cardFlash {
+      0% { background: rgba(245, 158, 11, 0.4); }
+      100% { background: transparent; }
+    }
+    .pcard.flash {
+      animation: cardFlash 1s ease-out;
+    }
+
+    /* Live timer bar untuk simulasi */
     @keyframes smoothBar {
       from { width: 100%; }
       to   { width: 0%; }
@@ -126,9 +243,7 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- AUDIO UNLOCK OVERLAY -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- AUDIO UNLOCK -->
   <div id="audioUnlockOverlay"
        onclick="unlockAudio()"
        class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
@@ -143,10 +258,8 @@
   <!-- 1. VIEW: IDLE -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <section id="viewIdle" class="stage-view active-view">
-    <!-- Animated background -->
     <div class="absolute inset-0 animated-gradient opacity-20"></div>
 
-    <!-- Floating blocks -->
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <div class="absolute top-[10%] left-[8%] w-24 h-24 bg-indigo-500/30 rounded-2xl floaty backdrop-blur-sm border border-indigo-400/30"></div>
       <div class="absolute top-[70%] left-[15%] w-16 h-16 bg-purple-500/30 rounded-xl floaty-2 border border-purple-400/30"></div>
@@ -155,7 +268,6 @@
       <div class="absolute bottom-[15%] left-1/2 w-14 h-14 bg-emerald-500/30 rounded-xl floaty-2 border border-emerald-400/30"></div>
     </div>
 
-    <!-- Content -->
     <div class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center">
       <div class="mb-6">
         <div class="inline-flex items-center gap-3 px-6 py-2.5 bg-indigo-500/20 border border-indigo-400/40 rounded-full backdrop-blur-md">
@@ -191,7 +303,6 @@
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="relative z-10 py-8 text-center">
       <div class="inline-flex items-center gap-3 text-slate-500 text-sm">
         <i class="fas fa-hourglass-start"></i>
@@ -217,7 +328,6 @@
         Pahami mekanisme permainan. Poin tidak dihitung!
       </p>
 
-      <!-- Global Countdown -->
       <div class="bg-slate-950/70 border-4 border-purple-500/40 rounded-[2.5rem] p-12 glow-indigo backdrop-blur-sm">
         <div class="text-xs text-purple-400 uppercase tracking-[0.3em] mb-3">Sisa Waktu Simulasi</div>
         <div id="simulasiCountdown" class="text-[8rem] lg:text-[12rem] font-math font-black text-white leading-none">
@@ -233,13 +343,13 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- 3. VIEW: GAME -->
+  <!-- 3. VIEW: GAME (MARQUEE KARTU PESERTA) -->
   <!-- ═══════════════════════════════════════════════════════ -->
   <section id="viewGame" class="stage-view hidden-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950"></div>
 
     <!-- Header -->
-    <div class="relative z-10 pt-8 pb-4 px-10 flex items-center justify-between">
+    <div class="relative z-20 pt-8 pb-4 px-10 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <div class="w-16 h-16 bg-amber-500/20 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center text-amber-400 text-3xl">
           <i class="fas fa-bolt"></i>
@@ -263,12 +373,14 @@
       </div>
     </div>
 
-    <!-- Grid Peserta -->
-    <div class="relative z-10 flex-1 px-10 pb-8 overflow-hidden">
-      <div id="gamePlayersGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 h-full">
-        <p class="col-span-full text-center text-slate-500 text-xl py-20">
-          <i class="fas fa-spinner fa-spin"></i> Menunggu peserta membuka gambar...
-        </p>
+    <!-- Marquee Area -->
+    <div class="relative z-10 flex-1 flex items-center justify-center overflow-hidden">
+      <div id="gameMarqueeOuter" class="marquee-outer">
+        <div id="gameMarqueeTrack" class="marquee-track">
+          <p class="text-slate-500 text-xl py-20 px-10">
+            <i class="fas fa-spinner fa-spin"></i> Menunggu peserta bergabung...
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -290,9 +402,7 @@
         PAPAN PERINGKAT <span class="text-amber-400">TOP 10</span>
       </h2>
 
-      <!-- Card Reveal Container -->
       <div class="relative w-full max-w-2xl min-h-[520px] flex items-center justify-center">
-        <!-- Left arrow decoration -->
         <div class="absolute -left-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
           <i class="fas fa-chevron-left"></i>
         </div>
@@ -301,7 +411,6 @@
           <p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>
         </div>
 
-        <!-- Right arrow decoration -->
         <div class="absolute -right-20 text-6xl text-amber-500/40 animate-pulse hidden lg:block">
           <i class="fas fa-chevron-right"></i>
         </div>
@@ -325,14 +434,12 @@
       <h2 class="text-7xl lg:text-8xl font-math font-black text-rose-500 mb-4">ELIMINASI</h2>
       <p class="text-2xl text-slate-400 mb-12">5 Peserta dengan poin terendah tereliminasi</p>
 
-      <!-- Eliminated List -->
       <div id="eliminasiList" class="grid grid-cols-1 lg:grid-cols-5 gap-4 max-w-6xl w-full">
         <p class="col-span-full text-slate-500 text-xl py-12">
           <i class="fas fa-spinner fa-spin"></i> Menghitung hasil...
         </p>
       </div>
 
-      <!-- Survivor Banner -->
       <div id="eliminasiSurvivorBanner" class="hidden mt-12 opacity-0 transition-opacity duration-1000">
         <div class="inline-flex items-center gap-4 px-8 py-4 bg-emerald-500/20 border-2 border-emerald-400/50 rounded-2xl">
           <i class="fas fa-medal text-emerald-400 text-3xl"></i>
@@ -367,9 +474,7 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!-- BGM AUDIO (hidden) -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- BGM AUDIO -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
 
   <!-- DEBUG BADGE -->
@@ -389,9 +494,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TAG = '[LAYOUT-HB]';
 const BANK_GAME_SEC = 1800;
 const BANK_SIM_SEC  = 600;
+const TOTAL_IMAGES = 10;
+
+// Marquee speed: 8 detik per kartu (lebar kartu 420 + gap 32 = 452px)
+const MARQUEE_CARD_WIDTH = 452; // 420 + 32
+const MARQUEE_SPEED_PX_PER_SEC = MARQUEE_CARD_WIDTH / 8; // ~56.5 px/sec
 
 // ═══════════════════════════════════════════════════════════
-// BGM URLs (bucket: bgm)
+// BGM
 // ═══════════════════════════════════════════════════════════
 const BGM = {
   lobby:    `${SUPABASE_URL}/storage/v1/object/public/bgm/LOBBY.mp3`,
@@ -424,19 +534,32 @@ const STATE = {
   lastView: '',
   lastMode: '',
 
-  // Cache
+  // Data
   participants: [],
+  progressByUser: {},       // { uid: { status, level, choice, points, ... } }
   scores: [],
-  panitiaMap: {},   // peserta → panitia
+  panitiaMap: {},
+  avatarMap: {},            // { uid: avatar_url }
+
+  // Marquee
+  marqueeRAF: null,
+  marqueeOffset: 0,
+  marqueeLastTs: 0,
+  marqueeRunning: false,
+  marqueeSnapQueue: [],     // queue uid yang mau disorot
+  marqueeSnapping: false,
+  marqueeHighlightUid: null,
+
+  // Realtime
+  realtimeConnected: false,
+  lastKnownSessionId: null,
 
   // BGM
   currentBGM: null,
-  bgmLocked: false,
 
-  // Timers
+  // Timer
   tickInterval: null,
-
-  realtimeConnected: false
+  bankTickInterval: null
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -455,15 +578,13 @@ const UI = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE (BGM)
+// AUDIO
 // ═══════════════════════════════════════════════════════════
 function unlockAudio() {
   STATE.audioUnlocked = true;
   const overlay = UI.el('audioUnlockOverlay');
   if (overlay) overlay.classList.add('hidden');
   LOG.ok('Audio unlocked');
-
-  // Langsung putar BGM sesuai mode
   playBGM(STATE.currentMode === 'simulasi' || STATE.currentMode === 'game' ? 'tegang' : 'lobby');
 }
 
@@ -472,10 +593,7 @@ async function playBGM(track) {
     LOG.warn(`Audio belum unlock — skip BGM ${track}`);
     return;
   }
-  if (STATE.currentBGM === track) {
-    LOG.info(`BGM ${track} sudah diputar`);
-    return;
-  }
+  if (STATE.currentBGM === track) return;
 
   const player = UI.el('bgmPlayer');
   if (!player) return;
@@ -488,25 +606,19 @@ async function playBGM(track) {
     player.src = url;
     player.volume = 0.6;
     player.loop = true;
-
     await player.play().catch(err => {
       LOG.warn(`Play BGM ${track} gagal: ${err.message}`);
-      return null;
     });
-
     STATE.currentBGM = track;
     UI.txt('dbgBGM', track);
     LOG.ok(`🎵 BGM → ${track}`);
-  } catch (e) {
-    LOG.err(`playBGM exception: ${track}`, e);
-  }
+  } catch (e) { LOG.err(`playBGM exception: ${track}`, e); }
 }
 
 // ═══════════════════════════════════════════════════════════
 // VIEW SWITCHER
 // ═══════════════════════════════════════════════════════════
 function switchView(viewName, revealedRank = 0) {
-  // Signature check
   const sig = `${viewName}|${revealedRank}`;
   if (sig === STATE.lastView) {
     LOG.info(`Skip view (sama): ${sig}`);
@@ -516,6 +628,9 @@ function switchView(viewName, revealedRank = 0) {
 
   LOG.info(`Switch view → ${viewName}, rank: ${revealedRank}`);
 
+  // Stop marquee kalau bukan view game
+  if (viewName !== 'game') stopMarquee();
+
   // Hide all
   ['viewIdle','viewSimulasi','viewGame','viewLeaderboard','viewEliminasi','viewAllPlayers']
     .forEach(id => {
@@ -523,7 +638,6 @@ function switchView(viewName, revealedRank = 0) {
       if (el) { el.classList.add('hidden-view'); el.classList.remove('active-view'); }
     });
 
-  // Show target
   const map = {
     idle: 'viewIdle',
     simulasi: 'viewSimulasi',
@@ -543,7 +657,7 @@ function switchView(viewName, revealedRank = 0) {
   STATE.currentView = viewName;
   STATE.revealedRank = revealedRank;
 
-  // BGM selection per view
+  // BGM per view
   if (viewName === 'idle')            playBGM('lobby');
   else if (viewName === 'simulasi')   playBGM('tegang');
   else if (viewName === 'game')       playBGM('tegang');
@@ -566,7 +680,7 @@ function switchView(viewName, revealedRank = 0) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DATA FETCHERS
+// DATA FETCH
 // ═══════════════════════════════════════════════════════════
 async function loadScores() {
   const { data, error } = await supabaseClient
@@ -596,7 +710,7 @@ async function loadParticipants() {
   if (error) { LOG.warn('loadParticipants', error.message); return; }
   STATE.participants = data || [];
 
-  // Map peserta → panitia
+  // Panitia map
   const { data: panitiaData } = await supabaseClient
     .from('hiding_block_panitia')
     .select('peserta_unique_id, panitia_unique_id');
@@ -606,139 +720,416 @@ async function loadParticipants() {
   });
 }
 
-async function loadProgressFor(userId) {
+async function loadProgressAll() {
   const { data, error } = await supabaseClient
     .from('hiding_block_progress')
     .select('*')
-    .eq('user_unique_id', userId);
+    .order('created_at', { ascending: false });
 
-  if (error) return [];
-  return data || [];
+  if (error) { LOG.warn('loadProgressAll', error.message); return; }
+
+  const map = {};
+  (data || []).forEach(r => {
+    const uid = r.user_unique_id;
+    if (!map[uid]) map[uid] = [];
+    map[uid].push(r);
+  });
+  STATE.progressByUser = map;
+}
+
+async function loadAvatars(uids) {
+  if (!uids || uids.length === 0) return;
+  const { data } = await supabaseClient
+    .from('users')
+    .select('unique_id, avatar_url')
+    .in('unique_id', uids);
+
+  STATE.avatarMap = STATE.avatarMap || {};
+  (data || []).forEach(u => {
+    if (u.avatar_url) STATE.avatarMap[u.unique_id] = u.avatar_url;
+  });
+}
+
+function getAvatarFor(uid) {
+  return (STATE.avatarMap || {})[uid]
+    || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`;
 }
 
 // ═══════════════════════════════════════════════════════════
-// GAME VIEW — GRID PESERTA + COUNTDOWN PER PESERTA
+// GAME VIEW — MARQUEE KARTU PESERTA
 // ═══════════════════════════════════════════════════════════
-async function renderGameGrid() {
-  const c = UI.el('gamePlayersGrid');
-  if (!c) return;
+function getStatusInfo(status, progressList) {
+  const latest = progressList && progressList[0];
 
-  const playing = STATE.participants.filter(p => p.status === 'playing' || p.status === 'ready');
+  if (!latest) {
+    return { status: 'waiting', label: 'Menunggu', color: 'slate', icon: 'fa-hourglass-start' };
+  }
+
+  const s = latest.status;
+  if (s === 'in_progress')      return { status: 'in_progress', label: 'Mengerjakan', color: 'indigo', icon: 'fa-pen-to-square' };
+  if (s === 'waiting_verdict')  return { status: 'waiting_verdict', label: 'Menunggu Panitia', color: 'amber', icon: 'fa-bell' };
+  if (s === 'locked')           return { status: 'locked', label: 'Selesai', color: 'emerald', icon: 'fa-lock' };
+  if (s === 'wrong_continued')  return { status: 'wrong_continued', label: 'Salah, Lanjut', color: 'rose', icon: 'fa-forward' };
+
+  return { status: 'waiting', label: 'Menunggu', color: 'slate', icon: 'fa-hourglass-start' };
+}
+
+function getLatestProgress(uid) {
+  const list = STATE.progressByUser[uid] || [];
+  return list.length > 0 ? list[0] : null;
+}
+
+function getCurrentAttemptInfo(uid) {
+  const latest = getLatestProgress(uid);
+  if (!latest) return { level: null, choice: null };
+
+  // Hanya tampilkan kalau status aktif
+  if (['in_progress', 'waiting_verdict'].includes(latest.status)) {
+    return { level: latest.level, choice: latest.choice };
+  }
+  return { level: null, choice: null };
+}
+
+function computeBankRemaining(p) {
+  if (!p.bank_started_at) return BANK_GAME_SEC;
+
+  const now = Date.now();
+  const startMs = new Date(p.bank_started_at).getTime();
+  const elapsed = Math.floor((now - startMs) / 1000);
+  const paused = p.total_paused_sec || 0;
+  const activePause = p.is_timer_paused && p.paused_at
+    ? Math.floor((now - new Date(p.paused_at).getTime()) / 1000)
+    : 0;
+  const remaining = BANK_GAME_SEC - elapsed + paused + activePause;
+
+  return Math.max(0, remaining);
+}
+
+function formatMMSS(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+function buildCardHTML(p, avatarUrl) {
+  const uid = p.user_unique_id;
+  const progressList = STATE.progressByUser[uid] || [];
+  const statusInfo = getStatusInfo(null, progressList);
+  const attemptInfo = getCurrentAttemptInfo(uid);
+  const bankRemaining = computeBankRemaining(p);
+
+  // Locked count
+  const lockedCount = progressList.filter(x => x.status === 'locked').length;
+  // Poin
+  const totalPoin = progressList
+    .filter(x => x.status === 'locked')
+    .reduce((s, x) => s + Number(x.points_awarded || 0), 0);
+
+  // Bank bar
+  const bankPct = (bankRemaining / BANK_GAME_SEC) * 100;
+  let bankClass = '';
+  if (bankRemaining < 300) bankClass = 'critical';
+  else if (bankRemaining < 900) bankClass = 'warn';
+
+  // Pilihan aktif
+  const choiceText = (attemptInfo.level && attemptInfo.choice)
+    ? `Level ${attemptInfo.level}${attemptInfo.choice.toUpperCase()}`
+    : '—';
+
+  // Panitia
+  const panitiaId = STATE.panitiaMap[uid] || '—';
+
+  // Status badge style
+  const badgeColors = {
+    indigo:  'bg-indigo-500/20 border-indigo-500/40 text-indigo-300',
+    amber:   'bg-amber-500/20 border-amber-500/40 text-amber-300',
+    emerald: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
+    rose:    'bg-rose-500/20 border-rose-500/40 text-rose-300',
+    slate:   'bg-slate-500/20 border-slate-500/40 text-slate-300'
+  };
+
+  return `
+    <div class="flex gap-4">
+      <div class="pcard-avatar">
+        <img src="${avatarUrl}" alt="${uid}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}'" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center min-w-0">
+        <div class="text-xs text-slate-400 uppercase tracking-widest">Peserta</div>
+        <div class="text-xl font-black text-white truncate">${uid}</div>
+        <div class="text-[11px] text-slate-500 mt-1 truncate">
+          <i class="fas fa-user-shield"></i> ${panitiaId}
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 px-3 py-2 rounded-xl ${badgeColors[statusInfo.color]} border">
+      <i class="fas ${statusInfo.icon}"></i>
+      <span class="text-xs font-bold uppercase tracking-wider">${statusInfo.label}</span>
+      ${attemptInfo.level ? `
+        <span class="ml-auto text-sm font-black font-mono">${choiceText}</span>
+      ` : ''}
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between text-[10px] text-slate-500 uppercase tracking-wider mb-1">
+        <span>Bank Waktu</span>
+        <span class="font-mono font-bold ${bankRemaining < 300 ? 'text-rose-400' : (bankRemaining < 900 ? 'text-amber-400' : 'text-emerald-400')}">
+          ${formatMMSS(bankRemaining)}
+        </span>
+      </div>
+      <div class="pcard-bank-bar">
+        <div class="pcard-bank-bar-fill ${bankClass}" style="width: ${bankPct}%"></div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+      <div>
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
+        <div class="text-2xl font-math font-black text-amber-400">${totalPoin.toFixed(2)}</div>
+      </div>
+      <div class="text-right">
+        <div class="text-[9px] text-slate-500 uppercase tracking-wider">Selesai</div>
+        <div class="text-2xl font-math font-black text-emerald-400">${lockedCount}<span class="text-slate-500 text-base">/${TOTAL_IMAGES}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+async function renderGameGrid() {
+  const track = UI.el('gameMarqueeTrack');
+  if (!track) return;
+
+  const playing = STATE.participants.filter(p =>
+    p.status === 'playing' || p.status === 'ready'
+  );
 
   UI.txt('gamePlayerCount', playing.length);
 
   if (playing.length === 0) {
-    c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">
+    track.innerHTML = `<p class="text-slate-500 text-xl py-20 px-10">
       <i class="fas fa-spinner fa-spin"></i> Menunggu peserta bergabung...</p>`;
+    stopMarquee();
     return;
   }
 
-  c.innerHTML = '';
+  // Fetch avatars kalau belum ada
+  const uids = playing.map(p => p.user_unique_id);
+  const missingAvatars = uids.filter(u => !STATE.avatarMap[u]);
+  if (missingAvatars.length > 0) {
+    await loadAvatars(missingAvatars);
+  }
 
-  // Parallel: fetch progress per peserta
-  const progressList = await Promise.all(playing.map(p => loadProgressFor(p.user_unique_id)));
-
-  playing.forEach((p, i) => {
-    const progress = progressList[i] || [];
-    const locked = progress.filter(x => x.status === 'locked');
-    const lastAttempt = progress.sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-    let bankSec = BANK_GAME_SEC;
-    if (p.bank_started_at) {
-      const elapsed = Math.floor((Date.now() - new Date(p.bank_started_at).getTime()) / 1000);
-      bankSec = Math.max(0, BANK_GAME_SEC - elapsed);
-    }
-    const mm = String(Math.floor(bankSec / 60)).padStart(2, '0');
-    const ss = String(bankSec % 60).padStart(2, '0');
-
-    let statusText = 'Menunggu buka gambar';
-    let statusColor = 'slate';
-    let statusIcon = 'fa-hourglass-start';
-
-    if (lastAttempt) {
-      if (lastAttempt.status === 'in_progress') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · mengerjakan`;
-        statusColor = 'indigo';
-        statusIcon = 'fa-pen-to-square';
-      } else if (lastAttempt.status === 'waiting_verdict') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · MENUNGGU PANITIA`;
-        statusColor = 'amber';
-        statusIcon = 'fa-bell';
-      } else if (lastAttempt.status === 'locked') {
-        statusText = `✓ Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} SELESAI`;
-        statusColor = 'emerald';
-        statusIcon = 'fa-lock';
-      } else if (lastAttempt.status === 'wrong_continued') {
-        statusText = `Level ${lastAttempt.level}${lastAttempt.choice.toUpperCase()} · salah, lanjut`;
-        statusColor = 'rose';
-        statusIcon = 'fa-forward';
+  // Detect perubahan status: kartu yang mau disorot
+  const prevUids = Object.keys(STATE.progressByUser);
+  const newHighlights = [];
+  playing.forEach(p => {
+    const uid = p.user_unique_id;
+    const progressList = STATE.progressByUser[uid] || [];
+    const latest = progressList[0];
+    if (!latest) return;
+    // Kalau status waiting_verdict atau locked baru → masukkan ke queue
+    if (['waiting_verdict', 'locked'].includes(latest.status)) {
+      // Cek apakah status ini baru berubah
+      const card = track.querySelector(`[data-uid="${uid}"]`);
+      const prevStatus = card?.dataset.status;
+      if (prevStatus !== latest.status) {
+        newHighlights.push(uid);
       }
     }
+  });
 
-    if (p.status === 'finished' || p.status === 'eliminated') {
-      statusText = 'SELESAI';
-      statusColor = 'slate';
-      statusIcon = 'fa-flag-checkered';
-    }
+  // Render kartu
+  const cardsHTML = playing.map(p => {
+    const uid = p.user_unique_id;
+    const avatarUrl = getAvatarFor(uid);
+    const progressList = STATE.progressByUser[uid] || [];
+    const statusInfo = getStatusInfo(null, progressList);
+    const latest = progressList[0];
 
-    const totalPoin = locked.reduce((s, x) => s + (x.points_awarded || 0), 0);
-
-    const card = document.createElement('div');
-    card.className = `bg-slate-900/80 border-2 border-slate-700/60 rounded-2xl p-5 backdrop-blur-md animate-card-pop flex flex-col justify-between ${bankSec < 300 ? 'border-rose-500/60' : ''}`;
-    card.innerHTML = `
-      <div>
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded border border-slate-700 text-slate-400">#${i+1}</span>
-          <span class="text-[10px] font-mono ${bankSec < 300 ? 'text-rose-400 animate-pulse' : 'text-slate-400'}">${mm}:${ss}</span>
-        </div>
-        <div class="text-xl font-black text-white mb-1 truncate">${p.user_unique_id}</div>
-        <div class="text-[10px] text-slate-500 mb-3">Panitia: ${STATE.panitiaMap[p.user_unique_id] || '-'}</div>
-
-        <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-${statusColor}-500/10 border border-${statusColor}-500/30 mb-3">
-          <i class="fas ${statusIcon} text-${statusColor}-400 text-xs"></i>
-          <span class="text-[11px] font-bold text-${statusColor}-300 truncate">${statusText}</span>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-between pt-3 border-t border-slate-800">
-        <div>
-          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Poin</div>
-          <div class="text-2xl font-math font-black text-amber-400">${totalPoin}</div>
-        </div>
-        <div class="text-right">
-          <div class="text-[9px] text-slate-500 uppercase tracking-wider">Selesai</div>
-          <div class="text-2xl font-math font-black text-emerald-400">${locked.length}<span class="text-slate-500 text-base">/10</span></div>
-        </div>
+    return `
+      <div class="pcard status-${statusInfo.status}" data-uid="${uid}" data-status="${latest?.status || 'waiting'}">
+        ${buildCardHTML(p, avatarUrl)}
       </div>
     `;
-    c.appendChild(card);
-  });
+  }).join('');
+
+  // Duplicate untuk loop seamless marquee
+  const total = playing.length;
+
+  if (total < 3) {
+    // Kalau peserta < 3, jangan marquee — tampilkan saja semua
+    track.innerHTML = cardsHTML;
+    track.style.transform = 'translateX(0)';
+    stopMarquee();
+  } else {
+    // Loop: cukup 2x duplikat
+    track.innerHTML = cardsHTML + cardsHTML;
+    startMarquee();
+  }
+
+  // Queue highlight
+  newHighlights.forEach(uid => queueMarqueeHighlight(uid));
 }
 
 // ═══════════════════════════════════════════════════════════
-// SIMULASI VIEW — GLOBAL COUNTDOWN
+// MARQUEE RUNNER
 // ═══════════════════════════════════════════════════════════
-function startSimulasiCountdown(startedAt) {
-  if (STATE.tickInterval) clearInterval(STATE.tickInterval);
+function startMarquee() {
+  if (STATE.marqueeRunning) return;
+  STATE.marqueeRunning = true;
+  STATE.marqueeLastTs = 0;
 
-  const tick = () => {
-    if (!startedAt) {
-      UI.txt('simulasiCountdown', '10:00');
-      return;
+  const track = UI.el('gameMarqueeTrack');
+  if (!track) return;
+
+  const totalWidth = track.scrollWidth / 2; // karena diduplikasi
+
+  const loop = (ts) => {
+    if (!STATE.marqueeRunning) return;
+    if (!STATE.marqueeLastTs) STATE.marqueeLastTs = ts;
+
+    const dt = (ts - STATE.marqueeLastTs) / 1000;
+    STATE.marqueeLastTs = ts;
+
+    // Kalau sedang snapping, jangan auto-gerak
+    if (!STATE.marqueeSnapping) {
+      STATE.marqueeOffset += MARQUEE_SPEED_PX_PER_SEC * dt;
+
+      // Reset kalau sudah lewat 1 duplikat
+      if (totalWidth > 0 && STATE.marqueeOffset >= totalWidth) {
+        STATE.marqueeOffset -= totalWidth;
+      }
+
+      track.style.transform = `translateX(${-STATE.marqueeOffset}px)`;
     }
-    const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
-    const remaining = Math.max(0, BANK_SIM_SEC - elapsed);
-    const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-    const ss = String(remaining % 60).padStart(2, '0');
-    UI.txt('simulasiCountdown', `${mm}:${ss}`);
+
+    STATE.marqueeRAF = requestAnimationFrame(loop);
   };
 
-  tick();
-  STATE.tickInterval = setInterval(tick, 500);
+  STATE.marqueeRAF = requestAnimationFrame(loop);
+  LOG.ok('Marquee started');
+}
+
+function stopMarquee() {
+  STATE.marqueeRunning = false;
+  if (STATE.marqueeRAF) {
+    cancelAnimationFrame(STATE.marqueeRAF);
+    STATE.marqueeRAF = null;
+  }
+  LOG.info('Marquee stopped');
 }
 
 // ═══════════════════════════════════════════════════════════
-// LEADERBOARD VIEW — REVEAL PER RANK
+// MARQUEE HIGHLIGHT (Snap to card)
+// ═══════════════════════════════════════════════════════════
+function queueMarqueeHighlight(uid) {
+  STATE.marqueeSnapQueue.push(uid);
+  LOG.info(`Queue highlight: ${uid}`);
+  processMarqueeSnapQueue();
+}
+
+async function processMarqueeSnapQueue() {
+  if (STATE.marqueeSnapping) return;
+  if (STATE.marqueeSnapQueue.length === 0) return;
+
+  STATE.marqueeSnapping = true;
+
+  const uid = STATE.marqueeSnapQueue.shift();
+  LOG.ok(`Highlight: ${uid}`);
+
+  const track = UI.el('gameMarqueeTrack');
+  const outer = UI.el('gameMarqueeOuter');
+  if (!track || !outer) {
+    STATE.marqueeSnapping = false;
+    return;
+  }
+
+  // Cari kartu
+  const card = track.querySelector(`.pcard[data-uid="${uid}"]`);
+  if (!card) {
+    LOG.warn(`Kartu ${uid} tidak ditemukan`);
+    STATE.marqueeSnapping = false;
+    return;
+  }
+
+  // Hitung posisi: kita mau kartu ini ada di tengah outer
+  // Kartu pertama mulai di offset 0. Tapi track punya padding-left 1rem (16px)
+  const cardOffsetLeft = card.offsetLeft;
+  const cardWidth = card.offsetWidth;
+  const outerWidth = outer.offsetWidth;
+  const targetOffset = cardOffsetLeft - (outerWidth / 2) + (cardWidth / 2);
+
+  // Manual smooth animate
+  const startOffset = STATE.marqueeOffset;
+  const deltaOffset = targetOffset - startOffset;
+  const duration = 1000; // 1 detik
+  const startTime = performance.now();
+
+  // Set highlight class
+  STATE.marqueeHighlightUid = uid;
+  track.querySelectorAll('.pcard').forEach(c => c.classList.remove('highlight'));
+  card.classList.add('highlight');
+
+  // Tambah update badge
+  if (!card.querySelector('.pcard-update-badge')) {
+    const badge = document.createElement('div');
+    badge.className = 'pcard-update-badge';
+    badge.innerHTML = `<i class="fas fa-bolt"></i> UPDATE`;
+    card.appendChild(badge);
+  }
+
+  // Manual RAF animate
+  await new Promise(resolve => {
+    const anim = (ts) => {
+      const elapsed = ts - startTime;
+      const t = Math.min(1, elapsed / duration);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      STATE.marqueeOffset = startOffset + (deltaOffset * eased);
+      track.style.transform = `translateX(${-STATE.marqueeOffset}px)`;
+
+      if (t < 1) {
+        requestAnimationFrame(anim);
+      } else {
+        resolve();
+      }
+    };
+    requestAnimationFrame(anim);
+  });
+
+  // Hold 1.5 detik
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Hapus highlight
+  card.classList.remove('highlight');
+  const badge = card.querySelector('.pcard-update-badge');
+  if (badge) badge.remove();
+  STATE.marqueeHighlightUid = null;
+
+  // Normalize offset (kalau sudah lewat 1 duplikat)
+  const totalWidth = track.scrollWidth / 2;
+  if (totalWidth > 0) {
+    while (STATE.marqueeOffset >= totalWidth) {
+      STATE.marqueeOffset -= totalWidth;
+    }
+    while (STATE.marqueeOffset < 0) {
+      STATE.marqueeOffset += totalWidth;
+    }
+    track.style.transform = `translateX(${-STATE.marqueeOffset}px)`;
+  }
+
+  STATE.marqueeLastTs = 0; // reset biar tidak lompat
+  STATE.marqueeSnapping = false;
+
+  // Lanjut ke queue berikutnya
+  if (STATE.marqueeSnapQueue.length > 0) {
+    setTimeout(() => processMarqueeSnapQueue(), 300);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEADERBOARD
 // ═══════════════════════════════════════════════════════════
 async function fetchAndRenderLeaderboard(revealedRank) {
   await loadScores();
@@ -761,27 +1152,9 @@ function renderLeaderboardCard(rank) {
   }
 
   const themeMap = {
-    1: {
-      bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20',
-      border: 'border-amber-400',
-      badge: 'bg-amber-400 text-slate-950',
-      label: '👑 JUARA 1',
-      glow: 'glow-gold'
-    },
-    2: {
-      bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30',
-      border: 'border-slate-300',
-      badge: 'bg-slate-200 text-slate-950',
-      label: '🥈 JUARA 2',
-      glow: ''
-    },
-    3: {
-      bg: 'from-amber-800/30 via-orange-800/15 to-slate-900/30',
-      border: 'border-amber-700',
-      badge: 'bg-amber-700 text-white',
-      label: '🥉 JUARA 3',
-      glow: ''
-    }
+    1: { bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20', border: 'border-amber-400', badge: 'bg-amber-400 text-slate-950', label: '👑 JUARA 1', glow: 'glow-gold' },
+    2: { bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30', border: 'border-slate-300', badge: 'bg-slate-200 text-slate-950', label: '🥈 JUARA 2', glow: '' },
+    3: { bg: 'from-amber-800/30 via-orange-800/15 to-slate-900/30', border: 'border-amber-700', badge: 'bg-amber-700 text-white', label: '🥉 JUARA 3', glow: '' }
   };
   const theme = themeMap[rank] || {
     bg: 'from-indigo-900/30 via-slate-900/40 to-slate-950',
@@ -791,29 +1164,26 @@ function renderLeaderboardCard(rank) {
     glow: ''
   };
 
-  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+  const avatar = getAvatarFor(p.uid);
 
   c.innerHTML = `
     <div class="animate-card-pop bg-gradient-to-br ${theme.bg} border-4 ${theme.border} rounded-[2.5rem] p-12 ${theme.glow} flex flex-col items-center gap-6">
       <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">
         ${theme.label}
       </div>
-
       <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
-        <img src="${avatar}" class="w-full h-full object-contain" alt="${p.uid}" />
+        <img src="${avatar}" class="w-full h-full object-cover rounded-2xl" alt="${p.uid}" />
       </div>
-
       <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
-
       <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
-        +${p.total} PTS
+        ${Number(p.total).toFixed(2)} PTS
       </div>
     </div>
   `;
 }
 
 // ═══════════════════════════════════════════════════════════
-// ELIMINASI VIEW
+// ELIMINASI
 // ═══════════════════════════════════════════════════════════
 async function fetchAndRenderElimination() {
   await loadScores();
@@ -828,7 +1198,6 @@ async function fetchAndRenderElimination() {
     return;
   }
 
-  // Ambil 5 terendah (dari 10 peserta)
   const total = scores.length;
   const eliminatedCount = Math.max(0, total - 5);
   const eliminated = scores.slice(-eliminatedCount).reverse();
@@ -836,7 +1205,6 @@ async function fetchAndRenderElimination() {
 
   c.innerHTML = '';
 
-  // Eliminated cards (animasi shake + faded)
   eliminated.forEach((p, idx) => {
     const card = document.createElement('div');
     card.className = `elim-shake bg-rose-950/60 border-2 border-rose-700/60 rounded-3xl p-6 flex flex-col items-center gap-3 animate-card-pop`;
@@ -846,18 +1214,16 @@ async function fetchAndRenderElimination() {
         ❌ ELIMINATED
       </div>
       <div class="text-2xl font-black text-white text-center truncate w-full">${p.uid}</div>
-      <div class="text-2xl font-math font-black text-rose-400">${p.total} PTS</div>
+      <div class="text-2xl font-math font-black text-rose-400">${Number(p.total).toFixed(2)}</div>
     `;
     c.appendChild(card);
 
-    // Trigger fade setelah shake
     setTimeout(() => {
       card.classList.add('elim-faded');
       card.classList.remove('elim-shake');
     }, 800 + idx * 200);
   });
 
-  // Survivor banner
   const sb = UI.el('eliminasiSurvivorBanner');
   if (sb) {
     UI.txt('eliminasiSurvivorCount', `${survivors.length} Peserta`);
@@ -866,12 +1232,10 @@ async function fetchAndRenderElimination() {
       sb.style.opacity = '1';
     }, 1800 + eliminated.length * 200);
   }
-
-  LOG.ok(`Eliminasi: ${eliminated.length} tereliminasi, ${survivors.length} lolos`);
 }
 
 // ═══════════════════════════════════════════════════════════
-// ALL PLAYERS VIEW
+// ALL PLAYERS
 // ═══════════════════════════════════════════════════════════
 async function fetchAndRenderAllPlayers() {
   await loadScores();
@@ -884,11 +1248,15 @@ async function fetchAndRenderAllPlayers() {
     return;
   }
 
+  // Fetch avatars
+  const uids = STATE.scores.map(s => s.uid);
+  await loadAvatars(uids);
+
   c.innerHTML = '';
   STATE.scores.forEach((p, i) => {
     const rank = i + 1;
     const rankColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+    const avatar = getAvatarFor(p.uid);
 
     const card = document.createElement('div');
     card.className = `p-4 rounded-2xl border bg-slate-900/60 backdrop-blur-sm flex items-center gap-3 border-${rankColor}-500/30 animate-card-pop`;
@@ -897,13 +1265,13 @@ async function fetchAndRenderAllPlayers() {
       <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">
         ${rank}
       </div>
-      <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0" />
+      <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0 object-cover" />
       <div class="flex-1 min-w-0">
         <div class="font-bold text-white truncate">${p.uid}</div>
         <div class="text-[10px] text-slate-500 font-mono">Panitia: ${STATE.panitiaMap[p.uid] || '-'}</div>
       </div>
       <div class="text-right">
-        <div class="font-math font-black text-amber-400 text-xl">${p.total}</div>
+        <div class="font-math font-black text-amber-400 text-xl">${Number(p.total).toFixed(2)}</div>
         <div class="text-[9px] text-slate-500 uppercase">PTS</div>
       </div>
     `;
@@ -912,7 +1280,67 @@ async function fetchAndRenderAllPlayers() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// STATE SYNC (mode & pause)
+// SIMULASI COUNTDOWN
+// ═══════════════════════════════════════════════════════════
+function startSimulasiCountdown(startedAt) {
+  if (STATE.tickInterval) clearInterval(STATE.tickInterval);
+
+  const tick = () => {
+    if (!startedAt) { UI.txt('simulasiCountdown', '10:00'); return; }
+    const elapsed = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+    const remaining = Math.max(0, BANK_SIM_SEC - elapsed);
+    UI.txt('simulasiCountdown', formatMMSS(remaining));
+  };
+
+  tick();
+  STATE.tickInterval = setInterval(tick, 500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// GLOBAL TIMER (untuk view game)
+// ═══════════════════════════════════════════════════════════
+function startGlobalTimer() {
+  if (STATE.bankTickInterval) clearInterval(STATE.bankTickInterval);
+
+  STATE.bankTickInterval = setInterval(async () => {
+    if (STATE.currentView !== 'game') return;
+
+    // Update semua kartu dengan timer baru
+    const track = UI.el('gameMarqueeTrack');
+    if (!track) return;
+
+    STATE.participants.forEach(p => {
+      if (p.status !== 'playing' && p.status !== 'ready') return;
+      const uid = p.user_unique_id;
+      const card = track.querySelector(`.pcard[data-uid="${uid}"]`);
+      if (!card) return;
+
+      // Update bank
+      const remaining = computeBankRemaining(p);
+      const bankPct = (remaining / BANK_GAME_SEC) * 100;
+
+      const bankEl = card.querySelector('.pcard-bank-bar-fill');
+      const textEl = card.querySelector('.pcard-bank-bar + div, .pcard-bank-bar ~ div');
+      // Simplifikasi: update langsung elemen bank
+      const bankTextEls = card.querySelectorAll('.font-mono.font-bold');
+      const bankTextEl = bankTextEls[0];
+      if (bankTextEl) {
+        bankTextEl.textContent = formatMMSS(remaining);
+        bankTextEl.className = `font-mono font-bold ${remaining < 300 ? 'text-rose-400' : (remaining < 900 ? 'text-amber-400' : 'text-emerald-400')}`;
+      }
+      if (bankEl) {
+        bankEl.style.width = bankPct + '%';
+        let cls = 'pcard-bank-bar-fill';
+        if (remaining < 300) cls += ' critical';
+        else if (remaining < 900) cls += ' warn';
+        bankEl.className = cls;
+      }
+    });
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE SYNC — hanya update mode & pause, TIDAK auto-switch view
 // ═══════════════════════════════════════════════════════════
 async function syncState() {
   try {
@@ -929,40 +1357,32 @@ async function syncState() {
 
     LOG.info(`State: mode=${STATE.currentMode}, paused=${STATE.isPaused}`);
 
-    // Kalau pause → matikan BGM, tampilkan overlay pause
+    // Pause handling — matikan BGM
     if (STATE.isPaused) {
       const player = UI.el('bgmPlayer');
       if (player) player.pause();
       STATE.currentBGM = 'pause';
-      // Optional: play TENANG.mp3 saat pause
-      // playBGM('tenang');
-    } else {
-      // Resume BGM sesuai view
-      if (STATE.currentBGM === 'pause') {
-        STATE.currentBGM = null;
-      }
+    } else if (STATE.currentBGM === 'pause') {
+      STATE.currentBGM = null;
     }
 
-    // Auto-switch view ke mode kalau perlu
-    if (STATE.currentMode === 'simulasi' && STATE.currentView !== 'simulasi' && !STATE.isPaused) {
-      const { data: state } = await supabaseClient
-        .from('system_hiding_block_state')
-        .select('started_at')
-        .eq('id', 1)
-        .maybeSingle();
-      switchView('simulasi');
-      startSimulasiCountdown(state?.started_at);
-    } else if (STATE.currentMode === 'game' && STATE.currentView !== 'game' && !STATE.isPaused) {
-      switchView('game');
-    } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle' && STATE.currentView !== 'leaderboard' && STATE.currentView !== 'eliminasi' && STATE.currentView !== 'all_players') {
-      switchView('idle');
+    // Stop simulasi countdown kalau bukan simulasi
+    if (STATE.currentMode !== 'simulasi' && STATE.currentView === 'simulasi') {
+      if (STATE.tickInterval) { clearInterval(STATE.tickInterval); STATE.tickInterval = null; }
     }
+
+    // Start simulasi countdown kalau di simulasi
+    if (STATE.currentMode === 'simulasi' && STATE.currentView === 'simulasi' && data.started_at) {
+      if (!STATE.tickInterval) startSimulasiCountdown(data.started_at);
+    }
+
+    // ❌ TIDAK AUTO-SWITCH VIEW. View diatur oleh syncLayout.
 
   } catch (e) { LOG.err('syncState', e); }
 }
 
 // ═══════════════════════════════════════════════════════════
-// LAYOUT VIEW SYNC (dari admin_layout_hiding_block)
+// LAYOUT VIEW SYNC
 // ═══════════════════════════════════════════════════════════
 async function syncLayout() {
   try {
@@ -977,40 +1397,89 @@ async function syncLayout() {
     const view = data.current_view || 'idle';
     const rank = data.revealed_rank || 0;
 
+    // Force re-check (kalau switchView skip karena signature sama, ini akan trigger)
+    STATE.lastView = '';
     switchView(view, rank);
   } catch (e) { LOG.err('syncLayout', e); }
 }
 
 // ═══════════════════════════════════════════════════════════
-// REALTIME SUBSCRIPTIONS
+// SESSION CHANGE DETECTION
+// ═══════════════════════════════════════════════════════════
+async function detectSessionChange() {
+  const { data } = await supabaseClient
+    .from('system_hiding_block_state')
+    .select('session_id')
+    .eq('id', 1)
+    .maybeSingle();
+
+  const sid = data?.session_id || null;
+  if (!sid) return;
+
+  if (STATE.lastKnownSessionId && sid !== STATE.lastKnownSessionId) {
+    LOG.warn(`Session changed: ${STATE.lastKnownSessionId} → ${sid}`);
+    STATE.lastKnownSessionId = sid;
+    STATE.lastView = '';
+    STATE.progressByUser = {};
+    STATE.marqueeSnapQueue = [];
+    switchView('idle');
+  } else if (!STATE.lastKnownSessionId) {
+    STATE.lastKnownSessionId = sid;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// REALTIME
 // ═══════════════════════════════════════════════════════════
 function setupRealtime() {
   const channel = supabaseClient.channel('layout_hb_rt');
 
-  // State (mode, pause)
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'system_hiding_block_state' },
     () => syncState());
 
-  // Layout (view, rank)
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'admin_layout_hiding_block' },
     () => syncLayout());
 
-  // Peserta login
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'system_hiding_block_login' },
     async () => {
       await loadParticipants();
-      renderGameGrid();
+      if (STATE.currentView === 'game') renderGameGrid();
     });
 
-  // Progress
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'hiding_block_progress' },
-    () => { if (STATE.currentView === 'game') renderGameGrid(); });
+    async (payload) => {
+      LOG.info('Progress event', payload.eventType);
 
-  // Scores
+      // Update progress cache
+      await loadProgressAll();
+
+      // Trigger highlight kalau view = game
+      if (STATE.currentView === 'game' && payload.new?.user_unique_id) {
+        const uid = payload.new.user_unique_id;
+        const status = payload.new.status;
+        if (['waiting_verdict', 'locked'].includes(status)) {
+          queueMarqueeHighlight(uid);
+        }
+        // Update kartu
+        renderGameGrid();
+      }
+
+      // Update leaderboard / all_players kalau perlu
+      if (STATE.currentView === 'leaderboard') fetchAndRenderLeaderboard(STATE.revealedRank);
+      else if (STATE.currentView === 'all_players') fetchAndRenderAllPlayers();
+    });
+
+  channel.on('postgres_changes',
+    { event: '*', schema: 'public', table: 'hiding_block_panitia' },
+    async () => {
+      await loadParticipants();
+      if (STATE.currentView === 'game') renderGameGrid();
+    });
+
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'game_scores' },
     () => {
@@ -1028,40 +1497,58 @@ function setupRealtime() {
   // Polling fallback
   setInterval(async () => {
     await syncState();
-    await syncLayout();
+    await detectSessionChange();
     await loadParticipants();
+    await loadProgressAll();
     await loadScores();
-    if (STATE.currentView === 'game') renderGameGrid();
+
+    if (STATE.currentView === 'game') {
+      // Update global timer tanpa render ulang penuh (menghindari marquee lompat)
+      // renderGameGrid dipanggil kalau ada perubahan struktural (via realtime)
+    }
+
     UI.dbg(STATE.currentView, STATE.currentBGM, STATE.realtimeConnected ? 'rt' : 'poll', STATE.participants.length);
   }, 3000);
 
-  // Fast refresh untuk game view (countdown per peserta)
+  // Update kartu game view setiap 1 detik (bank timer)
   setInterval(() => {
-    if (STATE.currentView === 'game' && !STATE.isPaused) renderGameGrid();
-  }, 1500);
-}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO PROGRESS GLOBAL TIMER
-// ═══════════════════════════════════════════════════════════
-function startGlobalTimer() {
-  setInterval(async () => {
-    const { data } = await supabaseClient
-      .from('system_hiding_block_state')
-      .select('started_at')
-      .eq('id', 1)
-      .maybeSingle();
-
-    if (data?.started_at && STATE.currentMode === 'game') {
-      const elapsed = Math.floor((Date.now() - new Date(data.started_at).getTime()) / 1000);
-      const remaining = Math.max(0, BANK_GAME_SEC - elapsed);
-      const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
-      const ss = String(remaining % 60).padStart(2, '0');
-      UI.txt('gameGlobalTimer', `${mm}:${ss}`);
-    } else {
-      UI.txt('gameGlobalTimer', '--:--');
+    if (STATE.currentView === 'game' && !STATE.isPaused) {
+      // Refresh tampilan bank di dalam kartu
+      updateCardBankTimers();
     }
   }, 1000);
+}
+
+function updateCardBankTimers() {
+  const track = UI.el('gameMarqueeTrack');
+  if (!track) return;
+
+  STATE.participants.forEach(p => {
+    if (p.status !== 'playing' && p.status !== 'ready') return;
+    const uid = p.user_unique_id;
+    const card = track.querySelector(`.pcard[data-uid="${uid}"]`);
+    if (!card) return;
+
+    const remaining = computeBankRemaining(p);
+    const bankPct = (remaining / BANK_GAME_SEC) * 100;
+
+    const bankFill = card.querySelector('.pcard-bank-bar-fill');
+    if (bankFill) {
+      bankFill.style.width = bankPct + '%';
+      let cls = 'pcard-bank-bar-fill';
+      if (remaining < 300) cls += ' critical';
+      else if (remaining < 900) cls += ' warn';
+      bankFill.className = cls;
+    }
+
+    // Update text
+    const bankTexts = card.querySelectorAll('span.font-mono');
+    if (bankTexts.length > 0) {
+      const t = bankTexts[0];
+      t.textContent = formatMMSS(remaining);
+      t.className = `font-mono font-bold ${remaining < 300 ? 'text-rose-400' : (remaining < 900 ? 'text-amber-400' : 'text-emerald-400')}`;
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1071,18 +1558,28 @@ function startGlobalTimer() {
   LOG.ok('══════════ LAYOUT HIDING BLOCK BOOT ══════════');
   UI.dbg('boot', '-', '-', 0);
 
-  // Fetch awal
   await loadParticipants();
+  await loadProgressAll();
   await loadScores();
+
+  // Ambil session_id awal
+  const { data: sys } = await supabaseClient
+    .from('system_hiding_block_state')
+    .select('session_id')
+    .eq('id', 1)
+    .maybeSingle();
+  STATE.lastKnownSessionId = sys?.session_id || null;
+
   await syncState();
   await syncLayout();
 
-  // Setup
   setupRealtime();
   startGlobalTimer();
 
-  // Initial view
-  switchView('idle');
+  // ❌ HAPUS force switchView('idle') — biarkan syncLayout menentukan
+  if (!STATE.currentView || STATE.currentView === '') {
+    switchView('idle');
+  }
 
   LOG.ok('══════════ READY ══════════');
 })();
