@@ -570,12 +570,6 @@ async function applyMode(mode) {
   };
   if (mode === 'simulasi') update.simulasi_used = true;
 
-  // ✅ Kalau mulai mode baru, generate session_id baru
-  if (mode === 'simulasi' || mode === 'game') {
-    update.session_id = crypto.randomUUID();
-    LOG.ok(`New session_id: ${update.session_id}`);
-  }
-
   const { error } = await supabaseClient
     .from('system_hiding_block_state')
     .update(update)
