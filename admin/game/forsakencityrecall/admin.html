@@ -13,15 +13,13 @@
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 10px; }
     @keyframes pulseBell { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
     .animate-pulse-bell { animation: pulseBell 1s ease-in-out infinite; }
-    @keyframes pulseAmber { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
-    .animate-pulse-amber { animation: pulseAmber 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
 
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
-  <!-- NOTIF BANNER -->
+  <!-- NOTIF -->
   <div id="notifBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-6 py-4 rounded-2xl shadow-2xl font-black text-lg animate-pulse-bell flex items-center gap-3 border-2 border-emerald-300">
     <i class="fas fa-bell text-2xl"></i>
     <span id="notifBannerText">Notifikasi!</span>
@@ -50,7 +48,7 @@
       </div>
     </div>
 
-    <!-- PANEL KONTROL UTAMA -->
+    <!-- KONTROL UTAMA (sama seperti sebelumnya, tidak diubah banyak) -->
     <div class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl glow-amber space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="font-black text-lg text-amber-400 flex items-center gap-2">
@@ -62,15 +60,14 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <!-- FASE 1: MEMORIZE -->
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center gap-2 text-amber-400 font-bold text-sm">
             <span class="w-6 h-6 bg-amber-500/20 rounded-lg flex items-center justify-center text-xs">1</span>
-            Fase Menghafal (30 Menit)
+            Fase Menghafal
           </div>
-          <select id="memorizeMode" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:border-amber-400">
+          <select id="memorizeMode" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 cursor-pointer">
             <option value="sequential">Mode A — 6 gambar per batch (3 + 3)</option>
-            <option value="grid">Mode B — Grid 30 gambar sekaligus</option>
+            <option value="grid">Mode B — Grid 30 gambar</option>
           </select>
           <button id="btnStartMemorize" onclick="startMemorize()" class="w-full py-2.5 rounded-xl font-black text-xs bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2">
             <i class="fas fa-play"></i> Mulai Menghafal
@@ -80,32 +77,29 @@
           </button>
         </div>
 
-        <!-- FASE 2: ANSWER -->
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
             <span class="w-6 h-6 bg-emerald-500/20 rounded-lg flex items-center justify-center text-xs">2</span>
-            Fase Menjawab (15 Menit)
+            Fase Menjawab
           </div>
-          <p class="text-[10px] text-slate-500 leading-relaxed">Setelah panitia menekan tombol ini, kios peserta otomatis unlock dan mulai mengerjakan.</p>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Unlock semua kios peserta untuk mulai menjawab.</p>
           <button id="btnStartAnswer" onclick="startAnswer()" class="w-full py-2.5 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
             <i class="fas fa-pen-to-square"></i> Mulai Menjawab
           </button>
         </div>
 
-        <!-- FASE 3: LOCK -->
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
           <div class="flex items-center gap-2 text-rose-400 font-bold text-sm">
             <span class="w-6 h-6 bg-rose-500/20 rounded-lg flex items-center justify-center text-xs">3</span>
             Kunci Jawaban
           </div>
-          <p class="text-[10px] text-slate-500 leading-relaxed">Kunci semua kios peserta. Jawaban yang masuk tetap tersimpan.</p>
+          <p class="text-[10px] text-slate-500 leading-relaxed">Kunci semua kios peserta.</p>
           <button id="btnLockAll" onclick="lockAllAnswers()" class="w-full py-2.5 rounded-xl font-black text-xs bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
             <i class="fas fa-lock"></i> Kunci Sekarang
           </button>
         </div>
       </div>
 
-      <!-- TIMER DISPLAY -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-white/10">
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-center">
           <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Sisa Waktu Menghafal</div>
@@ -118,7 +112,7 @@
       </div>
     </div>
 
-    <!-- PANEL KONTROL LAYAR STAGE -->
+    <!-- KONTROL LAYAR -->
     <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl space-y-4">
       <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-2">
         <div>
@@ -126,7 +120,7 @@
             REMOTE DISPLAY CONTROL
           </span>
           <h3 class="text-lg font-black text-white mt-1 flex items-center gap-2">
-            <i class="fas fa-tv text-purple-400"></i> Kontrol Tampilan Layar Stage
+            <i class="fas fa-tv text-purple-400"></i> Kontrol Layar Stage
           </h3>
         </div>
       </div>
@@ -142,7 +136,7 @@
           <i class="fas fa-pen-to-square"></i> <span>Menjawab</span>
         </button>
         <button onclick="switchStageView('combo_reveal')" class="px-3 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition active:scale-95 flex flex-col items-center gap-1">
-          <i class="fas fa-trophy"></i> <span>Peserta Combo</span>
+          <i class="fas fa-trophy"></i> <span>Combo</span>
         </button>
         <button onclick="switchStageView('elimination')" class="px-3 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition active:scale-95 flex flex-col items-center gap-1">
           <i class="fas fa-skull-crossbones"></i> <span>Eliminasi</span>
@@ -152,80 +146,80 @@
         </button>
       </div>
 
-      <!-- KONTROL REVEAL COMBO -->
+      <!-- REVEAL COMBO -->
       <div class="pt-3 border-t border-white/10 space-y-3">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Sesi:</span>
-          <select id="comboSessionSelect" onchange="updateComboSession()" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5 cursor-pointer focus:outline-none focus:border-indigo-400">
-            <option value="1">Sesi 1 (Gambar #1-6)</option>
-            <option value="2">Sesi 2 (Gambar #7-12)</option>
-            <option value="3">Sesi 3 (Gambar #13-18)</option>
-            <option value="4">Sesi 4 (Gambar #19-24)</option>
-            <option value="5">Sesi 5 (Gambar #25-30)</option>
+          <select id="comboSessionSelect" onchange="updateComboSession()" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5">
+            <option value="1">Combo Sesi 1</option>
+            <option value="2">Combo Sesi 1-2</option>
+            <option value="3">Combo Sesi 1-3</option>
+            <option value="4">Combo Sesi 1-4</option>
+            <option value="5">Combo Sesi 1-5 (Full)</option>
           </select>
           <button onclick="showAllCombos()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition">
-            <i class="fas fa-list"></i> Tampilkan Semua Sesi
+            <i class="fas fa-list"></i> Tampilkan Semua
           </button>
         </div>
 
-        <p class="text-xs text-slate-400">Klik tombol di bawah untuk reveal peserta combo per peringkat:</p>
+        <p class="text-xs text-slate-400">Reveal peserta combo per peringkat:</p>
         <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
-          <button onclick="revealComboRank(10)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#10
-          </button>
-          <button onclick="revealComboRank(9)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#9
-          </button>
-          <button onclick="revealComboRank(8)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#8
-          </button>
-          <button onclick="revealComboRank(7)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#7
-          </button>
-          <button onclick="revealComboRank(6)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#6
-          </button>
-          <button onclick="revealComboRank(5)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#5
-          </button>
-          <button onclick="revealComboRank(4)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px] opacity-60">RANK</span>#4
-          </button>
-          <button onclick="revealComboRank(3)" class="py-2 bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px]">🥉 #3</span>
-          </button>
-          <button onclick="revealComboRank(2)" class="py-2 bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-black text-xs rounded-xl transition">
-            <span class="block text-[10px]">🥈 #2</span>
-          </button>
-          <button onclick="revealComboRank(1)" class="py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs rounded-xl shadow-lg transition flex flex-col items-center justify-center">
-            <span class="text-[10px]">👑 #1</span>
-          </button>
+          <button onclick="revealComboRank(10)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#10</button>
+          <button onclick="revealComboRank(9)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#9</button>
+          <button onclick="revealComboRank(8)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#8</button>
+          <button onclick="revealComboRank(7)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#7</button>
+          <button onclick="revealComboRank(6)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#6</button>
+          <button onclick="revealComboRank(5)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#5</button>
+          <button onclick="revealComboRank(4)" class="py-2 bg-slate-800 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-300 font-black text-xs rounded-xl transition">#4</button>
+          <button onclick="revealComboRank(3)" class="py-2 bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs rounded-xl transition">🥉 #3</button>
+          <button onclick="revealComboRank(2)" class="py-2 bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-black text-xs rounded-xl transition">🥈 #2</button>
+          <button onclick="revealComboRank(1)" class="py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs rounded-xl transition">👑 #1</button>
         </div>
-      </div>
-
-      <!-- PLACEHOLDER ELIMINASI -->
-      <div class="pt-3 border-t border-white/10">
-        <p class="text-xs text-slate-500 italic flex items-center gap-2">
-          <i class="fas fa-info-circle"></i>
-          Kontrol eliminasi akan tersedia setelah panitia menentukan sistem eliminasi.
-        </p>
       </div>
     </div>
 
-    <!-- PREVIEW & KONTROL URUTAN -->
+    <!-- ⭐ PANEL ELIMINASI -->
+    <div class="bg-slate-900 border border-rose-500/30 p-6 rounded-2xl space-y-4">
+      <div class="border-b border-white/10 pb-3">
+        <span class="bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
+          KONTROL ELIMINASI
+        </span>
+        <h3 class="text-lg font-black text-white mt-1 flex items-center gap-2">
+          <i class="fas fa-skull-crossbones text-rose-400"></i> Sistem Eliminasi (15 → 10)
+        </h3>
+        <p class="text-xs text-slate-400 mt-1">5 peserta dengan total poin terendah akan tereliminasi.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <button onclick="executeComputeElimination()" 
+          class="py-3 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-calculator"></i> 1. Hitung Eliminasi
+        </button>
+        <button onclick="executeDeclareElimination()" 
+          class="py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-lock"></i> 2. Kunci Eliminasi
+        </button>
+        <button onclick="executeUndoElimination()" 
+          class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+          <i class="fas fa-rotate-left"></i> Undo
+        </button>
+      </div>
+
+      <div id="elimResultInfo" class="text-[11px] text-slate-500 font-mono hidden p-3 bg-slate-950/60 rounded-lg border border-slate-800 max-h-[200px] overflow-y-auto custom-scroll"></div>
+    </div>
+
+    <!-- PREVIEW URUTAN -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
       <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-3">
         <div>
           <h3 class="font-black text-lg text-cyan-400 flex items-center gap-2">
             <i class="fas fa-list-ol"></i> Preview Urutan Gambar
           </h3>
-          <p class="text-xs text-slate-400 mt-1">Urutan saat ini di Supabase. Acak ulang hanya boleh sebelum sesi dimulai.</p>
+          <p class="text-xs text-slate-400 mt-1">Urutan saat ini di Supabase.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="shuffleAndSave()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-2 active:scale-95">
-            <i class="fas fa-random"></i> Acak & Simpan ke Supabase
-          </button>
-        </div>
+        <button onclick="shuffleAndSave()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl transition flex items-center gap-2 active:scale-95">
+          <i class="fas fa-random"></i> Acak & Simpan ke Supabase
+        </button>
       </div>
 
       <div id="sequencePreview" class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 max-h-[400px] overflow-y-auto custom-scroll pr-2">
@@ -233,7 +227,7 @@
       </div>
     </div>
 
-    <!-- DAFTAR PESERTA SUDAH SUBMIT -->
+    <!-- DAFTAR PESERTA SUBMIT -->
     <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
       <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
         <h3 class="font-black text-lg text-emerald-400 flex items-center gap-2">
@@ -248,7 +242,7 @@
       </div>
     </div>
 
-    <!-- ⭐ PANEL DANGER: HAPUS SEMUA POIN -->
+    <!-- DANGER ZONE -->
     <div class="bg-rose-950/30 border-2 border-rose-500/40 p-6 rounded-2xl space-y-3">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center">
@@ -274,7 +268,7 @@
 
   <script>
     // ═══════════════════════════════════════════════════════════
-    // KONFIGURASI
+    // KONFIG
     // ═══════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
@@ -285,54 +279,26 @@
     const LAYOUT_TABLE = 'admin_layout_forsaken_city_recall';
     const NOTIF_TABLE = 'recall_notifications';
     const SUBMISSIONS_TABLE = 'recall_submissions';
+    const POINT_TABLE = 'point_forsaken_city_recall';
 
-    const MEMORIZE_DURATION = 1800; // 30 menit
-    const ANSWER_DURATION = 900;    // 15 menit
+    const MEMORIZE_DURATION = 1800;
+    const ANSWER_DURATION = 900;
+    const ELIMINATE_COUNT = 5;
 
-    // State
-    let masterFilenames = [];
     let currentSequence = [];
     let memorizeTimerInt = null;
     let answerTimerInt = null;
 
-    // ═══════════════════════════════════════════════════════════
-    // MASTER FILENAMES — 30 kota di bucket "forsaken_city"
-    // ═══════════════════════════════════════════════════════════
     const MASTER_FILENAMES = [
-      'Allepo.jpg',
-      'Almaty.jpg',
-      'Babylon.jpg',
-      'Baghdad.jpg',
-      'Balkh.jpg',
-      'Bukhara.jpg',
-      'Changan.jpg',
-      'Ctesiphon.jpg',
-      'Damaskus.jpg',
-      'Dunhuang.jpg',
-      'Ecbatana.jpg',
-      'Isfahan.jpg',
-      'Kashgar.jpg',
-      'Khiva.jpg',
-      'Tyre.jpg',
-      'Konstantinopel.jpg',
-      'Persepolis.jpg',
-      'Louyang.jpg',
-      'Mathura.jpg',
-      'Merv.jpg',
-      'Nishapur.jpg',
-      'Palmyra.jpg',
-      'Peshawar.jpg',
-      'Rayy.jpg',
-      'Samarkand.jpg',
-      'Susa.jpg',
-      'Tabriz.jpg',
-      'Tashkent.jpg',
-      'Taxila.jpg',
-      'Turpan.jpg'
+      'Allepo.jpg','Almaty.jpg','Babylon.jpg','Baghdad.jpg','Balkh.jpg','Bukhara.jpg',
+      'Changan.jpg','Ctesiphon.jpg','Damaskus.jpg','Dunhuang.jpg','Ecbatana.jpg','Isfahan.jpg',
+      'Kashgar.jpg','Khiva.jpg','Tyre.jpg','Konstantinopel.jpg','Persepolis.jpg','Louyang.jpg',
+      'Mathura.jpg','Merv.jpg','Nishapur.jpg','Palmyra.jpg','Peshawar.jpg','Rayy.jpg',
+      'Samarkand.jpg','Susa.jpg','Tabriz.jpg','Tashkent.jpg','Taxila.jpg','Turpan.jpg'
     ];
 
     // ═══════════════════════════════════════════════════════════
-    // AUDIO
+    // AUDIO + NOTIF
     // ═══════════════════════════════════════════════════════════
     function playBell() {
       const bell = document.getElementById('bellSound');
@@ -347,26 +313,17 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ACAK & SIMPAN
+    // SHUFFLE
     // ═══════════════════════════════════════════════════════════
     async function shuffleAndSave() {
       const { data: sys } = await supabaseClient
-        .from(SYS_TABLE)
-        .select('session_phase')
-        .eq('id', 1)
-        .maybeSingle();
+        .from(SYS_TABLE).select('session_phase').eq('id', 1).maybeSingle();
 
       if (sys && sys.session_phase !== 'IDLE') {
-        return alert('⚠️ Tidak bisa acak! Sesi sudah dimulai.\nKlik "Reset Semua" dulu untuk kembali ke IDLE.');
+        return alert('⚠️ Tidak bisa acak! Sesi sudah dimulai.\nKlik "Reset Semua" dulu.');
       }
 
-      const confirmShuffle = confirm(
-        `⚠️ PERINGATAN!\n\n` +
-        `Acak urutan ${MASTER_FILENAMES.length} gambar kota?\n\n` +
-        `Urutan lama akan DIGANTI dan tidak bisa dikembalikan.\n` +
-        `Pastikan semua peserta sudah siap.`
-      );
-      if (!confirmShuffle) return;
+      if (!confirm(`Acak ${MASTER_FILENAMES.length} gambar?`)) return;
 
       const shuffled = [...MASTER_FILENAMES].sort(() => Math.random() - 0.5);
 
@@ -378,20 +335,14 @@
         })
         .eq('id', 1);
 
-      if (error) {
-        alert('❌ Gagal simpan: ' + error.message);
-        return;
-      }
+      if (error) return alert('❌ Gagal: ' + error.message);
 
       playBell();
       currentSequence = shuffled;
       renderSequencePreview(shuffled);
-      showNotif(`✅ Urutan ${shuffled.length} gambar berhasil diacak!`);
+      showNotif(`✅ Urutan ${shuffled.length} gambar diacak!`);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // RENDER PREVIEW URUTAN
-    // ═══════════════════════════════════════════════════════════
     function renderSequencePreview(seq) {
       const container = document.getElementById('sequencePreview');
       container.innerHTML = '';
@@ -402,80 +353,61 @@
       }
 
       seq.forEach((filename, idx) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'relative group rounded-lg overflow-hidden border border-amber-500/30 bg-slate-800 shadow';
-        wrapper.innerHTML = `
+        const w = document.createElement('div');
+        w.className = 'relative group rounded-lg overflow-hidden border border-amber-500/30 bg-slate-800 shadow';
+        w.innerHTML = `
           <img src="${IMAGE_BASE_PATH}${filename}" class="w-full h-20 object-cover" onerror="this.style.opacity=0.2"/>
-          <span class="absolute top-1 left-1 bg-slate-950/80 text-amber-400 font-black text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30">
-            #${idx + 1}
-          </span>
+          <span class="absolute top-1 left-1 bg-slate-950/80 text-amber-400 font-black text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30">#${idx + 1}</span>
           <span class="absolute bottom-0 left-0 right-0 bg-slate-950/90 text-white text-[9px] text-center py-0.5 truncate px-1">
-            ${filename.replace('.jpg','').replace('.jpeg','').replace('.png','')}
+            ${filename.replace(/\.(jpg|jpeg|png)$/i,'')}
           </span>
         `;
-        container.appendChild(wrapper);
+        container.appendChild(w);
       });
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FASE: MEMORIZE
+    // MEMORIZE / ANSWER (fungsi lama dipertahankan)
     // ═══════════════════════════════════════════════════════════
     async function startMemorize() {
-      if (currentSequence.length === 0) {
-        return alert('Belum ada urutan gambar tersimpan!\nKlik "Acak & Simpan ke Supabase" dulu.');
-      }
-      if (currentSequence.length !== 30) {
-        return alert(`⚠️ Urutan harus 30 gambar, saat ini hanya ${currentSequence.length}. Reset & acak ulang.`);
-      }
+      if (currentSequence.length === 0) return alert('Belum ada urutan! Klik "Acak & Simpan" dulu.');
+      if (currentSequence.length !== 30) return alert(`⚠️ Urutan harus 30 gambar, saat ini ${currentSequence.length}.`);
 
       const mode = document.getElementById('memorizeMode').value;
       const now = new Date().toISOString();
 
-      const confirmStart = confirm(
-        `Mulai fase MENGHAPAL (30 menit) dengan mode:\n\n` +
-        (mode === 'sequential' ? '▪ Mode A: 6 gambar per batch (3 atas, 3 bawah)' : '▪ Mode B: Grid 30 gambar sekaligus') +
-        `\n\nPastikan peserta siap.`
-      );
-      if (!confirmStart) return;
+      if (!confirm(`Mulai fase MENGHAPAL (30 menit) mode: ${mode}?`)) return;
 
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_active: true,
-          session_phase: 'MEMORIZE',
-          memorize_mode: mode,
-          memorize_start_time: now,
-          memorize_duration: MEMORIZE_DURATION,
-          answer_locked: false,
-          updated_at: now
-        })
-        .eq('id', 1);
+      const { error } = await supabaseClient.from(SYS_TABLE).update({
+        is_active: true,
+        session_phase: 'MEMORIZE',
+        memorize_mode: mode,
+        memorize_start_time: now,
+        memorize_duration: MEMORIZE_DURATION,
+        answer_locked: false,
+        updated_at: now
+      }).eq('id', 1);
 
-      if (error) return alert('Gagal mulai: ' + error.message);
+      if (error) return alert('Gagal: ' + error.message);
 
       await switchStageView('memorize');
-
       playBell();
       updatePhaseUI('MEMORIZE');
       startMemorizeTimer(now);
-      showNotif('🧠 Fase menghafal dimulai — 30 menit');
+      showNotif('🧠 Fase menghafal dimulai');
     }
 
     function startMemorizeTimer(startTime) {
       if (memorizeTimerInt) clearInterval(memorizeTimerInt);
       const startMs = new Date(startTime).getTime();
-
       const tick = () => {
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
         const remaining = Math.max(0, MEMORIZE_DURATION - elapsed);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
+        const m = Math.floor(remaining / 60), s = remaining % 60;
         const el = document.getElementById('memorizeTimerDisplay');
         if (el) {
           el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          el.className = remaining <= 60 
-            ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' 
-            : 'text-3xl font-mono font-black text-amber-400';
+          el.className = remaining <= 60 ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' : 'text-3xl font-mono font-black text-amber-400';
         }
         if (remaining <= 0) clearInterval(memorizeTimerInt);
       };
@@ -483,279 +415,201 @@
       memorizeTimerInt = setInterval(tick, 500);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // FASE: ANSWER
-    // ═══════════════════════════════════════════════════════════
     async function startAnswer() {
       const now = new Date().toISOString();
+      if (!confirm('Mulai fase MENJAWAB (15 menit)?')) return;
 
-      const confirmStart = confirm('Mulai fase MENJAWAB (15 menit)?\n\nKios peserta akan otomatis unlock dan mulai mengerjakan.');
-      if (!confirmStart) return;
+      const { error } = await supabaseClient.from(SYS_TABLE).update({
+        is_active: true,
+        session_phase: 'ANSWER',
+        answer_start_time: now,
+        answer_duration: ANSWER_DURATION,
+        answer_locked: false,
+        updated_at: now
+      }).eq('id', 1);
 
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_active: true,
-          session_phase: 'ANSWER',
-          answer_start_time: now,
-          answer_duration: ANSWER_DURATION,
-          answer_locked: false,
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      if (error) return alert('Gagal mulai menjawab: ' + error.message);
+      if (error) return alert('Gagal: ' + error.message);
 
       await switchStageView('answer_phase');
-
       playBell();
       updatePhaseUI('ANSWER');
       startAnswerTimer(now);
-      showNotif('📝 Fase menjawab dimulai — 15 menit');
+      showNotif('📝 Fase menjawab dimulai');
     }
 
     function startAnswerTimer(startTime) {
       if (answerTimerInt) clearInterval(answerTimerInt);
       const startMs = new Date(startTime).getTime();
-
       const tick = () => {
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
         const remaining = Math.max(0, ANSWER_DURATION - elapsed);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
+        const m = Math.floor(remaining / 60), s = remaining % 60;
         const el = document.getElementById('answerTimerDisplay');
         if (el) {
           el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          el.className = remaining <= 60 
-            ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' 
-            : 'text-3xl font-mono font-black text-emerald-400';
+          el.className = remaining <= 60 ? 'text-3xl font-mono font-black text-rose-500 animate-pulse' : 'text-3xl font-mono font-black text-emerald-400';
         }
-
-        if (remaining <= 0) {
-          clearInterval(answerTimerInt);
-          autoLockOnTimeout();
-        }
+        if (remaining <= 0) { clearInterval(answerTimerInt); autoLockOnTimeout(); }
       };
       tick();
       answerTimerInt = setInterval(tick, 500);
     }
 
     async function autoLockOnTimeout() {
-      const now = new Date().toISOString();
-      await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          session_phase: 'LOCKED',
-          answer_locked: true,
-          updated_at: now
-        })
-        .eq('id', 1);
+      await supabaseClient.from(SYS_TABLE).update({
+        session_phase: 'LOCKED', answer_locked: true, updated_at: new Date().toISOString()
+      }).eq('id', 1);
       updatePhaseUI('LOCKED');
       playBell();
       showNotif('🔒 Waktu habis — jawaban terkunci otomatis');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // KUNCI SEMUA JAWABAN
-    // ═══════════════════════════════════════════════════════════
     async function lockAllAnswers() {
-      const confirmLock = confirm('Kunci semua kios peserta sekarang?\n\nPeserta tidak bisa mengubah jawaban lagi.');
-      if (!confirmLock) return;
-
+      if (!confirm('Kunci semua kios peserta?')) return;
       const now = new Date().toISOString();
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          session_phase: 'LOCKED',
-          answer_locked: true,
-          updated_at: now
-        })
-        .eq('id', 1);
-
+      const { error } = await supabaseClient.from(SYS_TABLE).update({
+        session_phase: 'LOCKED', answer_locked: true, updated_at: now
+      }).eq('id', 1);
       if (error) return alert('Gagal lock: ' + error.message);
       updatePhaseUI('LOCKED');
       playBell();
       showNotif('🔒 Semua jawaban terkunci');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // RESET SEMUA
-    // ═══════════════════════════════════════════════════════════
     async function resetAll() {
-      const confirmReset = confirm(
-        '⚠️ RESET SEMUA?\n\n' +
-        'Ini akan:\n' +
-        '• Set fase ke IDLE\n' +
-        '• Hapus status lock\n' +
-        '• Reset timer\n' +
-        '• Layout kembali ke idle\n\n' +
-        '(Urutan gambar TIDAK dihapus)'
-      );
-      if (!confirmReset) return;
-
+      if (!confirm('Reset semua state? (Urutan gambar tidak dihapus)')) return;
       const now = new Date().toISOString();
-      await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_active: false,
-          session_phase: 'IDLE',
-          memorize_start_time: null,
-          answer_start_time: null,
-          answer_locked: false,
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'idle',
-          revealed_rank: 0,
-          revealed_index: 0,
-          updated_at: now
-        })
-        .eq('id', 1);
-
+      await supabaseClient.from(SYS_TABLE).update({
+        is_active: false, session_phase: 'IDLE',
+        memorize_start_time: null, answer_start_time: null,
+        answer_locked: false, updated_at: now
+      }).eq('id', 1);
+      await supabaseClient.from(LAYOUT_TABLE).update({
+        current_view: 'idle', revealed_rank: 0, revealed_index: 0, updated_at: now
+      }).eq('id', 1);
       if (memorizeTimerInt) clearInterval(memorizeTimerInt);
       if (answerTimerInt) clearInterval(answerTimerInt);
       document.getElementById('memorizeTimerDisplay').textContent = '--:--';
       document.getElementById('answerTimerDisplay').textContent = '--:--';
-
       updatePhaseUI('IDLE');
-      showNotif('✅ State berhasil di-reset');
+      showNotif('✅ Reset selesai');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // UPDATE PHASE UI
-    // ═══════════════════════════════════════════════════════════
     function updatePhaseUI(phase) {
       const el = document.getElementById('phaseBadge');
       el.textContent = phase;
-      const colors = {
-        IDLE: 'text-rose-400',
-        MEMORIZE: 'text-amber-400',
-        ANSWER: 'text-emerald-400',
-        LOCKED: 'text-slate-400'
-      };
+      const colors = { IDLE: 'text-rose-400', MEMORIZE: 'text-amber-400', ANSWER: 'text-emerald-400', LOCKED: 'text-slate-400' };
       el.className = `text-sm font-black ${colors[phase] || 'text-slate-400'}`;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // SWITCH STAGE VIEW
-    // ═══════════════════════════════════════════════════════════
     async function switchStageView(viewName) {
-      const payload = {
-        current_view: viewName,
-        updated_at: new Date().toISOString()
-      };
-      if (viewName === 'combo_reveal' || viewName === 'leaderboard' || viewName === 'elimination') {
-        payload.revealed_rank = 0;
-      }
-      if (viewName === 'memorize') {
-        payload.revealed_index = 0;
-      }
+      const payload = { current_view: viewName, updated_at: new Date().toISOString() };
+      if (['combo_reveal', 'leaderboard', 'elimination'].includes(viewName)) payload.revealed_rank = 0;
+      if (viewName === 'memorize') payload.revealed_index = 0;
 
-      const { error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update(payload)
-        .eq('id', 1);
-
-      if (error) {
-        console.error('Gagal switch view:', error);
-        alert('Gagal ubah tampilan: ' + error.message);
-        return;
-      }
-
+      const { error } = await supabaseClient.from(LAYOUT_TABLE).update(payload).eq('id', 1);
+      if (error) { alert('Gagal: ' + error.message); return; }
       playBell();
-      console.log('[ADMIN] Switch view →', viewName);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // REVEAL COMBO
-    // ═══════════════════════════════════════════════════════════
     async function updateComboSession() {
       const session = parseInt(document.getElementById('comboSessionSelect').value);
-      await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          combo_session: session,
-          revealed_rank: 0,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
+      await supabaseClient.from(LAYOUT_TABLE).update({
+        combo_session: session, revealed_rank: 0, updated_at: new Date().toISOString()
+      }).eq('id', 1);
     }
 
     async function revealComboRank(rankNum) {
-      await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'combo_reveal',
-          revealed_rank: rankNum,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
+      await supabaseClient.from(LAYOUT_TABLE).update({
+        current_view: 'combo_reveal', revealed_rank: rankNum, updated_at: new Date().toISOString()
+      }).eq('id', 1);
       playBell();
     }
 
     async function showAllCombos() {
-      await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'combo_reveal',
-          revealed_rank: -1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
+      await supabaseClient.from(LAYOUT_TABLE).update({
+        current_view: 'combo_reveal', revealed_rank: -1, updated_at: new Date().toISOString()
+      }).eq('id', 1);
       playBell();
       showNotif('📋 Menampilkan semua peserta combo');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // GANTI MODE MENGHAFAL SAAT SESI BERJALAN
-    // ═══════════════════════════════════════════════════════════
     async function changeMemorizeMode() {
       const newMode = document.getElementById('memorizeMode').value;
+      const { data: sys } = await supabaseClient.from(SYS_TABLE).select('session_phase, memorize_mode').eq('id', 1).maybeSingle();
+      if (!sys || sys.session_phase !== 'MEMORIZE') return alert('Ganti mode hanya saat fase MENGHAPAL.');
+      if (sys.memorize_mode === newMode) return alert('Mode sudah sama.');
+      if (!confirm(`Ganti mode ke ${newMode}?`)) return;
 
-      const { data: sys } = await supabaseClient
-        .from(SYS_TABLE)
-        .select('session_phase, memorize_mode')
-        .eq('id', 1)
-        .maybeSingle();
+      const { error } = await supabaseClient.from(SYS_TABLE).update({
+        memorize_mode: newMode, updated_at: new Date().toISOString()
+      }).eq('id', 1);
 
-      if (!sys || sys.session_phase !== 'MEMORIZE') {
-        return alert('Ganti mode hanya bisa saat fase MENGHAPAL sedang berjalan.');
-      }
-
-      if (sys.memorize_mode === newMode) {
-        return alert('Mode sudah sama dengan yang sedang aktif.');
-      }
-
-      if (!confirm(`Ganti mode menghafal ke "${newMode === 'grid' ? 'Grid' : 'Sequential'}"?\n\nLayar stage akan langsung berubah.`)) return;
-
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          memorize_mode: newMode,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) return alert('Gagal ganti mode: ' + error.message);
-
+      if (error) return alert('Gagal: ' + error.message);
       playBell();
-      showNotif(`🔄 Mode → ${newMode === 'grid' ? 'Grid' : 'Sequential'}`);
+      showNotif(`🔄 Mode → ${newMode}`);
     }
 
     // ═══════════════════════════════════════════════════════════
-    // NOTIFIKASI PESERTA SUBMIT
+    // ELIMINASI
+    // ═══════════════════════════════════════════════════════════
+    async function executeComputeElimination() {
+      if (!confirm(`Hitung ${ELIMINATE_COUNT} peserta terendah?`)) return;
+
+      const { data, error } = await supabaseClient.rpc('save_forsaken_elimination', {
+        p_count: ELIMINATE_COUNT
+      });
+
+      if (error) { alert('Gagal: ' + error.message); return; }
+
+      const info = document.getElementById('elimResultInfo');
+      if (info) {
+        info.classList.remove('hidden');
+        info.innerHTML = `
+          <div class="text-amber-400 font-bold mb-1">📋 Tereliminasi (belum kunci):</div>
+          ${(data || []).map(d => `<div class="pl-2">• ${d.name} — ${d.total_score} PTS</div>`).join('')}
+        `;
+      }
+
+      alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.`);
+    }
+
+    async function executeDeclareElimination() {
+      if (!confirm(`🔒 Kunci ${ELIMINATE_COUNT} peserta tereliminasi?\n\nKiosk mereka akan freeze permanen.`)) return;
+
+      const { data, error } = await supabaseClient.rpc('declare_elimination', {
+        p_game_name: 'Forsaken City Recall'
+      });
+
+      if (error) { alert('Gagal: ' + error.message); return; }
+
+      await supabaseClient.from(LAYOUT_TABLE).update({
+        current_view: 'elimination', revealed_rank: 0, updated_at: new Date().toISOString()
+      }).eq('id', 1);
+
+      alert(`🔒 ${data} peserta dikunci.`);
+    }
+
+    async function executeUndoElimination() {
+      if (!confirm('Undo eliminasi?')) return;
+
+      const { data, error } = await supabaseClient.rpc('undo_elimination', {
+        p_game_name: 'Forsaken City Recall'
+      });
+
+      if (error) { alert('Gagal: ' + error.message); return; }
+      alert(`✅ ${data} peserta dibuka kembali.`);
+
+      const info = document.getElementById('elimResultInfo');
+      if (info) info.classList.add('hidden');
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // NOTIF PESERTA
     // ═══════════════════════════════════════════════════════════
     async function loadSubmittedNotifications() {
       const { data } = await supabaseClient
-        .from(NOTIF_TABLE)
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
+        .from(NOTIF_TABLE).select('*').order('created_at', { ascending: false }).limit(50);
       renderSubmittedList(data || []);
       document.getElementById('finishedCount').textContent = (data || []).length;
     }
@@ -763,7 +617,6 @@
     async function renderSubmittedList(notifs) {
       const container = document.getElementById('submittedList');
       container.innerHTML = '';
-
       if (notifs.length === 0) {
         container.innerHTML = '<p class="col-span-full text-center text-slate-500 text-xs py-6">Belum ada peserta submit.</p>';
         return;
@@ -771,9 +624,7 @@
 
       const uids = [...new Set(notifs.map(n => n.user_unique_id))];
       const { data: users } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name, avatar_url')
-        .in('unique_id', uids);
+        .from('users').select('unique_id, full_name, avatar_url').in('unique_id', uids);
 
       const userMap = {};
       (users || []).forEach(u => userMap[u.unique_id] = u);
@@ -795,157 +646,69 @@
     }
 
     async function clearNotifications() {
-      if (!confirm('Hapus semua notifikasi peserta submit?')) return;
+      if (!confirm('Hapus semua notifikasi?')) return;
       await supabaseClient.from(NOTIF_TABLE).delete().neq('id', 0);
       loadSubmittedNotifications();
       playBell();
-      showNotif('🗑 Notifikasi dibersihkan');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ HAPUS POIN SELURUH PESERTA
-    // ═══════════════════════════════════════════════════════════
     async function resetAllScores() {
-      const confirmReset = confirm(
-        '⚠️ HAPUS SEMUA POIN PESERTA?\n\n' +
-        'Ini akan menghapus semua skor dari 5 sesi (Recall Type 1-5) untuk SEMUA peserta.\n\n' +
-        'Tindakan ini TIDAK BISA dibatalkan.\n\n' +
-        'Lanjutkan?'
-      );
-      if (!confirmReset) return;
+      if (!confirm('⚠️ HAPUS SEMUA POIN peserta?')) return;
+      if (!confirm('Yakin? Permanen.')) return;
 
-      const confirmAgain = confirm('Yakin? Ini penghapusan permanen.');
-      if (!confirmAgain) return;
-
-      try {
-        const { error } = await supabaseClient
-          .from('game_scores')
-          .delete()
-          .like('game_name', 'Recall Type%');
-
-        if (error) {
-          alert('❌ Gagal hapus: ' + error.message);
-          return;
-        }
-
-        playBell();
-        showNotif('🗑 Semua poin peserta berhasil dihapus');
-        alert('✅ Semua poin peserta berhasil dihapus.');
-      } catch (e) {
-        alert('❌ Error: ' + e.message);
-      }
+      const { error } = await supabaseClient.from(POINT_TABLE).delete().neq('id', 0);
+      if (error) { alert('Gagal: ' + error.message); return; }
+      playBell();
+      showNotif('🗑 Semua poin dihapus');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ HAPUS SEMUA SUBMISSION & NOTIFIKASI
-    // ═══════════════════════════════════════════════════════════
     async function resetAllSubmissions() {
-      const confirmReset = confirm(
-        '⚠️ HAPUS SEMUA SUBMISSION & NOTIFIKASI?\n\n' +
-        'Ini akan menghapus:\n' +
-        '• Semua lembar jawaban peserta (recall_submissions)\n' +
-        '• Semua notifikasi submit (recall_notifications)\n\n' +
-        'Tindakan ini TIDAK BISA dibatalkan.\n\n' +
-        'Lanjutkan?'
-      );
-      if (!confirmReset) return;
+      if (!confirm('⚠️ Hapus semua submission & notifikasi?')) return;
+      if (!confirm('Yakin?')) return;
 
-      const confirmAgain = confirm('Yakin? Penghapusan permanen.');
-      if (!confirmAgain) return;
+      await supabaseClient.from(SUBMISSIONS_TABLE).delete().neq('id', 0);
+      await supabaseClient.from(NOTIF_TABLE).delete().neq('id', 0);
 
-      try {
-        // Hapus submissions
-        const { error: subErr } = await supabaseClient
-          .from(SUBMISSIONS_TABLE)
-          .delete()
-          .neq('id', 0);
-
-        // Hapus notifications
-        const { error: notifErr } = await supabaseClient
-          .from(NOTIF_TABLE)
-          .delete()
-          .neq('id', 0);
-
-        if (subErr || notifErr) {
-          alert('⚠️ Sebagian gagal:\n' + (subErr?.message || '') + '\n' + (notifErr?.message || ''));
-          return;
-        }
-
-        playBell();
-        loadSubmittedNotifications();
-        showNotif('🗑 Semua submission & notifikasi dihapus');
-        alert('✅ Semua submission & notifikasi berhasil dihapus.');
-      } catch (e) {
-        alert('❌ Error: ' + e.message);
-      }
+      playBell();
+      loadSubmittedNotifications();
+      showNotif('🗑 Submission & notif dihapus');
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME SUBSCRIPTIONS
+    // REALTIME
     // ═══════════════════════════════════════════════════════════
     function subscribeRealtime() {
-      // Notifikasi peserta submit
-      supabaseClient
-        .channel('admin_recall_notif')
+      supabaseClient.channel('admin_recall_notif')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: NOTIF_TABLE }, payload => {
-          const notif = payload.new;
-          showBanner(notif.message || `${notif.user_unique_id} telah selesai menjawab`);
+          showNotif(payload.new.message || `${payload.new.user_unique_id} selesai`);
           loadSubmittedNotifications();
           playBell();
         })
         .subscribe();
 
-      // Sinkron state system
-      supabaseClient
-        .channel('admin_recall_system')
+      supabaseClient.channel('admin_recall_system')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: SYS_TABLE }, payload => {
-          if (payload.new) {
-            updatePhaseUI(payload.new.session_phase || 'IDLE');
-          }
+          if (payload.new) updatePhaseUI(payload.new.session_phase || 'IDLE');
         })
         .subscribe();
-    }
-
-    function showBanner(text) {
-      const banner = document.getElementById('notifBanner');
-      document.getElementById('notifBannerText').textContent = text;
-      banner.classList.remove('hidden');
-      setTimeout(() => banner.classList.add('hidden'), 6000);
     }
 
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-      // Load urutan
-      const { data } = await supabaseClient
-        .from(SYS_TABLE)
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
-
+      const { data } = await supabaseClient.from(SYS_TABLE).select('*').eq('id', 1).maybeSingle();
       if (data) {
         currentSequence = data.sequence_filenames || [];
         renderSequencePreview(currentSequence);
         updatePhaseUI(data.session_phase || 'IDLE');
-
-        // Set dropdown ke mode aktif
-        if (data.memorize_mode) {
-          document.getElementById('memorizeMode').value = data.memorize_mode;
-        }
-
-        // Resume timer kalau ada sesi aktif
-        if (data.session_phase === 'MEMORIZE' && data.memorize_start_time) {
-          startMemorizeTimer(data.memorize_start_time);
-        } else if (data.session_phase === 'ANSWER' && data.answer_start_time) {
-          startAnswerTimer(data.answer_start_time);
-        }
+        if (data.memorize_mode) document.getElementById('memorizeMode').value = data.memorize_mode;
+        if (data.session_phase === 'MEMORIZE' && data.memorize_start_time) startMemorizeTimer(data.memorize_start_time);
+        else if (data.session_phase === 'ANSWER' && data.answer_start_time) startAnswerTimer(data.answer_start_time);
       }
 
       await loadSubmittedNotifications();
       subscribeRealtime();
-
-      console.log('[ADMIN] Forsaken City Recall ready');
     }
 
     init();
