@@ -217,7 +217,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════
-       SOLAR SYSTEM — ALL PARTICIPANTS
+       SOLAR SYSTEM — JS-driven
        ═══════════════════════════════════════════════════════ */
     #solarSystem {
       position: absolute;
@@ -252,21 +252,13 @@
       animation: sunPulse 4s ease-in-out infinite;
     }
 
-
-    @keyframes counterSpin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(-360deg); }
-    }
-
-    /* ═══════════════════════════════════════════════════════
-       SOLAR SYSTEM — JS-driven positions
-       ═══════════════════════════════════════════════════════ */
     #planetsContainer {
       position: absolute;
       inset: 0;
       pointer-events: none;
     }
 
+    /* Orbit ring */
     .orbit-ring {
       position: absolute;
       left: 50%;
@@ -277,10 +269,11 @@
       z-index: 3;
     }
 
+    /* Planet = Logo Sekolah */
     .planet {
       position: absolute;
-      left: 50%;
-      top: 50%;
+      left: 0;
+      top: 0;
       width: 90px;
       height: 90px;
       margin-left: -45px;
@@ -294,7 +287,7 @@
       padding: 10px;
       box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), inset 0 0 15px rgba(139, 92, 246, 0.4);
       z-index: 15;
-      will-change: transform;
+      will-change: left, top;
     }
     .planet img {
       width: 100%;
@@ -303,6 +296,7 @@
       filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
     }
 
+    /* Moon = Kartu Peserta (SELALU TEGAK) */
     .moon {
       position: absolute;
       left: 0;
@@ -316,7 +310,8 @@
       border-radius: 0.6rem;
       box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
       z-index: 12;
-      will-change: transform;
+      will-change: left, top;
+      transform: rotate(0deg) !important;   /* ⭐ SELALU TEGAK */
     }
     .moon-avatar {
       width: 100%;
@@ -349,6 +344,7 @@
       text-align: center;
       margin-top: 1px;
     }
+
     /* ═══════════════════════════════════════════════════════
        FINALISTS
        ═══════════════════════════════════════════════════════ */
@@ -363,7 +359,7 @@
     .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
     .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
 
-    /* Confetti canvas */
+    /* Confetti */
     #confettiCanvas {
       position: fixed; inset: 0;
       width: 100vw; height: 100vh;
@@ -371,13 +367,11 @@
       z-index: 100;
     }
 
-    /* Bintang background */
+    /* Stars */
     .star {
       position: absolute;
-      width: 2px; height: 2px;
       background: #fff;
       border-radius: 50%;
-      opacity: 0.7;
       animation: twinkle 3s ease-in-out infinite;
     }
     @keyframes twinkle {
@@ -424,8 +418,6 @@
        ═══════════════════════════════════════════════════════ -->
   <section id="viewIdle" class="stage-view active-view">
     <div class="absolute inset-0 animated-gradient opacity-20"></div>
-
-    <!-- Bintang -->
     <div id="idleStars" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
 
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
@@ -495,15 +487,11 @@
        VIEW 3: SOLAR SYSTEM
        ═══════════════════════════════════════════════════════ -->
   <section id="viewAllParticipants" class="stage-view">
-    <!-- Background bintang -->
     <div id="spaceStars" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
 
-    <!-- Solar system container -->
     <div id="solarSystem">
-      <!-- Sun glow -->
       <div id="sunGlow"></div>
 
-      <!-- Sun trophy -->
       <div id="sunTrophy">
         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
           <defs>
@@ -519,42 +507,31 @@
             </radialGradient>
           </defs>
 
-          <!-- Trophy cup -->
           <path d="M 30 20 L 70 20 L 68 45 Q 65 60 50 62 Q 35 60 32 45 Z"
                 fill="url(#trophyGold)" stroke="#92400e" stroke-width="1.5"/>
 
-          <!-- Handle kiri -->
           <path d="M 30 22 Q 18 25 20 38 Q 22 48 32 48"
                 fill="none" stroke="url(#trophyGold)" stroke-width="4" stroke-linecap="round"/>
           <path d="M 30 22 Q 18 25 20 38 Q 22 48 32 48"
                 fill="none" stroke="#92400e" stroke-width="0.8" stroke-linecap="round"/>
 
-          <!-- Handle kanan -->
           <path d="M 70 22 Q 82 25 80 38 Q 78 48 68 48"
                 fill="none" stroke="url(#trophyGold)" stroke-width="4" stroke-linecap="round"/>
           <path d="M 70 22 Q 82 25 80 38 Q 78 48 68 48"
                 fill="none" stroke="#92400e" stroke-width="0.8" stroke-linecap="round"/>
 
-          <!-- Shine -->
           <ellipse cx="42" cy="32" rx="8" ry="14" fill="url(#trophyShine)" opacity="0.6"/>
 
-          <!-- Stem -->
           <rect x="46" y="62" width="8" height="10" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
-
-          <!-- Base -->
           <rect x="36" y="72" width="28" height="6" rx="1.5" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
           <rect x="30" y="78" width="40" height="8" rx="2" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
 
-          <!-- Star badge -->
           <path d="M 50 32 L 53 40 L 61 40 L 55 45 L 57 53 L 50 48 L 43 53 L 45 45 L 39 40 L 47 40 Z"
                 fill="#fef3c7" stroke="#92400e" stroke-width="0.6"/>
         </svg>
       </div>
 
-      <!-- Planet orbits (generated via JS) -->
       <div id="planetsContainer"></div>
-
-      <!-- Moons (generated via JS) -->
     </div>
 
     <div class="absolute top-0 left-0 right-0 z-30 p-6 text-center pointer-events-none">
@@ -617,11 +594,8 @@
   const ZOOM_DURATION = 3000;
   const FINALIST_DURATION = 3000;
 
-  // Orbit config — planet mengelilingi matahari
-  const PLANET_ORBIT_RADIUS = 240;  // px dari pusat
-  const PLANET_ORBIT_DURATION = 60; // detik untuk 1 putaran penuh
-  const MOON_ORBIT_RADIUS = 60;     // px dari planet
-  const MOON_ORBIT_DURATION = 12;   // detik untuk 1 putaran
+  const MOON_ORBIT_RADIUS = 60;
+  const MOON_ORBIT_DURATION = 12;
 
   const TAG = '[OPENING]';
   const LOG = {
@@ -647,13 +621,23 @@
     reelActive: false,
     reelTimer: null,
     zoomedCardEl: null,
-    reelSessionId: 0,   // ⭐ untuk cegah double aksi
+    reelSessionId: 0,
 
     finalistData: [],
     finalistTimer: null,
     finalistSessionId: 0,
 
     allParticipants: []
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // SOLAR SYSTEM STATE (JS-driven)
+  // ═══════════════════════════════════════════════════════════
+  const SOLAR_STATE = {
+    planets: [],
+    startTime: 0,
+    rafId: null,
+    running: false
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -889,10 +873,10 @@
   function switchView(viewName) {
     LOG.info(`Switch view → ${viewName}`);
 
-    // ⭐ STOP semua aksi sebelum ganti view
     stopReel();
     stopFinalistReel();
     stopConfettiLoop();
+    stopSolarLoop();
 
     ['viewIdle','viewPerSchool','viewAllParticipants','viewFinalists'].forEach(id => {
       const el = document.getElementById(id);
@@ -943,10 +927,9 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 2: PER SEKOLAH — MINI + ZOOM
+  // VIEW 2: PER SEKOLAH
   // ═══════════════════════════════════════════════════════════
   async function startReel() {
-    // ⭐ Increment session ID untuk cegah race condition
     STATE.reelSessionId++;
     const mySession = STATE.reelSessionId;
 
@@ -963,11 +946,7 @@
 
     const participants = await fetchParticipantsBySchool(school);
 
-    // ⭐ Cek: apakah session masih sama? Kalau bukan, skip
-    if (mySession !== STATE.reelSessionId) {
-      LOG.warn('Reel session changed, skip');
-      return;
-    }
+    if (mySession !== STATE.reelSessionId) return;
 
     STATE.reelData = participants;
     STATE.reelIndex = 0;
@@ -988,7 +967,6 @@
 
     await delay(1500);
 
-    // Cek lagi sebelum mulai zoom
     if (mySession !== STATE.reelSessionId) return;
 
     zoomCycle(mySession);
@@ -1033,7 +1011,6 @@
   }
 
   async function zoomCycle(mySession) {
-    // ⭐ Guard: cek session di setiap iterasi
     if (!STATE.reelActive) return;
     if (mySession !== STATE.reelSessionId) return;
     if (STATE.currentView !== 'per_school') return;
@@ -1045,7 +1022,6 @@
 
     await zoomCardIn(p);
 
-    // Cek lagi setelah zoom in
     if (mySession !== STATE.reelSessionId) return;
 
     burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
@@ -1054,12 +1030,10 @@
 
     await delay(ZOOM_DURATION);
 
-    // Cek lagi sebelum zoom out
     if (mySession !== STATE.reelSessionId) return;
 
     await zoomCardOut();
 
-    // Cek lagi sebelum next
     if (mySession !== STATE.reelSessionId) return;
 
     STATE.reelIndex = (i + 1) % STATE.reelData.length;
@@ -1140,7 +1114,7 @@
 
   function stopReel() {
     STATE.reelActive = false;
-    STATE.reelSessionId++;  // ⭐ invalidate semua session lama
+    STATE.reelSessionId++;
     if (STATE.reelTimer) { clearTimeout(STATE.reelTimer); STATE.reelTimer = null; }
     if (STATE.zoomedCardEl) { STATE.zoomedCardEl.remove(); STATE.zoomedCardEl = null; }
 
@@ -1154,26 +1128,47 @@
   // ═══════════════════════════════════════════════════════════
   // VIEW 3: SOLAR SYSTEM
   // ═══════════════════════════════════════════════════════════
-  // ⭐ Data untuk JS animation loop
-  const SOLAR_STATE = {
-    planets: [],       // { school, radius, duration, startAngle, el, moonOrbitEl, moons: [...] }
-    startTime: 0,
-    rafId: null,
-    running: false
-  };
+  async function startAllParticipants() {
+    const participants = await fetchAllParticipants();
+    STATE.allParticipants = participants;
+
+    buildStarfield();
+    buildSolarSystem(participants);
+
+    document.getElementById('allParticipantsCount').textContent = `${participants.length} Peserta`;
+  }
+
+  function buildStarfield() {
+    const container = document.getElementById('spaceStars');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (let i = 0; i < 200; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      const size = Math.random() * 2.5 + 1;
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+      star.style.opacity = Math.random() * 0.5 + 0.3;
+      star.style.animationDelay = (-Math.random() * 3) + 's';
+      star.style.animationDuration = (2 + Math.random() * 3) + 's';
+      container.appendChild(star);
+    }
+  }
 
   function buildSolarSystem(participants) {
     const container = document.getElementById('planetsContainer');
     if (!container) return;
     container.innerHTML = '';
 
-    // ⭐ Stop loop lama
     stopSolarLoop();
 
     const schools = Object.keys(SCHOOL_LOGO_MAP);
     const totalSchools = schools.length;
 
-    // Group participants by school
+    // Group participants
     const groupBySchool = {};
     schools.forEach(s => groupBySchool[s] = []);
     participants.forEach(p => {
@@ -1182,26 +1177,23 @@
       }
     });
 
-    // ⭐ Radius pool (acak, tidak sama)
-    const RADIUS_POOL = [200, 245, 290, 335, 380, 425, 470, 515, 560];
+    // ⭐ Radius & urutan sekolah acak
+    const RADIUS_POOL = [200, 250, 300, 350, 400, 445, 490, 530, 570];
     const shuffledRadii = [...RADIUS_POOL].sort(() => Math.random() - 0.5);
-
-    // ⭐ Shuffle schools juga biar urutan sudut tidak berurutan
     const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
 
-    // Reset state
     SOLAR_STATE.planets = [];
 
     shuffledSchools.forEach((school, sIdx) => {
-      // ⭐ Sudut start acak (0-360 derajat)
+      // ⭐ Sudut start acak
       const startAngle = Math.random() * 360;
 
       // ⭐ Radius dari pool
       const radius = shuffledRadii[sIdx];
 
-      // ⭐ Durasi orbit: radius besar → lebih lambat
-      const radiusRatio = (radius - 200) / (560 - 200);   // 0-1
-      const duration = 40 + (radiusRatio * 50);           // 40-90 detik
+      // ⭐ Durasi orbit (radius besar → lambat)
+      const radiusRatio = (radius - 200) / (570 - 200);
+      const duration = 40 + (radiusRatio * 50);
 
       // ⭐ Orbit ring
       const orbitRing = document.createElement('div');
@@ -1232,7 +1224,7 @@
         const avatar = getAvatarUrl(m.unique_id, m.avatar_url);
         moon.innerHTML = `
           <div class="moon-avatar">
-            <img src="${avatar}" alt="${m.full_name}" onerror="this.src='https://api.dicebear.com/7.x/botd…'"/>
+            <img src="${avatar}" alt="${m.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}'"/>
           </div>
           <div class="moon-name">${(m.full_name || m.unique_id).slice(0, 12)}</div>
           <div class="moon-pts">${Number(m.total_point || 0).toFixed(0)}</div>
@@ -1254,7 +1246,6 @@
       });
     });
 
-    // ⭐ Mulai loop
     startSolarLoop();
   }
 
@@ -1266,7 +1257,7 @@
     const loop = (now) => {
       if (!SOLAR_STATE.running) return;
 
-      const elapsed = (now - SOLAR_STATE.startTime) / 1000;  // detik
+      const elapsed = (now - SOLAR_STATE.startTime) / 1000;
 
       const W = window.innerWidth;
       const H = window.innerHeight;
@@ -1274,19 +1265,18 @@
       const cy = H / 2;
 
       SOLAR_STATE.planets.forEach(p => {
-        // Sudut planet saat ini
+        // Sudut planet
         const planetAngleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
 
         const px = cx + Math.cos(planetAngleRad) * p.radius;
         const py = cy + Math.sin(planetAngleRad) * p.radius;
 
-        // ⭐ Set posisi planet (fixed positioning)
         p.el.style.left = px + 'px';
         p.el.style.top = py + 'px';
         p.el.style.marginLeft = '-45px';
         p.el.style.marginTop = '-45px';
 
-        // ⭐ Posisi moons di sekitar planet
+        // Moons mengorbit planet
         p.moons.forEach(m => {
           const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
           const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
@@ -1296,9 +1286,7 @@
           m.el.style.top = my + 'px';
           m.el.style.marginLeft = '-30px';
           m.el.style.marginTop = '-30px';
-
-          // ⭐ Kartu bulan selalu tegak (tidak ikut rotasi)
-          m.el.style.transform = 'rotate(0deg)';
+          m.el.style.transform = 'rotate(0deg)';   // ⭐ SELALU TEGAK
         });
       });
 
@@ -1319,13 +1307,11 @@
   // VIEW 4: FINALISTS
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
-    // ⭐ Increment session untuk cegah race
     STATE.finalistSessionId++;
     const mySession = STATE.finalistSessionId;
 
     const finalists = await fetchFinalists();
 
-    // Cek session
     if (mySession !== STATE.finalistSessionId) return;
 
     STATE.finalistData = finalists;
@@ -1426,7 +1412,7 @@
   }
 
   function stopFinalistReel() {
-    STATE.finalistSessionId++;  // ⭐ invalidate semua session lama
+    STATE.finalistSessionId++;
     if (STATE.finalistTimer) {
       clearTimeout(STATE.finalistTimer);
       STATE.finalistTimer = null;
