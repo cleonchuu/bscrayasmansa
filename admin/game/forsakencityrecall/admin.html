@@ -554,25 +554,48 @@
     // ELIMINASI
     // ═══════════════════════════════════════════════════════════
     async function executeComputeElimination() {
-      if (!confirm(`Hitung ${ELIMINATE_COUNT} peserta terendah?`)) return;
+  if (!confirm(`Hitung ${ELIMINATE_COUNT} peserta terendah?`)) return;
 
-      const { data, error } = await supabaseClient.rpc('save_forsaken_elimination', {
-        p_count: ELIMINATE_COUNT
-      });
+  // 1. Panggil RPC (return void)
+  const { error } = await supabaseClient.rpc('save_forsaken_elimination', {
+    p_count: ELIMINATE_COUNT
+  });
 
-      if (error) { alert('Gagal: ' + error.message); return; }
+  if (error) {
+    console.error('[ELIM] RPC error:', error);
+    alert('Gagal: ' + error.message);
+    return;
+  }
 
-      const info = document.getElementById('elimResultInfo');
-      if (info) {
-        info.classList.remove('hidden');
-        info.innerHTML = `
-          <div class="text-amber-400 font-bold mb-1">📋 Tereliminasi (belum kunci):</div>
-          ${(data || []).map(d => `<div class="pl-2">• ${d.name} — ${d.total_score} PTS</div>`).join('')}
-        `;
-      }
+  // 2. Query elimination_history untuk ambil list yang baru saja di-insert
+  const { data, error: fetchErr } = await supabaseClient
+    .from('elimination_history')
+    .select('unique_id, name, final_score')
+    .eq('game_name', 'Forsaken City Recall')
+    .order('final_score', { ascending: true });
 
-      alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.`);
+  if (fetchErr) {
+    console.error('[ELIM] Fetch error:', fetchErr);
+    alert('Gagal fetch history: ' + fetchErr.message);
+    return;
+  }
+
+  // 3. Tampilkan di panel info
+  const info = document.getElementById('elimResultInfo');
+  if (info) {
+    info.classList.remove('hidden');
+    if (data && data.length > 0) {
+      info.innerHTML = `
+        <div class="text-amber-400 font-bold mb-1">📋 Tereliminasi (belum kunci):</div>
+        ${data.map(d => `<div class="pl-2">• ${d.name} — ${Number(d.final_score).toFixed(0)} PTS</div>`).join('')}
+      `;
+    } else {
+      info.innerHTML = `<div class="text-slate-500">Tidak ada peserta yang dieliminasi.</div>`;
     }
+  }
+
+  alert(`✅ ${data?.length || 0} peserta masuk daftar eliminasi.`);
+}
 
     async function executeDeclareElimination() {
       if (!confirm(`🔒 Kunci ${ELIMINATE_COUNT} peserta tereliminasi?\n\nKiosk mereka akan freeze permanen.`)) return;
