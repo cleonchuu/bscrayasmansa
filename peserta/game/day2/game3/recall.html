@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Silk Road Recall - Peserta</title>
+  <title>Forsaken City Recall - Peserta</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -15,11 +15,11 @@
 </head>
 <body class="bg-slate-900 text-white min-h-screen p-4 max-w-5xl mx-auto flex flex-col justify-between">
 
-  <!-- Header Info -->
+  <!-- Header -->
   <div class="bg-slate-800 p-4 rounded-xl border border-white/10 flex justify-between items-center shadow-lg mb-4">
     <div>
       <p id="playerName" class="text-xs text-gray-400">Loading...</p>
-      <h1 class="text-lg font-black text-amber-400">SILK ROAD RECALL</h1>
+      <h1 class="text-lg font-black text-amber-400">FORSAKEN CITY RECALL</h1>
     </div>
     <div class="text-right">
       <p class="text-[10px] text-gray-400 uppercase tracking-widest">Akumulasi Poin</p>
@@ -27,28 +27,28 @@
     </div>
   </div>
 
-  <!-- Main Game Panel -->
+  <!-- Main Panel -->
   <div id="mainGamePanel" class="bg-slate-800/80 p-5 rounded-2xl border border-white/5 shadow-2xl space-y-5 flex-1">
-    
+
     <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
       <div>
         <span id="sessionTag" class="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
-          Sesi 1 dari 6
+          Sesi 1 dari 5
         </span>
-        <p class="text-xs text-gray-400 mt-2" id="sessionSubText">Pilih 5 gambar sesuai urutan tayangan Admin (#1 - #5)</p>
+        <p class="text-xs text-gray-400 mt-2" id="sessionSubText">Pilih 6 gambar sesuai urutan tayangan Admin (#1 - #6)</p>
       </div>
       <div class="text-right">
-        <span class="text-xs font-bold text-slate-300">Terisi: <span id="selectedCount" class="text-amber-400">0</span>/5</span>
+        <span class="text-xs font-bold text-slate-300">Terisi: <span id="selectedCount" class="text-amber-400">0</span>/6</span>
       </div>
     </div>
 
-    <!-- 5 Slot Terpilih -->
+    <!-- 6 Slot -->
     <div>
       <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Slot Urutan Terpilih:</p>
-      <div id="selectedSlotsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-3"></div>
+      <div id="selectedSlotsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3"></div>
     </div>
 
-    <!-- Matriks Opsi Gambar -->
+    <!-- Options -->
     <div>
       <p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Pilih Gambar:</p>
       <div id="imageOptionsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[380px] overflow-y-auto p-2 bg-slate-900/60 rounded-xl border border-slate-700/50">
@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    <!-- Tombol Navigasi -->
+    <!-- Nav -->
     <div class="flex justify-between items-center pt-3 border-t border-slate-700/60">
       <button id="btnPrevSession" onclick="prevSession()" class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all">
         <i class="fas fa-arrow-left mr-1"></i> Sesi Sebelumnya
@@ -69,7 +69,7 @@
 
   </div>
 
-  <!-- Panel Sukses Pengiriman -->
+  <!-- Success Panel -->
   <div id="successPanel" class="hidden bg-slate-800 p-8 rounded-2xl border border-green-500/30 text-center space-y-4 shadow-2xl my-auto">
     <div class="w-16 h-16 bg-green-500/10 text-green-400 rounded-full flex items-center justify-center text-3xl mx-auto border border-green-500/20">
       <i class="fas fa-check"></i>
@@ -81,20 +81,35 @@
   </div>
 
   <script>
+    // ═══════════════════════════════════════════════════════════
+    // KONFIG
+    // ═══════════════════════════════════════════════════════════
     const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     const IMAGE_BASE_PATH = 'https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/forsaken_city/';
 
+    const TOTAL_SESSIONS = 5;
+    const IMAGES_PER_SESSION = 6;
+    const TOTAL_IMAGES = TOTAL_SESSIONS * IMAGES_PER_SESSION; // 30
+    const POINT_PER_IMAGE = 5;
+    const MAX_SESSION_POINT = IMAGES_PER_SESSION * POINT_PER_IMAGE; // 30
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
     let userSession = null;
     let masterSequence = [];
     let availableFilenames = [];
-    let userAnswers = new Array(30).fill(null);
-    let sessionSubmitted = [false, false, false, false, false, false]; // Track status simpan per sesi
+    let userAnswers = new Array(TOTAL_IMAGES).fill(null);
+    let sessionSubmitted = Array(TOTAL_SESSIONS).fill(false);
     let currentSession = 1;
     let totalScoreAccumulated = 0;
 
+    // ═══════════════════════════════════════════════════════════
+    // USER INIT
+    // ═══════════════════════════════════════════════════════════
     function initUser() {
       const sess = localStorage.getItem('userSession');
       if (!sess) { window.location.href = '/login.html'; return; }
@@ -102,6 +117,9 @@
       document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // FETCH MASTER
+    // ═══════════════════════════════════════════════════════════
     async function fetchMasterData() {
       const { data, error } = await supabaseClient
         .from('system_forsaken_city_recall')
@@ -118,13 +136,17 @@
       availableFilenames = [...masterSequence].sort();
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════
     function renderSession() {
-      const startIndex = (currentSession - 1) * 5;
-      const sessionAnswers = userAnswers.slice(startIndex, startIndex + 5);
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const sessionAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
       const filledCount = sessionAnswers.filter(Boolean).length;
 
-      document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari 6`;
-      document.getElementById('sessionSubText').textContent = `Pilih 5 gambar sesuai urutan tayangan Admin (#${startIndex + 1} - #${startIndex + 5})`;
+      document.getElementById('sessionTag').textContent = `Sesi ${currentSession} dari ${TOTAL_SESSIONS}`;
+      document.getElementById('sessionSubText').textContent = 
+        `Pilih ${IMAGES_PER_SESSION} gambar sesuai urutan tayangan Admin (#${startIndex + 1} - #${startIndex + IMAGES_PER_SESSION})`;
       document.getElementById('selectedCount').textContent = filledCount;
 
       renderSlots(sessionAnswers, startIndex);
@@ -136,12 +158,12 @@
       const container = document.getElementById('selectedSlotsGrid');
       container.innerHTML = '';
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
         const globalIdx = startIndex + i;
         const filename = sessionAnswers[i];
         const slot = document.createElement('div');
         const isLocked = sessionSubmitted[currentSession - 1];
-        
+
         if (filename) {
           slot.className = "relative img-aspect-16-9 bg-slate-900 rounded-lg border-2 border-amber-500/60 flex items-center justify-center overflow-hidden p-0.5 shadow-md";
           slot.innerHTML = `
@@ -178,17 +200,20 @@
       });
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // ACTIONS
+    // ═══════════════════════════════════════════════════════════
     function selectImage(filename) {
       if (sessionSubmitted[currentSession - 1]) return;
-      const startIndex = (currentSession - 1) * 5;
-      for (let i = 0; i < 5; i++) {
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      for (let i = 0; i < IMAGES_PER_SESSION; i++) {
         if (!userAnswers[startIndex + i]) {
           userAnswers[startIndex + i] = filename;
           renderSession();
           return;
         }
       }
-      alert(`Slot Sesi ${currentSession} sudah penuh 5 gambar!`);
+      alert(`Slot Sesi ${currentSession} sudah penuh ${IMAGES_PER_SESSION} gambar!`);
     }
 
     function removeAnswer(globalIdx) {
@@ -203,11 +228,13 @@
 
       btnPrev.classList.toggle('hidden', currentSession === 1);
 
-      if (currentSession === 6) {
-        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir & Kirim Sesi 6`;
+      if (currentSession === TOTAL_SESSIONS) {
+        btnNext.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Submit Akhir & Kirim Sesi ${TOTAL_SESSIONS}`;
         btnNext.className = "bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
       } else {
-        const text = sessionSubmitted[currentSession - 1] ? `Lanjut ke Sesi ${currentSession + 1}` : `Simpan Sesi ${currentSession} & Lanjut`;
+        const text = sessionSubmitted[currentSession - 1] 
+          ? `Lanjut ke Sesi ${currentSession + 1}` 
+          : `Simpan Sesi ${currentSession} & Lanjut`;
         btnNext.innerHTML = `${text} <i class="fas fa-arrow-right ml-1"></i>`;
         btnNext.className = "bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold px-5 py-2 rounded-lg text-xs shadow-lg transition-all";
       }
@@ -220,48 +247,52 @@
       }
     }
 
-    // PROSES SESI & SUBMIT AKHIR
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT PER SESI (via RPC)
+    // ═══════════════════════════════════════════════════════════
     async function nextSession() {
-      const startIndex = (currentSession - 1) * 5;
-      const currentAnswers = userAnswers.slice(startIndex, startIndex + 5);
+      const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
+      const currentAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
 
       if (currentAnswers.some(ans => ans === null)) {
-        return alert(`Harap isi 5 gambar untuk Sesi ${currentSession} terlebih dahulu!`);
+        return alert(`Harap isi ${IMAGES_PER_SESSION} gambar untuk Sesi ${currentSession} terlebih dahulu!`);
       }
 
-      // 1. Hitung & Masukkan poin sesi ini (jika belum pernah disimpan)
+      // Hitung skor sesi ini (kalau belum pernah disimpan)
       if (!sessionSubmitted[currentSession - 1]) {
         let sessionScore = 0;
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < IMAGES_PER_SESSION; i++) {
           const globalIdx = startIndex + i;
           if (currentAnswers[i] === masterSequence[globalIdx]) {
-            sessionScore += 5;
+            sessionScore += POINT_PER_IMAGE;
           }
         }
 
-        // Simpan poin ke game_scores -> "Recall Type X"
-        const gameNameTag = `Recall Type ${currentSession}`;
-        const { error: scoreErr } = await supabaseClient
-          .from('game_scores')
-          .insert({
-            user_unique_id: userSession.unique_id,
-            game_name: gameNameTag,
-            score_obtained: sessionScore,
-            created_at: new Date()
-          });
+        const isLastSession = (currentSession === TOTAL_SESSIONS);
 
-        if (scoreErr) {
-          alert(`Gagal menyimpan poin Sesi ${currentSession}: ` + scoreErr.message);
+        // ⭐ Simpan via RPC (bukan game_scores lagi)
+        const { error: rpcErr } = await supabaseClient.rpc('update_recall_point', {
+          p_unique_id: userSession.unique_id,
+          p_name: userSession.full_name || userSession.unique_id,
+          p_session: currentSession,
+          p_score: sessionScore,
+          p_is_last: isLastSession
+        });
+
+        if (rpcErr) {
+          alert(`Gagal menyimpan poin Sesi ${currentSession}: ` + rpcErr.message);
           return;
         }
 
         sessionSubmitted[currentSession - 1] = true;
         totalScoreAccumulated += sessionScore;
         document.getElementById('totalScoreText').textContent = totalScoreAccumulated;
+
+        console.log(`[SESI ${currentSession}] Skor: ${sessionScore}/${MAX_SESSION_POINT}`);
       }
 
-      // 2. Navigasi Sesi / Final Submit
-      if (currentSession < 6) {
+      // Navigasi
+      if (currentSession < TOTAL_SESSIONS) {
         currentSession++;
         renderSession();
       } else {
@@ -269,11 +300,13 @@
       }
     }
 
-    // AKSI FINAL SUBMIT (TANPA POIN LAGI, HANYA SIMPAN LEMBAR JAWABAN & KIRIM NOTIFIKASI)
+    // ═══════════════════════════════════════════════════════════
+    // FINAL SUBMIT (sesi 5)
+    // ═══════════════════════════════════════════════════════════
     async function finalizeAllSubmissions() {
       if (!confirm("Kirim pengajuan akhir dan berikan notifikasi ke Admin?")) return;
 
-      // A. Simpan Lembar Jawaban Lengkap
+      // A. Simpan lembar jawaban lengkap
       const { error: subErr } = await supabaseClient
         .from('recall_submissions')
         .insert({
@@ -287,26 +320,27 @@
         return;
       }
 
-      // B. Kirim Notifikasi ke Tabel `recall_notifications`
+      // B. Notifikasi ke admin
       const { error: notifErr } = await supabaseClient
         .from('recall_notifications')
         .insert({
           user_unique_id: userSession.unique_id,
-          message: `Peserta ${userSession.full_name || userSession.unique_id} telah menyelesaikan seluruh Sesi 1 - 6 Silk Road Recall.`,
+          message: `Peserta ${userSession.full_name || userSession.unique_id} telah menyelesaikan seluruh Sesi 1-${TOTAL_SESSIONS} Forsaken City Recall.`,
           status: 'unread',
           created_at: new Date()
         });
 
-      if (notifErr) {
-        console.warn("Gagal mengirim notifikasi:", notifErr.message);
-      }
+      if (notifErr) console.warn("Notif gagal:", notifErr.message);
 
-      // Tampilkan Tampilan Sukses
+      // Success panel
       document.getElementById('successUserText').textContent = userSession.full_name || userSession.unique_id;
       document.getElementById('mainGamePanel').classList.add('hidden');
       document.getElementById('successPanel').classList.remove('hidden');
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
     initUser();
     fetchMasterData().then(() => renderSession());
   </script>
