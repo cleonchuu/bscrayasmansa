@@ -26,9 +26,7 @@
     .font-cinzel { font-family: 'Cinzel', serif; }
     .font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
 
-    /* ═══════════════════════════════════════════════════════
-       VIEW SWITCHER
-       ═══════════════════════════════════════════════════════ */
+    /* View switcher */
     .stage-view {
       transition: opacity 0.6s ease, transform 0.6s ease;
       position: fixed;
@@ -45,9 +43,7 @@
       pointer-events: auto;
     }
 
-    /* ═══════════════════════════════════════════════════════
-       BGM BADGE
-       ═══════════════════════════════════════════════════════ */
+    /* BGM badge */
     .bgm-badge {
       position: fixed;
       bottom: 16px; right: 16px;
@@ -66,9 +62,7 @@
     .bgm-badge .dot.muted { background: #f43f5e; }
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-    /* ═══════════════════════════════════════════════════════
-       AUDIO UNLOCK
-       ═══════════════════════════════════════════════════════ */
+    /* Audio unlock */
     #audioUnlockOverlay {
       position: fixed; inset: 0;
       background: rgba(2, 6, 23, 0.95);
@@ -85,9 +79,7 @@
       50% { transform: translateY(-10px) scale(1.08); }
     }
 
-    /* ═══════════════════════════════════════════════════════
-       VIEW 1: IDLE
-       ═══════════════════════════════════════════════════════ */
+    /* Animasi umum */
     @keyframes gradientShift {
       0%,100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
@@ -105,7 +97,6 @@
       background-clip: text;
       animation: gradientShift 12s ease infinite;
     }
-
     @keyframes floaty {
       0%,100% { transform: translateY(0) rotate(0deg); }
       50%     { transform: translateY(-20px) rotate(3deg); }
@@ -115,185 +106,214 @@
     .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
 
     /* ═══════════════════════════════════════════════════════
-       VIEW 2: PER SEKOLAH — GRID + ZOOM CARD
+       PER SEKOLAH — MINI CARDS + ZOOM
        ═══════════════════════════════════════════════════════ */
-    /* Logo sekolah besar di background */
-    #perSchoolBgLogo {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 65vh; height: 65vh;
-      max-width: 65vw; max-height: 65vw;
-      opacity: 0.08;
-      z-index: 1;
-      pointer-events: none;
-      animation: bgLogoPulse 6s ease-in-out infinite;
-    }
-    @keyframes bgLogoPulse {
-      0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
-      50%     { transform: translate(-50%, -50%) scale(1.05); opacity: 0.12; }
-    }
-    #perSchoolBgLogo img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-    }
-
-    /* Grid peserta */
-    #perSchoolGrid {
-      position: absolute;
-      inset: 0;
-      z-index: 5;
+    #perSchoolCardsGrid {
       display: grid;
-      gap: 1rem;
-      padding: 6rem 3rem 4rem 3rem;
-      justify-content: center;
-      align-content: center;
-      transition: filter 0.4s ease;
-    }
-    #perSchoolGrid.zooming {
-      filter: brightness(0.35) blur(3px);
+      gap: 12px;
+      padding: 20px;
+      transition: all 0.5s ease;
+      align-content: start;
     }
 
-    .ps-card {
+    .mini-card {
+      background: linear-gradient(145deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.95));
+      border: 2px solid rgba(139, 92, 246, 0.5);
+      border-radius: 1rem;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.5s ease;
       position: relative;
-      width: 130px;
-      height: 165px;
-      border-radius: 1.25rem;
-      background: linear-gradient(145deg, rgba(30,41,59,0.9), rgba(2,6,23,0.95));
-      border: 3px solid rgba(139, 92, 246, 0.5);
       overflow: hidden;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-      flex-shrink: 0;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+      cursor: default;
     }
-    .ps-card .ps-avatar {
+
+    .mini-card.dimmed {
+      opacity: 0.15;
+      filter: blur(3px) grayscale(0.5);
+      transform: scale(0.95);
+    }
+
+    .mini-card.zoomed {
+      position: fixed;
+      z-index: 500;
+      border-radius: 2.5rem;
+      padding: 24px;
+      box-shadow: 0 0 80px rgba(139, 92, 246, 0.9), 0 0 160px rgba(139, 92, 246, 0.5);
+      border-width: 4px;
+      transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .mini-card.zoomed .mini-avatar {
+      width: 240px !important;
+      height: 240px !important;
+      border-radius: 2rem !important;
+    }
+
+    .mini-card.zoomed .mini-name {
+      font-size: 2rem !important;
+      font-weight: 900;
+    }
+
+    .mini-card.zoomed .mini-school {
+      font-size: 0.9rem !important;
+    }
+
+    .mini-card.zoomed .mini-points {
+      font-size: 1.5rem !important;
+      padding: 8px 24px !important;
+    }
+
+    .mini-avatar {
       width: 100%;
       aspect-ratio: 1;
+      border-radius: 0.75rem;
       background: rgba(15, 23, 42, 0.9);
-      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(139, 92, 246, 0.5);
       overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 6px;
+      transition: all 0.5s ease;
     }
-    .ps-card .ps-avatar img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
-    .ps-card .ps-info {
-      padding: 0.5rem;
-      text-align: center;
-    }
-    .ps-card .ps-name {
-      font-size: 0.7rem;
+    .mini-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .mini-name {
+      font-size: 0.65rem;
       font-weight: 800;
       color: #fff;
+      text-align: center;
       line-height: 1.15;
+      transition: font-size 0.5s ease;
+      max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
-    .ps-card .ps-points {
-      font-family: 'Orbitron', sans-serif;
+
+    .mini-school {
+      font-size: 0.5rem;
+      color: #a5b4fc;
+      text-align: center;
+      margin-top: 2px;
+      transition: font-size 0.5s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .mini-points {
+      font-family: 'Orbitron', monospace;
       font-size: 0.7rem;
       font-weight: 900;
       color: #fbbf24;
-      margin-top: 0.15rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 4px;
+      transition: all 0.5s ease;
     }
 
-    /* Kartu yang di-zoom */
-    .ps-card.zoomed {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(3.2);
-      z-index: 30;
-      border-color: #fbbf24;
-      border-width: 4px;
-      box-shadow: 0 0 100px rgba(251, 191, 36, 0.9), 0 0 200px rgba(251, 191, 36, 0.5);
-      filter: brightness(1.15);
+    /* Eliminated style */
+    .mini-card.eliminated {
+      filter: grayscale(1) brightness(0.5);
+      opacity: 0.55;
     }
-    .ps-card.zoomed .ps-avatar {
-      border-bottom: 3px solid #fbbf24;
-    }
-
-    /* Eliminated */
-    .ps-card.eliminated {
-      filter: grayscale(1) brightness(0.4);
-      opacity: 0.5;
-      border-color: rgba(244, 63, 94, 0.6) !important;
-    }
-    .ps-card.eliminated::after {
+    .mini-card.eliminated::after {
       content: '❌';
       position: absolute;
       top: 6px; right: 6px;
       font-size: 18px;
-      filter: none !important;
-      text-shadow: 0 0 8px rgba(244, 63, 94, 0.9);
-      z-index: 5;
+      filter: none;
+      z-index: 10;
+    }
+    .mini-card.eliminated::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 38, 38, 0.35);
+      border-radius: inherit;
+      z-index: 1;
+      pointer-events: none;
     }
 
     /* ═══════════════════════════════════════════════════════
-       VIEW 3: ALL PARTICIPANTS — FLOATING + ORBIT
+       ALL PARTICIPANTS — FLOATING + BIG ORBIT LOGOS
        ═══════════════════════════════════════════════════════ */
     @keyframes floatCard {
-      0% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(15px, -25px) rotate(4deg); }
-      66% { transform: translate(-10px, 20px) rotate(-3deg); }
-      100% { transform: translate(0, 0) rotate(0deg); }
+      0%   { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
+      25%  { transform: translate(var(--fx1, 10px), var(--fy1, -20px)) rotate(calc(var(--rot, 0deg) + 4deg)); }
+      50%  { transform: translate(var(--fx2, -15px), var(--fy2, 15px)) rotate(calc(var(--rot, 0deg) - 3deg)); }
+      75%  { transform: translate(var(--fx3, 8px), var(--fy3, -8px)) rotate(calc(var(--rot, 0deg) + 2deg)); }
+      100% { transform: translate(0, 0) rotate(var(--rot, 0deg)); }
     }
     .float-card {
       animation: floatCard var(--float-dur, 8s) ease-in-out infinite;
       animation-delay: var(--float-delay, 0s);
+      will-change: transform;
     }
 
+    /* Big orbit */
     @keyframes orbitSpin {
       from { transform: translate(-50%, -50%) rotate(0deg); }
-      to { transform: translate(-50%, -50%) rotate(360deg); }
+      to   { transform: translate(-50%, -50%) rotate(360deg); }
     }
     @keyframes orbitCounterSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(-360deg); }
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to   { transform: translate(-50%, -50%) rotate(-360deg); }
     }
 
     #logoOrbit {
       position: fixed;
       top: 50%; left: 50%;
-      width: 600px; height: 600px;
+      width: 700px; height: 700px;
       transform: translate(-50%, -50%);
       z-index: 5;
       pointer-events: none;
-      animation: orbitSpin 40s linear infinite;
+      animation: orbitSpin 45s linear infinite;
     }
+
     .logo-orbit-item {
       position: absolute;
-      width: 80px; height: 80px;
+      width: 140px; height: 140px;
       top: 50%; left: 50%;
-      background: rgba(15, 23, 42, 0.9);
-      border: 3px solid rgba(139, 92, 246, 0.6);
+      margin-left: -70px;
+      margin-top: -70px;
+      background: radial-gradient(circle, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.9));
+      border: 4px solid rgba(139, 92, 246, 0.7);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      padding: 8px;
-      box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
-      animation: orbitCounterSpin 40s linear infinite;
+      padding: 18px;
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.6),
+                  inset 0 0 20px rgba(139, 92, 246, 0.3);
+      animation: orbitCounterSpin 45s linear infinite;
     }
     .logo-orbit-item img {
       width: 100%; height: 100%;
       object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
     }
 
     #orbitCenter {
       position: fixed;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 260px; height: 260px;
+      width: 380px; height: 380px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(139, 92, 246, 0.1) 50%, transparent 70%);
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, rgba(139, 92, 246, 0.15) 40%, transparent 70%);
       z-index: 4;
       pointer-events: none;
       animation: floaty 5s ease-in-out infinite;
     }
 
     /* ═══════════════════════════════════════════════════════
-       VIEW 4: FINALISTS
+       FINALISTS
        ═══════════════════════════════════════════════════════ */
     @keyframes rankCardIn {
       0% { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(15px); }
@@ -306,23 +326,29 @@
     .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
     .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
 
-    /* ═══════════════════════════════════════════════════════
-       CONFETTI
-       ═══════════════════════════════════════════════════════ */
+    /* Confetti canvas */
     #confettiCanvas {
       position: fixed; inset: 0;
       width: 100vw; height: 100vh;
       pointer-events: none;
       z-index: 100;
     }
+
+    /* Eliminated (finalist fallback) */
+    .eliminated-card {
+      filter: grayscale(1) brightness(0.4) !important;
+      opacity: 0.5;
+      position: relative;
+    }
   </style>
 </head>
 <body class="h-screen w-screen overflow-hidden">
 
-  <!-- AUDIO -->
   <audio id="bgmPlayer" loop preload="auto"></audio>
   <audio id="bellSound" preload="auto"
          src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"></audio>
+  <audio id="beepSound" preload="auto"
+         src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
   <!-- AUDIO UNLOCK -->
   <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
@@ -374,9 +400,7 @@
         </div>
       </div>
 
-      <h1 class="text-7xl md:text-9xl font-bebas text-white leading-none mb-2">
-        SMANSA
-      </h1>
+      <h1 class="text-7xl md:text-9xl font-bebas text-white leading-none mb-2">SMANSA</h1>
       <h1 class="text-7xl md:text-9xl font-bebas leading-none mb-8">
         <span class="animated-gradient-text">BATTLE OF CHAMPIONS</span>
       </h1>
@@ -393,58 +417,58 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════
-       VIEW 2: PER SEKOLAH — GRID + ZOOM
+       VIEW 2: PER SEKOLAH — MINI CARDS + ZOOM
        ═══════════════════════════════════════════════════════ -->
   <section id="viewPerSchool" class="stage-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950"></div>
-
-    <!-- Background logo sekolah (besar, pudar) -->
-    <div id="perSchoolBgLogo">
-      <img id="perSchoolBgLogoImg" src="" alt="" onerror="this.style.opacity=0"/>
-    </div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.2),_transparent_70%)] pointer-events-none"></div>
 
     <!-- Header -->
-    <div class="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between">
+    <div class="absolute top-0 left-0 right-0 z-30 p-5 flex items-center justify-between bg-gradient-to-b from-slate-950/95 to-transparent">
       <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-slate-900/80 border border-purple-500/40 flex items-center justify-center overflow-hidden p-1.5">
-          <img id="perSchoolHeaderLogo" src="" class="w-full h-full object-contain" onerror="this.style.opacity=0.2"/>
+        <div class="w-20 h-20 rounded-2xl bg-slate-900/90 border-2 border-purple-500/50 flex items-center justify-center overflow-hidden p-2 shadow-[0_0_30px_rgba(139,92,246,0.5)]">
+          <img id="perSchoolLogo" src="" class="w-full h-full object-contain" onerror="this.style.opacity=0.2"/>
         </div>
         <div>
-          <div class="text-[10px] text-purple-400 uppercase tracking-widest font-bold">Kontingen dari</div>
-          <div id="perSchoolName" class="text-2xl md:text-3xl font-black text-white">—</div>
+          <div class="text-[11px] text-purple-400 uppercase tracking-widest font-bold">Kontingen dari</div>
+          <div id="perSchoolName" class="text-3xl md:text-4xl font-black text-white">—</div>
+          <div id="perSchoolCountText" class="text-xs text-slate-400 mt-0.5">0 peserta</div>
         </div>
       </div>
       <div class="text-right">
-        <div class="text-[10px] text-slate-500 uppercase tracking-widest">Sedang di-zoom</div>
-        <div class="text-2xl font-mono font-black text-purple-400">
+        <div class="text-[10px] text-slate-500 uppercase tracking-widest">Zoom</div>
+        <div class="text-3xl font-mono font-black text-purple-400">
           <span id="perSchoolIndex">0</span><span class="text-slate-500">/</span><span id="perSchoolTotal">0</span>
         </div>
       </div>
     </div>
 
-    <!-- Grid container -->
-    <div id="perSchoolGrid"></div>
-
+    <!-- Grid mini cards -->
+    <div id="perSchoolCardsGrid" class="absolute inset-0 pt-28 pb-8 px-6 overflow-hidden">
+      <!-- Grid via JS -->
+    </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════════
-       VIEW 3: ALL PARTICIPANTS
+       VIEW 3: ALL PARTICIPANTS — FLOATING CARDS + BIG ORBIT
        ═══════════════════════════════════════════════════════ -->
   <section id="viewAllParticipants" class="stage-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/40 to-slate-950"></div>
 
     <div id="orbitCenter"></div>
+
     <div id="logoOrbit"></div>
+
     <div id="floatingCards" class="absolute inset-0 z-10 pointer-events-none"></div>
 
-    <div class="absolute top-0 left-0 right-0 z-30 p-6 text-center">
+    <div class="absolute top-0 left-0 right-0 z-30 p-6 text-center pointer-events-none">
       <div class="inline-block bg-slate-900/80 backdrop-blur-md border border-purple-500/40 rounded-full px-8 py-3">
         <div class="text-xs text-purple-400 uppercase tracking-widest font-bold">Para Pejuang</div>
         <div class="text-xl md:text-2xl font-black text-white">SMANSA BATTLE OF CHAMPIONS</div>
       </div>
     </div>
 
-    <div class="absolute bottom-0 left-0 right-0 z-30 p-6 text-center">
+    <div class="absolute bottom-0 left-0 right-0 z-30 p-6 text-center pointer-events-none">
       <div id="allParticipantsCount" class="inline-block bg-slate-900/80 backdrop-blur-md border border-purple-500/40 rounded-full px-8 py-3 text-sm font-bold text-purple-300">
         0 Peserta
       </div>
@@ -472,9 +496,9 @@
   </section>
 
   <script>
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // KONFIG
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -494,15 +518,9 @@
       'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
     };
 
-    // Timing
-    const ZOOM_HOLD_MS = 3000;       // 3 detik per kartu di-zoom
-    const ZOOM_GAP_MS = 500;         // jeda antar zoom (transisi)
-    const AFTER_LAST_HOLD_MS = 3000; // hold grid setelah zoom terakhir
-    const FINALIST_DURATION = 3000;  // 3 detik per finalis
+    const ZOOM_DURATION = 3000;   // 3 detik per zoom
+    const FINALIST_DURATION = 3000;
 
-    // ═══════════════════════════════════════════════════════
-    // LOGGER
-    // ═══════════════════════════════════════════════════════
     const TAG = '[OPENING]';
     const LOG = {
       ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
@@ -511,30 +529,35 @@
       err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
     };
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // STATE
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     const STATE = {
       audioUnlocked: false,
       currentView: 'idle',
       currentSchool: null,
       currentDay: 1,
       lastSig: '',
+      realtimeConnected: false,
 
+      // Per school
       reelData: [],
       reelIndex: 0,
-      reelTimer: null,
       reelActive: false,
+      reelTimer: null,
+      zoomedCardEl: null,
 
+      // Finalists
       finalistData: [],
       finalistTimer: null,
 
+      // All participants
       allParticipants: []
     };
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // BGM
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     const BGM = {
       baseUrl: `${STORAGE_BASE}/bgm/`,
       tracks: {
@@ -640,10 +663,15 @@
       if (!b) return;
       try { b.currentTime = 0; b.play().catch(() => {}); } catch(e) {}
     }
+    function playBeep() {
+      const b = document.getElementById('beepSound');
+      if (!b) return;
+      try { b.currentTime = 0; b.play().catch(() => {}); } catch(e) {}
+    }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // CONFETTI
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     const confettiCanvas = document.getElementById('confettiCanvas');
     const confettiCtx = confettiCanvas.getContext('2d');
     let confettiPieces = [];
@@ -732,7 +760,7 @@
       confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
     }
 
-    function burstConfetti(cx, cy, count = 80) {
+    function burstConfetti(cx, cy, count = 100) {
       for (let i = 0; i < count; i++) {
         confettiPieces.push(new ConfettiPiece(cx, cy, false));
       }
@@ -744,39 +772,39 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // HELPERS
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     function getSchoolLogoUrl(schoolName) {
       const filename = SCHOOL_LOGO_MAP[schoolName];
       if (!filename) return null;
       return `${SCHOOL_LOGO_BASE}/${filename}`;
     }
+
     function getAvatarUrl(uid, avatarUrl) {
       if (avatarUrl && avatarUrl.trim()) return avatarUrl;
       return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`;
     }
-    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // ═══════════════════════════════════════════════════════
+    function delay(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // VIEW SWITCH
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     function switchView(viewName) {
       LOG.info(`Switch view → ${viewName}`);
 
-      // Stop semua animasi
       stopReel();
       stopFinalistReel();
       stopConfettiLoop();
-      stopFloatingCards();
 
-      // Hide all
       ['viewIdle','viewPerSchool','viewAllParticipants','viewFinalists'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active-view');
       });
 
-      // Show
       const map = {
         idle: 'viewIdle',
         per_school: 'viewPerSchool',
@@ -792,187 +820,232 @@
       STATE.currentView = viewName;
       playBGM(viewName);
 
-      // Special handlers
-      if (viewName === 'per_school') startReel();
-      else if (viewName === 'all_participants') startAllParticipants();
-      else if (viewName === 'finalists') startFinalists();
+      if (viewName === 'per_school') {
+        startReel();
+      } else if (viewName === 'all_participants') {
+        startAllParticipants();
+      } else if (viewName === 'finalists') {
+        startFinalists();
+      }
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // FETCH
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     async function fetchParticipantsBySchool(school) {
       const { data, error } = await supabaseClient.rpc('get_participants_by_school', { p_school: school });
       if (error) { LOG.err('fetchParticipantsBySchool', error); return []; }
       return data || [];
     }
-
     async function fetchAllParticipants() {
       const { data, error } = await supabaseClient.rpc('get_all_participants_accumulated');
       if (error) { LOG.err('fetchAllParticipants', error); return []; }
       return data || [];
     }
-
     async function fetchFinalists() {
       const { data, error } = await supabaseClient.rpc('get_finalists_top10');
       if (error) { LOG.err('fetchFinalists', error); return []; }
       return data || [];
     }
 
-    // ═══════════════════════════════════════════════════════
-    // VIEW 2: PER SEKOLAH — GRID + ZOOM LOOP
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    // VIEW 2: PER SEKOLAH — MINI CARDS + ZOOM CYCLE
+    // ═══════════════════════════════════════════════════════════
     async function startReel() {
       const school = STATE.currentSchool;
-      const grid = document.getElementById('perSchoolGrid');
-      if (!grid) return;
-
       if (!school) {
-        grid.innerHTML = '<p class="text-slate-500 text-xl">Belum ada sekolah dipilih.</p>';
+        document.getElementById('perSchoolCardsGrid').innerHTML =
+          '<p class="text-slate-500 text-xl">Belum ada sekolah dipilih.</p>';
         return;
       }
 
-      // Set logo sekolah (header + background besar)
       const logoUrl = getSchoolLogoUrl(school);
-      document.getElementById('perSchoolHeaderLogo').src = logoUrl || '';
-      document.getElementById('perSchoolBgLogoImg').src = logoUrl || '';
+      document.getElementById('perSchoolLogo').src = logoUrl || '';
       document.getElementById('perSchoolName').textContent = school;
 
-      // Fetch peserta
       const participants = await fetchParticipantsBySchool(school);
       STATE.reelData = participants;
       STATE.reelIndex = 0;
       STATE.reelActive = true;
 
       document.getElementById('perSchoolTotal').textContent = participants.length;
-      document.getElementById('perSchoolIndex').textContent = '0';
+      document.getElementById('perSchoolCountText').textContent = `${participants.length} peserta`;
 
       if (participants.length === 0) {
-        grid.innerHTML = '<p class="text-slate-500 text-xl">Tidak ada peserta dari sekolah ini.</p>';
+        document.getElementById('perSchoolCardsGrid').innerHTML =
+          '<p class="text-slate-500 text-xl col-span-full text-center">Tidak ada peserta dari sekolah ini.</p>';
         return;
       }
 
-      // Build grid cards semua peserta
-      buildGridCards(participants);
+      // Render grid mini cards
+      renderMiniCardsGrid(participants);
 
       startConfettiLoop();
+      playBell();
 
-      // Loop zoom
-      const tick = async () => {
-        if (!STATE.reelActive || STATE.currentView !== 'per_school') return;
+      // Tunggu sebentar biar grid terlihat dulu
+      await delay(1500);
 
-        // Kalau sudah lewat semua peserta, jeda dulu
-        if (STATE.reelIndex >= participants.length) {
-          STATE.reelIndex = 0;
-          await delay(AFTER_LAST_HOLD_MS);
-          if (!STATE.reelActive || STATE.currentView !== 'per_school') return;
-        }
-
-        // Zoom kartu ini
-        const idx = STATE.reelIndex;
-        zoomCard(idx);
-        document.getElementById('perSchoolIndex').textContent = idx + 1;
-
-        // Konfeti burst dari tengah
-        burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 60);
-        for (let i = 0; i < 10; i++) rainConfetti(2);
-        playBell();
-
-        // Hold 3 detik
-        await delay(ZOOM_HOLD_MS);
-
-        // Un-zoom
-        unzoomCard(idx);
-        await delay(ZOOM_GAP_MS);
-
-        if (!STATE.reelActive || STATE.currentView !== 'per_school') return;
-
-        STATE.reelIndex++;
-        STATE.reelTimer = setTimeout(tick, 100);
-      };
-
-      // Mulai dari 0
-      tick();
+      // Mulai zoom cycle
+      zoomCycle();
     }
 
-    function buildGridCards(participants) {
-      const grid = document.getElementById('perSchoolGrid');
+    function renderMiniCardsGrid(participants) {
+      const grid = document.getElementById('perSchoolCardsGrid');
       if (!grid) return;
 
-      // Tentukan jumlah kolom ideal
-      const n = participants.length;
-      let cols = 5;
-      if (n <= 4) cols = n;
-      else if (n <= 6) cols = 3;
-      else if (n <= 12) cols = 4;
-      else if (n <= 20) cols = 5;
+      // Grid layout adaptif berdasarkan jumlah peserta
+      const count = participants.length;
+      let cols;
+      if (count <= 4) cols = 2;
+      else if (count <= 9) cols = 3;
+      else if (count <= 16) cols = 4;
+      else if (count <= 25) cols = 5;
       else cols = 6;
 
-      // Max rows biar tidak overflow — adjust size
-      const maxRows = 4;
-      const rowsNeeded = Math.ceil(n / cols);
-      if (rowsNeeded > maxRows) {
-        cols = Math.ceil(n / maxRows);
-      }
+      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      grid.style.gap = count <= 9 ? '20px' : '12px';
+      grid.style.overflowY = 'auto';
+      grid.style.maxHeight = 'calc(100vh - 120px)';
 
-      grid.style.gridTemplateColumns = `repeat(${cols}, 130px)`;
       grid.innerHTML = '';
-
       participants.forEach((p, i) => {
-        const isEliminated = p.is_eliminated === true;
+        const card = document.createElement('div');
+        card.className = 'mini-card' + (p.is_eliminated ? ' eliminated' : '');
+        card.dataset.uid = p.unique_id;
+        card.dataset.index = i;
+
         const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
 
-        const card = document.createElement('div');
-        card.className = `ps-card ${isEliminated ? 'eliminated' : ''}`;
-        card.dataset.index = i;
-        card.id = `ps-card-${i}`;
         card.innerHTML = `
-          <div class="ps-avatar">
-            <img src="${avatar}" alt="${p.full_name}"
-                 onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+          <div class="mini-avatar">
+            <img src="${avatar}" alt="${p.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
           </div>
-          <div class="ps-info">
-            <div class="ps-name">${p.full_name || p.unique_id}</div>
-            <div class="ps-points">${Number(p.total_point || 0).toFixed(0)} PTS</div>
-          </div>
+          <div class="mini-name">${p.full_name || p.unique_id}</div>
+          <div class="mini-school">${p.school_name || ''}</div>
+          <div class="mini-points">${Number(p.total_point || 0).toFixed(0)} PTS</div>
         `;
         grid.appendChild(card);
       });
     }
 
-    function zoomCard(idx) {
-      const card = document.getElementById(`ps-card-${idx}`);
-      const grid = document.getElementById('perSchoolGrid');
-      if (!card) return;
+    async function zoomCycle() {
+      if (!STATE.reelActive) return;
+      if (STATE.currentView !== 'per_school') return;
 
-      // Fade grid
-      if (grid) grid.classList.add('zooming');
+      const i = STATE.reelIndex;
+      const p = STATE.reelData[i];
 
-      // Zoom
-      card.classList.add('zoomed');
+      // Update counter
+      document.getElementById('perSchoolIndex').textContent = i + 1;
+
+      // Zoom kartu
+      await zoomCardIn(p);
+
+      // Confetti burst dari tengah + rain
+      burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+      for (let k = 0; k < 10; k++) rainConfetti(2);
+      playBell();
+
+      // Hold 3 detik
+      await delay(ZOOM_DURATION);
+
+      // Zoom out
+      await zoomCardOut();
+
+      // Next
+      STATE.reelIndex = (i + 1) % STATE.reelData.length;
+      STATE.reelTimer = setTimeout(zoomCycle, 200);
     }
 
-    function unzoomCard(idx) {
-      const card = document.getElementById(`ps-card-${idx}`);
-      const grid = document.getElementById('perSchoolGrid');
-      if (!card) return;
+    async function zoomCardIn(p) {
+      // Dim semua kartu, zoom satu
+      const cards = document.querySelectorAll('#perSchoolCardsGrid .mini-card');
 
-      card.classList.remove('zoomed');
-      if (grid) grid.classList.remove('zooming');
+      // Reset dulu
+      cards.forEach(c => c.classList.remove('zoomed'));
+      if (STATE.zoomedCardEl) STATE.zoomedCardEl.remove();
+      STATE.zoomedCardEl = null;
+
+      // Dim semua kartu (kecuali target — tapi kita akan overlay clone-nya)
+      cards.forEach(c => {
+        if (c.dataset.uid === p.unique_id) {
+          c.style.visibility = 'hidden';
+        } else {
+          c.classList.add('dimmed');
+        }
+      });
+
+      // Cari kartu target untuk ambil rect-nya
+      const targetCard = document.querySelector(`#perSchoolCardsGrid .mini-card[data-uid="${p.unique_id}"]`);
+      if (!targetCard) return;
+
+      const rect = targetCard.getBoundingClientRect();
+
+      // Buat clone yang akan di-zoom
+      const clone = document.createElement('div');
+      clone.className = 'mini-card' + (p.is_eliminated ? ' eliminated' : '') + ' zoomed';
+      clone.style.left = rect.left + 'px';
+      clone.style.top = rect.top + 'px';
+      clone.style.width = rect.width + 'px';
+      clone.style.height = rect.height + 'px';
+
+      const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+      clone.innerHTML = `
+        <div class="mini-avatar">
+          <img src="${avatar}" alt="${p.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+        </div>
+        <div class="mini-name">${p.full_name || p.unique_id}</div>
+        <div class="mini-school">${p.school_name || ''}</div>
+        <div class="mini-points">${Number(p.total_point || 0).toFixed(0)} PTS</div>
+      `;
+
+      document.body.appendChild(clone);
+      STATE.zoomedCardEl = clone;
+
+      // Force reflow lalu animate ke center
+      await delay(30);
+
+      const targetSize = Math.min(window.innerWidth * 0.45, 600);
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      clone.style.left = (centerX - targetSize / 2) + 'px';
+      clone.style.top = (centerY - targetSize / 2 - 60) + 'px';
+      clone.style.width = targetSize + 'px';
+      clone.style.height = 'auto';
+
+      await delay(700);
+    }
+
+    async function zoomCardOut() {
+      if (!STATE.zoomedCardEl) return;
+      const clone = STATE.zoomedCardEl;
+      clone.style.opacity = '0';
+      clone.style.transform = 'scale(0.6)';
+
+      await delay(400);
+
+      clone.remove();
+      STATE.zoomedCardEl = null;
+
+      // Reset kartu-kartu
+      const cards = document.querySelectorAll('#perSchoolCardsGrid .mini-card');
+      cards.forEach(c => {
+        c.classList.remove('dimmed');
+        c.style.visibility = 'visible';
+      });
     }
 
     function stopReel() {
       STATE.reelActive = false;
       if (STATE.reelTimer) { clearTimeout(STATE.reelTimer); STATE.reelTimer = null; }
-      // Hapus semua zoomed class
-      document.querySelectorAll('.ps-card.zoomed').forEach(c => c.classList.remove('zoomed'));
-      const grid = document.getElementById('perSchoolGrid');
-      if (grid) grid.classList.remove('zooming');
+      if (STATE.zoomedCardEl) { STATE.zoomedCardEl.remove(); STATE.zoomedCardEl = null; }
     }
 
-    // ═══════════════════════════════════════════════════════
-    // VIEW 3: ALL PARTICIPANTS
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
+    // VIEW 3: ALL PARTICIPANTS — FLOATING + BIG ORBIT
+    // ═══════════════════════════════════════════════════════════
     async function startAllParticipants() {
       const participants = await fetchAllParticipants();
       STATE.allParticipants = participants;
@@ -990,16 +1063,16 @@
 
       const schools = Object.keys(SCHOOL_LOGO_MAP);
       const total = schools.length;
-      const radius = 250;
+      const radius = 280;   // px dari pusat
 
       schools.forEach((school, i) => {
-        const angle = (i / total) * Math.PI * 2;
+        const angle = (i / total) * Math.PI * 2 - Math.PI / 2;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
 
         const item = document.createElement('div');
         item.className = 'logo-orbit-item';
-        item.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        item.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
 
         const logoUrl = getSchoolLogoUrl(school);
         item.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
@@ -1012,47 +1085,63 @@
       if (!container) return;
       container.innerHTML = '';
 
-      const maxCards = Math.min(participants.length, 40);
+      const maxCards = Math.min(participants.length, 60);
       const W = window.innerWidth;
       const H = window.innerHeight;
-      const forbiddenRadius = 350;
+
+      // Hindari area tengah (orbit)
+      const forbiddenRadius = 420;
       const cx = W / 2, cy = H / 2;
 
       for (let i = 0; i < maxCards; i++) {
         const p = participants[i];
+
         let x, y, tries = 0;
         do {
-          x = Math.random() * (W - 160) + 80;
-          y = Math.random() * (H - 200) + 100;
+          x = Math.random() * (W - 200) + 100;
+          y = Math.random() * (H - 250) + 125;
           tries++;
           const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
           if (dist > forbiddenRadius) break;
-        } while (tries < 20);
+        } while (tries < 30);
+
+        // Variasi ukuran & rotasi untuk kesan "acak"
+        const sizeVariation = 100 + Math.random() * 80;   // 100-180 px
+        const rot = (Math.random() - 0.5) * 20;           // -10° s/d +10°
 
         const card = document.createElement('div');
         card.className = 'float-card absolute';
         card.style.left = x + 'px';
         card.style.top = y + 'px';
-        card.style.width = '120px';
-        card.style.setProperty('--float-dur', (6 + Math.random() * 6) + 's');
-        card.style.setProperty('--float-delay', (-Math.random() * 6) + 's');
+        card.style.width = sizeVariation + 'px';
+        card.style.setProperty('--float-dur', (8 + Math.random() * 8) + 's');
+        card.style.setProperty('--float-delay', (-Math.random() * 10) + 's');
+        card.style.setProperty('--rot', rot + 'deg');
+        card.style.setProperty('--fx1', (Math.random() * 40 - 20) + 'px');
+        card.style.setProperty('--fy1', (Math.random() * 40 - 20) + 'px');
+        card.style.setProperty('--fx2', (Math.random() * 40 - 20) + 'px');
+        card.style.setProperty('--fy2', (Math.random() * 40 - 20) + 'px');
+        card.style.setProperty('--fx3', (Math.random() * 40 - 20) + 'px');
+        card.style.setProperty('--fy3', (Math.random() * 40 - 20) + 'px');
 
         const isEliminated = p.is_eliminated === true;
         const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+        const fontSize = sizeVariation < 130 ? '0.55rem' : '0.65rem';
 
         card.innerHTML = `
-          <div class="${isEliminated ? 'eliminated-card' : ''} bg-slate-900/90 backdrop-blur-sm border-2 ${isEliminated ? 'border-rose-500/60' : 'border-purple-500/40'} rounded-2xl p-2 shadow-xl">
+          <div class="${isEliminated ? 'eliminated-card' : ''} bg-slate-900/90 backdrop-blur-sm border-2 ${isEliminated ? 'border-rose-500/60' : 'border-purple-500/50'} rounded-2xl p-2 shadow-xl h-full"
+               style="box-shadow: 0 0 25px ${isEliminated ? 'rgba(244,63,94,0.4)' : 'rgba(139,92,246,0.35)'};">
             <div class="aspect-square rounded-xl overflow-hidden bg-slate-950 mb-1.5">
               <img src="${avatar}" class="w-full h-full object-cover"
                    onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
             </div>
-            <div class="text-[9px] font-bold text-white text-center leading-tight truncate">
+            <div class="font-bold text-white text-center leading-tight truncate" style="font-size: ${fontSize};">
               ${p.full_name || p.unique_id}
             </div>
-            <div class="text-[8px] text-purple-300 text-center truncate">
-              ${(p.school_name || '').slice(0, 20)}
+            <div class="text-purple-300 text-center truncate" style="font-size: ${parseFloat(fontSize) * 0.85}rem;">
+              ${(p.school_name || '').slice(0, 22)}
             </div>
-            <div class="text-[10px] font-mono font-black text-amber-400 text-center mt-0.5">
+            <div class="font-mono font-black text-amber-400 text-center mt-0.5" style="font-size: ${parseFloat(fontSize) * 1.1}rem;">
               ${Number(p.total_point || 0).toFixed(0)} PTS
             </div>
           </div>
@@ -1061,13 +1150,9 @@
       }
     }
 
-    function stopFloatingCards() {
-      // Tidak ada cleanup khusus, hanya clear kontainer
-    }
-
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // VIEW 4: FINALISTS
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     async function startFinalists() {
       const finalists = await fetchFinalists();
       STATE.finalistData = finalists;
@@ -1078,7 +1163,7 @@
         return;
       }
 
-      const ordered = [...finalists].reverse(); // #10 → #1
+      const ordered = [...finalists].reverse();
 
       startConfettiLoop();
 
@@ -1100,7 +1185,10 @@
           STATE.finalistTimer = setTimeout(tick, 400);
         } else {
           const rainInterval = setInterval(() => {
-            if (STATE.currentView !== 'finalists') { clearInterval(rainInterval); return; }
+            if (STATE.currentView !== 'finalists') {
+              clearInterval(rainInterval);
+              return;
+            }
             for (let k = 0; k < 8; k++) rainConfetti(1);
           }, 200);
         }
@@ -1169,9 +1257,9 @@
       }
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // SYNC LAYOUT
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     async function syncLayout() {
       try {
         const { data, error } = await supabaseClient
@@ -1210,9 +1298,9 @@
       } catch (e) { LOG.err('syncLayout', e); }
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // REALTIME
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     function setupRealtime() {
       supabaseClient.channel('opening_ceremony_rt')
         .on('postgres_changes', {
@@ -1223,14 +1311,17 @@
           STATE.lastSig = '';
           syncLayout();
         })
-        .subscribe(status => LOG.info(`Realtime: ${status}`));
+        .subscribe(status => {
+          LOG.info(`Realtime: ${status}`);
+          STATE.realtimeConnected = status === 'SUBSCRIBED';
+        });
 
       setInterval(syncLayout, 2000);
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     // INIT
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     (async function init() {
       LOG.ok('══════════ OPENING CEREMONY BOOT ══════════');
       initBGM();
