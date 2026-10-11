@@ -430,6 +430,8 @@ const STATE = {
   imageTickInterval: null,
   timerAudiosPlayed: new Set(),
 
+  pointsSynced: false,  // ⭐ TAMBAHKAN INI
+
   _lastPanel: 'boot'
 };
 
@@ -854,78 +856,65 @@ function getTotalPoints() {
 // ═══════════════════════════════════════════════════════════
 // SYNC POIN KE game_scores
 // ═══════════════════════════════════════════════════════════
-async function syncPointsToGameScores(reason = 'manual') {
-  // Hanya mode game yang dikirim ke game_scores
+// ═══════════════════════════════════════════════════════════
+// SYNC FINAL POINTS — ke point_hiding_block (via RPC)
+// ═══════════════════════════════════════════════════════════
+async function syncFinalPoints(reason = 'manual') {
+  // Hanya mode game yang disimpan
   if (STATE.mode !== 'game') {
-    LOG.info(`syncPointsToGameScores skip — mode=${STATE.mode}`);
+    LOG.info(`syncFinalPoints skip — mode=${STATE.mode}`);
     return { skipped: true, reason: 'mode-not-game' };
   }
 
   if (!STATE.user?.unique_id) {
-    LOG.warn('syncPointsToGameScores skip — tidak ada user');
+    LOG.warn('syncFinalPoints skip — tidak ada user');
     return { skipped: true, reason: 'no-user' };
   }
 
+  // Guard: hanya sync 1x per sesi kiosk
+  if (STATE.pointsSynced) {
+    LOG.info(`syncFinalPoints skip — sudah pernah sync`);
+    return { skipped: true, reason: 'already-synced-local' };
+  }
+
   try {
-    // 1. Cek dulu apakah sudah ada di game_scores (idempotensi)
-    const { data: existing, error: errCheck } = await supabaseClient
-      .from('game_scores')
-      .select('id, score_obtained')
-      .eq('user_unique_id', STATE.user.unique_id)
-      .eq('game_name', GAME_NAME)
-      .maybeSingle();
-
-    if (errCheck) {
-      LOG.err('syncPointsToGameScores cek gagal', errCheck);
-      return { skipped: true, reason: 'check-error', error: errCheck };
-    }
-
-    if (existing) {
-      LOG.warn(`syncPointsToGameScores skip — sudah ada di game_scores (score=${existing.score_obtained})`);
-      return { skipped: true, reason: 'already-synced', score: existing.score_obtained };
-    }
-
-    // 2. Hitung total poin dari progressMap
     const totalPoin = Number(getTotalPoints().toFixed(2));
+    const userName = STATE.user.full_name || STATE.user.unique_id;
 
-    // 3. Insert ke game_scores
-    const now = new Date().toISOString();
-    const { data: inserted, error: errInsert } = await supabaseClient
-      .from('game_scores')
-      .insert({
-        user_unique_id: STATE.user.unique_id,
-        game_name: GAME_NAME,
-        score_obtained: totalPoin,
-        created_at: now,
-        submitted_at: now
-      })
-      .select()
-      .single();
+    const { error: rpcErr } = await supabaseClient.rpc('save_hiding_block_point', {
+      p_unique_id: STATE.user.unique_id,
+      p_name: userName,
+      p_point: totalPoin
+    });
 
-    if (errInsert) {
-      LOG.err('syncPointsToGameScores insert gagal', errInsert);
-      return { skipped: true, reason: 'insert-error', error: errInsert };
+    if (rpcErr) {
+      LOG.err('syncFinalPoints RPC gagal', rpcErr);
+      return { skipped: true, reason: 'rpc-error', error: rpcErr };
     }
 
-    LOG.ok(`✅ Poin tersinkron ke game_scores: ${totalPoin} (reason=${reason})`, inserted);
+    STATE.pointsSynced = true;
 
-    // 4. Catat di audit log
-    await supabaseClient.from('hiding_block_audit_log').insert({
-      session_id: STATE.sessionId,
-      user_unique_id: STATE.user.unique_id,
-      user_role: 'peserta',
-      action: 'sync_points_to_scores',
-      metadata: {
-        reason,
-        total_points: totalPoin,
-        locked_count: Object.values(STATE.progressMap).filter(p => p.status === 'locked').length
-      }
-    });
+    LOG.ok(`✅ Poin tersimpan: ${totalPoin} (reason=${reason})`);
+
+    // Audit log
+    try {
+      await supabaseClient.from('hiding_block_audit_log').insert({
+        session_id: STATE.sessionId,
+        user_unique_id: STATE.user.unique_id,
+        user_role: 'peserta',
+        action: 'sync_final_points',
+        metadata: {
+          reason,
+          total_points: totalPoin,
+          locked_count: Object.values(STATE.progressMap).filter(p => p.status === 'locked').length
+        }
+      });
+    } catch (e) { LOG.warn('Audit log gagal', e); }
 
     return { success: true, score: totalPoin };
 
   } catch (e) {
-    LOG.err('syncPointsToGameScores exception', e);
+    LOG.err('syncFinalPoints exception', e);
     return { skipped: true, reason: 'exception', error: e };
   }
 }
@@ -1327,7 +1316,7 @@ async function checkVerdict() {
           .eq('user_unique_id', STATE.user.unique_id);
 
         // Sync poin
-        await syncPointsToGameScores('all-images-locked');
+        await syncFinalPoints('all-images-locked');
 
         // Bekukan kiosk
         STATE.isFrozen = true;
@@ -1517,7 +1506,7 @@ async function onBankTimeUp() {
   AUDIO.timeup();
 
   // ✅ Sync poin ke game_scores SEBELUM update status
-  await syncPointsToGameScores('bank-time-up');
+await syncFinalPoints('bank-time-up');
 
   supabaseClient
     .from('system_hiding_block_login')
@@ -1692,7 +1681,7 @@ window.hbDebug = {
       LOG.warn('Peserta sudah selesai — frozen');
 
       // ✅ Fallback: pastikan poin sudah tersinkron
-      await syncPointsToGameScores('init-finished-fallback');
+     await syncFinalPoints('init-finished-fallback');
 
       return;
     }
