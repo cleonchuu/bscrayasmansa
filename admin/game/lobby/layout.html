@@ -597,6 +597,10 @@
   const MOON_ORBIT_RADIUS = 60;
   const MOON_ORBIT_DURATION = 12;
 
+  // ⭐ KONFIGURASI ORBIT SATU JALUR
+  const SINGLE_ORBIT_RADIUS = 420;        // radius orbit untuk semua planet
+  const SINGLE_ORBIT_DURATION = 60;       // detik untuk satu putaran penuh
+
   const TAG = '[OPENING]';
   const LOG = {
     ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
@@ -1126,7 +1130,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 3: SOLAR SYSTEM
+  // VIEW 3: SOLAR SYSTEM — SATU JALUR ORBIT
   // ═══════════════════════════════════════════════════════════
   async function startAllParticipants() {
     const participants = await fetchAllParticipants();
@@ -1166,7 +1170,6 @@
     stopSolarLoop();
 
     const schools = Object.keys(SCHOOL_LOGO_MAP);
-    const totalSchools = schools.length;
 
     // Group participants
     const groupBySchool = {};
@@ -1177,32 +1180,26 @@
       }
     });
 
-    // ⭐ Radius & urutan sekolah acak
-    const RADIUS_POOL = [200, 250, 300, 350, 400, 445, 490, 530, 570];
-    const shuffledRadii = [...RADIUS_POOL].sort(() => Math.random() - 0.5);
-    const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
+    // ⭐ SATU JALUR ORBIT: semua sekolah berbagi radius & durasi yang sama
+    const totalSchools = schools.length;
+
+    // Buat SATU orbit ring untuk semua
+    const orbitRing = document.createElement('div');
+    orbitRing.className = 'orbit-ring';
+    orbitRing.style.width = (SINGLE_ORBIT_RADIUS * 2) + 'px';
+    orbitRing.style.height = (SINGLE_ORBIT_RADIUS * 2) + 'px';
+    orbitRing.style.marginLeft = (-SINGLE_ORBIT_RADIUS) + 'px';
+    orbitRing.style.marginTop = (-SINGLE_ORBIT_RADIUS) + 'px';
+    container.appendChild(orbitRing);
 
     SOLAR_STATE.planets = [];
 
+    // Urutkan sekolah (bisa random, tapi sudut tetap merata)
+    const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
+
     shuffledSchools.forEach((school, sIdx) => {
-      // ⭐ Sudut start acak
-      const startAngle = Math.random() * 360;
-
-      // ⭐ Radius dari pool
-      const radius = shuffledRadii[sIdx];
-
-      // ⭐ Durasi orbit (radius besar → lambat)
-      const radiusRatio = (radius - 200) / (570 - 200);
-      const duration = 40 + (radiusRatio * 50);
-
-      // ⭐ Orbit ring
-      const orbitRing = document.createElement('div');
-      orbitRing.className = 'orbit-ring';
-      orbitRing.style.width = (radius * 2) + 'px';
-      orbitRing.style.height = (radius * 2) + 'px';
-      orbitRing.style.marginLeft = (-radius) + 'px';
-      orbitRing.style.marginTop = (-radius) + 'px';
-      container.appendChild(orbitRing);
+      // ⭐ Sudut awal merata di sepanjang orbit
+      const startAngle = (sIdx / totalSchools) * 360;
 
       // ⭐ Planet element
       const planet = document.createElement('div');
@@ -1236,8 +1233,8 @@
 
       SOLAR_STATE.planets.push({
         school,
-        radius,
-        duration,
+        radius: SINGLE_ORBIT_RADIUS,          // ⭐ sama untuk semua
+        duration: SINGLE_ORBIT_DURATION,      // ⭐ sama untuk semua
         startAngle,
         el: planet,
         moons,
@@ -1265,7 +1262,7 @@
       const cy = H / 2;
 
       SOLAR_STATE.planets.forEach(p => {
-        // Sudut planet
+        // Sudut planet — semua pakai durasi yang sama → satu jalur orbit
         const planetAngleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
 
         const px = cx + Math.cos(planetAngleRad) * p.radius;
