@@ -22,10 +22,8 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
 
-  <!-- AUDIO BELL -->
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
-  <!-- NOTIF BANNER -->
   <div id="notifBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-6 py-4 rounded-2xl shadow-2xl font-black text-lg animate-pulse-bell flex items-center gap-3 border-2 border-emerald-300">
     <i class="fas fa-bell text-2xl"></i>
     <span id="notifBannerText">Notifikasi!</span>
@@ -54,9 +52,7 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- PANEL: FASE MENGHAFAL (15 MENIT)                            -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: FASE MENGHAFAL -->
     <div class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl glow-amber space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="font-black text-lg text-amber-400 flex items-center gap-2">
@@ -69,7 +65,6 @@
 
       <p class="text-xs text-slate-400">
         Setelah menekan tombol <b class="text-amber-400">Mulai Menghafal</b>, layar stage akan menampilkan countdown 15 menit.
-        Peserta fokus menghafal. Setelah waktu habis, layar otomatis kembali ke <b>idle kosong</b> + bunyi beep.
       </p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -103,13 +98,11 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- PANEL: FASE MENGERJAKAN                                     -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: FASE MENGERJAKAN -->
     <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl glow-purple space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="font-black text-lg text-emerald-400 flex items-center gap-2">
-          <i class="fas fa-pen-to-square"></i> Fase Mengerjakan Soal
+          <i class="fas fa-pen-to-square"></i> Fase Mengerjakan Soal (15 Menit)
         </h3>
         <span id="sessionStatusBadge" class="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">
           IDLE
@@ -140,9 +133,7 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- ⭐ PANEL: KONTROL ELIMINASI (BARU)                          -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: KONTROL ELIMINASI -->
     <div class="bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/30 p-6 rounded-2xl space-y-4 shadow-lg">
       <div class="flex items-center justify-between border-b border-rose-500/20 pb-3 flex-wrap gap-2">
         <div>
@@ -191,14 +182,10 @@
         </button>
       </div>
 
-      <div id="elimResultInfo" class="hidden bg-slate-950/80 border border-rose-500/30 rounded-xl p-4 max-h-[300px] overflow-y-auto custom-scroll">
-        <!-- Result list akan di-render via JS -->
-      </div>
+      <div id="elimResultInfo" class="hidden bg-slate-950/80 border border-rose-500/30 rounded-xl p-4 max-h-[300px] overflow-y-auto custom-scroll"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- GRID: TIM & PESERTA                                          -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- GRID: TIM & PESERTA -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
@@ -208,10 +195,6 @@
           </h3>
           <span id="teamCountBadge" class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-lg">0 Tim</span>
         </div>
-
-        <p class="text-xs text-slate-400 mb-4">
-          Peserta otomatis dibagi ke 10 tim. Klik "Shuffle" untuk acak ulang.
-        </p>
 
         <div class="grid grid-cols-2 gap-2 mb-4">
           <button onclick="shuffleTeams()" class="py-2.5 rounded-xl font-bold text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 transition active:scale-95 flex items-center justify-center gap-2">
@@ -247,9 +230,7 @@
 
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- KONTROL TAMPILAN LAYAR                                       -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- KONTROL TAMPILAN LAYAR -->
     <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl space-y-4">
       <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-2">
         <div>
@@ -394,9 +375,9 @@
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
-    const SESSION_DURATION = 300;
+    const SESSION_DURATION = 900;   // ⭐ 15 MENIT
     const DEFAULT_MEMORIZE_DURATION = 900;
-    const SURVIVOR_COUNT = 30;   // ⭐ 30 peserta lolos ke Hari 2
+    const SURVIVOR_COUNT = 30;
 
     const SYS_TABLE = 'system_cataclysm_memory';
     const LAYOUT_TABLE = 'admin_layout_cataclysm_memory';
@@ -425,11 +406,9 @@
     // ═══════════════════════════════════════════════════════════
     let currentSession = { isActive: false, startTime: null, duration: SESSION_DURATION };
     let currentMemorize = { isActive: false, startTime: null, duration: DEFAULT_MEMORIZE_DURATION };
-
     let memorizeTimerInt = null;
     let answerTimerInt = null;
-
-    let cachedElimResult = null;   // Hasil compute terakhir (belum dikunci)
+    let cachedElimResult = null;
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
@@ -585,7 +564,7 @@
     // SESI MENGERJAKAN SOAL
     // ═══════════════════════════════════════════════════════════
     async function startAnswerSession() {
-      const confirmStart = confirm('Mulai sesi MENGERJAKAN SOAL?');
+      const confirmStart = confirm('Mulai sesi MENGERJAKAN SOAL selama 15 menit?');
       if (!confirmStart) return;
 
       const now = new Date().toISOString();
@@ -923,24 +902,14 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ⭐ KONTROL ELIMINASI
+    // KONTROL ELIMINASI
     // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Ambil ranking final dari RPC get_cataclysm_elimination()
-     * Return: array of { unique_id, name, total_point, finished_at, rank_final }
-     * Hanya peserta is_eliminated = FALSE yang di-return.
-     */
     async function fetchCataclysmRanking() {
       const { data, error } = await supabaseClient.rpc('get_cataclysm_elimination');
       if (error) { console.error('[ELIM] fetch error:', error); return null; }
       return data || [];
     }
 
-    /**
-     * Cek status eliminasi saat ini — berapa yang sudah masuk elimination_history
-     * dengan game_name = 'Cataclysm Memory'.
-     */
     async function fetchElimStatus() {
       const { data, error } = await supabaseClient
         .from(ELIM_HISTORY_TABLE)
@@ -952,30 +921,23 @@
       return data || [];
     }
 
-    /**
-     * Update badge + estimasi jumlah tereliminasi.
-     */
     async function refreshElimUI() {
       const statusBadge = document.getElementById('elimStatusBadge');
       const estCount = document.getElementById('elimEstimatedCount');
 
-      // Total peserta (role = peserta)
       const { count: totalPeserta } = await supabaseClient
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'peserta');
 
-      // Total yang belum tereliminasi
       const { count: totalAktif } = await supabaseClient
         .from('users')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'peserta')
         .eq('is_eliminated', false);
 
-      // Sudah ada di elimination_history?
       const elimRows = await fetchElimStatus();
 
-      // Estimasi: kalau peserta ikut game, yang tidak lolos = total_aktif - 30
       const estimatedElim = Math.max(0, (totalAktif || 0) - SURVIVOR_COUNT);
       if (estCount) estCount.textContent = estimatedElim;
 
@@ -987,17 +949,11 @@
         statusBadge.className = 'text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg';
       }
 
-      // Kalau ada data eliminasi tersimpan, tampilkan di list
       if (elimRows.length > 0) {
         renderElimResult(elimRows, true);
       }
     }
 
-    /**
-     * Render hasil eliminasi ke panel.
-     * @param {Array} rows - array of { unique_id, name, final_score, rank_final? }
-     * @param {boolean} isLocked - apakah sudah dikunci (dari elimination_history)
-     */
     function renderElimResult(rows, isLocked = false) {
       const info = document.getElementById('elimResultInfo');
       if (!info) return;
@@ -1043,12 +999,6 @@
       `;
     }
 
-    /**
-     * STEP 1 — HITUNG: preview siapa yang akan tereliminasi.
-     * Panggil get_cataclysm_elimination(), potong 30 teratas (lolos),
-     * sisanya (index >= 30) adalah yang tereliminasi.
-     * Hasil disimpan di cachedElimResult, belum di-insert ke DB.
-     */
     async function executeComputeElimination() {
       const confirmCalc = confirm(
         `Hitung daftar peserta yang akan TERELIMINASI?\n\n` +
@@ -1080,8 +1030,6 @@
           return;
         }
 
-        // Ranking dari RPC sudah DESC (rank 1 = tertinggi)
-        // Ambil index >= 30 = tereliminasi
         const eliminated = ranking.slice(SURVIVOR_COUNT).map(r => ({
           unique_id: r.unique_id,
           name: r.name,
@@ -1091,7 +1039,6 @@
 
         cachedElimResult = eliminated;
 
-        // Tampilkan preview (belum lock)
         renderElimResult(eliminated, false);
 
         playBell();
@@ -1106,9 +1053,6 @@
       }
     }
 
-    /**
-     * STEP 2 — KUNCI: insert ke elimination_history + set is_eliminated = true.
-     */
     async function executeDeclareElimination() {
       const confirmLock = confirm(
         `🔒 KUNCI peserta yang tereliminasi?\n\n` +
@@ -1119,7 +1063,6 @@
       );
       if (!confirmLock) return;
 
-      // Kalau belum compute, coba compute dulu
       if (!cachedElimResult || cachedElimResult.length === 0) {
         const reCalc = confirm('Belum ada data hasil hitung. Hitung otomatis sekarang?');
         if (!reCalc) return;
@@ -1136,37 +1079,22 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunci...';
 
       try {
-        // 1. Insert ke elimination_history (upsert karena ada unique constraint unique_id+game_name)
-        const rows = cachedElimResult.map(r => ({
-          unique_id: r.unique_id,
-          name: r.name,
-          game_name: GAME_NAME,
-          final_score: r.final_score,
-          eliminated_at: new Date().toISOString()
-        }));
-
-        // Delete dulu biar bersih, lalu insert (menghindari konflik partial)
-        await supabaseClient
-          .from(ELIM_HISTORY_TABLE)
-          .delete()
-          .eq('game_name', GAME_NAME);
-
-        const { error: insertErr } = await supabaseClient
-          .from(ELIM_HISTORY_TABLE)
-          .insert(rows);
+        // Simpan eliminasi via RPC (server-side)
+        const { data: insertedCount, error: insertErr } = await supabaseClient
+          .rpc('save_cataclysm_elimination');
 
         if (insertErr) throw insertErr;
 
-        // 2. Panggil RPC declare_elimination untuk set users.is_eliminated = true
+        // Kunci — set users.is_eliminated = true
         const { data: declaredCount, error: declareErr } = await supabaseClient
           .rpc('declare_elimination', { p_game_name: GAME_NAME });
 
         if (declareErr) throw declareErr;
 
         playBell();
-        showNotif(`🔒 ${declaredCount || rows.length} peserta dikunci`);
+        showNotif(`🔒 ${declaredCount || 0} peserta dikunci`);
         alert(
-          `🔒 ${declaredCount || rows.length} peserta telah dikunci.\n\n` +
+          `🔒 ${declaredCount || 0} peserta telah dikunci.\n\n` +
           `Kiosk mereka akan freeze permanen.\n` +
           `Data tersimpan di elimination_history.`
         );
@@ -1181,9 +1109,6 @@
       }
     }
 
-    /**
-     * STEP 3 — UNDO: hapus dari elimination_history + reset users.is_eliminated.
-     */
     async function executeUndoElimination() {
       const confirmUndo = confirm(
         `Undo eliminasi Cataclysm Memory?\n\n` +
@@ -1381,7 +1306,6 @@
             else updatePhaseBadge('IDLE');
           }
         })
-        // ⭐ Listen ke elimination_history
         .on('postgres_changes', { event: '*', schema: 'public', table: ELIM_HISTORY_TABLE }, () => {
           refreshElimUI();
         })
@@ -1425,7 +1349,7 @@
       subscribeRealtime();
     }
 
-    // Expose ke window (untuk tombol onclick)
+    // Expose
     window.startMemorizeSession = startMemorizeSession;
     window.stopMemorizeSession = stopMemorizeSession;
     window.startAnswerSession = startAnswerSession;
@@ -1440,8 +1364,6 @@
     window.revealIndividualRank = revealIndividualRank;
     window.revealAllIndividuals = revealAllIndividuals;
     window.showElimination = showElimination;
-
-    // Expose eliminasi
     window.executeComputeElimination = executeComputeElimination;
     window.executeDeclareElimination = executeDeclareElimination;
     window.executeUndoElimination = executeUndoElimination;
