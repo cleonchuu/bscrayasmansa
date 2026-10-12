@@ -25,9 +25,6 @@
     .font-math { font-family: 'Orbitron', sans-serif; }
     .font-cinzel { font-family: 'Cinzel', serif; }
 
-    /* ═══════════════════════════════════════════════════════
-       STAGE VIEW SWITCHER — FULL FIXED
-       ═══════════════════════════════════════════════════════ */
     .stage-view {
       transition: opacity 0.5s ease, transform 0.5s ease;
       position: fixed;
@@ -47,7 +44,6 @@
     .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(220, 38, 38, 0.5); border-radius: 10px; }
 
-    /* Team colors — merah/oranye variant */
     .team-1 { background: linear-gradient(135deg, #7f1d1d, #991b1b); border-color: #f87171; }
     .team-2 { background: linear-gradient(135deg, #7c2d12, #9a3412); border-color: #fb923c; }
     .team-3 { background: linear-gradient(135deg, #831843, #9d174d); border-color: #f472b6; }
@@ -59,7 +55,6 @@
     .team-9 { background: linear-gradient(135deg, #7c2d12, #c2410c); border-color: #fdba74; }
     .team-10 { background: linear-gradient(135deg, #701a75, #a21caf); border-color: #e879f9; }
 
-    /* Animations */
     @keyframes slideInUp {
       from { opacity: 0; transform: translateY(30px); }
       to { opacity: 1; transform: translateY(0); }
@@ -101,9 +96,6 @@
     .glow-orange { box-shadow: 0 0 60px rgba(249, 115, 22, 0.5); }
     .glow-amber-red { box-shadow: 0 0 60px rgba(245, 158, 11, 0.4); }
 
-    /* ═══════════════════════════════════════════════════════════
-       BGM BADGE
-       ═══════════════════════════════════════════════════════════ */
     .bgm-badge {
       position: fixed;
       bottom: 20px; right: 20px;
@@ -122,9 +114,6 @@
     .bgm-badge .dot.muted { background: #ef4444; }
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-    /* ═══════════════════════════════════════════════════════════
-       AUDIO UNLOCK OVERLAY
-       ═══════════════════════════════════════════════════════════ */
     #audioUnlockOverlay {
       position: fixed; inset: 0;
       background: rgba(5, 2, 2, 0.94);
@@ -141,15 +130,11 @@
       50% { transform: translateY(-10px) scale(1.08); }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       IDLE VIEW — APOCALYPTIC BRAIN
-       ═══════════════════════════════════════════════════════════ */
     #viewIdle {
       background-color: #050203;
       overflow: hidden;
     }
 
-    /* Screen shakes */
     @keyframes subtleShake {
       0% { transform: translate(0px, 0px) rotate(0deg); }
       20% { transform: translate(-2px, 3px) rotate(-0.3deg); }
@@ -160,7 +145,6 @@
     }
     .shake-subtle { animation: subtleShake 0.18s infinite ease-in-out; }
 
-    /* Pulsing brain glow */
     @keyframes brainPulse {
       0% {
         filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6)) drop-shadow(0 0 35px rgba(220, 38, 38, 0.4));
@@ -185,9 +169,6 @@
       background: radial-gradient(circle, transparent 40%, rgba(10, 0, 2, 0.85) 80%, rgba(0, 0, 0, 0.98) 100%);
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       LOADING SCREEN
-       ═══════════════════════════════════════════════════════════ */
     #loadingScreen {
       position: fixed; inset: 0;
       z-index: 5000;
@@ -200,7 +181,6 @@
       opacity: 1; pointer-events: auto;
     }
 
-    /* Fire transition canvas */
     #fireTransitionCanvas {
       position: fixed; inset: 0;
       z-index: 4500;
@@ -210,11 +190,6 @@
     }
     #fireTransitionCanvas.show { opacity: 1; }
 
-        /* ═══════════════════════════════════════════════════════
-       ELIMINATION VIEW — Animated Card Reveal
-       ═══════════════════════════════════════════════════════ */
-
-    /* Kartu survivor reveal */
     @keyframes survivorCardIn {
       0% { opacity: 0; transform: scale(0.3) rotate(-15deg); filter: blur(10px); }
       60% { opacity: 1; transform: scale(1.08) rotate(3deg); filter: blur(0); }
@@ -232,12 +207,10 @@
       animation: survivorCardOut 0.4s ease-in forwards;
     }
 
-    /* Rank badge glow */
     .rank-1-glow { box-shadow: 0 0 60px rgba(251, 191, 36, 0.7), 0 0 100px rgba(251, 191, 36, 0.4); }
     .rank-2-glow { box-shadow: 0 0 60px rgba(226, 232, 240, 0.6), 0 0 100px rgba(226, 232, 240, 0.3); }
     .rank-3-glow { box-shadow: 0 0 60px rgba(217, 119, 6, 0.7), 0 0 100px rgba(217, 119, 6, 0.4); }
 
-    /* Kartu tereliminasi */
     @keyframes elimCardIn {
       0% { opacity: 0; transform: scale(0.5) translateY(30px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -298,7 +271,6 @@
       margin-top: 0.35rem;
     }
 
-    /* Fade transition between phases */
     .elim-phase {
       transition: opacity 0.5s ease;
     }
@@ -353,16 +325,11 @@
        VIEW 0: IDLE — APOCALYPTIC BRAIN
        ═══════════════════════════════════════════════════════════ -->
   <div id="viewIdle" class="stage-view active-view">
-    <!-- Background Canvas: wind + embers + tsunami -->
     <canvas id="bgCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
-
-    <!-- Vignette -->
     <div class="vignette absolute inset-0 z-10 pointer-events-none"></div>
 
-    <!-- Main Scene (with shake) -->
     <div id="mainScene" class="relative z-20 w-full h-full flex flex-col justify-between items-center p-6 md:p-10 shake-subtle">
 
-      <!-- HEADER HUD -->
       <header class="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center gap-4 bg-black/50 backdrop-blur-md border border-red-900/50 p-4 rounded-xl shadow-[0_0_25px_rgba(185,28,28,0.25)]">
         <div class="flex items-center space-x-3">
           <div class="w-3 h-3 rounded-full bg-red-600 animate-ping"></div>
@@ -382,15 +349,12 @@
         </div>
       </header>
 
-      <!-- CENTERPIECE: BRAIN + TITLE -->
       <main class="relative flex flex-col items-center justify-center my-auto text-center z-20">
 
         <div class="relative mb-6" id="brainContainer">
-          <!-- Aura rings -->
           <div class="absolute -inset-8 rounded-full bg-red-600/20 blur-xl animate-pulse"></div>
           <div class="absolute -inset-16 rounded-full bg-orange-600/10 blur-2xl animate-ping" style="animation-duration: 4s;"></div>
 
-          <!-- Brain SVG -->
           <div class="relative brain-glow w-48 h-48 md:w-64 md:h-64 flex items-center justify-center">
             <svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-red-500 stroke-red-600 filter drop-shadow-[0_0_25px_rgba(239,68,68,0.8)]" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">
               <path fill="url(#brainGradient)" d="M12,2C8.13,2,5,5.13,5,9c0,1.38,0.4,2.66,1.1,3.74C4.37,13.88,3,15.78,3,18c0,2.76,2.24,5,5,5c0.34,0,0.67-0.04,1-0.09c1.07,0.69,2.34,1.09,3.7,1.09s2.63-0.4,3.7-1.09c0.33,0.05,0.66,0.09,1,0.09c2.76,0,5-2.24,5-5c0-2.22-1.37-4.12-3.1-5.26C20.6,11.66,21,10.38,21,9C21,5.13,17.87,2,12,2z" />
@@ -429,7 +393,6 @@
         </div>
       </main>
 
-      <!-- FOOTER -->
       <footer class="w-full max-w-xl flex flex-col items-center gap-3 z-20">
         <p class="text-[10px] text-red-400/60 font-mono text-center">
           Listening to channel: <code class="text-red-300">cataclysm-lobby</code> | Event: <code class="text-red-300">START_GAME</code>
@@ -438,7 +401,6 @@
     </div>
   </div>
 
-  <!-- FIRE TRANSITION CANVAS (transisi ke loading) -->
   <canvas id="fireTransitionCanvas"></canvas>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -559,20 +521,15 @@
     </div>
   </div>
 
-    <!-- ═══════════════════════════════════════════════════════════
-       VIEW 6: ELIMINATION (30 LULUS + TERELIMINASI)
+  <!-- ═══════════════════════════════════════════════════════════
+       VIEW 6: ELIMINATION
        ═══════════════════════════════════════════════════════════ -->
   <div id="viewElimination" class="stage-view flex flex-col items-center justify-center p-6 overflow-hidden">
-
-    <!-- Background -->
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(127,29,29,0.35),_transparent_70%)] pointer-events-none"></div>
 
-    <!-- Confetti canvas (untuk fase reveal) -->
     <canvas id="confettiCanvas" class="fixed inset-0 w-full h-full z-30 pointer-events-none"></canvas>
 
-    <!-- FASE 1: Reveal survivor 1-per-1 -->
     <div id="elimSurvivorPhase" class="relative z-20 w-full h-full flex flex-col items-center justify-center">
-      
       <div class="text-center mb-6">
         <span class="bg-emerald-500/20 border-2 border-emerald-400/50 text-emerald-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em]">
           <i class="fas fa-medal"></i> LOLOS KE HARI 2
@@ -587,9 +544,7 @@
       </div>
     </div>
 
-    <!-- FASE 2: Grid tereliminasi -->
     <div id="elimEliminatedPhase" class="relative z-20 w-full h-full flex-col items-center justify-center p-8 hidden">
-      
       <div class="text-center mb-6">
         <span class="bg-rose-500/20 border-2 border-rose-400/50 text-rose-300 font-black text-sm px-6 py-2 rounded-full uppercase tracking-[0.2em] animate-pulse">
           <i class="fas fa-skull-crossbones"></i> TERELIMINASI
@@ -602,7 +557,6 @@
       <div id="eliminatedGrid" class="grid grid-cols-5 gap-4 w-full max-w-7xl relative z-10"></div>
     </div>
 
-    <!-- FASE 3: Summary -->
     <div id="elimSummaryPhase" class="relative z-20 w-full h-full flex-col items-center justify-center hidden">
       <div class="text-center space-y-8">
         <div class="text-8xl md:text-9xl mb-4">🏆</div>
@@ -670,6 +624,65 @@ const TEAM_NAMES = {
   1: 'TIM 1', 2: 'TIM 2', 3: 'TIM 3', 4: 'TIM 4', 5: 'TIM 5',
   6: 'TIM 6', 7: 'TIM 7', 8: 'TIM 8', 9: 'TIM 9', 10: 'TIM 10'
 };
+
+// ═══════════════════════════════════════════════════════════
+// ⭐ AVATAR CACHE HELPER — supaya tidak query berulang
+// ═══════════════════════════════════════════════════════════
+const avatarCache = {};
+
+/**
+ * Ambil map { unique_id: avatar_url } dari tabel users.
+ * Hasil di-cache agar tidak query berulang untuk uid yang sama.
+ * @param {string[]} uids
+ * @returns {Promise<Object>} map uid → avatar_url (atau null kalau tidak ada)
+ */
+async function getAvatarMap(uids) {
+  const unique = [...new Set(uids.filter(Boolean))];
+  const missing = unique.filter(u => !(u in avatarCache));
+
+  if (missing.length > 0) {
+    // Chunk supaya tidak terlalu panjang query-nya kalau peserta banyak
+    const CHUNK = 200;
+    for (let i = 0; i < missing.length; i += CHUNK) {
+      const chunk = missing.slice(i, i + CHUNK);
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('unique_id, avatar_url')
+          .in('unique_id', chunk);
+        if (error) {
+          console.warn('[AVATAR] fetch error:', error.message);
+          chunk.forEach(u => { if (!(u in avatarCache)) avatarCache[u] = null; });
+        } else {
+          (data || []).forEach(u => { avatarCache[u.unique_id] = u.avatar_url || null; });
+          chunk.forEach(u => { if (!(u in avatarCache)) avatarCache[u] = null; });
+        }
+      } catch (e) {
+        console.warn('[AVATAR] exception:', e);
+        chunk.forEach(u => { if (!(u in avatarCache)) avatarCache[u] = null; });
+      }
+    }
+  }
+
+  const result = {};
+  unique.forEach(u => { result[u] = avatarCache[u] ?? null; });
+  return result;
+}
+
+/**
+ * Helper untuk bikin URL avatar dengan fallback dicebear.
+ */
+function avatarUrl(uid, avatarUrlRaw) {
+  if (avatarUrlRaw && String(avatarUrlRaw).trim()) return avatarUrlRaw;
+  return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}`;
+}
+
+/**
+ * Helper untuk bikin HTML atribut onerror fallback ke dicebear.
+ */
+function avatarFallbackOnError(uid) {
+  return `this.onerror=null;this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(uid)}'`;
+}
 
 // ═══════════════════════════════════════════════════════════
 // BGM CONFIG
@@ -760,24 +773,20 @@ let cachedGlobalScores = [];
 let lastMemorizeSig = '';
 let memorizeActive = false;
 
-// Idle canvas state
 let idleCanvasRunning = false;
 let idleCanvasRafId = null;
 let idleWindParticles = [];
 let idleEmbers = [];
 let idleWaveOffset = 0;
 
-// Loading canvas state
 let loadingCanvasRunning = false;
 let loadingCanvasRafId = null;
 let loadingWindParticles = [];
 
-// Transition state
 let transitionRunning = false;
 let transitionParticles = [];
 let transitionRafId = null;
 
-// Guard
 let isTransitioning = false;
 
 // ═══════════════════════════════════════════════════════════
@@ -803,8 +812,6 @@ function playBeepTimes(times = 3, gapMs = 400) {
     setTimeout(() => playBeep(), i * gapMs);
   }
 }
-
-
 
 // ═══════════════════════════════════════════════════════════
 // BGM MANAGER
@@ -1120,7 +1127,7 @@ function stopLoadingCanvas() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// FIRE TRANSITION — Eruption particles
+// FIRE TRANSITION
 // ═══════════════════════════════════════════════════════════
 const fireCanvas = document.getElementById('fireTransitionCanvas');
 const fireCtx = fireCanvas ? fireCanvas.getContext('2d') : null;
@@ -1261,25 +1268,33 @@ const LOG_OK = (t, m) => console.log(`%c[${t}] ✅ ${m}`, 'color:#ef4444;font-we
 const LOG_INFO = (t, m) => console.log(`%c[${t}] ℹ️ ${m}`, 'color:#f97316;font-weight:bold');
 
 // ═══════════════════════════════════════════════════════════
-// FETCH TEAMS
+// ⭐ FETCH TEAMS — sekarang dengan avatar_url dari users
 // ═══════════════════════════════════════════════════════════
 async function fetchTeams() {
-  const { data, error } = await supabaseClient
+  // 1. Ambil daftar tim
+  const { data: teams, error } = await supabaseClient
     .from('cataclysm_memory_teams')
     .select('unique_id, full_name, team')
     .order('team', { ascending: true })
     .order('full_name', { ascending: true });
 
   if (error) { console.error('[STAGE] Fetch teams error:', error); return; }
+  if (!teams || teams.length === 0) { teamsData = {}; return; }
 
+  // 2. Ambil avatar dari users (via helper + cache)
+  const uids = teams.map(t => t.unique_id);
+  const avatarMap = await getAvatarMap(uids);
+
+  // 3. Susun teamsData
   teamsData = {};
   for (let i = 1; i <= TEAM_COUNT; i++) teamsData[i] = [];
 
-  (data || []).forEach(row => {
+  teams.forEach(row => {
     if (!teamsData[row.team]) teamsData[row.team] = [];
     teamsData[row.team].push({
       unique_id: row.unique_id,
-      full_name: row.full_name || row.unique_id
+      full_name: row.full_name || row.unique_id,
+      avatar_url: avatarMap[row.unique_id] || null   // ⭐ simpan avatar
     });
   });
 
@@ -1311,11 +1326,12 @@ function renderTeamContainer(containerId, teamNum) {
   }
 
   const gridHtml = members.map((m, idx) => {
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
+    const src = avatarUrl(m.unique_id, m.avatar_url);
+    const fallback = avatarFallbackOnError(m.unique_id);
     return `
       <div class="flex flex-col items-center text-center animate-slide-up" style="animation-delay: ${idx * 60}ms">
-        <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-2 mb-2">
-          <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
+        <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-1 mb-2">
+          <img src="${src}" alt="${m.full_name}" class="w-full h-full object-cover" onerror="${fallback}" />
         </div>
         <div class="text-xs font-bold truncate w-full text-white">${m.full_name}</div>
         <div class="text-[9px] opacity-60 font-mono truncate w-full">${m.unique_id}</div>
@@ -1595,53 +1611,57 @@ function stopAnswerTimer() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TEAM STANDINGS
+// ⭐ TEAM STANDINGS — sekarang dengan avatar dari users
 // ═══════════════════════════════════════════════════════════
-    async function fetchTeamStandings() {
-      const { data: teams } = await supabaseClient
-        .from('cataclysm_memory_teams')
-        .select('unique_id, full_name, team');
+async function fetchTeamStandings() {
+  const { data: teams } = await supabaseClient
+    .from('cataclysm_memory_teams')
+    .select('unique_id, full_name, team');
 
-      // ⭐ Ambil poin dari tabel baru
-      const { data: points } = await supabaseClient
-        .from('point_cataclysm_memory')
-        .select('unique_id, point');
+  const { data: points } = await supabaseClient
+    .from('point_cataclysm_memory')
+    .select('unique_id, point');
 
-      const scoreMap = {};
-      (points || []).forEach(p => {
-        scoreMap[p.unique_id] = p.point || 0;
+  const scoreMap = {};
+  (points || []).forEach(p => {
+    scoreMap[p.unique_id] = p.point || 0;
+  });
+
+  // ⭐ Ambil avatar dari users
+  const uids = (teams || []).map(t => t.unique_id);
+  const avatarMap = await getAvatarMap(uids);
+
+  const teamTotals = {};
+  for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
+
+  (teams || []).forEach(t => {
+    if (teamTotals[t.team]) {
+      const memberScore = scoreMap[t.unique_id] || 0;
+      teamTotals[t.team].members.push({
+        unique_id: t.unique_id,
+        full_name: t.full_name || t.unique_id,
+        avatar_url: avatarMap[t.unique_id] || null,   // ⭐ avatar
+        score: memberScore
       });
-
-      const teamTotals = {};
-      for (let i = 1; i <= TEAM_COUNT; i++) teamTotals[i] = { sum: 0, count: 0, members: [] };
-
-      (teams || []).forEach(t => {
-        if (teamTotals[t.team]) {
-          const memberScore = scoreMap[t.unique_id] || 0;
-          teamTotals[t.team].members.push({
-            unique_id: t.unique_id,
-            full_name: t.full_name || t.unique_id,
-            score: memberScore
-          });
-          teamTotals[t.team].sum += memberScore;
-          teamTotals[t.team].count += 1;
-        }
-      });
-
-      cachedTeamStandings = Object.keys(teamTotals)
-        .map(tn => {
-          const t = teamTotals[tn];
-          const avg = t.count > 0 ? (t.sum / t.count) : 0;
-          return {
-            team: parseInt(tn),
-            average: Math.round(avg * 10) / 10,
-            sum: t.sum,
-            count: t.count,
-            members: t.members.sort((a, b) => b.score - a.score)
-          };
-        })
-        .sort((a, b) => b.average - a.average);
+      teamTotals[t.team].sum += memberScore;
+      teamTotals[t.team].count += 1;
     }
+  });
+
+  cachedTeamStandings = Object.keys(teamTotals)
+    .map(tn => {
+      const t = teamTotals[tn];
+      const avg = t.count > 0 ? (t.sum / t.count) : 0;
+      return {
+        team: parseInt(tn),
+        average: Math.round(avg * 10) / 10,
+        sum: t.sum,
+        count: t.count,
+        members: t.members.sort((a, b) => b.score - a.score)
+      };
+    })
+    .sort((a, b) => b.average - a.average);
+}
 
 function renderTeamStandingReveal(rank) {
   const container = document.getElementById('teamStandingReveal');
@@ -1710,11 +1730,12 @@ function renderTeamStandingReveal(rank) {
   else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; }
 
   const memberHtml = target.members.slice(0, 12).map((m) => {
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}`;
+    const src = avatarUrl(m.unique_id, m.avatar_url);
+    const fallback = avatarFallbackOnError(m.unique_id);
     return `
       <div class="flex flex-col items-center">
         <div class="w-full aspect-[3/4] bg-slate-950/60 rounded-xl border border-white/20 overflow-hidden flex items-center justify-center p-1 mb-1">
-          <img src="${avatar}" alt="${m.full_name}" class="w-full h-full object-contain" />
+          <img src="${src}" alt="${m.full_name}" class="w-full h-full object-cover" onerror="${fallback}" />
         </div>
         <div class="text-[10px] font-bold truncate w-full text-white">${m.full_name}</div>
       </div>
@@ -1739,27 +1760,32 @@ function renderTeamStandingReveal(rank) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// LEADERBOARD (individu)
+// ⭐ LEADERBOARD — sekarang dengan avatar dari users
 // ═══════════════════════════════════════════════════════════
-    async function fetchGlobalScores() {
-      // ⭐ Ambil dari point_cataclysm_memory + join dengan users untuk nama
-      const { data, error } = await supabaseClient
-        .from('point_cataclysm_memory')
-        .select('unique_id, name, point')
-        .order('point', { ascending: false });
+async function fetchGlobalScores() {
+  const { data, error } = await supabaseClient
+    .from('point_cataclysm_memory')
+    .select('unique_id, name, point')
+    .order('point', { ascending: false });
 
-      if (error || !data) {
-        console.error('[STAGE] Fetch global scores error:', error);
-        return;
-      }
+  if (error || !data) {
+    console.error('[STAGE] Fetch global scores error:', error);
+    return;
+  }
 
-      cachedGlobalScores = data.map(row => ({
-        uid: row.name || row.unique_id,
-        total: row.point || 0
-      }));
+  // ⭐ Ambil avatar dari users
+  const uids = data.map(r => r.unique_id);
+  const avatarMap = await getAvatarMap(uids);
 
-      LOG_OK('STAGE', `📊 Loaded ${cachedGlobalScores.length} peserta`);
-    }
+  cachedGlobalScores = data.map(row => ({
+    uid: row.unique_id,
+    name: row.name || row.unique_id,
+    total: row.point || 0,
+    avatar_url: avatarMap[row.unique_id] || null   // ⭐ avatar
+  }));
+
+  LOG_OK('STAGE', `📊 Loaded ${cachedGlobalScores.length} peserta`);
+}
 
 function renderLeaderboardReveal(rank) {
   const container = document.getElementById('leaderboardReveal');
@@ -1780,7 +1806,8 @@ function renderLeaderboardReveal(rank) {
         <div class="w-full space-y-1.5 max-h-[500px] overflow-y-auto custom-scroll pr-2">
           ${cachedGlobalScores.map((p, idx) => {
             const rankNum = idx + 1;
-            const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
+            const src = avatarUrl(p.uid, p.avatar_url);
+            const fallback = avatarFallbackOnError(p.uid);
             let rowClass = 'bg-slate-800/70 border-slate-700/50';
             let rankStyle = 'bg-slate-700 text-slate-300';
             let rankIcon = `#${rankNum}`;
@@ -1791,9 +1818,9 @@ function renderLeaderboardReveal(rank) {
               <div class="border-2 rounded-xl p-2 flex items-center justify-between gap-3 ${rowClass}">
                 <div class="flex items-center gap-2 overflow-hidden flex-1">
                   <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${rankStyle}">${rankIcon}</div>
-                  <img src="${avatar}" class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 flex-shrink-0 object-cover"/>
+                  <img src="${src}" class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 flex-shrink-0 object-cover" onerror="${fallback}"/>
                   <div class="overflow-hidden">
-                    <p class="text-xs font-bold text-white truncate">${p.uid}</p>
+                    <p class="text-xs font-bold text-white truncate">${p.name}</p>
                   </div>
                 </div>
                 <div class="text-right flex-shrink-0">
@@ -1829,7 +1856,8 @@ function renderLeaderboardReveal(rank) {
   else if (rank === 2) { badge = '🥈 JUARA 2'; badgeStyle = 'bg-slate-200 text-slate-950'; cardTheme = 'bg-gradient-to-b from-slate-800 via-slate-700/80 to-slate-900 border-slate-300/80'; }
   else if (rank === 3) { badge = '🥉 JUARA 3'; badgeStyle = 'bg-amber-600 text-white'; cardTheme = 'bg-gradient-to-b from-amber-950/60 via-amber-900/40 to-slate-900 border-amber-600/80'; }
 
-  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(player.uid)}`;
+  const src = avatarUrl(player.uid, player.avatar_url);
+  const fallback = avatarFallbackOnError(player.uid);
 
   container.innerHTML = `
     <div class="animate-card-pop w-full max-w-lg ${cardTheme} border-2 rounded-3xl p-8 md:p-10 flex flex-col items-center justify-center space-y-6">
@@ -1838,12 +1866,12 @@ function renderLeaderboardReveal(rank) {
       </div>
 
       <div class="w-40 h-40 md:w-52 md:h-52 rounded-3xl bg-slate-950/80 border-2 border-white/20 overflow-hidden flex items-center justify-center p-2">
-        <img src="${avatar}" alt="${player.uid}" class="w-full h-full object-contain" />
+        <img src="${src}" alt="${player.name}" class="w-full h-full object-cover rounded-2xl" onerror="${fallback}" />
       </div>
 
       <div class="text-center space-y-2">
         <h3 class="text-3xl md:text-4xl font-black truncate max-w-md mx-auto text-white tracking-wide">
-          ${player.uid}
+          ${player.name}
         </h3>
         <div class="inline-block text-2xl md:text-3xl font-mono font-black text-amber-400 bg-amber-500/10 px-6 py-2 rounded-2xl border border-amber-500/30">
           +${player.total} PTS
@@ -1855,7 +1883,7 @@ function renderLeaderboardReveal(rank) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// VIEW SWITCHER — dengan loading transition
+// VIEW SWITCHER
 // ═══════════════════════════════════════════════════════════
 function stopAllRotations() {
   stopTeamRotation();
@@ -1871,10 +1899,8 @@ async function handleViewSwitch(viewName, revealedRank) {
   const isSameView = (currentView === viewName);
   const isSameRank = (lastRevealedRank === revealedRank);
 
-  // Skip full transition kalau view sama (misal rank reveal doang)
   if (isSameView && isSameRank) return;
 
-  // Same view, rank berubah → update tanpa loading
   if (isSameView && !isSameRank) {
     lastRevealedRank = revealedRank;
     if (viewName === 'leaderboard') {
@@ -1889,20 +1915,15 @@ async function handleViewSwitch(viewName, revealedRank) {
   isTransitioning = true;
 
   try {
-    // ⭐ Kalau dari idle → view lain → fire burst + loading
     if (currentView === 'idle' && viewName !== 'idle') {
-      // Fire transition
       startFireTransition();
       await delay(1500);
-      // Loading screen
       await showLoadingScreen(2000);
       stopFireTransition();
     }
-    // Kalau view lain → view lain (bukan idle) → loading saja
     else if (viewName !== 'idle' && currentView !== 'idle') {
       await showLoadingScreen(1400);
     }
-    // View → idle: langsung
 
     applyViewSwitch(viewName, revealedRank);
   } finally {
@@ -1919,7 +1940,7 @@ function applyViewSwitch(viewName, revealedRank) {
     answer_phase: document.getElementById('viewAnswerPhase'),
     team_standings: document.getElementById('viewTeamStandings'),
     leaderboard: document.getElementById('viewLeaderboard'),
-    elimination: document.getElementById('viewElimination')   // ⭐ TAMBAH INI
+    elimination: document.getElementById('viewElimination')
   };
 
   Object.values(views).forEach(v => {
@@ -1950,7 +1971,7 @@ function applyViewSwitch(viewName, revealedRank) {
     fetchTeamStandings().then(() => renderTeamStandingReveal(revealedRank));
   } else if (viewName === 'leaderboard') {
     fetchGlobalScores().then(() => renderLeaderboardReveal(revealedRank));
-  } else if (viewName === 'elimination') {                    // ⭐ TAMBAH INI
+  } else if (viewName === 'elimination') {
     playEliminationSequence();
   }
 }
@@ -2096,8 +2117,8 @@ window.addEventListener('resize', () => {
   resizeFireCanvas();
 });
 
-  // ═══════════════════════════════════════════════════════════
-// ELIMINATION — Animasi reveal 30 lulus + grid tereliminasi
+// ═══════════════════════════════════════════════════════════
+// ⭐ ELIMINATION — sekarang pakai avatar dari users (sudah benar)
 // ═══════════════════════════════════════════════════════════
 let eliminationPlaying = false;
 let eliminationData = null;
@@ -2106,7 +2127,6 @@ let confettiRafId = null;
 
 const CONFETTI_COLORS = ['#10b981', '#34d399', '#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#fb7185'];
 
-// Confetti canvas
 const confettiCanvas = document.getElementById('confettiCanvas');
 const confettiCtx = confettiCanvas ? confettiCanvas.getContext('2d') : null;
 
@@ -2175,14 +2195,14 @@ function startConfettiLoop() {
   const loop = () => {
     if (!confettiRunning || !confettiCtx) return;
     confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-    
+
     for (let i = confettiPieces.length - 1; i >= 0; i--) {
       const p = confettiPieces[i];
       p.update();
       p.draw();
       if (p.life <= 0) confettiPieces.splice(i, 1);
     }
-    
+
     confettiRafId = requestAnimationFrame(loop);
   };
   loop();
@@ -2198,96 +2218,80 @@ function stopConfettiLoop() {
   }
 }
 
-// Fetch data eliminasi dari RPC
 async function fetchCataclysmElimination() {
   const { data, error } = await supabaseClient.rpc('get_cataclysm_elimination');
-  
+
   if (error || !data) {
     console.error('[ELIM] Fetch error:', error);
     return [];
   }
-  
-  // Fetch avatars untuk semua peserta
+
   const uids = data.map(r => r.unique_id);
   const { data: users } = await supabaseClient
     .from('users')
     .select('unique_id, avatar_url, school_name')
     .in('unique_id', uids);
-  
+
   const userMap = {};
   (users || []).forEach(u => { userMap[u.unique_id] = u; });
-  
+
   return data.map(r => ({
     unique_id: r.unique_id,
     name: r.name,
     total: Number(r.total_point) || 0,
     finished_at: r.finished_at,
     rank: r.rank_final,
-    avatar: userMap[r.unique_id]?.avatar_url 
+    avatar: userMap[r.unique_id]?.avatar_url
       || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(r.unique_id)}`,
     school: userMap[r.unique_id]?.school_name || ''
   }));
 }
 
-// Main sequence
 async function playEliminationSequence() {
   if (eliminationPlaying) {
     console.log('[ELIM] Already playing, skip');
     return;
   }
   eliminationPlaying = true;
-  
+
   console.log('[ELIM] ▶ Starting elimination sequence');
-  
-  // Reset UI
+
   showElimPhase('survivor');
   document.getElementById('survivorCardContainer').innerHTML = '<p class="text-slate-500 text-xl">Memuat peserta...</p>';
   document.getElementById('eliminatedGrid').innerHTML = '';
-  
-  // Fetch data
+
   const data = await fetchCataclysmElimination();
-  
+
   if (data.length === 0) {
-    document.getElementById('survivorCardContainer').innerHTML = 
+    document.getElementById('survivorCardContainer').innerHTML =
       '<p class="text-slate-500 text-xl">Belum ada data peserta.</p>';
     eliminationPlaying = false;
     return;
   }
-  
-  // Split
+
   const survivors = data.slice(0, 30);
   const eliminated = data.slice(30);
-  
+
   eliminationData = { all: data, survivors, eliminated };
-  
+
   console.log(`[ELIM] ${survivors.length} lulus, ${eliminated.length} tereliminasi`);
-  
-  // ═══════════════════════════════════════════════
-  // FASE 1: REVEAL SURVIVORS (30 × 1 detik + animasi)
-  // ═══════════════════════════════════════════════
-  playBGM('team_standings'); // WINNER.mp3
-  
+
+  playBGM('team_standings');
+
   startConfettiLoop();
-  
+
   for (let i = 0; i < survivors.length; i++) {
     const p = survivors[i];
-    
-    // Update counter
+
     document.getElementById('survivorProgressText').textContent = i + 1;
-    
-    // Render kartu
+
     renderSurvivorCard(p, i + 1);
-    
-    // Konfeti burst
+
     burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 60);
-    
-    // Bell sound
     playBell();
-    
-    // Hold 1 detik
+
     await delay(1000);
-    
-    // Fade out kartu (kecuali terakhir)
+
     if (i < survivors.length - 1) {
       const card = document.querySelector('.survivor-card');
       if (card) {
@@ -2296,39 +2300,32 @@ async function playEliminationSequence() {
       }
     }
   }
-  
-  // Hold kartu terakhir lebih lama
+
   await delay(1500);
-  
-  // ═══════════════════════════════════════════════
-  // FASE 2: REVEAL ELIMINATED (grid per 10, 5 detik/grup)
-  // ═══════════════════════════════════════════════
-  playBGM('disaster_phase'); // TEGANG.mp3
-  
+
+  playBGM('disaster_phase');
   stopConfettiLoop();
-  
   showElimPhase('eliminated');
-  
+
   document.getElementById('eliminatedCountText').textContent = `${eliminated.length} PESERTA`;
-  
+
   const grid = document.getElementById('eliminatedGrid');
   const GROUP_SIZE = 10;
   const totalGroups = Math.ceil(eliminated.length / GROUP_SIZE);
-  
+
   for (let g = 0; g < totalGroups; g++) {
     const start = g * GROUP_SIZE;
     const end = Math.min(start + GROUP_SIZE, eliminated.length);
     const groupItems = eliminated.slice(start, end);
-    
-    // Render grup ke grid
+
     groupItems.forEach((p, idx) => {
       const card = document.createElement('div');
       card.className = 'elim-final-card';
       card.style.animationDelay = `${idx * 80}ms`;
       card.innerHTML = `
         <div class="elim-avatar">
-          <img src="${p.avatar}" alt="${p.name}" 
-               onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+          <img src="${p.avatar}" alt="${p.name}"
+               onerror="this.onerror=null;this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
         </div>
         <div class="elim-name">${p.name}</div>
         <div class="elim-points">${p.total.toFixed(2)}</div>
@@ -2336,25 +2333,21 @@ async function playEliminationSequence() {
       `;
       grid.appendChild(card);
     });
-    
+
     playBeep();
-    
-    // Hold 5 detik per grup (kecuali grup terakhir)
+
     if (g < totalGroups - 1) {
       await delay(5000);
     }
   }
-  
-  // ═══════════════════════════════════════════════
-  // FASE 3: SUMMARY
-  // ═══════════════════════════════════════════════
+
   await delay(3000);
-  
+
   showElimPhase('summary');
   document.getElementById('elimSummaryEliminatedCount').textContent = eliminated.length;
-  
-  playBGM('leaderboard'); // WINNER.mp3
-  
+
+  playBGM('leaderboard');
+
   console.log('[ELIM] ✅ Sequence complete');
   eliminationPlaying = false;
 }
@@ -2362,12 +2355,12 @@ async function playEliminationSequence() {
 function renderSurvivorCard(p, rank) {
   const container = document.getElementById('survivorCardContainer');
   if (!container) return;
-  
+
   let rankBadge = `#${rank}`;
   let rankColor = 'bg-slate-700 text-slate-200';
   let cardGlow = '';
   let cardBorder = 'border-slate-600';
-  
+
   if (rank === 1) {
     rankBadge = '👑 JUARA 1';
     rankColor = 'bg-amber-400 text-slate-950';
@@ -2384,7 +2377,7 @@ function renderSurvivorCard(p, rank) {
     cardGlow = 'rank-3-glow';
     cardBorder = 'border-amber-600';
   }
-  
+
   container.innerHTML = `
     <div class="survivor-card bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 ${cardBorder} border-4 rounded-[2.5rem] p-8 md:p-12 ${cardGlow} flex flex-col items-center gap-6 max-w-lg w-full">
       <div class="px-6 py-2.5 rounded-full ${rankColor} font-math font-black text-xl uppercase tracking-wider shadow-xl">
@@ -2392,7 +2385,7 @@ function renderSurvivorCard(p, rank) {
       </div>
       <div class="w-52 h-52 md:w-64 md:h-64 rounded-3xl bg-slate-950/80 border-4 border-emerald-500/40 p-3 shadow-2xl">
         <img src="${p.avatar}" class="w-full h-full object-cover rounded-2xl" alt="${p.name}"
-             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
+             onerror="this.onerror=null;this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
       </div>
       <div class="text-center space-y-3">
         <h3 class="text-4xl md:text-5xl font-black text-white tracking-wide">${p.name}</h3>
@@ -2411,13 +2404,13 @@ function showElimPhase(phase) {
     eliminated: document.getElementById('elimEliminatedPhase'),
     summary: document.getElementById('elimSummaryPhase')
   };
-  
+
   Object.values(phases).forEach(el => {
     if (!el) return;
     el.classList.add('hidden');
     el.classList.remove('flex');
   });
-  
+
   if (phases[phase]) {
     phases[phase].classList.remove('hidden');
     phases[phase].classList.add('flex');
