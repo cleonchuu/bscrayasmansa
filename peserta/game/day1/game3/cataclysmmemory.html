@@ -3,364 +3,147 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Cataclysm Memory</title>
+  <title>Kios Peserta - Cataclysm Memory</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    .glow-purple { box-shadow: 0 0 25px rgba(168, 85, 247, 0.25); }
-    .glow-amber { box-shadow: 0 0 25px rgba(245, 158, 11, 0.3); }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #030712;
+      color: #fff;
+      user-select: none;
+    }
     .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.4); border-radius: 10px; }
-    .team-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; }
-    @keyframes pulseBell { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
-    .animate-pulse-bell { animation: pulseBell 1s ease-in-out infinite; }
-    @keyframes pulseAmber { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
-    .animate-pulse-amber { animation: pulseAmber 1.2s ease-in-out infinite; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.5); border-radius: 10px; }
+    .team-badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+    .option-btn { transition: all 0.2s ease; }
+    .option-btn.selected {
+      background: rgba(168, 85, 247, 0.3);
+      border-color: #a855f7;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+    }
+    @keyframes pulseTimer {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-timer-pulse { animation: pulseTimer 1s ease-in-out infinite; }
+    .frozen-overlay {
+      backdrop-filter: blur(10px);
+      background: rgba(3, 7, 18, 0.9);
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-6">
 
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
-  <div id="notifBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-6 py-4 rounded-2xl shadow-2xl font-black text-lg animate-pulse-bell flex items-center gap-3 border-2 border-emerald-300">
-    <i class="fas fa-bell text-2xl"></i>
-    <span id="notifBannerText">Notifikasi!</span>
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: PILIH TIM -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayTeamSelect" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md">
+    <div class="bg-slate-900 border border-purple-500/30 rounded-3xl p-8 max-w-2xl w-full shadow-2xl">
+      <div class="text-center mb-6">
+        <span class="bg-purple-500/10 text-purple-400 border border-purple-500/30 text-xs px-4 py-1.5 rounded-full font-bold">
+          <i class="fas fa-users"></i> PILIH KELOMPOK
+        </span>
+        <h1 class="text-3xl font-black text-white mt-3">Cataclysm Memory</h1>
+        <p class="text-sm text-slate-400 mt-1">Pilih tim kamu sebelum memulai</p>
+      </div>
+
+      <div id="teamSelectGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+        <!-- Diisi JS -->
+      </div>
+
+      <div class="text-center">
+        <p id="teamSelectStatus" class="text-xs text-slate-500">Pilih salah satu tim di atas</p>
+      </div>
+    </div>
   </div>
 
-  <div class="max-w-7xl mx-auto space-y-6">
-
-    <!-- HEADER -->
-    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div>
-        <span class="bg-purple-500/10 text-purple-400 border border-purple-500/30 text-xs px-3 py-1 rounded-full font-bold">
-          CONTROL PANEL ADMIN
-        </span>
-        <h1 class="text-2xl font-black text-white mt-2">Cataclysm Memory Admin</h1>
-        <p class="text-xs text-slate-400 mt-1">Kelola sesi menghafal, mengerjakan, dan reveal peringkat</p>
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: MENUNGGU ADMIN -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayFrozen" class="fixed inset-0 z-40 hidden flex-col items-center justify-center p-6 frozen-overlay">
+    <div class="text-center space-y-6">
+      <div class="w-24 h-24 bg-amber-500/10 border-2 border-amber-500/30 rounded-full flex items-center justify-center mx-auto animate-pulse">
+        <i class="fas fa-hourglass-half text-5xl text-amber-400"></i>
       </div>
+      <h2 class="text-3xl font-black text-white">MENUNGGU ADMIN</h2>
+      <p class="text-slate-400 max-w-md mx-auto">
+        Kamu sudah terdaftar di <span id="frozenTeamName" class="font-bold text-cyan-400">Tim</span>.
+        Tunggu admin memulai sesi mengerjakan.
+      </p>
+      <div class="flex items-center justify-center gap-2 text-xs text-slate-500">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        <span>Menunggu perintah mulai...</span>
+      </div>
+    </div>
+  </div>
 
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- OVERLAY: HASIL -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="overlayResult" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-6 bg-slate-950/98 backdrop-blur-lg">
+    <div class="text-center space-y-6 max-w-lg">
+      <div class="w-28 h-28 bg-purple-500/10 border-2 border-purple-500/30 rounded-full flex items-center justify-center mx-auto">
+        <i class="fas fa-trophy text-6xl text-purple-400"></i>
+      </div>
+      <h2 class="text-3xl font-black text-white">SELESAI!</h2>
+      <p class="text-slate-400">Tim kamu telah menyelesaikan semua soal.</p>
+      <div class="bg-slate-900 border border-purple-500/30 rounded-3xl p-8">
+        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Poin Tim</div>
+        <div id="resultScore" class="text-6xl font-black font-mono text-purple-400">0</div>
+        <div class="text-xs text-slate-500 mt-2">dari 25 soal</div>
+        <div id="resultDetail" class="text-xs text-slate-400 mt-4 space-y-1"></div>
+      </div>
+      <p class="text-xs text-slate-600">Layar terkunci. Hubungi panitia jika perlu bantuan.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- MAIN EXAM -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="mainExam" class="hidden max-w-5xl mx-auto space-y-4">
+
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div class="flex items-center gap-3">
+        <div class="w-12 h-12 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 text-xl">
+          <i class="fas fa-brain"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-black text-white">CATACLYSM MEMORY</h1>
+          <p id="examTeamLabel" class="text-xs text-slate-400">Tim: -</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
         <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-center">
-          <div class="text-[10px] text-slate-500 uppercase font-bold">Fase</div>
-          <div id="phaseBadge" class="text-sm font-black text-rose-400">IDLE</div>
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Soal</div>
+          <div id="examProgress" class="text-lg font-black font-mono text-cyan-400">1 / 25</div>
         </div>
-        <button id="btnClearGame" onclick="clearGameState()" class="px-4 py-3 rounded-xl font-black text-sm transition-all bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 active:scale-95 flex items-center gap-2">
-          <i class="fas fa-broom"></i> Clear
-        </button>
-      </div>
-    </div>
-
-    <!-- PANEL: FASE MENGHAFAL -->
-    <div class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl glow-amber space-y-4">
-      <div class="flex items-center justify-between border-b border-white/10 pb-3">
-        <h3 class="font-black text-lg text-amber-400 flex items-center gap-2">
-          <i class="fas fa-brain"></i> Fase Menghafal (15 Menit)
-        </h3>
-        <span id="memorizeStatusBadge" class="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">
-          TIDAK AKTIF
-        </span>
-      </div>
-
-      <p class="text-xs text-slate-400">
-        Setelah menekan tombol <b class="text-amber-400">Mulai Menghafal</b>, layar stage akan menampilkan countdown 15 menit.
-      </p>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="space-y-3">
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
-            <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Durasi</div>
-            <select id="memorizeDuration" class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg px-3 py-2 cursor-pointer focus:outline-none focus:border-amber-400">
-              <option value="300">5 Menit</option>
-              <option value="600">10 Menit</option>
-              <option value="900" selected>15 Menit (default)</option>
-              <option value="1200">20 Menit</option>
-              <option value="1800">30 Menit</option>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="btnStartMemorize" onclick="startMemorizeSession()" class="py-3 rounded-xl font-black text-sm bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fas fa-play"></i> Mulai Menghafal
-            </button>
-            <button id="btnStopMemorize" onclick="stopMemorizeSession()" class="py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fas fa-stop"></i> Stop
-            </button>
-          </div>
-        </div>
-
-        <div class="bg-slate-950 border border-amber-500/40 rounded-xl p-6 text-center flex flex-col justify-center">
-          <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Sisa Waktu Menghafal</div>
-          <div id="memorizeTimerDisplay" class="text-5xl font-mono font-black text-amber-400">--:--</div>
-          <div id="memorizeSubInfo" class="text-[10px] text-slate-500 mt-2 font-mono">Menunggu deklarasi...</div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-center">
+          <div class="text-[10px] text-slate-500 uppercase font-bold">Waktu</div>
+          <div id="examTimer" class="text-lg font-black font-mono text-emerald-400">15:00</div>
         </div>
       </div>
     </div>
 
-    <!-- PANEL: FASE MENGERJAKAN -->
-    <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl glow-purple space-y-4">
-      <div class="flex items-center justify-between border-b border-white/10 pb-3">
-        <h3 class="font-black text-lg text-emerald-400 flex items-center gap-2">
-          <i class="fas fa-pen-to-square"></i> Fase Mengerjakan Soal (15 Menit)
-        </h3>
-        <span id="sessionStatusBadge" class="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">
-          IDLE
-        </span>
-      </div>
+    <div id="questionCard" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5"></div>
 
-      <p class="text-xs text-slate-400">
-        Deklarasikan sesi mengerjakan soal. Peserta akan otomatis dapat soal di kios masing-masing.
-      </p>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="space-y-3">
-          <div class="grid grid-cols-2 gap-2">
-            <button id="btnStartSession" onclick="startAnswerSession()" class="py-3 rounded-xl font-black text-sm bg-purple-600 hover:bg-purple-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fas fa-play"></i> Mulai Sesi
-            </button>
-            <button id="btnEndSession" onclick="endAnswerSession()" class="py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
-              <i class="fas fa-stop"></i> Akhiri Sesi
-            </button>
-          </div>
-        </div>
-
-        <div class="bg-slate-950 border border-purple-500/40 rounded-xl p-6 text-center flex flex-col justify-center">
-          <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Sisa Waktu Mengerjakan</div>
-          <div id="answerTimerDisplay" class="text-5xl font-mono font-black text-purple-400">--:--</div>
-          <div id="sessionSubInfo" class="text-[10px] text-slate-500 mt-2 font-mono">Belum dimulai</div>
-        </div>
-      </div>
+    <div class="flex items-center justify-between gap-3">
+      <button id="btnPrev" onclick="prevQuestion()" class="px-5 py-3 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-700 text-slate-300 transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+        <i class="fas fa-arrow-left"></i> Sebelumnya
+      </button>
+      <div id="questionNav" class="flex flex-wrap gap-1.5 justify-center max-w-md"></div>
+      <button id="btnNext" onclick="nextQuestion()" class="px-5 py-3 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed">
+        Selanjutnya <i class="fas fa-arrow-right"></i>
+      </button>
     </div>
 
-    <!-- PANEL: KONTROL ELIMINASI -->
-    <div class="bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/30 p-6 rounded-2xl space-y-4 shadow-lg">
-      <div class="flex items-center justify-between border-b border-rose-500/20 pb-3 flex-wrap gap-2">
-        <div>
-          <span class="bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest">
-            Elimination Control
-          </span>
-          <h3 class="font-black text-lg text-rose-400 flex items-center gap-2 mt-1">
-            <i class="fas fa-skull-crossbones"></i> Kontrol Eliminasi Cataclysm Memory
-          </h3>
-        </div>
-        <span id="elimStatusBadge" class="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">
-          BELUM ADA DATA
-        </span>
-      </div>
-
-      <div class="bg-slate-950/70 border border-rose-500/20 rounded-xl p-4 space-y-2">
-        <p class="text-xs text-slate-300 leading-relaxed">
-          Sistem akan menghitung <b class="text-emerald-400">peringkat akhir</b> peserta dari akumulasi
-          <span class="text-amber-300">Arithmetic Bingo</span> +
-          <span class="text-cyan-300">Number Disco (Blue + Red)</span> +
-          <span class="text-purple-300">Cataclysm Memory</span>.
-        </p>
-        <p class="text-xs text-slate-400 leading-relaxed">
-          <b class="text-emerald-400">Top 30</b> peserta lolos ke <b>Hari ke-2</b>.
-          Sisanya (<b id="elimEstimatedCount" class="text-rose-400">?</b> peserta) masuk daftar eliminasi.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button onclick="executeComputeElimination()" id="btnComputeElim"
-          class="py-4 rounded-xl font-black text-sm bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20">
-          <i class="fas fa-calculator"></i>
-          <span>1. Hitung Eliminasi</span>
-        </button>
-
-        <button onclick="executeDeclareElimination()" id="btnDeclareElim"
-          class="py-4 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
-          <i class="fas fa-lock"></i>
-          <span>2. Kunci Tereliminasi</span>
-        </button>
-
-        <button onclick="executeUndoElimination()" id="btnUndoElim"
-          class="py-4 rounded-xl font-black text-sm bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/30 transition active:scale-95 flex items-center justify-center gap-2">
-          <i class="fas fa-rotate-left"></i>
-          <span>Undo / Reset</span>
-        </button>
-      </div>
-
-      <div id="elimResultInfo" class="hidden bg-slate-950/80 border border-rose-500/30 rounded-xl p-4 max-h-[300px] overflow-y-auto custom-scroll"></div>
-    </div>
-
-    <!-- GRID: TIM & PESERTA -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
-        <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-          <h3 class="font-black text-lg text-cyan-400 flex items-center gap-2">
-            <i class="fas fa-users-gear"></i> Daftar Tim
-          </h3>
-          <span id="teamCountBadge" class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-lg">0 Tim</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 mb-4">
-          <button onclick="shuffleTeams()" class="py-2.5 rounded-xl font-bold text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 transition active:scale-95 flex items-center justify-center gap-2">
-            <i class="fas fa-shuffle"></i> Shuffle Tim
-          </button>
-          <button onclick="resetTeams()" class="py-2.5 rounded-xl font-bold text-xs bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition active:scale-95 flex items-center justify-center gap-2">
-            <i class="fas fa-rotate-left"></i> Reset Tim
-          </button>
-        </div>
-
-        <div id="teamList" class="space-y-2 max-h-[400px] overflow-y-auto custom-scroll pr-2">
-          <p class="text-xs text-gray-500 text-center py-4">Belum ada tim terbentuk.</p>
-        </div>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl lg:col-span-2">
-        <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-          <h3 class="font-black text-lg text-indigo-400 flex items-center gap-2">
-            <i class="fas fa-id-card"></i> Daftar Peserta & Tim
-          </h3>
-          <div class="flex items-center gap-2">
-            <span id="totalParticipantCount" class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-lg">0 Peserta</span>
-            <button onclick="resetScores()" class="px-3 py-1 rounded-lg font-bold text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition flex items-center gap-1.5 active:scale-95">
-              <i class="fas fa-trash-alt"></i> Reset Poin
-            </button>
-          </div>
-        </div>
-
-        <div id="allParticipantsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto custom-scroll pr-2">
-          <p class="col-span-full text-xs text-gray-500 text-center py-4">Memuat data peserta...</p>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- KONTROL TAMPILAN LAYAR -->
-    <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl space-y-4">
-      <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-2">
-        <div>
-          <span class="bg-purple-500/10 text-purple-400 border border-purple-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
-            REMOTE DISPLAY CONTROL
-          </span>
-          <h3 class="text-lg font-black text-white mt-1 flex items-center gap-2">
-            <i class="fas fa-tv text-purple-400"></i> Kontrol Tampilan Layar Utama Stage
-          </h3>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="switchStageView('idle')" class="px-3.5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-moon"></i> Idle
-          </button>
-          <button onclick="switchStageView('memorize_phase')" class="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-brain"></i> Menghafal
-          </button>
-          <button onclick="switchStageView('team_assignment')" class="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-users"></i> Pembagian Tim
-          </button>
-          <button onclick="switchStageView('disaster_phase')" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-meteor"></i> Bencana
-          </button>
-          <button onclick="switchStageView('answer_phase')" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-pen-to-square"></i> Pengerjaan
-          </button>
-          <button onclick="switchStageView('team_standings')" class="px-3.5 py-2 bg-amber-700 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-shield-halved"></i> Peringkat Tim
-          </button>
-          <button onclick="switchStageView('leaderboard')" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-trophy"></i> Top 10 Akumulasi
-          </button>
-          <button onclick="switchStageView('elimination')" class="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl shadow transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-skull-crossbones"></i> Eliminasi
-          </button>
-        </div>
-      </div>
-
-      <div class="pt-3 border-t border-white/10 space-y-3">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            <i class="fas fa-shield-halved text-amber-400"></i> Reveal Peringkat Tim
-          </p>
-          <button onclick="revealAllTeams()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-list"></i> Tampilkan SEMUA Tim
-          </button>
-        </div>
-
-        <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
-          <button onclick="revealTeamRank(10)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#10</span>
-          </button>
-          <button onclick="revealTeamRank(9)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#9</span>
-          </button>
-          <button onclick="revealTeamRank(8)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#8</span>
-          </button>
-          <button onclick="revealTeamRank(7)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#7</span>
-          </button>
-          <button onclick="revealTeamRank(6)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#6</span>
-          </button>
-          <button onclick="revealTeamRank(5)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#5</span>
-          </button>
-          <button onclick="revealTeamRank(4)" class="py-2.5 bg-slate-800 hover:bg-amber-500/20 border border-slate-700 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">TEAM</span><span>#4</span>
-          </button>
-          <button onclick="revealTeamRank(3)" class="py-2.5 bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px]">🥉 #3</span>
-          </button>
-          <button onclick="revealTeamRank(2)" class="py-2.5 bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px]">🥈 #2</span>
-          </button>
-          <button onclick="revealTeamRank(1)" class="py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition flex flex-col items-center justify-center gap-1 animate-bounce">
-            <span class="text-[10px]">👑 #1</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="pt-3 border-t border-white/10 space-y-3">
-        <div class="flex items-center justify-between flex-wrap gap-2">
-          <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
-            <i class="fas fa-trophy text-purple-400"></i> Reveal Top 10 Akumulasi (Individu)
-          </p>
-          <button onclick="revealAllIndividuals()" class="px-4 py-1.5 bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs rounded-lg transition active:scale-95 flex items-center gap-1.5">
-            <i class="fas fa-list"></i> Tampilkan SEMUA Peserta
-          </button>
-        </div>
-
-        <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
-          <button onclick="showElimination()" 
-            class="px-6 py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
-            <i class="fas fa-skull-crossbones"></i> Tampilkan Eliminasi
-          </button>
-          <button onclick="revealIndividualRank(10)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#10</span>
-          </button>
-          <button onclick="revealIndividualRank(9)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#9</span>
-          </button>
-          <button onclick="revealIndividualRank(8)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#8</span>
-          </button>
-          <button onclick="revealIndividualRank(7)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#7</span>
-          </button>
-          <button onclick="revealIndividualRank(6)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#6</span>
-          </button>
-          <button onclick="revealIndividualRank(5)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#5</span>
-          </button>
-          <button onclick="revealIndividualRank(4)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px] opacity-60">RANK</span><span>#4</span>
-          </button>
-          <button onclick="revealIndividualRank(3)" class="py-2.5 bg-amber-500/10 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px]">🥉 TOP 3</span><span>#3</span>
-          </button>
-          <button onclick="revealIndividualRank(2)" class="py-2.5 bg-slate-300/10 hover:bg-slate-300/30 border border-slate-300/40 text-slate-200 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
-            <span class="text-[10px]">🥈 TOP 2</span><span>#2</span>
-          </button>
-          <button onclick="revealIndividualRank(1)" class="py-2.5 bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-purple-500/20 transition flex flex-col items-center justify-center gap-1 animate-bounce">
-            <span class="text-[10px]">👑 JUARA 1</span><span>#1</span>
-          </button>
-        </div>
-      </div>
+    <div class="text-center">
+      <button id="btnSubmit" onclick="submitExam()" class="px-8 py-4 rounded-2xl font-black text-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition active:scale-95">
+        <i class="fas fa-paper-plane"></i> SUBMIT JAWABAN
+      </button>
     </div>
 
   </div>
@@ -369,19 +152,23 @@
     // ═══════════════════════════════════════════════════════════
     // KONFIGURASI
     // ═══════════════════════════════════════════════════════════
-    const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
-    const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
+    const TOTAL_QUESTIONS = 25;
     const SESSION_DURATION = 900;   // ⭐ 15 MENIT
-    const DEFAULT_MEMORIZE_DURATION = 900;
-    const SURVIVOR_COUNT = 30;
 
-    const SYS_TABLE = 'system_cataclysm_memory';
-    const LAYOUT_TABLE = 'admin_layout_cataclysm_memory';
-    const ELIM_HISTORY_TABLE = 'elimination_history';
+    const POINT_CORRECT = 4;
+    const POINT_WRONG = -2;
+    const POINT_UNANSWERED = 0;
+
+    const TEAM_NAMES = {
+      1: 'Tim 1', 2: 'Tim 2', 3: 'Tim 3', 4: 'Tim 4', 5: 'Tim 5',
+      6: 'Tim 6', 7: 'Tim 7', 8: 'Tim 8', 9: 'Tim 9', 10: 'Tim 10'
+    };
 
     const TEAM_COLORS = {
       1: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
@@ -396,19 +183,51 @@
       10: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30'
     };
 
-    const TEAM_NAMES = {
-      1: 'Tim 1', 2: 'Tim 2', 3: 'Tim 3', 4: 'Tim 4', 5: 'Tim 5',
-      6: 'Tim 6', 7: 'Tim 7', 8: 'Tim 8', 9: 'Tim 9', 10: 'Tim 10'
-    };
+    // ═══════════════════════════════════════════════════════════
+    // DATA SOAL
+    // ═══════════════════════════════════════════════════════════
+    const QUESTIONS = [
+      { no:1, question:"Jika tanggal terjadinya Gempa Bumi Shaanxi dikurangkan dengan tanggal puncak Letusan Gunung Tambora, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Haiti","Letusan Gunung Pelée","Badai Nina","Gempa Bumi Tangshan"], correct:0, image:null },
+      { no:2, question:"Jika tanggal awal Letusan Gunung Tambora ditambah dengan tanggal terjadinya Gempa Bumi Messina, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Samudra Hindia","Badai Mitch","Gempa Bumi Haiyuan","Banjir Sungai Yangtze"], correct:2, image:null },
+      { no:3, question:"Jika tanggal terjadinya Tsunami Aceh (Gempa Bumi Samudra Hindia) dikurangkan dengan tanggal dimulainya Badai Haiyan, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Letusan Gunung Pelée","Gempa Bumi Bam","Longsor Vargas","Gempa Bumi Haiti"], correct:0, image:null },
+      { no:4, question:"Jika tanggal puncak Letusan Gunung Tambora ditambah dengan tanggal terjadinya Gempa Bumi Haiti, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Valdivia","Gempa Bumi Kanto","Letusan Gunung Krakatau","Badai Nina"], correct:0, image:null },
+      { no:5, question:"Jika tanggal terjadinya Gempa Bumi Kanto dikurangkan dengan tanggal dimulainya Badai Mitch, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Siklon Coringa","Banjir Sungai Kuning","Gempa Bumi Bam","Letusan Gunung Nevado del Ruiz"], correct:2, image:null },
+      { no:6, question:"Jika tanggal puncak Letusan Gunung Tambora ditambah dengan tanggal terjadinya Siklon Coringa, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Tangshan","Siklon Nargis","Gempa Bumi Jepang (Tohoku)","Badai Haiyan"], correct:1, image:null },
+      { no:7, question:"Jika tanggal terjadinya Gempa Bumi Bam dikurangkan dengan tanggal terjadinya Gempa Bumi Messina, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Topan Haiphong","Letusan Gunung Tambora","Gempa Bumi Shaanxi","Gelombang Panas Eropa"], correct:2, image:null },
+      { no:8, question:"Jika tanggal dimulainya Badai Haiyan ditambah dengan tanggal terjadinya Gempa Bumi Haiti, maka hasilnya menunjuk pada tanggal terjadinya peristiwa bencana...", options:["Gempa Bumi Valdivia","Gempa Bumi Kanto","Gempa Bumi Samudra Hindia","Letusan Gunung Krakatau"], correct:2, image:null },
+      { no:9, question:"Berapakah angka yang bisa dibagi pada korban jiwa Gempa Bumi Shaanxi?", options:["2","7","9","0"], correct:0, image:null },
+      { no:10, question:"Dalam bencana Gempa Bumi Bam, bencana ini terjadi di suatu kota, dimanakah letak benua kota tersebut?", options:["Amerika","Australia","Asia","Timur Tengah"], correct:2, image:null },
+      { no:11, question:"Perhatikan bencana di bawah ini: (i) Letusan Gunung Tambora, (ii) Letusan Gunung Krakatau, (iii) Letusan Gunung Pelée, (iv) Letusan Gunung Nevado del Ruiz. Jika diurutkan berdasarkan tahun terjadinya dari yang paling awal, urutan yang benar adalah...", options:["1 → 2 → 3 → 4","2 → 1 → 3 → 4","1 → 3 → 2 → 4","2 → 3 → 1 → 4"], correct:0, image:null },
+      { no:12, question:"Gempa Bumi Kanto tahun 1923 memiliki magnitudo 7,9 Mw dan memicu tsunami serta kebakaran hebat. Faktor yang memperparah kebakaran tersebut adalah...", options:["Gempa terjadi saat tengah malam ketika semua orang tidur","Gempa terjadi saat banyak kompor sedang menyala dan api menyebar dengan cepat","Gempa menyebabkan letusan gunung api","Gempa terjadi bersamaan dengan tsunami setinggi 40 meter"], correct:1, image:null },
+      { no:13, question:"Sebuah bencana terjadi pada 13 November 1985. Letusan gunung tersebut mencarikan es dan salju di puncaknya sehingga menghasilkan aliran lahar yang menimbun Kota Armero. Bencana yang dimaksud adalah...", options:["Letusan Gunung Pelée","Letusan Gunung Krakatau","Letusan Gunung Nevado del Ruiz","Letusan Gunung Tambora"], correct:2, image:null },
+      { no:14, question:"Letusan Gunung Tambora terjadi sekitar tanggal ... hingga ...., berapakah selisih tanggal tersebut?", options:["9","10","11","12"], correct:1, image:null },
+      { no:15, question:"Bencana Siklon Bhola (1970) dan Badai Haiyan (2013) sama-sama dipicu oleh fenomena alam yang sama, yaitu...", options:["Gempa bumi megathrust","Angin topan / siklon tropis dahsyat","Erupsi gunung berapi","Hujan asam ekstrem"], correct:1, image:null },
+      { no:16, question:"Hal utama yang membuat Gempa Shaanxi (1556) menelan korban hingga 830.000 jiwa adalah...", options:["Terjadinya tsunami setinggi 30 meter","Runtuhnya rumah gua (Yaodong) tempat tinggal warga","Kebakaran hebat di seluruh kota","Letusan gunung berapi secara bersamaan"], correct:1, image:null },
+      { no:17, question:"Bencana Badai Nina (1975) di Henan, Tiongkok menjadi sangat mematikan karena memicu kejadian...", options:["Tsunami lintas pasifik","Jebolnya Bendungan Banqiao secara beruntun","Longsoran tanah loess","Badai api (firestorm)"], correct:1, image:null },
+      { no:18, question:"Erupsi gas beracun dan awan panas (nuée ardente) dari Gunung Pelée pada tahun 1902 terjadi di wilayah...", options:["Martinique, Kepulauan Karibia","Armero, Kolombia","Valdivia, Chile","Selat Sunda, Indonesia"], correct:0, image:null },
+      { no:19, question:"Gempa bumi paling mematikan di Iran yang menghancurkan situs bersejarah Arg-e Bam terjadi di Kota...", options:["Tehran","Bam","Kerman","Shirazi"], correct:1, image:null },
+      { no:20, question:"Letusan Gunung Tambora pada tahun 1815 memicu fenomena iklim global di Eropa dan Amerika Utara yang dikenal sebagai...", options:["Year Without a Summer (Tahun Tanpa Musim Panas)","Global Firestorm","The Great Frost","Dark Century"], correct:0, image:null },
+      { no:21, question:"Gempa mana yang melanda saat jam makan siang sehingga memicu badai api (firestorm) dari kompor warga yang menyala?", options:["Gempa Haiti (2010)","Gempa Kanto (1923) di Jepang","Gempa Tangshan (1976)","Gempa Messina (1908)"], correct:1, image:null },
+      { no:22, question:"Satu-satunya bencana dalam daftar yang disebabkan oleh suhu panas ekstrem dari Afrika Utara dan bukan karena badai/gempa adalah...", options:["Gelombang Panas Eropa (2003)","Badai Mitch (1998)","Longsor Vargas (1999)","Siklon Nargis (2008)"], correct:0, image:null },
+      { no:23, question:"Kejadian pada gambar di bawah ini terjadi pada tahun...", options:["2010","2011","2012","2013"], correct:1, image:"gempabumijepang.jpeg" },
+      { no:24, question:"Ingat kembali informasi dari bacaan. Bencana pada gambar tersebut terjadi pada 26 Desember. Negara yang menjadi wilayah terparah adalah...", options:["Jepang","Indonesia","Myanmar","Filipina"], correct:1, image:"gempabumidantsunamisamudrahindia.jpeg" },
+      { no:25, question:"Bencana pada gambar di bawah ini terjadi pada tahun...", options:["15","17","18","19"], correct:2, image:"longsorvargas.jpeg" }
+    ];
 
     // ═══════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════
-    let currentSession = { isActive: false, startTime: null, duration: SESSION_DURATION };
-    let currentMemorize = { isActive: false, startTime: null, duration: DEFAULT_MEMORIZE_DURATION };
-    let memorizeTimerInt = null;
-    let answerTimerInt = null;
-    let cachedElimResult = null;
+    let currentUser = null;
+    let selectedTeam = null;
+    let teamMembers = [];
+    let answers = {};
+    let currentQuestionIndex = 0;
+    let sessionActive = false;
+    let sessionStartTime = null;
+    let sessionDuration = SESSION_DURATION;
+    let timerInterval = null;
+    let examSubmitted = false;
+    let score = 0;
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
@@ -418,896 +237,409 @@
       if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
     }
 
-    function showNotif(text) {
-      const banner = document.getElementById('notifBanner');
-      document.getElementById('notifBannerText').textContent = text;
-      banner.classList.remove('hidden');
-      setTimeout(() => banner.classList.add('hidden'), 4000);
+    // ═══════════════════════════════════════════════════════════
+    // LOAD USER
+    // ═══════════════════════════════════════════════════════════
+    function loadUser() {
+      const sess = localStorage.getItem('userSession');
+      if (!sess) {
+        alert('Anda belum login. Silakan login terlebih dahulu.');
+        window.location.href = '/login.html';
+        return false;
+      }
+      try {
+        const parsed = JSON.parse(sess);
+        if (!parsed || !parsed.unique_id) {
+          alert('Session tidak valid. Silakan login ulang.');
+          window.location.href = '/login.html';
+          return false;
+        }
+        currentUser = parsed;
+        return true;
+      } catch (e) {
+        alert('Session error. Silakan login ulang.');
+        window.location.href = '/login.html';
+        return false;
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FASE MENGHAFAL
+    // CEK TIM USER
     // ═══════════════════════════════════════════════════════════
-    async function startMemorizeSession() {
-      const duration = parseInt(document.getElementById('memorizeDuration').value) || DEFAULT_MEMORIZE_DURATION;
+    async function checkUserTeam() {
+      const { data, error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('team')
+        .eq('unique_id', currentUser.unique_id)
+        .maybeSingle();
 
-      const confirmStart = confirm(
-        `Mulai FASE MENGHAFAL selama ${Math.floor(duration/60)} menit?\n\n` +
-        `• Layar stage akan menampilkan countdown besar\n` +
-        `• Peserta fokus menghafal di kios\n` +
-        `• Setelah habis, layar otomatis kembali ke idle + beep`
-      );
-      if (!confirmStart) return;
-
-      const now = new Date().toISOString();
-
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_memorize_active: true,
-          memorize_start_time: now,
-          memorize_duration: duration,
-          memorize_end_time: null,
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal memulai menghafal: ' + error.message); return; }
-
-      await switchStageView('memorize_phase');
-      playBell();
-
-      currentMemorize.isActive = true;
-      currentMemorize.startTime = now;
-      currentMemorize.duration = duration;
-      updateMemorizeUI();
-      startMemorizeTimer(now, duration);
+      if (error) { console.error('Error cek tim:', error); return null; }
+      return data ? data.team : null;
     }
 
-    async function stopMemorizeSession() {
-      const confirmStop = confirm('Stop fase menghafal sekarang?\n\nLayar stage akan kembali ke idle kosong.');
-      if (!confirmStop) return;
+    // ═══════════════════════════════════════════════════════════
+    // AMBIL SEMUA ANGGOTA TIM
+    // ═══════════════════════════════════════════════════════════
+    async function fetchTeamMembers(teamNum) {
+      const { data, error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .select('unique_id, full_name')
+        .eq('team', teamNum);
 
-      const now = new Date().toISOString();
-
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_memorize_active: false,
-          memorize_end_time: now,
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal stop menghafal: ' + error.message); return; }
-
-      await switchStageView('idle');
-      stopMemorizeTimer();
-      currentMemorize.isActive = false;
-      updateMemorizeUI();
-      playBell();
-      showNotif('⏹ Fase menghafal dihentikan');
+      if (error) {
+        console.error('Error fetch team members:', error);
+        return [];
+      }
+      return data || [];
     }
 
-    function startMemorizeTimer(startTime, duration) {
-      if (memorizeTimerInt) clearInterval(memorizeTimerInt);
-      const startMs = new Date(startTime).getTime();
+    // ═══════════════════════════════════════════════════════════
+    // RENDER PILIHAN TIM
+    // ═══════════════════════════════════════════════════════════
+    function renderTeamSelect() {
+      const grid = document.getElementById('teamSelectGrid');
+      grid.innerHTML = '';
+
+      for (let t = 1; t <= TEAM_COUNT; t++) {
+        const btn = document.createElement('button');
+        btn.className = `p-4 rounded-2xl border-2 transition-all text-center ${TEAM_COLORS[t]} hover:scale-105 active:scale-95`;
+        btn.innerHTML = `
+          <div class="text-2xl font-black">${t}</div>
+          <div class="text-[10px] font-bold mt-1">${TEAM_NAMES[t]}</div>
+        `;
+        btn.onclick = () => selectTeam(t);
+        grid.appendChild(btn);
+      }
+    }
+
+    async function selectTeam(teamNum) {
+      const { error } = await supabaseClient
+        .from('cataclysm_memory_teams')
+        .upsert({
+          unique_id: currentUser.unique_id,
+          full_name: currentUser.full_name || currentUser.unique_id,
+          team: teamNum,
+          ready: true,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'unique_id' });
+
+      if (error) {
+        alert('Gagal menyimpan tim: ' + error.message);
+        return;
+      }
+
+      selectedTeam = teamNum;
+      teamMembers = await fetchTeamMembers(teamNum);
+      playBell();
+
+      document.getElementById('overlayTeamSelect').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.remove('hidden');
+      document.getElementById('overlayFrozen').classList.add('flex');
+      document.getElementById('frozenTeamName').textContent = TEAM_NAMES[teamNum];
+
+      console.log(`[KIOS] User ${currentUser.unique_id} memilih Tim ${teamNum}. Anggota:`, teamMembers);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CEK SESSION
+    // ═══════════════════════════════════════════════════════════
+    async function checkSession() {
+      const { data } = await supabaseClient
+        .from('system_cataclysm_memory')
+        .select('is_active, session_start_time, session_duration')
+        .eq('id', 1)
+        .maybeSingle();
+
+      if (data && data.is_active && data.session_start_time) {
+        sessionActive = true;
+        sessionStartTime = data.session_start_time;
+        sessionDuration = data.session_duration || SESSION_DURATION;
+        startExam();
+      } else {
+        sessionActive = false;
+        if (selectedTeam) {
+          document.getElementById('overlayFrozen').classList.remove('hidden');
+          document.getElementById('overlayFrozen').classList.add('flex');
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // MULAI UJIAN
+    // ═══════════════════════════════════════════════════════════
+    async function startExam() {
+      document.getElementById('overlayTeamSelect').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.add('hidden');
+      document.getElementById('overlayFrozen').classList.remove('flex');
+      document.getElementById('overlayResult').classList.add('hidden');
+      document.getElementById('overlayResult').classList.remove('flex');
+
+      document.getElementById('mainExam').classList.remove('hidden');
+      document.getElementById('examTeamLabel').textContent = `Tim: ${TEAM_NAMES[selectedTeam]}`;
+
+      teamMembers = await fetchTeamMembers(selectedTeam);
+
+      answers = {};
+      currentQuestionIndex = 0;
+      examSubmitted = false;
+      score = 0;
+
+      renderQuestionNav();
+      renderQuestion();
+      updateNavButtons();
+      startTimer();
+
+      playBell();
+      console.log('[KIOS] Exam started. Team members:', teamMembers.length);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // TIMER
+    // ═══════════════════════════════════════════════════════════
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      const startMs = new Date(sessionStartTime).getTime();
 
       const tick = () => {
+        if (examSubmitted) return;
         const elapsed = Math.floor((Date.now() - startMs) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
+        const remaining = Math.max(0, sessionDuration - elapsed);
+
         const m = Math.floor(remaining / 60);
         const s = remaining % 60;
-        const el = document.getElementById('memorizeTimerDisplay');
-        if (el) {
-          el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        const timerEl = document.getElementById('examTimer');
+        if (timerEl) {
+          timerEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
           if (remaining <= 30) {
-            el.className = 'text-5xl font-mono font-black text-rose-500 animate-pulse';
+            timerEl.className = 'text-lg font-black font-mono text-rose-500 animate-timer-pulse';
+          } else if (remaining <= 60) {
+            timerEl.className = 'text-lg font-black font-mono text-amber-400 animate-timer-pulse';
           } else {
-            el.className = 'text-5xl font-mono font-black text-amber-400';
+            timerEl.className = 'text-lg font-black font-mono text-emerald-400';
           }
         }
 
         if (remaining <= 0) {
-          clearInterval(memorizeTimerInt);
-          memorizeTimerInt = null;
-          handleMemorizeTimeoutFromAdmin();
+          clearInterval(timerInterval);
+          autoSubmit();
         }
       };
 
       tick();
-      memorizeTimerInt = setInterval(tick, 500);
+      timerInterval = setInterval(tick, 500);
     }
 
-    function stopMemorizeTimer() {
-      if (memorizeTimerInt) { clearInterval(memorizeTimerInt); memorizeTimerInt = null; }
-    }
-
-    async function handleMemorizeTimeoutFromAdmin() {
-      console.log('[ADMIN] ⏰ Memorize timeout from admin timer');
-      try {
-        await supabaseClient
-          .from(SYS_TABLE)
-          .update({
-            is_memorize_active: false,
-            memorize_end_time: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', 1);
-      } catch (e) { console.warn(e); }
-
-      currentMemorize.isActive = false;
-      updateMemorizeUI();
-    }
-
-    function updateMemorizeUI() {
-      const badge = document.getElementById('memorizeStatusBadge');
-      const info = document.getElementById('memorizeSubInfo');
-      const btn = document.getElementById('btnStartMemorize');
-
-      if (currentMemorize.isActive) {
-        badge.textContent = 'AKTIF';
-        badge.className = 'text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-lg animate-pulse-amber';
-        btn.className = 'py-3 rounded-xl font-black text-sm bg-amber-700 text-amber-200 transition active:scale-95 flex items-center justify-center gap-2 opacity-60 cursor-not-allowed';
-        btn.disabled = true;
-        if (info) info.textContent = `Mulai: ${new Date(currentMemorize.startTime).toLocaleTimeString('id-ID')}`;
-      } else {
-        badge.textContent = 'TIDAK AKTIF';
-        badge.className = 'text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg';
-        btn.className = 'py-3 rounded-xl font-black text-sm bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2';
-        btn.disabled = false;
-        if (info) info.textContent = 'Menunggu deklarasi...';
-      }
+    function stopTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SESI MENGERJAKAN SOAL
+    // RENDER SOAL
     // ═══════════════════════════════════════════════════════════
-    async function startAnswerSession() {
-      const confirmStart = confirm('Mulai sesi MENGERJAKAN SOAL selama 15 menit?');
-      if (!confirmStart) return;
+    function renderQuestion() {
+      const q = QUESTIONS[currentQuestionIndex];
+      const card = document.getElementById('questionCard');
 
-      const now = new Date().toISOString();
+      document.getElementById('examProgress').textContent = `${currentQuestionIndex + 1} / ${TOTAL_QUESTIONS}`;
 
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_active: true,
-          action: 'START_SESSION',
-          session_start_time: now,
-          session_duration: SESSION_DURATION,
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal mulai sesi: ' + error.message); return; }
-
-      await switchStageView('answer_phase');
-      playBell();
-      currentSession.isActive = true;
-      currentSession.startTime = now;
-      currentSession.duration = SESSION_DURATION;
-      updateSessionUI();
-      startAnswerTimer(now, SESSION_DURATION);
-    }
-
-    async function endAnswerSession() {
-      const confirmEnd = confirm('Akhiri sesi mengerjakan soal?');
-      if (!confirmEnd) return;
-
-      const now = new Date().toISOString();
-
-      const { error } = await supabaseClient
-        .from(SYS_TABLE)
-        .update({
-          is_active: false,
-          action: 'END_SESSION',
-          updated_at: now
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal mengakhiri sesi: ' + error.message); return; }
-
-      stopAnswerTimer();
-      currentSession.isActive = false;
-      updateSessionUI();
-      playBell();
-      showNotif('⏹ Sesi mengerjakan selesai');
-    }
-
-    function startAnswerTimer(startTime, duration) {
-      if (answerTimerInt) clearInterval(answerTimerInt);
-      const startMs = new Date(startTime).getTime();
-
-      const tick = () => {
-        const elapsed = Math.floor((Date.now() - startMs) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        const el = document.getElementById('answerTimerDisplay');
-        if (el) {
-          el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          if (remaining <= 30) {
-            el.className = 'text-5xl font-mono font-black text-rose-500 animate-pulse';
-          } else {
-            el.className = 'text-5xl font-mono font-black text-purple-400';
-          }
-        }
-        if (remaining <= 0) clearInterval(answerTimerInt);
-      };
-
-      tick();
-      answerTimerInt = setInterval(tick, 500);
-    }
-
-    function stopAnswerTimer() {
-      if (answerTimerInt) { clearInterval(answerTimerInt); answerTimerInt = null; }
-      const el = document.getElementById('answerTimerDisplay');
-      if (el) el.textContent = '--:--';
-    }
-
-    function updateSessionUI() {
-      const badge = document.getElementById('sessionStatusBadge');
-      const info = document.getElementById('sessionSubInfo');
-
-      if (currentSession.isActive) {
-        badge.textContent = 'AKTIF';
-        badge.className = 'text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-lg animate-pulse';
-        if (info) info.textContent = `Mulai: ${new Date(currentSession.startTime).toLocaleTimeString('id-ID')}`;
-      } else {
-        badge.textContent = 'IDLE';
-        badge.className = 'text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg';
-        if (info) info.textContent = 'Belum dimulai';
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // CLEAR GAME STATE
-    // ═══════════════════════════════════════════════════════════
-    async function clearGameState() {
-      const confirmClear = confirm(
-        'CLEAR semua state Cataclysm Memory?\n\n' +
-        '• Fase menghafal dimatikan\n' +
-        '• Sesi mengerjakan dimatikan\n' +
-        '• Layout kembali ke idle\n' +
-        '(Urutan tim & poin & eliminasi TIDAK dihapus)'
-      );
-      if (!confirmClear) return;
-
-      const now = new Date().toISOString();
-
-      await supabaseClient.from(SYS_TABLE).update({
-        is_active: false,
-        is_memorize_active: false,
-        memorize_start_time: null,
-        memorize_end_time: null,
-        action: 'IDLE',
-        session_start_time: null,
-        updated_at: now
-      }).eq('id', 1);
-
-      await supabaseClient.from(LAYOUT_TABLE).update({
-        current_view: 'idle',
-        revealed_rank: 0,
-        updated_at: now
-      }).eq('id', 1);
-
-      stopMemorizeTimer();
-      stopAnswerTimer();
-      currentSession = { isActive: false, startTime: null, duration: SESSION_DURATION };
-      currentMemorize = { isActive: false, startTime: null, duration: DEFAULT_MEMORIZE_DURATION };
-
-      updateSessionUI();
-      updateMemorizeUI();
-      document.getElementById('memorizeTimerDisplay').textContent = '--:--';
-      document.getElementById('answerTimerDisplay').textContent = '--:--';
-      updatePhaseBadge('IDLE');
-
-      playBell();
-      showNotif('✅ State berhasil di-clear');
-    }
-
-    function updatePhaseBadge(phase) {
-      const el = document.getElementById('phaseBadge');
-      el.textContent = phase;
-      const colors = { IDLE: 'text-rose-400', MEMORIZE: 'text-amber-400', ANSWER: 'text-emerald-400' };
-      el.className = `text-sm font-black ${colors[phase] || 'text-slate-400'}`;
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // SHUFFLE / RESET TEAMS
-    // ═══════════════════════════════════════════════════════════
-    async function shuffleTeams() {
-      const { data: users, error: usersError } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name')
-        .eq('role', 'peserta');
-
-      if (usersError || !users || users.length === 0) {
-        alert("Gagal ambil data peserta: " + (usersError ? usersError.message : "kosong"));
-        return;
-      }
-
-      const shuffled = [...users].sort(() => Math.random() - 0.5);
-
-      const teamRows = shuffled.map((user, index) => ({
-        unique_id: user.unique_id,
-        full_name: user.full_name || user.unique_id,
-        team: (index % TEAM_COUNT) + 1,
-        updated_at: new Date().toISOString()
-      }));
-
-      await supabaseClient.from('cataclysm_memory_teams').delete().neq('id', 0);
-      const { error: insertError } = await supabaseClient.from('cataclysm_memory_teams').insert(teamRows);
-
-      if (insertError) { alert("Gagal simpan tim: " + insertError.message); return; }
-
-      playBell();
-      await loadTeamsAndParticipants();
-      alert(`✅ Berhasil bagi ${users.length} peserta ke ${TEAM_COUNT} tim.`);
-    }
-
-    async function resetTeams() {
-      const confirmReset = confirm("Reset semua tim?\n\nIni akan menghapus pembagian tim. Data peserta & poin tetap.");
-      if (!confirmReset) return;
-
-      const { error } = await supabaseClient.from('cataclysm_memory_teams').delete().neq('id', 0);
-      if (error) { alert("Gagal reset: " + error.message); return; }
-
-      playBell();
-      await loadTeamsAndParticipants();
-      alert("✅ Semua tim berhasil di-reset.");
-    }
-
-    async function resetScores() {
-      const confirmReset = confirm(
-        "Reset seluruh poin Cataclysm Memory ke 0?\n\n" +
-        "• Poin semua peserta akan di-set 0\n" +
-        "• Data tim TIDAK dihapus\n" +
-        "• Status finished tim akan direset"
-      );
-      if (!confirmReset) return;
-
-      try {
-        const { error: rpcErr } = await supabaseClient.rpc('reset_point_table', {
-          p_table_name: 'point_cataclysm_memory'
-        });
-
-        if (rpcErr) throw rpcErr;
-
-        await supabaseClient
-          .from('cataclysm_memory_teams')
-          .update({ finished: false, score: 0 })
-          .neq('id', 0);
-
-        alert("✅ Poin berhasil direset.");
-        await loadTeamsAndParticipants();
-      } catch (e) {
-        alert("Gagal reset: " + e.message);
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // LOAD TEAMS & PARTICIPANTS
-    // ═══════════════════════════════════════════════════════════
-    async function loadTeamsAndParticipants() {
-      const { data: users } = await supabaseClient
-        .from('users')
-        .select('unique_id, full_name')
-        .eq('role', 'peserta');
-
-      const { data: teams } = await supabaseClient.from('cataclysm_memory_teams').select('*');
-
-      const { data: points } = await supabaseClient
-        .from('point_cataclysm_memory')
-        .select('unique_id, point');
-
-      const teamMap = {};
-      (teams || []).forEach(t => { teamMap[t.unique_id] = t.team; });
-
-      const scoreMap = {};
-      (points || []).forEach(row => { scoreMap[row.unique_id] = row.point || 0; });
-
-      const merged = (users || []).map(u => ({
-        unique_id: u.unique_id,
-        full_name: u.full_name || u.unique_id,
-        team: teamMap[u.unique_id] || null,
-        score: scoreMap[u.unique_id] || 0
-      }));
-
-      merged.sort((a, b) => {
-        if (a.team === null && b.team === null) return 0;
-        if (a.team === null) return 1;
-        if (b.team === null) return -1;
-        return a.team - b.team || b.score - a.score;
-      });
-
-      renderTeams(merged);
-      renderParticipants(merged);
-
-      const assignedCount = merged.filter(m => m.team !== null).length;
-      document.getElementById('teamCountBadge').textContent = `${assignedCount} / ${merged.length} Peserta`;
-      document.getElementById('totalParticipantCount').textContent = `${merged.length} Peserta`;
-    }
-
-    function renderTeams(merged) {
-      const container = document.getElementById('teamList');
-      container.innerHTML = '';
-
-      if (merged.length === 0) {
-        container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Belum ada tim terbentuk.</p>';
-        return;
-      }
-
-      const teamData = {};
-      for (let i = 1; i <= TEAM_COUNT; i++) teamData[i] = { sum: 0, count: 0 };
-
-      merged.forEach(m => {
-        if (m.team !== null) {
-          teamData[m.team].sum += m.score;
-          teamData[m.team].count += 1;
-        }
-      });
-
-      for (let teamNum = 1; teamNum <= TEAM_COUNT; teamNum++) {
-        if (teamData[teamNum].count === 0) continue;
-
-        const avg = teamData[teamNum].sum / teamData[teamNum].count;
-        const avgRounded = Math.round(avg * 10) / 10;
-
-        const card = document.createElement('div');
-        card.className = `p-3 rounded-xl border ${TEAM_COLORS[teamNum]} flex items-center justify-between text-xs`;
-        card.innerHTML = `
-          <div>
-            <div class="font-bold">${TEAM_NAMES[teamNum]}</div>
-            <div class="text-[10px] opacity-70">${teamData[teamNum].count} anggota</div>
-          </div>
-          <div class="text-right">
-            <div class="font-mono font-black text-sm">${avgRounded}</div>
-            <div class="text-[10px] opacity-70">RATA-RATA</div>
+      let imageHtml = '';
+      if (q.image) {
+        const { data: urlData } = supabaseClient.storage.from('bencana').getPublicUrl(q.image);
+        imageHtml = `
+          <div class="flex justify-center">
+            <img src="${urlData.publicUrl}" alt="Gambar soal ${q.no}" class="max-h-64 rounded-xl border border-slate-700" onerror="this.style.display='none'">
           </div>
         `;
-        container.appendChild(card);
-      }
-    }
-
-    function renderParticipants(merged) {
-      const container = document.getElementById('allParticipantsList');
-      container.innerHTML = '';
-
-      if (merged.length === 0) {
-        container.innerHTML = '<p class="col-span-full text-xs text-gray-500 text-center py-4">Belum ada peserta.</p>';
-        return;
       }
 
-      merged.forEach((item, idx) => {
-        const teamBadge = item.team === null
-          ? '<span class="team-badge text-slate-500 bg-slate-800 border-slate-700">Tanpa Tim</span>'
-          : `<span class="team-badge ${TEAM_COLORS[item.team]}">${TEAM_NAMES[item.team]}</span>`;
-
-        const card = document.createElement('div');
-        card.className = "bg-slate-800/80 border border-slate-700/50 p-3 rounded-xl flex items-center justify-between text-xs";
-        card.innerHTML = `
-          <div class="flex items-center gap-2 overflow-hidden">
-            <span class="text-slate-500 font-mono text-[10px]">#${idx + 1}</span>
-            <div class="truncate">
-              <p class="font-bold text-slate-200 truncate">${item.full_name}</p>
-              ${teamBadge}
-            </div>
-          </div>
-          <span class="font-mono font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">+${item.score}</span>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // KONTROL ELIMINASI
-    // ═══════════════════════════════════════════════════════════
-    async function fetchCataclysmRanking() {
-      const { data, error } = await supabaseClient.rpc('get_cataclysm_elimination');
-      if (error) { console.error('[ELIM] fetch error:', error); return null; }
-      return data || [];
-    }
-
-    async function fetchElimStatus() {
-      const { data, error } = await supabaseClient
-        .from(ELIM_HISTORY_TABLE)
-        .select('unique_id, name, final_score, eliminated_at')
-        .eq('game_name', GAME_NAME)
-        .order('final_score', { ascending: true });
-
-      if (error) { console.warn('[ELIM] status error:', error); return []; }
-      return data || [];
-    }
-
-    async function refreshElimUI() {
-      const statusBadge = document.getElementById('elimStatusBadge');
-      const estCount = document.getElementById('elimEstimatedCount');
-
-      const { count: totalPeserta } = await supabaseClient
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'peserta');
-
-      const { count: totalAktif } = await supabaseClient
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'peserta')
-        .eq('is_eliminated', false);
-
-      const elimRows = await fetchElimStatus();
-
-      const estimatedElim = Math.max(0, (totalAktif || 0) - SURVIVOR_COUNT);
-      if (estCount) estCount.textContent = estimatedElim;
-
-      if (elimRows.length > 0) {
-        statusBadge.textContent = `TERKUNCI (${elimRows.length})`;
-        statusBadge.className = 'text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1 rounded-lg';
-      } else {
-        statusBadge.textContent = 'BELUM ADA DATA';
-        statusBadge.className = 'text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg';
-      }
-
-      if (elimRows.length > 0) {
-        renderElimResult(elimRows, true);
-      }
-    }
-
-    function renderElimResult(rows, isLocked = false) {
-      const info = document.getElementById('elimResultInfo');
-      if (!info) return;
-
-      if (!rows || rows.length === 0) {
-        info.classList.add('hidden');
-        return;
-      }
-
-      info.classList.remove('hidden');
-
-      const titleColor = isLocked ? 'text-rose-400' : 'text-amber-400';
-      const titleIcon = isLocked ? '🔒' : '📋';
-      const titleText = isLocked
-        ? `Tereliminasi & TERKUNCI (${rows.length} peserta)`
-        : `Pratinjau Eliminasi (${rows.length} peserta) — belum dikunci`;
-
-      const list = rows.map((r, idx) => {
-        const name = r.name || r.unique_id;
-        const score = Number(r.final_score ?? r.total_point ?? 0).toFixed(2);
-        const rank = r.rank_final ? ` · Rank #${r.rank_final}` : '';
+      const optionsHtml = q.options.map((opt, idx) => {
+        const isSelected = answers[q.no] === idx;
+        const letter = String.fromCharCode(65 + idx);
         return `
-          <div class="flex items-center justify-between py-1.5 px-2 border-b border-slate-800/50 last:border-b-0 text-xs">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <span class="font-mono text-slate-500 text-[10px] w-6">#${idx + 1}</span>
-              <span class="font-semibold text-slate-200 truncate">${name}</span>
-            </div>
-            <span class="font-mono font-bold text-rose-400 flex-shrink-0">${score} PTS${rank}</span>
-          </div>
+          <button onclick="selectAnswer(${q.no}, ${idx})" class="option-btn w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${isSelected ? 'selected border-purple-500' : 'border-slate-700 hover:border-slate-500 bg-slate-800/50'}">
+            <span class="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center font-black text-sm flex-shrink-0">${letter}</span>
+            <span class="text-sm font-semibold text-slate-200">${opt}</span>
+          </button>
         `;
       }).join('');
 
-      info.innerHTML = `
-        <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-800">
-          <div class="font-bold text-sm ${titleColor}">${titleIcon} ${titleText}</div>
-          <button onclick="document.getElementById('elimResultInfo').classList.add('hidden')" class="text-slate-500 hover:text-white text-xs">
-            <i class="fas fa-times"></i>
-          </button>
+      card.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 font-black flex-shrink-0">${q.no}</div>
+          <p class="text-base font-semibold text-white leading-relaxed">${q.question}</p>
         </div>
-        <div class="space-y-0.5">
-          ${list}
-        </div>
+        ${imageHtml}
+        <div class="space-y-2">${optionsHtml}</div>
       `;
     }
 
-    async function executeComputeElimination() {
-      const confirmCalc = confirm(
-        `Hitung daftar peserta yang akan TERELIMINASI?\n\n` +
-        `• Ranking diambil dari akumulasi Bingo + Disco + Cataclysm\n` +
-        `• Top ${SURVIVOR_COUNT} lolos ke Hari 2\n` +
-        `• Sisanya masuk daftar eliminasi\n` +
-        `• BELUM dikunci — peserta masih bisa main`
-      );
-      if (!confirmCalc) return;
-
-      const btn = document.getElementById('btnComputeElim');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
-
-      try {
-        const ranking = await fetchCataclysmRanking();
-
-        if (!ranking || ranking.length === 0) {
-          alert('⚠️ Tidak ada data peserta. Pastikan peserta sudah main minimal 1 game.');
-          return;
-        }
-
-        if (ranking.length <= SURVIVOR_COUNT) {
-          alert(
-            `⚠️ Hanya ada ${ranking.length} peserta yang sudah main.\n` +
-            `Top ${SURVIVOR_COUNT} lolos tidak bisa dihitung — butuh minimal ${SURVIVOR_COUNT + 1} peserta.`
-          );
-          return;
-        }
-
-        const eliminated = ranking.slice(SURVIVOR_COUNT).map(r => ({
-          unique_id: r.unique_id,
-          name: r.name,
-          final_score: Number(r.total_point || 0),
-          rank_final: r.rank_final
-        }));
-
-        cachedElimResult = eliminated;
-
-        renderElimResult(eliminated, false);
-
-        playBell();
-        alert(
-          `✅ ${eliminated.length} peserta masuk daftar eliminasi.\n\n` +
-          `Mereka MASIH BISA main sampai Anda klik "Kunci Tereliminasi".\n\n` +
-          `Top ${SURVIVOR_COUNT} lolos ke Hari 2.`
-        );
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
+    function renderQuestionNav() {
+      const nav = document.getElementById('questionNav');
+      nav.innerHTML = '';
+      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+        const qNo = i + 1;
+        const isAnswered = answers[qNo] !== undefined;
+        const isCurrent = i === currentQuestionIndex;
+        const btn = document.createElement('button');
+        btn.className = `w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+          isCurrent ? 'bg-purple-600 text-white ring-2 ring-purple-400'
+          : isAnswered ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/30'
+          : 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700'
+        }`;
+        btn.textContent = qNo;
+        btn.onclick = () => { currentQuestionIndex = i; renderQuestion(); renderQuestionNav(); updateNavButtons(); };
+        nav.appendChild(btn);
       }
     }
 
-    async function executeDeclareElimination() {
-      const confirmLock = confirm(
-        `🔒 KUNCI peserta yang tereliminasi?\n\n` +
-        `• Data akan disimpan ke elimination_history\n` +
-        `• Kiosk peserta akan freeze permanen\n` +
-        `• Peserta tereliminasi tidak bisa ikut sesi berikutnya\n` +
-        `• Bisa di-undo kalau ada kesalahan`
-      );
-      if (!confirmLock) return;
+    function updateNavButtons() {
+      document.getElementById('btnPrev').disabled = currentQuestionIndex === 0;
+      document.getElementById('btnNext').disabled = currentQuestionIndex === TOTAL_QUESTIONS - 1;
+    }
 
-      if (!cachedElimResult || cachedElimResult.length === 0) {
-        const reCalc = confirm('Belum ada data hasil hitung. Hitung otomatis sekarang?');
-        if (!reCalc) return;
-        await executeComputeElimination();
-        if (!cachedElimResult || cachedElimResult.length === 0) {
-          alert('⚠️ Gagal menghitung. Coba ulangi.');
-          return;
-        }
-      }
+    function selectAnswer(questionNo, optionIndex) {
+      if (examSubmitted) return;
+      answers[questionNo] = optionIndex;
+      renderQuestion();
+      renderQuestionNav();
+    }
 
-      const btn = document.getElementById('btnDeclareElim');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunci...';
-
-      try {
-        // Simpan eliminasi via RPC (server-side)
-        const { data: insertedCount, error: insertErr } = await supabaseClient
-          .rpc('save_cataclysm_elimination');
-
-        if (insertErr) throw insertErr;
-
-        // Kunci — set users.is_eliminated = true
-        const { data: declaredCount, error: declareErr } = await supabaseClient
-          .rpc('declare_elimination', { p_game_name: GAME_NAME });
-
-        if (declareErr) throw declareErr;
-
-        playBell();
-        showNotif(`🔒 ${declaredCount || 0} peserta dikunci`);
-        alert(
-          `🔒 ${declaredCount || 0} peserta telah dikunci.\n\n` +
-          `Kiosk mereka akan freeze permanen.\n` +
-          `Data tersimpan di elimination_history.`
-        );
-
-        await refreshElimUI();
-      } catch (e) {
-        console.error('[ELIM] declare error:', e);
-        alert('Gagal mengunci: ' + (e.message || e));
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
+    function prevQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        renderQuestion(); renderQuestionNav(); updateNavButtons();
       }
     }
 
-    async function executeUndoElimination() {
-      const confirmUndo = confirm(
-        `Undo eliminasi Cataclysm Memory?\n\n` +
-        `• Semua peserta dibuka kembali\n` +
-        `• Data elimination_history untuk game ini dihapus\n` +
-        `• Peserta bisa main lagi`
-      );
-      if (!confirmUndo) return;
-
-      const btn = document.getElementById('btnUndoElim');
-      const originalHtml = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengundo...';
-
-      try {
-        const { data: undoneCount, error } = await supabaseClient
-          .rpc('undo_elimination', { p_game_name: GAME_NAME });
-
-        if (error) throw error;
-
-        cachedElimResult = null;
-
-        playBell();
-        showNotif(`✅ ${undoneCount || 0} peserta dibuka kembali`);
-        alert(`✅ ${undoneCount || 0} peserta dibuka kembali.`);
-
-        document.getElementById('elimResultInfo').classList.add('hidden');
-        await refreshElimUI();
-      } catch (e) {
-        console.error('[ELIM] undo error:', e);
-        alert('Gagal undo: ' + (e.message || e));
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
+    function nextQuestion() {
+      if (currentQuestionIndex < TOTAL_QUESTIONS - 1) {
+        currentQuestionIndex++;
+        renderQuestion(); renderQuestionNav(); updateNavButtons();
       }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // STAGE VIEW CONTROL
+    // SUBMIT
     // ═══════════════════════════════════════════════════════════
-    async function switchStageView(viewName) {
-      const payload = {
-        current_view: viewName,
-        updated_at: new Date().toISOString()
-      };
-
-      if (viewName === 'leaderboard' || viewName === 'team_standings') {
-        payload.revealed_rank = 0;
-      }
-
-      const { data, error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update(payload)
-        .eq('id', 1)
-        .select();
-
-      if (error) {
-        console.error('[ADMIN] Gagal switch view:', error);
-        alert('Gagal ubah tampilan: ' + error.message);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        alert('⚠️ Baris id=1 di tabel admin_layout_cataclysm_memory tidak ada.');
-        return;
-      }
-
-      playBell();
-      console.log('[ADMIN] Switch view →', viewName);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // REVEAL RANK
-    // ═══════════════════════════════════════════════════════════
-    async function revealTeamRank(rankNum) {
-      const { error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'team_standings',
-          revealed_rank: rankNum,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal reveal: ' + error.message); return; }
-      playBell();
-    }
-
-    async function revealAllTeams() {
-      const { error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'team_standings',
-          revealed_rank: -1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal reveal: ' + error.message); return; }
-      playBell();
-      showNotif('📋 Menampilkan SEMUA tim');
-    }
-
-    async function revealIndividualRank(rankNum) {
-      const { error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'leaderboard',
-          revealed_rank: rankNum,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal reveal: ' + error.message); return; }
-      playBell();
-    }
-
-    async function revealAllIndividuals() {
-      const { error } = await supabaseClient
-        .from(LAYOUT_TABLE)
-        .update({
-          current_view: 'leaderboard',
-          revealed_rank: -1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) { alert('Gagal reveal: ' + error.message); return; }
-      playBell();
-      showNotif('📋 Menampilkan SEMUA peserta');
-    }
-
-    async function showElimination() {
-      if (!confirm('Tampilkan animasi ELIMINASI?\n\nIni akan menampilkan 30 peserta lulus + sisanya tereliminasi.')) return;
-
-      const { error } = await supabaseClient
-        .from('admin_layout_cataclysm_memory')
-        .update({
-          current_view: 'elimination',
-          revealed_rank: 0,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
-
-      if (error) {
-        alert('Gagal: ' + error.message);
+    async function submitExam() {
+      if (examSubmitted) return;
+      const unanswered = TOTAL_QUESTIONS - Object.keys(answers).length;
+      if (unanswered > 0) {
+        const confirmSubmit = confirm(`Masih ada ${unanswered} soal yang belum dijawab (akan dikenakan 0 poin per soal). Yakin ingin submit?`);
+        if (!confirmSubmit) return;
       } else {
-        console.log('[ADMIN] Elimination triggered');
+        if (!confirm('Yakin ingin submit jawaban?')) return;
       }
+      await finalizeExam();
+    }
+
+    async function autoSubmit() {
+      if (examSubmitted) return;
+      await finalizeExam();
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME SUBSCRIPTIONS
+    // FINALIZE: hitung poin tim & simpan ke SEMUA anggota
     // ═══════════════════════════════════════════════════════════
-    function subscribeRealtime() {
-      supabaseClient
-        .channel('admin_cataclysm_channel')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'point_cataclysm_memory' }, () => {
-          loadTeamsAndParticipants();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'cataclysm_memory_teams' }, () => {
-          loadTeamsAndParticipants();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: SYS_TABLE }, (payload) => {
-          if (payload.new) {
-            const sys = payload.new;
+    async function finalizeExam() {
+      if (examSubmitted) return;
+      examSubmitted = true;
+      stopTimer();
 
-            currentSession.isActive = sys.is_active || false;
-            currentSession.startTime = sys.session_start_time;
-            currentSession.duration = sys.session_duration || SESSION_DURATION;
-            updateSessionUI();
+      let correctCount = 0, wrongCount = 0, unansweredCount = 0, totalScore = 0;
 
-            if (currentSession.isActive && currentSession.startTime && !answerTimerInt) {
-              startAnswerTimer(currentSession.startTime, currentSession.duration);
-            }
-            if (!currentSession.isActive && answerTimerInt) {
-              stopAnswerTimer();
-            }
+      QUESTIONS.forEach(q => {
+        const userAnswer = answers[q.no];
+        if (userAnswer === undefined) {
+          unansweredCount++;
+          totalScore += POINT_UNANSWERED;
+        } else if (userAnswer === q.correct) {
+          correctCount++;
+          totalScore += POINT_CORRECT;
+        } else {
+          wrongCount++;
+          totalScore += POINT_WRONG;
+        }
+      });
 
-            currentMemorize.isActive = sys.is_memorize_active || false;
-            currentMemorize.startTime = sys.memorize_start_time;
-            currentMemorize.duration = sys.memorize_duration || DEFAULT_MEMORIZE_DURATION;
-            updateMemorizeUI();
+      score = totalScore;
 
-            if (currentMemorize.isActive && currentMemorize.startTime && !memorizeTimerInt) {
-              startMemorizeTimer(currentMemorize.startTime, currentMemorize.duration);
-            }
-            if (!currentMemorize.isActive && memorizeTimerInt) {
-              stopMemorizeTimer();
-              document.getElementById('memorizeTimerDisplay').textContent = '--:--';
-            }
+      console.log(`[KIOS] Benar: ${correctCount}, Salah: ${wrongCount}, Kosong: ${unansweredCount}, Total Poin Tim: ${totalScore}`);
 
-            if (currentMemorize.isActive) updatePhaseBadge('MEMORIZE');
-            else if (currentSession.isActive) updatePhaseBadge('ANSWER');
-            else updatePhaseBadge('IDLE');
+      teamMembers = await fetchTeamMembers(selectedTeam);
+
+      if (teamMembers.length === 0) {
+        alert('Tidak ada anggota tim yang ditemukan. Hubungi panitia.');
+        return;
+      }
+
+      const now = new Date().toISOString();
+
+      try {
+        for (const member of teamMembers) {
+          const { error: rpcErr } = await supabaseClient.rpc('add_point_generic', {
+            p_table_name: 'point_cataclysm_memory',
+            p_unique_id: member.unique_id,
+            p_name: member.full_name || member.unique_id,
+            p_delta: score
+          });
+
+          if (rpcErr) {
+            console.error(`RPC gagal untuk ${member.unique_id}:`, rpcErr);
+            throw rpcErr;
           }
+        }
+        console.log(`[KIOS] Poin ${score} berhasil disimpan ke ${teamMembers.length} anggota tim`);
+      } catch (e) {
+        console.error('Gagal simpan skor tim:', e);
+        alert('Gagal menyimpan skor. Hubungi panitia.');
+      }
+
+      await supabaseClient
+        .from('cataclysm_memory_teams')
+        .update({
+          finished: true,
+          score: score,
+          updated_at: now
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: ELIM_HISTORY_TABLE }, () => {
-          refreshElimUI();
+        .eq('team', selectedTeam);
+
+      // Tampilkan overlay hasil
+      document.getElementById('mainExam').classList.add('hidden');
+      document.getElementById('overlayResult').classList.remove('hidden');
+      document.getElementById('overlayResult').classList.add('flex');
+      document.getElementById('resultScore').textContent = score;
+      document.getElementById('resultDetail').innerHTML = `
+        <div>✅ Benar: <b class="text-emerald-400">${correctCount}</b> × +4 = <b>${correctCount * POINT_CORRECT}</b></div>
+        <div>❌ Salah: <b class="text-rose-400">${wrongCount}</b> × -2 = <b>${wrongCount * POINT_WRONG}</b></div>
+        <div>⚪ Kosong: <b class="text-slate-400">${unansweredCount}</b> × 0 = <b>${unansweredCount * POINT_UNANSWERED}</b></div>
+        <div class="pt-2 border-t border-slate-700 mt-2">👥 Poin dibagikan ke <b>${teamMembers.length} anggota tim</b></div>
+      `;
+
+      playBell();
+      console.log(`[KIOS] Skor ${score} tersimpan untuk ${teamMembers.length} anggota tim ${TEAM_NAMES[selectedTeam]}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME SESSION
+    // ═══════════════════════════════════════════════════════════
+    function subscribeSession() {
+      supabaseClient
+        .channel('kios_session_channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_cataclysm_memory' }, (payload) => {
+          if (payload.new) {
+            const isActive = payload.new.is_active;
+            if (isActive && !sessionActive && selectedTeam) {
+              sessionActive = true;
+              sessionStartTime = payload.new.session_start_time;
+              sessionDuration = payload.new.session_duration || SESSION_DURATION;
+              startExam();
+            } else if (!isActive && sessionActive) {
+              sessionActive = false;
+              if (!examSubmitted) autoSubmit();
+            }
+          }
         })
         .subscribe();
     }
@@ -1316,58 +648,35 @@
     // INIT
     // ═══════════════════════════════════════════════════════════
     async function init() {
-      const { data: sys } = await supabaseClient
-        .from(SYS_TABLE)
-        .select('*')
-        .eq('id', 1)
-        .maybeSingle();
+      if (!loadUser()) return;
 
-      if (sys) {
-        currentSession.isActive = sys.is_active || false;
-        currentSession.startTime = sys.session_start_time;
-        currentSession.duration = sys.session_duration || SESSION_DURATION;
+      renderTeamSelect();
 
-        currentMemorize.isActive = sys.is_memorize_active || false;
-        currentMemorize.startTime = sys.memorize_start_time;
-        currentMemorize.duration = sys.memorize_duration || DEFAULT_MEMORIZE_DURATION;
+      const existingTeam = await checkUserTeam();
+
+      if (existingTeam) {
+        selectedTeam = existingTeam;
+        teamMembers = await fetchTeamMembers(existingTeam);
+        document.getElementById('overlayTeamSelect').classList.add('hidden');
+        document.getElementById('overlayFrozen').classList.remove('hidden');
+        document.getElementById('overlayFrozen').classList.add('flex');
+        document.getElementById('frozenTeamName').textContent = TEAM_NAMES[existingTeam];
+      } else {
+        document.getElementById('overlayTeamSelect').classList.remove('hidden');
+        document.getElementById('overlayFrozen').classList.add('hidden');
+        document.getElementById('overlayFrozen').classList.remove('flex');
       }
 
-      updateSessionUI();
-      updateMemorizeUI();
+      await checkSession();
+      subscribeSession();
 
-      if (currentSession.isActive && currentSession.startTime) {
-        startAnswerTimer(currentSession.startTime, currentSession.duration);
-        updatePhaseBadge('ANSWER');
-      }
-      if (currentMemorize.isActive && currentMemorize.startTime) {
-        startMemorizeTimer(currentMemorize.startTime, currentMemorize.duration);
-        updatePhaseBadge('MEMORIZE');
-      }
+      setInterval(async () => {
+        if (examSubmitted) return;
+        if (!sessionActive) await checkSession();
+      }, 3000);
 
-      await loadTeamsAndParticipants();
-      await refreshElimUI();
-      subscribeRealtime();
+      console.log('[KIOS] Init complete');
     }
-
-    // Expose
-    window.startMemorizeSession = startMemorizeSession;
-    window.stopMemorizeSession = stopMemorizeSession;
-    window.startAnswerSession = startAnswerSession;
-    window.endAnswerSession = endAnswerSession;
-    window.clearGameState = clearGameState;
-    window.shuffleTeams = shuffleTeams;
-    window.resetTeams = resetTeams;
-    window.resetScores = resetScores;
-    window.switchStageView = switchStageView;
-    window.revealTeamRank = revealTeamRank;
-    window.revealAllTeams = revealAllTeams;
-    window.revealIndividualRank = revealIndividualRank;
-    window.revealAllIndividuals = revealAllIndividuals;
-    window.showElimination = showElimination;
-    window.executeComputeElimination = executeComputeElimination;
-    window.executeDeclareElimination = executeDeclareElimination;
-    window.executeUndoElimination = executeUndoElimination;
-    window.refreshElimUI = refreshElimUI;
 
     init();
   </script>
