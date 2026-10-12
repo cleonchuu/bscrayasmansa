@@ -62,14 +62,14 @@
     }
     @keyframes skel { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
-    .point-row {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 12px; border-radius: 10px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid rgba(255,255,255,0.05);
-      transition: all 0.2s ease;
-    }
     .point-value { font-family: ui-monospace, monospace; font-weight: 800; color: #fbbf24; }
+
+    /* ⭐ Eliminated overlay */
+    @keyframes elimPulse {
+      0%, 100% { box-shadow: 0 0 60px rgba(244, 63, 94, 0.6); }
+      50%      { box-shadow: 0 0 90px rgba(244, 63, 94, 0.9); }
+    }
+    .elim-avatar-pulse { animation: elimPulse 2s ease-in-out infinite; }
   </style>
 </head>
 <body class="bg-[#0f172a] min-h-screen text-white">
@@ -128,7 +128,7 @@
       </div>
     </div>
 
-    <!-- Hari Kompetisi Principal -->
+    <!-- Hari Kompetisi -->
     <div class="mb-10">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-semibold text-white">
@@ -204,6 +204,49 @@
 
   </div>
 
+  <!-- ⭐ OVERLAY: PESERTA TERELIMINASI -->
+  <div id="eliminatedOverlay" class="hidden fixed inset-0 z-[9999] bg-gradient-to-br from-rose-950 via-slate-950 to-black flex items-center justify-center p-6">
+    <div class="max-w-md w-full text-center space-y-6">
+
+      <div class="relative inline-block">
+        <div class="absolute inset-0 rounded-full bg-rose-600/30 blur-3xl animate-pulse"></div>
+        <div class="relative w-32 h-32 mx-auto rounded-full bg-rose-500/10 border-4 border-rose-500/50 flex items-center justify-center elim-avatar-pulse">
+          <i class="fas fa-skull-crossbones text-6xl text-rose-400"></i>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <div class="inline-block px-4 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-black uppercase tracking-widest">
+          Tereliminasi
+        </div>
+        <h1 class="text-3xl md:text-4xl font-black text-white leading-tight">
+          Kamu Telah<br>
+          <span class="text-rose-400">Tereliminasi</span>
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base leading-relaxed">
+          Terima kasih atas perjuanganmu di<br>
+          <b class="text-amber-400">SMANSA Battle of Champions</b>.
+        </p>
+      </div>
+
+      <div class="bg-slate-900/70 border border-rose-500/30 rounded-2xl p-5 space-y-2 backdrop-blur">
+        <p class="text-xs text-slate-400">
+          Akses ke game sudah ditutup. Kamu tidak dapat mengikuti sesi selanjutnya.
+        </p>
+        <p class="text-xs text-slate-500">
+          Tetap semangat, sampai jumpa di kompetisi berikutnya! 🔥
+        </p>
+      </div>
+
+      <div id="eliminatedAtInfo" class="text-[11px] text-slate-500 font-mono"></div>
+
+      <button onclick="logoutFromEliminated()" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/30 text-sm font-bold transition-all active:scale-95 flex items-center gap-2 mx-auto">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </button>
+
+    </div>
+  </div>
+
   <!-- Modal Game -->
   <div id="gameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
     <div class="bg-[#1e293b] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-fade-in p-6 border border-white/10 shadow-2xl">
@@ -224,16 +267,16 @@
   </div>
 
   <script>
-    // 1. KONFIGURASI SUPABASE
+    // ═══════════════════════════════════════════════════════════
+    // KONFIGURASI
+    // ═══════════════════════════════════════════════════════════
     const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     const STORAGE_BASE = `${supabaseUrl}/storage/v1/object/public`;
     const SCHOOL_LOGO_BASE = `${STORAGE_BASE}/SCHOOL_LOGO`;
-    const AVATAR_BASE = `${STORAGE_BASE}/avatars`;
 
-    // Mapping nama sekolah → file logo (samakan dengan file yang ada di bucket SCHOOL_LOGO)
     const SCHOOL_LOGO_MAP = {
       'MTS DARUSSALAM':             'MTSDARUSSALAM.png',
       'MTS IBNU RUSYD':             'MTSIBNURUSYD.png',
@@ -246,68 +289,45 @@
       'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
     };
 
-    // 2. ELEMEN DOM
-    const loadingScreen   = document.getElementById('loadingScreen');
-    const mainContent     = document.getElementById('mainContent');
-    const profilePhoto    = document.getElementById('profilePhoto');
-    const fullName        = document.getElementById('fullName');
-    const schoolName      = document.getElementById('schoolName');
-    const schoolLogo      = document.getElementById('schoolLogo');
-    const totalPoints     = document.getElementById('totalPoints');
-    const logoutBtn       = document.getElementById('logoutBtn');
-    const carouselContainer = document.getElementById('carouselContainer');
-    const gameModal       = document.getElementById('gameModal');
-    const closeModalBtn   = document.getElementById('closeModalBtn');
-    const modalDayTitle   = document.getElementById('modalDayTitle');
-    const modalDayDate    = document.getElementById('modalDayDate');
-    const modalDayPoints  = document.getElementById('modalDayPoints');
-    const gameList        = document.getElementById('gameList');
-    const pointBreakdownToggle = document.getElementById('pointBreakdownToggle');
-    const pointBreakdown  = document.getElementById('pointBreakdown');
-    const breakdownList   = document.getElementById('breakdownList');
+    // ═══════════════════════════════════════════════════════════
+    // DEFINISI GAME → TABEL POIN
+    //   - tiap game bisa punya >1 tabel (Number Disco = blue + red)
+    //   - kolom poin berbeda per tabel
+    // ═══════════════════════════════════════════════════════════
+    const GAME_POINT_MAP = [
+      // ── DAY 1 ────────────────────────────────────────────────
+      { key: 'd1g1', day: 1, game: 1, name: 'Arithmetic Bingo',
+        tables: [{ table: 'point_arithmatic_bingo', column: 'point' }] },
 
-    // 3. STATE
-    let scheduleAccess = {};
-    let userPoints = { unique_id: null, breakdown: {}, total: 0 };
-    let currentUser = null;
+      { key: 'd1g2', day: 1, game: 2, name: 'Number Disco',
+        tables: [
+          { table: 'point_number_disco_blue', column: 'point' },
+          { table: 'point_number_disco_red',  column: 'point' }
+        ] },
 
-    // 4. DEFINISI GAME → TABEL POIN
-    //    ⚠️ Nama tabel = 'point_arithmatic_bingo' (sesuai DB, bukan 'arithmetic')
-const GAME_POINT_MAP = [
-  // Day 1
-  { key: 'd1g1', day: 1, game: 1, name: 'Arithmetic Bingo',
-    tables: [{ table: 'point_arithmatic_bingo', column: 'point' }] },
+      { key: 'd1g3', day: 1, game: 3, name: 'Cataclysm Memory',
+        tables: [{ table: 'point_cataclysm_memory', column: 'point' }] },
 
-  { key: 'd1g2', day: 1, game: 2, name: 'Number Disco',
-    tables: [
-      { table: 'point_number_disco_blue', column: 'point' },
-      { table: 'point_number_disco_red',  column: 'point' }
-    ] },
+      // ── DAY 2 ────────────────────────────────────────────────
+      { key: 'd2g1', day: 2, game: 1, name: 'Mimic Sudoku',
+        tables: [{ table: 'point_mimic_sudoku', column: 'point' }] },
 
-  { key: 'd1g3', day: 1, game: 3, name: 'Cataclysm Memory',
-    tables: [{ table: 'point_cataclysm_memory', column: 'point' }] },
+      { key: 'd2g2', day: 2, game: 2, name: 'Frenzy Cross Maze',
+        tables: [{ table: 'point_frenzy_cross_maze', column: 'point' }] },
 
-  // Day 2
-  { key: 'd2g1', day: 2, game: 1, name: 'Mimic Sudoku',
-    tables: [{ table: 'point_mimic_sudoku', column: 'point' }] },
+      { key: 'd2g3', day: 2, game: 3, name: 'Forsaken City Recall',
+        tables: [{ table: 'point_forsaken_city_recall', column: 'total' }] },
 
-  { key: 'd2g2', day: 2, game: 2, name: 'Frenzy Cross Maze',
-    tables: [{ table: 'point_frenzy_cross_maze', column: 'point' }] },
+      // ── DAY 3 ────────────────────────────────────────────────
+      { key: 'd3g1', day: 3, game: 1, name: 'Hiding Block',
+        tables: [{ table: 'point_hiding_block', column: 'point' }] },
 
-  { key: 'd2g3', day: 2, game: 3, name: 'Forsaken City Recall',
-    tables: [{ table: 'point_forsaken_city_recall', column: 'total' }] },
+      { key: 'd3g2', day: 3, game: 2, name: 'Crypta Treasure Hunt',
+        tables: [] },
 
-  // Day 3
-  { key: 'd3g1', day: 3, game: 1, name: 'Hiding Block',
-    tables: [{ table: 'point_hiding_block', column: 'point' }] },
-
-  // Kalau di Day 3 Game 2 ada game lain, isi di sini. Kalau tidak ada, kosongkan.
-  { key: 'd3g2', day: 3, game: 2, name: 'Crypta Treasure Hunt',
-    tables: [] },
-
-  { key: 'd3g3', day: 3, game: 3, name: 'Morse Match',
-    tables: [] }
-];
+      { key: 'd3g3', day: 3, game: 3, name: 'Morse Match',
+        tables: [] }
+    ];
 
     const DAYS_DATA = [
       { day: 1, title: 'Hari Pertama', date: '12 Oktober 2026' },
@@ -315,7 +335,76 @@ const GAME_POINT_MAP = [
       { day: 3, title: 'Hari Ketiga',  date: '14 Oktober 2026' }
     ];
 
-    // 5. CHECK SESSION
+    // ═══════════════════════════════════════════════════════════
+    // DOM
+    // ═══════════════════════════════════════════════════════════
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent   = document.getElementById('mainContent');
+    const profilePhoto  = document.getElementById('profilePhoto');
+    const fullName      = document.getElementById('fullName');
+    const schoolName    = document.getElementById('schoolName');
+    const schoolLogo    = document.getElementById('schoolLogo');
+    const totalPoints   = document.getElementById('totalPoints');
+    const logoutBtn     = document.getElementById('logoutBtn');
+    const carouselContainer = document.getElementById('carouselContainer');
+    const gameModal     = document.getElementById('gameModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalDayTitle = document.getElementById('modalDayTitle');
+    const modalDayDate  = document.getElementById('modalDayDate');
+    const modalDayPoints = document.getElementById('modalDayPoints');
+    const gameList      = document.getElementById('gameList');
+    const pointBreakdownToggle = document.getElementById('pointBreakdownToggle');
+    const pointBreakdown = document.getElementById('pointBreakdown');
+    const breakdownList = document.getElementById('breakdownList');
+
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
+    let scheduleAccess = {};
+    let userPoints = { unique_id: null, breakdown: {}, total: 0 };
+    let currentUser = null;
+    let eliminationChannel = null;
+
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ ELIMINATION OVERLAY
+    // ═══════════════════════════════════════════════════════════
+    function showEliminatedOverlay(eliminatedAt = null) {
+      const ov = document.getElementById('eliminatedOverlay');
+      if (!ov) return;
+
+      // Sembunyikan konten utama & loading
+      if (mainContent) mainContent.classList.add('hidden');
+      if (loadingScreen) loadingScreen.classList.add('hidden');
+      if (gameModal) gameModal.classList.add('hidden');
+
+      // Tampilkan overlay
+      ov.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+
+      // Stop BGM kalau ada
+      const bgm = document.getElementById('bgmPlayer');
+      if (bgm) { try { bgm.pause(); bgm.currentTime = 0; } catch(e) {} }
+
+      // Info tanggal eliminasi
+      const info = document.getElementById('eliminatedAtInfo');
+      if (info && eliminatedAt) {
+        const d = new Date(eliminatedAt);
+        info.textContent = `Tereliminasi pada: ${d.toLocaleString('id-ID')}`;
+      }
+    }
+
+    function logoutFromEliminated() {
+      if (confirm('Logout dari akun ini?')) {
+        localStorage.removeItem('userSession');
+        localStorage.removeItem('currentGame');
+        window.location.href = 'login.html';
+      }
+    }
+    window.logoutFromEliminated = logoutFromEliminated;
+
+    // ═══════════════════════════════════════════════════════════
+    // CHECK SESSION
+    // ═══════════════════════════════════════════════════════════
     async function checkSessionAndLoadData() {
       try {
         const session = localStorage.getItem('userSession');
@@ -330,7 +419,18 @@ const GAME_POINT_MAP = [
           .eq('unique_id', userData.unique_id)
           .single();
 
-        if (error || !data) { console.error('Error fetching user data:', error); redirectToLogin(); return; }
+        if (error || !data) {
+          console.error('Error fetching user data:', error);
+          redirectToLogin();
+          return;
+        }
+
+        // ⭐ CEK ELIMINASI DULU
+        if (data.is_eliminated === true) {
+          console.log('[LOBBY] Peserta tereliminasi → lock lobby');
+          showEliminatedOverlay(data.eliminated_at);
+          return;
+        }
 
         currentUser = data;
 
@@ -338,7 +438,7 @@ const GAME_POINT_MAP = [
           ...userData,
           full_name: data.full_name,
           school_name: data.school_name,
-          avatar_url: data.avatar_url   // ⚠️ ganti dari photo_url
+          avatar_url: data.avatar_url
         };
         localStorage.setItem('userSession', JSON.stringify(updatedSession));
 
@@ -352,6 +452,9 @@ const GAME_POINT_MAP = [
         loadingScreen.classList.add('hidden');
         mainContent.classList.remove('hidden');
 
+        // ⭐ Subscribe realtime untuk auto-lock
+        subscribeUserElimination(data.unique_id);
+
       } catch (err) {
         console.error('Error:', err);
         redirectToLogin();
@@ -360,9 +463,36 @@ const GAME_POINT_MAP = [
 
     function redirectToLogin() { window.location.href = 'login.html'; }
 
-    // 6. DISPLAY PROFILE
+    // ═══════════════════════════════════════════════════════════
+    // ⭐ REALTIME: pantau is_eliminated saat user sedang di lobby
+    // ═══════════════════════════════════════════════════════════
+    function subscribeUserElimination(userUniqueId) {
+      if (eliminationChannel) {
+        try { supabaseClient.removeChannel(eliminationChannel); } catch(e) {}
+      }
+
+      eliminationChannel = supabaseClient
+        .channel(`lobby_user_${userUniqueId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `unique_id=eq.${userUniqueId}`
+        }, (payload) => {
+          if (payload.new && payload.new.is_eliminated === true) {
+            console.log('[LOBBY] Realtime: user baru saja tereliminasi');
+            showEliminatedOverlay(payload.new.eliminated_at);
+          }
+        })
+        .subscribe((status) => {
+          console.log('[LOBBY] Elimination channel:', status);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // DISPLAY PROFILE
+    // ═══════════════════════════════════════════════════════════
     function displayProfile(data) {
-      // ⚠️ Pakai avatar_url
       if (data.avatar_url && data.avatar_url.trim()) {
         profilePhoto.src = data.avatar_url;
         profilePhoto.onerror = function() {
@@ -376,7 +506,6 @@ const GAME_POINT_MAP = [
       fullName.textContent = data.full_name || 'Nama tidak tersedia';
       schoolName.textContent = data.school_name || 'Sekolah tidak tersedia';
 
-      // ⚠️ Logo sekolah dari Supabase Storage
       const logoFile = SCHOOL_LOGO_MAP[data.school_name];
       if (logoFile) {
         schoolLogo.src = `${SCHOOL_LOGO_BASE}/${logoFile}`;
@@ -391,66 +520,68 @@ const GAME_POINT_MAP = [
       totalPoints.textContent = '—';
     }
 
-async function loadUserPoints(uniqueId) {
-  breakdownList.innerHTML = '';
-  GAME_POINT_MAP.forEach(g => {
-    const row = document.createElement('div');
-    row.className = 'flex justify-between items-center';
-    row.innerHTML = `
-      <span class="text-gray-400">${g.name}</span>
-      <span class="mini-skeleton rounded h-4 w-12 inline-block"></span>
-    `;
-    breakdownList.appendChild(row);
-  });
+    // ═══════════════════════════════════════════════════════════
+    // LOAD POIN USER — agregasi dari banyak tabel per game
+    // ═══════════════════════════════════════════════════════════
+    async function loadUserPoints(uniqueId) {
+      // Skeleton
+      breakdownList.innerHTML = '';
+      GAME_POINT_MAP.forEach(g => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center';
+        row.innerHTML = `
+          <span class="text-gray-400">${g.name}</span>
+          <span class="mini-skeleton rounded h-4 w-12 inline-block"></span>
+        `;
+        breakdownList.appendChild(row);
+      });
 
-  const breakdown = {};
-  let total = 0;
+      const breakdown = {};
+      let total = 0;
 
-  // Untuk tiap game, query semua tabelnya secara paralel
-  const tasks = GAME_POINT_MAP.map(async (g) => {
-    let sum = 0;
+      // Query semua tabel paralel per game
+      const tasks = GAME_POINT_MAP.map(async (g) => {
+        const subtasks = (g.tables || []).map(async (t) => {
+          try {
+            const { data, error } = await supabaseClient
+              .from(t.table)
+              .select(t.column)
+              .eq('unique_id', uniqueId)
+              .limit(1)
+              .maybeSingle();
 
-    const subtasks = (g.tables || []).map(async (t) => {
-      try {
-        const { data, error } = await supabaseClient
-          .from(t.table)
-          .select(t.column)
-          .eq('unique_id', uniqueId)
-          .limit(1)
-          .maybeSingle();
+            if (error) {
+              console.warn(`[points] ${t.table} →`, error.message);
+              return 0;
+            }
+            const val = data && data[t.column] != null ? Number(data[t.column]) : 0;
+            return isFinite(val) ? val : 0;
+          } catch (e) {
+            console.warn(`[points] ${t.table} exception →`, e);
+            return 0;
+          }
+        });
 
-        if (error) {
-          console.warn(`[points] ${t.table} →`, error.message);
-          return 0;
-        }
-        const val = data && data[t.column] != null ? Number(data[t.column]) : 0;
-        return isFinite(val) ? val : 0;
-      } catch (e) {
-        console.warn(`[points] ${t.table} exception →`, e);
-        return 0;
-      }
-    });
+        const results = await Promise.all(subtasks);
+        const sum = results.reduce((a, b) => a + b, 0);
+        return { key: g.key, value: sum };
+      });
 
-    const results = await Promise.all(subtasks);
-    sum = results.reduce((a, b) => a + b, 0);
+      const results = await Promise.all(tasks);
+      results.forEach(r => {
+        breakdown[r.key] = r.value;
+        total += r.value;
+      });
 
-    return { key: g.key, value: sum };
-  });
+      GAME_POINT_MAP.forEach(g => {
+        if (breakdown[g.key] === undefined) breakdown[g.key] = 0;
+      });
 
-  const results = await Promise.all(tasks);
-  results.forEach(r => {
-    breakdown[r.key] = r.value;
-    total += r.value;
-  });
+      userPoints = { unique_id: uniqueId, breakdown, total };
+      totalPoints.textContent = formatNumber(total);
+      renderBreakdown();
+    }
 
-  GAME_POINT_MAP.forEach(g => {
-    if (breakdown[g.key] === undefined) breakdown[g.key] = 0;
-  });
-
-  userPoints = { unique_id: uniqueId, breakdown, total };
-  totalPoints.textContent = formatNumber(total);
-  renderBreakdown();
-}
     function renderBreakdown() {
       breakdownList.innerHTML = '';
       GAME_POINT_MAP.forEach(g => {
@@ -473,7 +604,9 @@ async function loadUserPoints(uniqueId) {
       breakdownList.appendChild(totalRow);
     }
 
-    // 8. FETCH GAME SCHEDULE
+    // ═══════════════════════════════════════════════════════════
+    // FETCH GAME SCHEDULE
+    // ═══════════════════════════════════════════════════════════
     async function loadGameSchedule() {
       try {
         const { data, error } = await supabaseClient
@@ -498,7 +631,9 @@ async function loadUserPoints(uniqueId) {
       }
     }
 
-    // 9. CAROUSEL
+    // ═══════════════════════════════════════════════════════════
+    // CAROUSEL
+    // ═══════════════════════════════════════════════════════════
     function generateCarouselCards() {
       carouselContainer.innerHTML = '';
 
@@ -531,8 +666,16 @@ async function loadUserPoints(uniqueId) {
       });
     }
 
-    // 10. OPEN MODAL
+    // ═══════════════════════════════════════════════════════════
+    // OPEN MODAL
+    // ═══════════════════════════════════════════════════════════
     function openGameModal(dayNumber, dayTitle, dayDate) {
+      // ⭐ Guard: kalau tereliminasi, jangan biarkan buka modal
+      if (currentUser && currentUser.is_eliminated) {
+        showEliminatedOverlay(currentUser.eliminated_at);
+        return;
+      }
+
       modalDayTitle.textContent = `${dayTitle} (Day ${dayNumber})`;
       modalDayDate.textContent = dayDate;
 
@@ -607,8 +750,16 @@ async function loadUserPoints(uniqueId) {
       `;
     }
 
-    // 11. START GAME
+    // ═══════════════════════════════════════════════════════════
+    // START GAME
+    // ═══════════════════════════════════════════════════════════
     function startGame(url, dayNumber, gameNumber) {
+      // ⭐ Guard: cek eliminasi sebelum masuk game
+      if (currentUser && currentUser.is_eliminated) {
+        showEliminatedOverlay(currentUser.eliminated_at);
+        return;
+      }
+
       localStorage.setItem('currentGame', JSON.stringify({
         day: dayNumber,
         game: gameNumber,
@@ -623,10 +774,18 @@ async function loadUserPoints(uniqueId) {
     }
 
     function startDeathmatch(gameType) {
+      // ⭐ Guard: cek eliminasi
+      if (currentUser && currentUser.is_eliminated) {
+        showEliminatedOverlay(currentUser.eliminated_at);
+        return;
+      }
       window.location.href = `./game/deathmatch/${gameType}.html`;
     }
+    window.startDeathmatch = startDeathmatch;
 
-    // 12. CLOSE MODAL & LOGOUT
+    // ═══════════════════════════════════════════════════════════
+    // MODAL & LOGOUT
+    // ═══════════════════════════════════════════════════════════
     function closeModal() {
       gameModal.classList.add('hidden');
       document.body.style.overflow = '';
@@ -643,22 +802,29 @@ async function loadUserPoints(uniqueId) {
       }
     });
 
-    // 13. TOGGLE BREAKDOWN
+    // ═══════════════════════════════════════════════════════════
+    // TOGGLE BREAKDOWN
+    // ═══════════════════════════════════════════════════════════
     pointBreakdownToggle.addEventListener('click', () => {
       pointBreakdown.classList.toggle('hidden');
       pointBreakdownToggle.textContent = pointBreakdown.classList.contains('hidden')
         ? '(lihat rincian)' : '(sembunyikan)';
     });
 
-    // 14. UTILS
+    // ═══════════════════════════════════════════════════════════
+    // UTILS
+    // ═══════════════════════════════════════════════════════════
     function formatNumber(n) {
       const num = Number(n) || 0;
       if (Number.isInteger(num)) return num.toLocaleString('id-ID');
       return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    // 15. REALTIME
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME — game_schedule & point_*
+    // ═══════════════════════════════════════════════════════════
     function subscribeUpdates() {
+      // Schedule
       supabaseClient
         .channel('realtime_game_schedule')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_schedule' }, () => {
@@ -666,9 +832,10 @@ async function loadUserPoints(uniqueId) {
         })
         .subscribe();
 
+      // Poin user — subscribe ke semua tabel poin
       const pointTables = [...new Set(
-  GAME_POINT_MAP.flatMap(g => (g.tables || []).map(t => t.table))
-)];
+        GAME_POINT_MAP.flatMap(g => (g.tables || []).map(t => t.table))
+      )];
       const pointChannel = supabaseClient.channel('realtime_user_points');
 
       pointTables.forEach(tbl => {
@@ -685,7 +852,9 @@ async function loadUserPoints(uniqueId) {
       pointChannel.subscribe();
     }
 
-    // 16. INIT
+    // ═══════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════
     async function init() {
       await checkSessionAndLoadData();
       subscribeUpdates();
