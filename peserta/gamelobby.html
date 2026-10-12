@@ -273,17 +273,41 @@
 
     // 4. DEFINISI GAME → TABEL POIN
     //    ⚠️ Nama tabel = 'point_arithmatic_bingo' (sesuai DB, bukan 'arithmetic')
-    const GAME_POINT_MAP = [
-      { key: 'd1g1', day: 1, game: 1, name: 'Arithmetic Bingo',     table: 'point_arithmatic_bingo',     pointColumn: 'point' },
-      { key: 'd1g2', day: 1, game: 2, name: 'Number Disco',         table: 'point_number_disco_blue',    pointColumn: 'point' },
-      { key: 'd1g3', day: 1, game: 3, name: 'Cataclysm Memory',     table: 'point_cataclysm_memory',     pointColumn: 'point' },
-      { key: 'd2g1', day: 2, game: 1, name: 'Mimic Sudoku',         table: 'point_mimic_sudoku',         pointColumn: 'point' },
-      { key: 'd2g2', day: 2, game: 2, name: 'Frenzy Cross Maze',    table: 'point_frenzy_cross_maze',    pointColumn: 'point' },
-      { key: 'd2g3', day: 2, game: 3, name: 'Forsaken City Recall', table: 'point_forsaken_city_recall', pointColumn: 'total' },
-      { key: 'd3g1', day: 3, game: 1, name: 'Hiding Block',         table: 'point_hiding_block',         pointColumn: 'point' },
-      { key: 'd3g2', day: 3, game: 2, name: 'Morse Match',          table: 'point_number_disco_red',     pointColumn: 'point' },
-      { key: 'd3g3', day: 3, game: 3, name: 'Crypta Treasure Hunt', table: null,                         pointColumn: null    }
-    ];
+const GAME_POINT_MAP = [
+  // Day 1
+  { key: 'd1g1', day: 1, game: 1, name: 'Arithmetic Bingo',
+    tables: [{ table: 'point_arithmatic_bingo', column: 'point' }] },
+
+  { key: 'd1g2', day: 1, game: 2, name: 'Number Disco',
+    tables: [
+      { table: 'point_number_disco_blue', column: 'point' },
+      { table: 'point_number_disco_red',  column: 'point' }
+    ] },
+
+  { key: 'd1g3', day: 1, game: 3, name: 'Cataclysm Memory',
+    tables: [{ table: 'point_cataclysm_memory', column: 'point' }] },
+
+  // Day 2
+  { key: 'd2g1', day: 2, game: 1, name: 'Mimic Sudoku',
+    tables: [{ table: 'point_mimic_sudoku', column: 'point' }] },
+
+  { key: 'd2g2', day: 2, game: 2, name: 'Frenzy Cross Maze',
+    tables: [{ table: 'point_frenzy_cross_maze', column: 'point' }] },
+
+  { key: 'd2g3', day: 2, game: 3, name: 'Forsaken City Recall',
+    tables: [{ table: 'point_forsaken_city_recall', column: 'total' }] },
+
+  // Day 3
+  { key: 'd3g1', day: 3, game: 1, name: 'Hiding Block',
+    tables: [{ table: 'point_hiding_block', column: 'point' }] },
+
+  // Kalau di Day 3 Game 2 ada game lain, isi di sini. Kalau tidak ada, kosongkan.
+  { key: 'd3g2', day: 3, game: 2, name: 'Crypta Treasure Hunt',
+    tables: [] },
+
+  { key: 'd3g3', day: 3, game: 3, name: 'Morse Match',
+    tables: [] }
+];
 
     const DAYS_DATA = [
       { day: 1, title: 'Hari Pertama', date: '12 Oktober 2026' },
@@ -367,63 +391,66 @@
       totalPoints.textContent = '—';
     }
 
-    // 7. LOAD POIN USER dari 8 tabel point_*
-    async function loadUserPoints(uniqueId) {
-      // Skeleton dulu
-      breakdownList.innerHTML = '';
-      GAME_POINT_MAP.forEach(g => {
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center';
-        row.innerHTML = `
-          <span class="text-gray-400">${g.name}</span>
-          <span class="mini-skeleton rounded h-4 w-12 inline-block"></span>
-        `;
-        breakdownList.appendChild(row);
-      });
+async function loadUserPoints(uniqueId) {
+  breakdownList.innerHTML = '';
+  GAME_POINT_MAP.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'flex justify-between items-center';
+    row.innerHTML = `
+      <span class="text-gray-400">${g.name}</span>
+      <span class="mini-skeleton rounded h-4 w-12 inline-block"></span>
+    `;
+    breakdownList.appendChild(row);
+  });
 
-      const breakdown = {};
-      let total = 0;
+  const breakdown = {};
+  let total = 0;
 
-      // Query paralel ke semua tabel yang punya pointColumn
-      const tasks = GAME_POINT_MAP
-        .filter(g => g.table && g.pointColumn)
-        .map(async (g) => {
-          try {
-            const { data, error } = await supabaseClient
-              .from(g.table)
-              .select(g.pointColumn)
-              .eq('unique_id', uniqueId)
-              .limit(1)
-              .maybeSingle();
+  // Untuk tiap game, query semua tabelnya secara paralel
+  const tasks = GAME_POINT_MAP.map(async (g) => {
+    let sum = 0;
 
-            if (error) {
-              console.warn(`[points] ${g.table} →`, error.message);
-              return { key: g.key, value: 0 };
-            }
-            const val = data && data[g.pointColumn] != null ? Number(data[g.pointColumn]) : 0;
-            return { key: g.key, value: isFinite(val) ? val : 0 };
-          } catch (e) {
-            console.warn(`[points] ${g.table} exception →`, e);
-            return { key: g.key, value: 0 };
-          }
-        });
+    const subtasks = (g.tables || []).map(async (t) => {
+      try {
+        const { data, error } = await supabaseClient
+          .from(t.table)
+          .select(t.column)
+          .eq('unique_id', uniqueId)
+          .limit(1)
+          .maybeSingle();
 
-      const results = await Promise.all(tasks);
-      results.forEach(r => {
-        breakdown[r.key] = r.value;
-        total += r.value;
-      });
+        if (error) {
+          console.warn(`[points] ${t.table} →`, error.message);
+          return 0;
+        }
+        const val = data && data[t.column] != null ? Number(data[t.column]) : 0;
+        return isFinite(val) ? val : 0;
+      } catch (e) {
+        console.warn(`[points] ${t.table} exception →`, e);
+        return 0;
+      }
+    });
 
-      GAME_POINT_MAP.forEach(g => {
-        if (breakdown[g.key] === undefined) breakdown[g.key] = 0;
-      });
+    const results = await Promise.all(subtasks);
+    sum = results.reduce((a, b) => a + b, 0);
 
-      userPoints = { unique_id: uniqueId, breakdown, total };
+    return { key: g.key, value: sum };
+  });
 
-      totalPoints.textContent = formatNumber(total);
-      renderBreakdown();
-    }
+  const results = await Promise.all(tasks);
+  results.forEach(r => {
+    breakdown[r.key] = r.value;
+    total += r.value;
+  });
 
+  GAME_POINT_MAP.forEach(g => {
+    if (breakdown[g.key] === undefined) breakdown[g.key] = 0;
+  });
+
+  userPoints = { unique_id: uniqueId, breakdown, total };
+  totalPoints.textContent = formatNumber(total);
+  renderBreakdown();
+}
     function renderBreakdown() {
       breakdownList.innerHTML = '';
       GAME_POINT_MAP.forEach(g => {
@@ -639,7 +666,9 @@
         })
         .subscribe();
 
-      const pointTables = [...new Set(GAME_POINT_MAP.filter(g => g.table).map(g => g.table))];
+      const pointTables = [...new Set(
+  GAME_POINT_MAP.flatMap(g => (g.tables || []).map(t => t.table))
+)];
       const pointChannel = supabaseClient.channel('realtime_user_points');
 
       pointTables.forEach(tbl => {
