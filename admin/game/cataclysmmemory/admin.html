@@ -73,7 +73,6 @@
       </p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- KIRI: kontrol -->
         <div class="space-y-3">
           <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
             <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Durasi</div>
@@ -96,7 +95,6 @@
           </div>
         </div>
 
-        <!-- KANAN: timer display -->
         <div class="bg-slate-950 border border-amber-500/40 rounded-xl p-6 text-center flex flex-col justify-center">
           <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Sisa Waktu Menghafal</div>
           <div id="memorizeTimerDisplay" class="text-5xl font-mono font-black text-amber-400">--:--</div>
@@ -143,11 +141,66 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ⭐ PANEL: KONTROL ELIMINASI (BARU)                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/30 p-6 rounded-2xl space-y-4 shadow-lg">
+      <div class="flex items-center justify-between border-b border-rose-500/20 pb-3 flex-wrap gap-2">
+        <div>
+          <span class="bg-rose-500/10 text-rose-400 border border-rose-500/30 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest">
+            Elimination Control
+          </span>
+          <h3 class="font-black text-lg text-rose-400 flex items-center gap-2 mt-1">
+            <i class="fas fa-skull-crossbones"></i> Kontrol Eliminasi Cataclysm Memory
+          </h3>
+        </div>
+        <span id="elimStatusBadge" class="text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg">
+          BELUM ADA DATA
+        </span>
+      </div>
+
+      <div class="bg-slate-950/70 border border-rose-500/20 rounded-xl p-4 space-y-2">
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Sistem akan menghitung <b class="text-emerald-400">peringkat akhir</b> peserta dari akumulasi
+          <span class="text-amber-300">Arithmetic Bingo</span> +
+          <span class="text-cyan-300">Number Disco (Blue + Red)</span> +
+          <span class="text-purple-300">Cataclysm Memory</span>.
+        </p>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          <b class="text-emerald-400">Top 30</b> peserta lolos ke <b>Hari ke-2</b>.
+          Sisanya (<b id="elimEstimatedCount" class="text-rose-400">?</b> peserta) masuk daftar eliminasi.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <button onclick="executeComputeElimination()" id="btnComputeElim"
+          class="py-4 rounded-xl font-black text-sm bg-amber-600 hover:bg-amber-500 text-slate-950 transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-amber-600/20">
+          <i class="fas fa-calculator"></i>
+          <span>1. Hitung Eliminasi</span>
+        </button>
+
+        <button onclick="executeDeclareElimination()" id="btnDeclareElim"
+          class="py-4 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
+          <i class="fas fa-lock"></i>
+          <span>2. Kunci Tereliminasi</span>
+        </button>
+
+        <button onclick="executeUndoElimination()" id="btnUndoElim"
+          class="py-4 rounded-xl font-black text-sm bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/30 transition active:scale-95 flex items-center justify-center gap-2">
+          <i class="fas fa-rotate-left"></i>
+          <span>Undo / Reset</span>
+        </button>
+      </div>
+
+      <div id="elimResultInfo" class="hidden bg-slate-950/80 border border-rose-500/30 rounded-xl p-4 max-h-[300px] overflow-y-auto custom-scroll">
+        <!-- Result list akan di-render via JS -->
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <!-- GRID: TIM & PESERTA                                          -->
     <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-      <!-- KIRI: DAFTAR TIM -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
         <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
           <h3 class="font-black text-lg text-cyan-400 flex items-center gap-2">
@@ -174,7 +227,6 @@
         </div>
       </div>
 
-      <!-- KANAN: DAFTAR PESERTA -->
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl lg:col-span-2">
         <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
           <h3 class="font-black text-lg text-indigo-400 flex items-center gap-2">
@@ -237,9 +289,6 @@
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- REVEAL PERINGKAT TIM (1 per 1 / semua)                   -->
-      <!-- ═══════════════════════════════════════════════════════ -->
       <div class="pt-3 border-t border-white/10 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -284,9 +333,6 @@
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════ -->
-      <!-- REVEAL TOP 10 INDIVIDU (1 per 1 / semua)                 -->
-      <!-- ═══════════════════════════════════════════════════════ -->
       <div class="pt-3 border-t border-white/10 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -299,9 +345,9 @@
 
         <div class="grid grid-cols-5 sm:grid-cols-10 gap-2">
           <button onclick="showElimination()" 
-  class="px-6 py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
-  <i class="fas fa-skull-crossbones"></i> Tampilkan Eliminasi
-</button>
+            class="px-6 py-3 rounded-xl font-black text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-skull-crossbones"></i> Tampilkan Eliminasi
+          </button>
           <button onclick="revealIndividualRank(10)" class="py-2.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-700 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 font-black text-xs rounded-xl transition flex flex-col items-center justify-center gap-1">
             <span class="text-[10px] opacity-60">RANK</span><span>#10</span>
           </button>
@@ -334,7 +380,6 @@
           </button>
         </div>
       </div>
-
     </div>
 
   </div>
@@ -349,11 +394,13 @@
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
-    const SESSION_DURATION = 300; // 5 menit
-    const DEFAULT_MEMORIZE_DURATION = 900; // 15 menit
+    const SESSION_DURATION = 300;
+    const DEFAULT_MEMORIZE_DURATION = 900;
+    const SURVIVOR_COUNT = 30;   // ⭐ 30 peserta lolos ke Hari 2
 
     const SYS_TABLE = 'system_cataclysm_memory';
     const LAYOUT_TABLE = 'admin_layout_cataclysm_memory';
+    const ELIM_HISTORY_TABLE = 'elimination_history';
 
     const TEAM_COLORS = {
       1: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
@@ -376,30 +423,20 @@
     // ═══════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════
-    let currentSession = {
-      isActive: false,
-      startTime: null,
-      duration: SESSION_DURATION
-    };
-
-    let currentMemorize = {
-      isActive: false,
-      startTime: null,
-      duration: DEFAULT_MEMORIZE_DURATION
-    };
+    let currentSession = { isActive: false, startTime: null, duration: SESSION_DURATION };
+    let currentMemorize = { isActive: false, startTime: null, duration: DEFAULT_MEMORIZE_DURATION };
 
     let memorizeTimerInt = null;
     let answerTimerInt = null;
+
+    let cachedElimResult = null;   // Hasil compute terakhir (belum dikunci)
 
     // ═══════════════════════════════════════════════════════════
     // AUDIO
     // ═══════════════════════════════════════════════════════════
     function playBell() {
       const bell = document.getElementById('bellSound');
-      if (bell) {
-        bell.currentTime = 0;
-        bell.play().catch(() => {});
-      }
+      if (bell) { bell.currentTime = 0; bell.play().catch(() => {}); }
     }
 
     function showNotif(text) {
@@ -436,14 +473,9 @@
         })
         .eq('id', 1);
 
-      if (error) {
-        alert('Gagal memulai menghafal: ' + error.message);
-        return;
-      }
+      if (error) { alert('Gagal memulai menghafal: ' + error.message); return; }
 
-      // Switch layout ke memorize_phase
       await switchStageView('memorize_phase');
-
       playBell();
 
       currentMemorize.isActive = true;
@@ -468,14 +500,9 @@
         })
         .eq('id', 1);
 
-      if (error) {
-        alert('Gagal stop menghafal: ' + error.message);
-        return;
-      }
+      if (error) { alert('Gagal stop menghafal: ' + error.message); return; }
 
-      // Balik ke idle
       await switchStageView('idle');
-
       stopMemorizeTimer();
       currentMemorize.isActive = false;
       updateMemorizeUI();
@@ -497,8 +524,6 @@
           el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
           if (remaining <= 30) {
             el.className = 'text-5xl font-mono font-black text-rose-500 animate-pulse';
-          } else if (remaining <= 120) {
-            el.className = 'text-5xl font-mono font-black text-amber-400';
           } else {
             el.className = 'text-5xl font-mono font-black text-amber-400';
           }
@@ -521,7 +546,6 @@
 
     async function handleMemorizeTimeoutFromAdmin() {
       console.log('[ADMIN] ⏰ Memorize timeout from admin timer');
-      // Update DB: is_memorize_active = false
       try {
         await supabaseClient
           .from(SYS_TABLE)
@@ -535,7 +559,6 @@
 
       currentMemorize.isActive = false;
       updateMemorizeUI();
-      // Layout akan handle sendiri (beep + overlay + switch idle) via realtime listener
     }
 
     function updateMemorizeUI() {
@@ -581,7 +604,6 @@
       if (error) { alert('Gagal mulai sesi: ' + error.message); return; }
 
       await switchStageView('answer_phase');
-
       playBell();
       currentSession.isActive = true;
       currentSession.startTime = now;
@@ -669,7 +691,7 @@
         '• Fase menghafal dimatikan\n' +
         '• Sesi mengerjakan dimatikan\n' +
         '• Layout kembali ke idle\n' +
-        '(Urutan tim & poin TIDAK dihapus)'
+        '(Urutan tim & poin & eliminasi TIDAK dihapus)'
       );
       if (!confirmClear) return;
 
@@ -709,11 +731,7 @@
     function updatePhaseBadge(phase) {
       const el = document.getElementById('phaseBadge');
       el.textContent = phase;
-      const colors = {
-        IDLE: 'text-rose-400',
-        MEMORIZE: 'text-amber-400',
-        ANSWER: 'text-emerald-400'
-      };
+      const colors = { IDLE: 'text-rose-400', MEMORIZE: 'text-amber-400', ANSWER: 'text-emerald-400' };
       el.className = `text-sm font-black ${colors[phase] || 'text-slate-400'}`;
     }
 
@@ -762,7 +780,7 @@
       alert("✅ Semua tim berhasil di-reset.");
     }
 
-        async function resetScores() {
+    async function resetScores() {
       const confirmReset = confirm(
         "Reset seluruh poin Cataclysm Memory ke 0?\n\n" +
         "• Poin semua peserta akan di-set 0\n" +
@@ -772,14 +790,12 @@
       if (!confirmReset) return;
 
       try {
-        // 1. Reset poin via RPC
         const { error: rpcErr } = await supabaseClient.rpc('reset_point_table', {
           p_table_name: 'point_cataclysm_memory'
         });
 
         if (rpcErr) throw rpcErr;
 
-        // 2. Reset status tim
         await supabaseClient
           .from('cataclysm_memory_teams')
           .update({ finished: false, score: 0 })
@@ -803,7 +819,6 @@
 
       const { data: teams } = await supabaseClient.from('cataclysm_memory_teams').select('*');
 
-      // ⭐ Ambil dari tabel poin baru
       const { data: points } = await supabaseClient
         .from('point_cataclysm_memory')
         .select('unique_id, point');
@@ -812,9 +827,7 @@
       (teams || []).forEach(t => { teamMap[t.unique_id] = t.team; });
 
       const scoreMap = {};
-      (points || []).forEach(row => {
-        scoreMap[row.unique_id] = row.point || 0;
-      });
+      (points || []).forEach(row => { scoreMap[row.unique_id] = row.point || 0; });
 
       const merged = (users || []).map(u => ({
         unique_id: u.unique_id,
@@ -838,9 +851,6 @@
       document.getElementById('totalParticipantCount').textContent = `${merged.length} Peserta`;
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // RENDER TEAMS — pakai rata-rata
-    // ═══════════════════════════════════════════════════════════
     function renderTeams(merged) {
       const container = document.getElementById('teamList');
       container.innerHTML = '';
@@ -850,7 +860,6 @@
         return;
       }
 
-      // Group per tim
       const teamData = {};
       for (let i = 1; i <= TEAM_COUNT; i++) teamData[i] = { sum: 0, count: 0 };
 
@@ -914,6 +923,305 @@
     }
 
     // ═══════════════════════════════════════════════════════════
+    // ⭐ KONTROL ELIMINASI
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Ambil ranking final dari RPC get_cataclysm_elimination()
+     * Return: array of { unique_id, name, total_point, finished_at, rank_final }
+     * Hanya peserta is_eliminated = FALSE yang di-return.
+     */
+    async function fetchCataclysmRanking() {
+      const { data, error } = await supabaseClient.rpc('get_cataclysm_elimination');
+      if (error) { console.error('[ELIM] fetch error:', error); return null; }
+      return data || [];
+    }
+
+    /**
+     * Cek status eliminasi saat ini — berapa yang sudah masuk elimination_history
+     * dengan game_name = 'Cataclysm Memory'.
+     */
+    async function fetchElimStatus() {
+      const { data, error } = await supabaseClient
+        .from(ELIM_HISTORY_TABLE)
+        .select('unique_id, name, final_score, eliminated_at')
+        .eq('game_name', GAME_NAME)
+        .order('final_score', { ascending: true });
+
+      if (error) { console.warn('[ELIM] status error:', error); return []; }
+      return data || [];
+    }
+
+    /**
+     * Update badge + estimasi jumlah tereliminasi.
+     */
+    async function refreshElimUI() {
+      const statusBadge = document.getElementById('elimStatusBadge');
+      const estCount = document.getElementById('elimEstimatedCount');
+
+      // Total peserta (role = peserta)
+      const { count: totalPeserta } = await supabaseClient
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'peserta');
+
+      // Total yang belum tereliminasi
+      const { count: totalAktif } = await supabaseClient
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'peserta')
+        .eq('is_eliminated', false);
+
+      // Sudah ada di elimination_history?
+      const elimRows = await fetchElimStatus();
+
+      // Estimasi: kalau peserta ikut game, yang tidak lolos = total_aktif - 30
+      const estimatedElim = Math.max(0, (totalAktif || 0) - SURVIVOR_COUNT);
+      if (estCount) estCount.textContent = estimatedElim;
+
+      if (elimRows.length > 0) {
+        statusBadge.textContent = `TERKUNCI (${elimRows.length})`;
+        statusBadge.className = 'text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1 rounded-lg';
+      } else {
+        statusBadge.textContent = 'BELUM ADA DATA';
+        statusBadge.className = 'text-xs font-bold bg-slate-800 text-slate-400 px-3 py-1 rounded-lg';
+      }
+
+      // Kalau ada data eliminasi tersimpan, tampilkan di list
+      if (elimRows.length > 0) {
+        renderElimResult(elimRows, true);
+      }
+    }
+
+    /**
+     * Render hasil eliminasi ke panel.
+     * @param {Array} rows - array of { unique_id, name, final_score, rank_final? }
+     * @param {boolean} isLocked - apakah sudah dikunci (dari elimination_history)
+     */
+    function renderElimResult(rows, isLocked = false) {
+      const info = document.getElementById('elimResultInfo');
+      if (!info) return;
+
+      if (!rows || rows.length === 0) {
+        info.classList.add('hidden');
+        return;
+      }
+
+      info.classList.remove('hidden');
+
+      const titleColor = isLocked ? 'text-rose-400' : 'text-amber-400';
+      const titleIcon = isLocked ? '🔒' : '📋';
+      const titleText = isLocked
+        ? `Tereliminasi & TERKUNCI (${rows.length} peserta)`
+        : `Pratinjau Eliminasi (${rows.length} peserta) — belum dikunci`;
+
+      const list = rows.map((r, idx) => {
+        const name = r.name || r.unique_id;
+        const score = Number(r.final_score ?? r.total_point ?? 0).toFixed(2);
+        const rank = r.rank_final ? ` · Rank #${r.rank_final}` : '';
+        return `
+          <div class="flex items-center justify-between py-1.5 px-2 border-b border-slate-800/50 last:border-b-0 text-xs">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="font-mono text-slate-500 text-[10px] w-6">#${idx + 1}</span>
+              <span class="font-semibold text-slate-200 truncate">${name}</span>
+            </div>
+            <span class="font-mono font-bold text-rose-400 flex-shrink-0">${score} PTS${rank}</span>
+          </div>
+        `;
+      }).join('');
+
+      info.innerHTML = `
+        <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-800">
+          <div class="font-bold text-sm ${titleColor}">${titleIcon} ${titleText}</div>
+          <button onclick="document.getElementById('elimResultInfo').classList.add('hidden')" class="text-slate-500 hover:text-white text-xs">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="space-y-0.5">
+          ${list}
+        </div>
+      `;
+    }
+
+    /**
+     * STEP 1 — HITUNG: preview siapa yang akan tereliminasi.
+     * Panggil get_cataclysm_elimination(), potong 30 teratas (lolos),
+     * sisanya (index >= 30) adalah yang tereliminasi.
+     * Hasil disimpan di cachedElimResult, belum di-insert ke DB.
+     */
+    async function executeComputeElimination() {
+      const confirmCalc = confirm(
+        `Hitung daftar peserta yang akan TERELIMINASI?\n\n` +
+        `• Ranking diambil dari akumulasi Bingo + Disco + Cataclysm\n` +
+        `• Top ${SURVIVOR_COUNT} lolos ke Hari 2\n` +
+        `• Sisanya masuk daftar eliminasi\n` +
+        `• BELUM dikunci — peserta masih bisa main`
+      );
+      if (!confirmCalc) return;
+
+      const btn = document.getElementById('btnComputeElim');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menghitung...';
+
+      try {
+        const ranking = await fetchCataclysmRanking();
+
+        if (!ranking || ranking.length === 0) {
+          alert('⚠️ Tidak ada data peserta. Pastikan peserta sudah main minimal 1 game.');
+          return;
+        }
+
+        if (ranking.length <= SURVIVOR_COUNT) {
+          alert(
+            `⚠️ Hanya ada ${ranking.length} peserta yang sudah main.\n` +
+            `Top ${SURVIVOR_COUNT} lolos tidak bisa dihitung — butuh minimal ${SURVIVOR_COUNT + 1} peserta.`
+          );
+          return;
+        }
+
+        // Ranking dari RPC sudah DESC (rank 1 = tertinggi)
+        // Ambil index >= 30 = tereliminasi
+        const eliminated = ranking.slice(SURVIVOR_COUNT).map(r => ({
+          unique_id: r.unique_id,
+          name: r.name,
+          final_score: Number(r.total_point || 0),
+          rank_final: r.rank_final
+        }));
+
+        cachedElimResult = eliminated;
+
+        // Tampilkan preview (belum lock)
+        renderElimResult(eliminated, false);
+
+        playBell();
+        alert(
+          `✅ ${eliminated.length} peserta masuk daftar eliminasi.\n\n` +
+          `Mereka MASIH BISA main sampai Anda klik "Kunci Tereliminasi".\n\n` +
+          `Top ${SURVIVOR_COUNT} lolos ke Hari 2.`
+        );
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    /**
+     * STEP 2 — KUNCI: insert ke elimination_history + set is_eliminated = true.
+     */
+    async function executeDeclareElimination() {
+      const confirmLock = confirm(
+        `🔒 KUNCI peserta yang tereliminasi?\n\n` +
+        `• Data akan disimpan ke elimination_history\n` +
+        `• Kiosk peserta akan freeze permanen\n` +
+        `• Peserta tereliminasi tidak bisa ikut sesi berikutnya\n` +
+        `• Bisa di-undo kalau ada kesalahan`
+      );
+      if (!confirmLock) return;
+
+      // Kalau belum compute, coba compute dulu
+      if (!cachedElimResult || cachedElimResult.length === 0) {
+        const reCalc = confirm('Belum ada data hasil hitung. Hitung otomatis sekarang?');
+        if (!reCalc) return;
+        await executeComputeElimination();
+        if (!cachedElimResult || cachedElimResult.length === 0) {
+          alert('⚠️ Gagal menghitung. Coba ulangi.');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btnDeclareElim');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunci...';
+
+      try {
+        // 1. Insert ke elimination_history (upsert karena ada unique constraint unique_id+game_name)
+        const rows = cachedElimResult.map(r => ({
+          unique_id: r.unique_id,
+          name: r.name,
+          game_name: GAME_NAME,
+          final_score: r.final_score,
+          eliminated_at: new Date().toISOString()
+        }));
+
+        // Delete dulu biar bersih, lalu insert (menghindari konflik partial)
+        await supabaseClient
+          .from(ELIM_HISTORY_TABLE)
+          .delete()
+          .eq('game_name', GAME_NAME);
+
+        const { error: insertErr } = await supabaseClient
+          .from(ELIM_HISTORY_TABLE)
+          .insert(rows);
+
+        if (insertErr) throw insertErr;
+
+        // 2. Panggil RPC declare_elimination untuk set users.is_eliminated = true
+        const { data: declaredCount, error: declareErr } = await supabaseClient
+          .rpc('declare_elimination', { p_game_name: GAME_NAME });
+
+        if (declareErr) throw declareErr;
+
+        playBell();
+        showNotif(`🔒 ${declaredCount || rows.length} peserta dikunci`);
+        alert(
+          `🔒 ${declaredCount || rows.length} peserta telah dikunci.\n\n` +
+          `Kiosk mereka akan freeze permanen.\n` +
+          `Data tersimpan di elimination_history.`
+        );
+
+        await refreshElimUI();
+      } catch (e) {
+        console.error('[ELIM] declare error:', e);
+        alert('Gagal mengunci: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    /**
+     * STEP 3 — UNDO: hapus dari elimination_history + reset users.is_eliminated.
+     */
+    async function executeUndoElimination() {
+      const confirmUndo = confirm(
+        `Undo eliminasi Cataclysm Memory?\n\n` +
+        `• Semua peserta dibuka kembali\n` +
+        `• Data elimination_history untuk game ini dihapus\n` +
+        `• Peserta bisa main lagi`
+      );
+      if (!confirmUndo) return;
+
+      const btn = document.getElementById('btnUndoElim');
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengundo...';
+
+      try {
+        const { data: undoneCount, error } = await supabaseClient
+          .rpc('undo_elimination', { p_game_name: GAME_NAME });
+
+        if (error) throw error;
+
+        cachedElimResult = null;
+
+        playBell();
+        showNotif(`✅ ${undoneCount || 0} peserta dibuka kembali`);
+        alert(`✅ ${undoneCount || 0} peserta dibuka kembali.`);
+
+        document.getElementById('elimResultInfo').classList.add('hidden');
+        await refreshElimUI();
+      } catch (e) {
+        console.error('[ELIM] undo error:', e);
+        alert('Gagal undo: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // STAGE VIEW CONTROL
     // ═══════════════════════════════════════════════════════════
     async function switchStageView(viewName) {
@@ -951,30 +1259,28 @@
     // REVEAL RANK
     // ═══════════════════════════════════════════════════════════
     async function revealTeamRank(rankNum) {
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from(LAYOUT_TABLE)
         .update({
           current_view: 'team_standings',
           revealed_rank: rankNum,
           updated_at: new Date().toISOString()
         })
-        .eq('id', 1)
-        .select();
+        .eq('id', 1);
 
       if (error) { alert('Gagal reveal: ' + error.message); return; }
       playBell();
     }
 
     async function revealAllTeams() {
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from(LAYOUT_TABLE)
         .update({
           current_view: 'team_standings',
           revealed_rank: -1,
           updated_at: new Date().toISOString()
         })
-        .eq('id', 1)
-        .select();
+        .eq('id', 1);
 
       if (error) { alert('Gagal reveal: ' + error.message); return; }
       playBell();
@@ -982,34 +1288,51 @@
     }
 
     async function revealIndividualRank(rankNum) {
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from(LAYOUT_TABLE)
         .update({
           current_view: 'leaderboard',
           revealed_rank: rankNum,
           updated_at: new Date().toISOString()
         })
-        .eq('id', 1)
-        .select();
+        .eq('id', 1);
 
       if (error) { alert('Gagal reveal: ' + error.message); return; }
       playBell();
     }
 
     async function revealAllIndividuals() {
-      const { data, error } = await supabaseClient
+      const { error } = await supabaseClient
         .from(LAYOUT_TABLE)
         .update({
           current_view: 'leaderboard',
           revealed_rank: -1,
           updated_at: new Date().toISOString()
         })
-        .eq('id', 1)
-        .select();
+        .eq('id', 1);
 
       if (error) { alert('Gagal reveal: ' + error.message); return; }
       playBell();
       showNotif('📋 Menampilkan SEMUA peserta');
+    }
+
+    async function showElimination() {
+      if (!confirm('Tampilkan animasi ELIMINASI?\n\nIni akan menampilkan 30 peserta lulus + sisanya tereliminasi.')) return;
+
+      const { error } = await supabaseClient
+        .from('admin_layout_cataclysm_memory')
+        .update({
+          current_view: 'elimination',
+          revealed_rank: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (error) {
+        alert('Gagal: ' + error.message);
+      } else {
+        console.log('[ADMIN] Elimination triggered');
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1028,7 +1351,6 @@
           if (payload.new) {
             const sys = payload.new;
 
-            // Session
             currentSession.isActive = sys.is_active || false;
             currentSession.startTime = sys.session_start_time;
             currentSession.duration = sys.session_duration || SESSION_DURATION;
@@ -1041,7 +1363,6 @@
               stopAnswerTimer();
             }
 
-            // Memorize
             currentMemorize.isActive = sys.is_memorize_active || false;
             currentMemorize.startTime = sys.memorize_start_time;
             currentMemorize.duration = sys.memorize_duration || DEFAULT_MEMORIZE_DURATION;
@@ -1055,34 +1376,18 @@
               document.getElementById('memorizeTimerDisplay').textContent = '--:--';
             }
 
-            // Update phase badge
             if (currentMemorize.isActive) updatePhaseBadge('MEMORIZE');
             else if (currentSession.isActive) updatePhaseBadge('ANSWER');
             else updatePhaseBadge('IDLE');
           }
         })
+        // ⭐ Listen ke elimination_history
+        .on('postgres_changes', { event: '*', schema: 'public', table: ELIM_HISTORY_TABLE }, () => {
+          refreshElimUI();
+        })
         .subscribe();
     }
-async function showElimination() {
-  if (!confirm('Tampilkan animasi ELIMINASI?\n\nIni akan menampilkan 30 peserta lulus + sisanya tereliminasi.')) return;
-  
-  const { error } = await supabaseClient
-    .from('admin_layout_cataclysm_memory')
-    .update({
-      current_view: 'elimination',
-      revealed_rank: 0,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', 1);
-  
-  if (error) {
-    alert('Gagal: ' + error.message);
-  } else {
-    console.log('[ADMIN] Elimination triggered');
-  }
-}
 
-window.showElimination = showElimination;
     // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
@@ -1106,7 +1411,6 @@ window.showElimination = showElimination;
       updateSessionUI();
       updateMemorizeUI();
 
-      // Resume timers if aktif
       if (currentSession.isActive && currentSession.startTime) {
         startAnswerTimer(currentSession.startTime, currentSession.duration);
         updatePhaseBadge('ANSWER');
@@ -1117,12 +1421,11 @@ window.showElimination = showElimination;
       }
 
       await loadTeamsAndParticipants();
+      await refreshElimUI();
       subscribeRealtime();
     }
 
-    
-
-    // Expose
+    // Expose ke window (untuk tombol onclick)
     window.startMemorizeSession = startMemorizeSession;
     window.stopMemorizeSession = stopMemorizeSession;
     window.startAnswerSession = startAnswerSession;
@@ -1136,6 +1439,13 @@ window.showElimination = showElimination;
     window.revealAllTeams = revealAllTeams;
     window.revealIndividualRank = revealIndividualRank;
     window.revealAllIndividuals = revealAllIndividuals;
+    window.showElimination = showElimination;
+
+    // Expose eliminasi
+    window.executeComputeElimination = executeComputeElimination;
+    window.executeDeclareElimination = executeDeclareElimination;
+    window.executeUndoElimination = executeUndoElimination;
+    window.refreshElimUI = refreshElimUI;
 
     init();
   </script>
