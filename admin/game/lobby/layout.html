@@ -26,7 +26,6 @@
     .font-cinzel { font-family: 'Cinzel', serif; }
     .font-bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
 
-    /* View switcher */
     .stage-view {
       transition: opacity 0.6s ease, transform 0.6s ease;
       position: fixed;
@@ -43,7 +42,6 @@
       pointer-events: auto;
     }
 
-    /* BGM badge */
     .bgm-badge {
       position: fixed;
       bottom: 16px; right: 16px;
@@ -62,7 +60,6 @@
     .bgm-badge .dot.muted { background: #f43f5e; }
     @keyframes bgmPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-    /* Audio unlock */
     #audioUnlockOverlay {
       position: fixed; inset: 0;
       background: rgba(2, 6, 23, 0.95);
@@ -79,7 +76,6 @@
       50% { transform: translateY(-10px) scale(1.08); }
     }
 
-    /* Animasi umum */
     @keyframes gradientShift {
       0%,100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
@@ -106,8 +102,24 @@
     .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
 
     /* ═══════════════════════════════════════════════════════
-       PER SEKOLAH — MINI CARDS + ZOOM
+       ⭐ ELIMINATED STATE — abu-abu pudar
        ═══════════════════════════════════════════════════════ */
+    .eliminated {
+      filter: grayscale(1) brightness(0.5);
+      opacity: 0.45;
+      position: relative;
+    }
+    .eliminated::after {
+      content: '🚫';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 0.7rem;
+      opacity: 0.9;
+      filter: grayscale(0);
+    }
+
+    /* Per sekolah */
     #perSchoolCardsGrid {
       display: grid;
       gap: 12px;
@@ -216,9 +228,7 @@
       transition: all 0.5s ease;
     }
 
-    /* ═══════════════════════════════════════════════════════
-       SOLAR SYSTEM — JS-driven
-       ═══════════════════════════════════════════════════════ */
+    /* SOLAR SYSTEM */
     #solarSystem {
       position: absolute;
       inset: 0;
@@ -226,7 +236,6 @@
       pointer-events: none;
     }
 
-    /* SUN = TROPHY */
     #sunTrophy {
       position: absolute;
       top: 50%; left: 50%;
@@ -258,7 +267,6 @@
       pointer-events: none;
     }
 
-    /* Orbit ring */
     .orbit-ring {
       position: absolute;
       left: 50%;
@@ -269,7 +277,6 @@
       z-index: 3;
     }
 
-    /* Planet = Logo Sekolah */
     .planet {
       position: absolute;
       left: 0;
@@ -296,7 +303,6 @@
       filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
     }
 
-    /* Moon = Kartu Peserta (SELALU TEGAK) */
     .moon {
       position: absolute;
       left: 0;
@@ -311,7 +317,23 @@
       box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
       z-index: 12;
       will-change: left, top;
-      transform: rotate(0deg) !important;   /* ⭐ SELALU TEGAK */
+      transform: rotate(0deg) !important;
+      transition: all 0.3s ease;
+    }
+    /* ⭐ Moon eliminated — abu-abu pudar */
+    .moon.eliminated {
+      filter: grayscale(1) brightness(0.5);
+      opacity: 0.35;
+      border-color: rgba(100, 116, 139, 0.5);
+      box-shadow: 0 0 8px rgba(100, 116, 139, 0.3);
+    }
+    .moon.eliminated::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 5;
     }
     .moon-avatar {
       width: 100%;
@@ -345,21 +367,43 @@
       margin-top: 1px;
     }
 
-    /* ═══════════════════════════════════════════════════════
-       FINALISTS
-       ═══════════════════════════════════════════════════════ */
+    /* FINALISTS */
     @keyframes rankCardIn {
       0% { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(15px); }
       60% { opacity: 1; transform: scale(1.1) rotate(4deg); filter: blur(0); }
       100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
     }
     .rank-card { animation: rankCardIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    /* ⭐ Finalist eliminated */
+    .rank-card.eliminated {
+      filter: grayscale(1) brightness(0.5);
+      opacity: 0.55;
+    }
+    .rank-card.eliminated .elim-stamp {
+      display: block;
+    }
+    .elim-stamp {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      background: rgba(220, 38, 38, 0.9);
+      color: #fff;
+      padding: 12px 36px;
+      border-radius: 16px;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      border: 4px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 40px rgba(220, 38, 38, 0.8);
+      z-index: 10;
+    }
 
     .glow-rank-1 { box-shadow: 0 0 60px rgba(251, 191, 36, 0.9), 0 0 120px rgba(251, 191, 36, 0.5); }
     .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
     .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
 
-    /* Confetti */
     #confettiCanvas {
       position: fixed; inset: 0;
       width: 100vw; height: 100vh;
@@ -367,7 +411,6 @@
       z-index: 100;
     }
 
-    /* Stars */
     .star {
       position: absolute;
       background: #fff;
@@ -388,7 +431,6 @@
   <audio id="beepSound" preload="auto"
          src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/beep.mp3"></audio>
 
-  <!-- AUDIO UNLOCK -->
   <div id="audioUnlockOverlay" class="hidden" onclick="unlockAudio()">
     <div class="text-center space-y-6 px-8">
       <div class="unlock-icon text-8xl">🔊</div>
@@ -413,9 +455,7 @@
     <span id="dbgView">boot</span> · <span id="dbgSchool">-</span> · <span id="dbgCount">0</span>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════
-       VIEW 1: IDLE
-       ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 1: IDLE -->
   <section id="viewIdle" class="stage-view active-view">
     <div class="absolute inset-0 animated-gradient opacity-20"></div>
     <div id="idleStars" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
@@ -452,9 +492,7 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════
-       VIEW 2: PER SEKOLAH
-       ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 2: PER SEKOLAH -->
   <section id="viewPerSchool" class="stage-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950"></div>
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.2),_transparent_70%)] pointer-events-none"></div>
@@ -478,14 +516,10 @@
       </div>
     </div>
 
-    <div id="perSchoolCardsGrid" class="absolute inset-0 pt-28 pb-8 px-6 overflow-hidden">
-      <!-- Grid via JS -->
-    </div>
+    <div id="perSchoolCardsGrid" class="absolute inset-0 pt-28 pb-8 px-6 overflow-hidden"></div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════
-       VIEW 3: SOLAR SYSTEM
-       ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 3: SOLAR SYSTEM -->
   <section id="viewAllParticipants" class="stage-view">
     <div id="spaceStars" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
 
@@ -509,23 +543,14 @@
 
           <path d="M 30 20 L 70 20 L 68 45 Q 65 60 50 62 Q 35 60 32 45 Z"
                 fill="url(#trophyGold)" stroke="#92400e" stroke-width="1.5"/>
-
           <path d="M 30 22 Q 18 25 20 38 Q 22 48 32 48"
                 fill="none" stroke="url(#trophyGold)" stroke-width="4" stroke-linecap="round"/>
-          <path d="M 30 22 Q 18 25 20 38 Q 22 48 32 48"
-                fill="none" stroke="#92400e" stroke-width="0.8" stroke-linecap="round"/>
-
           <path d="M 70 22 Q 82 25 80 38 Q 78 48 68 48"
                 fill="none" stroke="url(#trophyGold)" stroke-width="4" stroke-linecap="round"/>
-          <path d="M 70 22 Q 82 25 80 38 Q 78 48 68 48"
-                fill="none" stroke="#92400e" stroke-width="0.8" stroke-linecap="round"/>
-
           <ellipse cx="42" cy="32" rx="8" ry="14" fill="url(#trophyShine)" opacity="0.6"/>
-
           <rect x="46" y="62" width="8" height="10" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
           <rect x="36" y="72" width="28" height="6" rx="1.5" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
           <rect x="30" y="78" width="40" height="8" rx="2" fill="url(#trophyGold)" stroke="#92400e" stroke-width="1"/>
-
           <path d="M 50 32 L 53 40 L 61 40 L 55 45 L 57 53 L 50 48 L 43 53 L 45 45 L 39 40 L 47 40 Z"
                 fill="#fef3c7" stroke="#92400e" stroke-width="0.6"/>
         </svg>
@@ -548,9 +573,7 @@
     </div>
   </section>
 
-  <!-- ═══════════════════════════════════════════════════════
-       VIEW 4: FINALISTS
-       ═══════════════════════════════════════════════════════ -->
+  <!-- VIEW 4: FINALISTS -->
   <section id="viewFinalists" class="stage-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-amber-950/20 to-slate-950"></div>
     <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(251,191,36,0.2),_transparent_70%)] pointer-events-none"></div>
@@ -597,9 +620,8 @@
   const MOON_ORBIT_RADIUS = 60;
   const MOON_ORBIT_DURATION = 12;
 
-  // ⭐ KONFIGURASI ORBIT SATU JALUR
-  const SINGLE_ORBIT_RADIUS = 230;        // radius orbit untuk semua planet
-  const SINGLE_ORBIT_DURATION = 60;       // detik untuk satu putaran penuh
+  const SINGLE_ORBIT_RADIUS = 230;
+  const SINGLE_ORBIT_DURATION = 60;
 
   const TAG = '[OPENING]';
   const LOG = {
@@ -609,9 +631,6 @@
     err:  (m,d) => console.error(`%c${TAG} ❌ ${m}`,'color:#ef4444;font-weight:bold',d??'')
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════
   const STATE = {
     audioUnlocked: false,
     currentView: 'idle',
@@ -634,9 +653,6 @@
     allParticipants: []
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // SOLAR SYSTEM STATE (JS-driven)
-  // ═══════════════════════════════════════════════════════════
   const SOLAR_STATE = {
     planets: [],
     startTime: 0,
@@ -644,9 +660,6 @@
     running: false
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // BGM
-  // ═══════════════════════════════════════════════════════════
   const BGM = {
     baseUrl: `${STORAGE_BASE}/bgm/`,
     tracks: {
@@ -753,9 +766,7 @@
     try { b.currentTime = 0; b.play().catch(() => {}); } catch(e) {}
   }
 
-  // ═══════════════════════════════════════════════════════════
   // CONFETTI
-  // ═══════════════════════════════════════════════════════════
   const confettiCanvas = document.getElementById('confettiCanvas');
   const confettiCtx = confettiCanvas.getContext('2d');
   let confettiPieces = [];
@@ -845,19 +856,13 @@
   }
 
   function burstConfetti(cx, cy, count = 100) {
-    for (let i = 0; i < count; i++) {
-      confettiPieces.push(new ConfettiPiece(cx, cy, false));
-    }
+    for (let i = 0; i < count; i++) confettiPieces.push(new ConfettiPiece(cx, cy, false));
   }
   function rainConfetti(count = 3) {
-    for (let i = 0; i < count; i++) {
-      confettiPieces.push(new ConfettiPiece(0, 0, true));
-    }
+    for (let i = 0; i < count; i++) confettiPieces.push(new ConfettiPiece(0, 0, true));
   }
 
-  // ═══════════════════════════════════════════════════════════
   // HELPERS
-  // ═══════════════════════════════════════════════════════════
   function getSchoolLogoUrl(schoolName) {
     const filename = SCHOOL_LOGO_MAP[schoolName];
     if (!filename) return null;
@@ -871,9 +876,7 @@
     return new Promise(r => setTimeout(r, ms));
   }
 
-  // ═══════════════════════════════════════════════════════════
   // VIEW SWITCH
-  // ═══════════════════════════════════════════════════════════
   function switchView(viewName) {
     LOG.info(`Switch view → ${viewName}`);
 
@@ -911,9 +914,7 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
   // FETCH
-  // ═══════════════════════════════════════════════════════════
   async function fetchParticipantsBySchool(school) {
     const { data, error } = await supabaseClient.rpc('get_participants_by_school', { p_school: school });
     if (error) { LOG.err('fetchParticipantsBySchool', error); return []; }
@@ -931,7 +932,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 2: PER SEKOLAH
+  // VIEW 2: PER SEKOLAH — ⭐ SKIP peserta tereliminasi
   // ═══════════════════════════════════════════════════════════
   async function startReel() {
     STATE.reelSessionId++;
@@ -948,20 +949,28 @@
     document.getElementById('perSchoolLogo').src = logoUrl || '';
     document.getElementById('perSchoolName').textContent = school;
 
-    const participants = await fetchParticipantsBySchool(school);
+    let participants = await fetchParticipantsBySchool(school);
 
     if (mySession !== STATE.reelSessionId) return;
+
+    // ⭐ SKIP peserta yang tereliminasi
+    const beforeCount = participants.length;
+    participants = participants.filter(p => p.is_eliminated !== true);
+    const skipped = beforeCount - participants.length;
+    if (skipped > 0) {
+      LOG.info(`per_school: ${skipped} peserta tereliminasi di-skip`);
+    }
 
     STATE.reelData = participants;
     STATE.reelIndex = 0;
     STATE.reelActive = true;
 
     document.getElementById('perSchoolTotal').textContent = participants.length;
-    document.getElementById('perSchoolCountText').textContent = `${participants.length} peserta`;
+    document.getElementById('perSchoolCountText').textContent = `${participants.length} peserta aktif`;
 
     if (participants.length === 0) {
       document.getElementById('perSchoolCardsGrid').innerHTML =
-        '<p class="text-slate-500 text-xl col-span-full text-center">Tidak ada peserta dari sekolah ini.</p>';
+        '<p class="text-slate-500 text-xl col-span-full text-center">Tidak ada peserta aktif dari sekolah ini.</p>';
       return;
     }
 
@@ -1130,7 +1139,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 3: SOLAR SYSTEM — SATU JALUR ORBIT
+  // VIEW 3: SOLAR SYSTEM — ⭐ moon abu-abu kalau eliminated
   // ═══════════════════════════════════════════════════════════
   async function startAllParticipants() {
     const participants = await fetchAllParticipants();
@@ -1139,7 +1148,10 @@
     buildStarfield();
     buildSolarSystem(participants);
 
-    document.getElementById('allParticipantsCount').textContent = `${participants.length} Peserta`;
+    const totalAktif = participants.filter(p => p.is_eliminated !== true).length;
+    const totalElim = participants.length - totalAktif;
+    document.getElementById('allParticipantsCount').textContent =
+      `${participants.length} Peserta (${totalAktif} aktif · ${totalElim} tereliminasi)`;
   }
 
   function buildStarfield() {
@@ -1171,7 +1183,6 @@
 
     const schools = Object.keys(SCHOOL_LOGO_MAP);
 
-    // Group participants
     const groupBySchool = {};
     schools.forEach(s => groupBySchool[s] = []);
     participants.forEach(p => {
@@ -1180,10 +1191,8 @@
       }
     });
 
-    // ⭐ SATU JALUR ORBIT: semua sekolah berbagi radius & durasi yang sama
     const totalSchools = schools.length;
 
-    // Buat SATU orbit ring untuk semua
     const orbitRing = document.createElement('div');
     orbitRing.className = 'orbit-ring';
     orbitRing.style.width = (SINGLE_ORBIT_RADIUS * 2) + 'px';
@@ -1194,29 +1203,27 @@
 
     SOLAR_STATE.planets = [];
 
-    // Urutkan sekolah (bisa random, tapi sudut tetap merata)
     const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
 
     shuffledSchools.forEach((school, sIdx) => {
-      // ⭐ Sudut awal merata di sepanjang orbit
       const startAngle = (sIdx / totalSchools) * 360;
 
-      // ⭐ Planet element
       const planet = document.createElement('div');
       planet.className = 'planet';
       const logoUrl = getSchoolLogoUrl(school);
       planet.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
       container.appendChild(planet);
 
-      // ⭐ Moons (kartu peserta)
       const members = groupBySchool[school] || [];
       const moons = [];
 
       members.forEach((m, mIdx) => {
         const moonAngle = (mIdx / Math.max(members.length, 1)) * 360;
+        const isElim = m.is_eliminated === true;
 
         const moon = document.createElement('div');
-        moon.className = 'moon';
+        // ⭐ Tambah class 'eliminated' kalau tereliminasi
+        moon.className = 'moon' + (isElim ? ' eliminated' : '');
 
         const avatar = getAvatarUrl(m.unique_id, m.avatar_url);
         moon.innerHTML = `
@@ -1233,8 +1240,8 @@
 
       SOLAR_STATE.planets.push({
         school,
-        radius: SINGLE_ORBIT_RADIUS,          // ⭐ sama untuk semua
-        duration: SINGLE_ORBIT_DURATION,      // ⭐ sama untuk semua
+        radius: SINGLE_ORBIT_RADIUS,
+        duration: SINGLE_ORBIT_DURATION,
         startAngle,
         el: planet,
         moons,
@@ -1255,16 +1262,13 @@
       if (!SOLAR_STATE.running) return;
 
       const elapsed = (now - SOLAR_STATE.startTime) / 1000;
-
       const W = window.innerWidth;
       const H = window.innerHeight;
       const cx = W / 2;
       const cy = H / 2;
 
       SOLAR_STATE.planets.forEach(p => {
-        // Sudut planet — semua pakai durasi yang sama → satu jalur orbit
         const planetAngleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
-
         const px = cx + Math.cos(planetAngleRad) * p.radius;
         const py = cy + Math.sin(planetAngleRad) * p.radius;
 
@@ -1273,7 +1277,6 @@
         p.el.style.marginLeft = '-45px';
         p.el.style.marginTop = '-45px';
 
-        // Moons mengorbit planet
         p.moons.forEach(m => {
           const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
           const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
@@ -1283,7 +1286,7 @@
           m.el.style.top = my + 'px';
           m.el.style.marginLeft = '-30px';
           m.el.style.marginTop = '-30px';
-          m.el.style.transform = 'rotate(0deg)';   // ⭐ SELALU TEGAK
+          m.el.style.transform = 'rotate(0deg)';
         });
       });
 
@@ -1301,7 +1304,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS
+  // VIEW 4: FINALISTS — ⭐ kartu abu-abu kalau eliminated
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
@@ -1361,6 +1364,7 @@
 
     const rank = p.rank_final;
     const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
+    const isElim = p.is_eliminated === true;
 
     let badge = `RANK #${rank}`;
     let badgeClass = 'bg-slate-700 text-slate-200';
@@ -1384,8 +1388,17 @@
       glowClass = 'glow-rank-3';
     }
 
+    // ⭐ Kalau tereliminasi, override tampilan
+    if (isElim) {
+      badge = '🚫 TERELIMINASI';
+      badgeClass = 'bg-rose-600 text-white';
+      borderClass = 'border-rose-500';
+      glowClass = '';
+    }
+
     container.innerHTML = `
-      <div class="rank-card bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 border-4 ${borderClass} rounded-[3rem] p-10 md:p-14 flex flex-col items-center gap-6 max-w-3xl w-full ${glowClass}">
+      <div class="rank-card relative ${isElim ? 'eliminated' : ''} bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 border-4 ${borderClass} rounded-[3rem] p-10 md:p-14 flex flex-col items-center gap-6 max-w-3xl w-full ${glowClass}">
+        ${isElim ? '<div class="elim-stamp">ELIMINATED</div>' : ''}
         <div class="px-8 py-3 rounded-full font-black text-xl md:text-2xl uppercase tracking-widest ${badgeClass} shadow-2xl">
           ${badge}
         </div>
@@ -1416,9 +1429,7 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════
   // SYNC LAYOUT
-  // ═══════════════════════════════════════════════════════════
   async function syncLayout() {
     try {
       const { data, error } = await supabaseClient
@@ -1457,9 +1468,7 @@
     } catch (e) { LOG.err('syncLayout', e); }
   }
 
-  // ═══════════════════════════════════════════════════════════
   // REALTIME
-  // ═══════════════════════════════════════════════════════════
   function setupRealtime() {
     supabaseClient.channel('opening_ceremony_rt')
       .on('postgres_changes', {
@@ -1478,9 +1487,7 @@
     setInterval(syncLayout, 2000);
   }
 
-  // ═══════════════════════════════════════════════════════════
   // INIT
-  // ═══════════════════════════════════════════════════════════
   (async function init() {
     LOG.ok('══════════ OPENING CEREMONY BOOT ══════════');
     initBGM();
