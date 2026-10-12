@@ -22,8 +22,10 @@
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-8">
 
+  <!-- AUDIO BELL -->
   <audio id="bellSound" src="/assets/sounds/bell.mp3" preload="auto"></audio>
 
+  <!-- NOTIF BANNER -->
   <div id="notifBanner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-slate-950 px-6 py-4 rounded-2xl shadow-2xl font-black text-lg animate-pulse-bell flex items-center gap-3 border-2 border-emerald-300">
     <i class="fas fa-bell text-2xl"></i>
     <span id="notifBannerText">Notifikasi!</span>
@@ -52,7 +54,9 @@
       </div>
     </div>
 
-    <!-- PANEL: FASE MENGHAFAL -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: FASE MENGHAFAL                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="bg-slate-900 border border-amber-500/30 p-6 rounded-2xl glow-amber space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="font-black text-lg text-amber-400 flex items-center gap-2">
@@ -65,6 +69,7 @@
 
       <p class="text-xs text-slate-400">
         Setelah menekan tombol <b class="text-amber-400">Mulai Menghafal</b>, layar stage akan menampilkan countdown 15 menit.
+        Peserta fokus menghafal. Setelah waktu habis, layar otomatis kembali ke <b>idle kosong</b> + bunyi beep.
       </p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,7 +103,9 @@
       </div>
     </div>
 
-    <!-- PANEL: FASE MENGERJAKAN -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: FASE MENGERJAKAN                                     -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl glow-purple space-y-4">
       <div class="flex items-center justify-between border-b border-white/10 pb-3">
         <h3 class="font-black text-lg text-emerald-400 flex items-center gap-2">
@@ -133,7 +140,9 @@
       </div>
     </div>
 
-    <!-- PANEL: KONTROL ELIMINASI -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL: KONTROL ELIMINASI                                    -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-500/30 p-6 rounded-2xl space-y-4 shadow-lg">
       <div class="flex items-center justify-between border-b border-rose-500/20 pb-3 flex-wrap gap-2">
         <div>
@@ -185,7 +194,9 @@
       <div id="elimResultInfo" class="hidden bg-slate-950/80 border border-rose-500/30 rounded-xl p-4 max-h-[300px] overflow-y-auto custom-scroll"></div>
     </div>
 
-    <!-- GRID: TIM & PESERTA -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- GRID: TIM & PESERTA                                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
@@ -195,6 +206,10 @@
           </h3>
           <span id="teamCountBadge" class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-lg">0 Tim</span>
         </div>
+
+        <p class="text-xs text-slate-400 mb-4">
+          Peserta otomatis dibagi ke 10 tim. Klik "Shuffle" untuk acak ulang.
+        </p>
 
         <div class="grid grid-cols-2 gap-2 mb-4">
           <button onclick="shuffleTeams()" class="py-2.5 rounded-xl font-bold text-xs bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 transition active:scale-95 flex items-center justify-center gap-2">
@@ -230,7 +245,9 @@
 
     </div>
 
-    <!-- KONTROL TAMPILAN LAYAR -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- KONTROL TAMPILAN LAYAR                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="bg-slate-900 border border-purple-500/30 p-6 rounded-2xl space-y-4">
       <div class="flex flex-col sm:flex-row items-center justify-between border-b border-white/10 pb-3 gap-2">
         <div>
@@ -270,6 +287,7 @@
         </div>
       </div>
 
+      <!-- REVEAL PERINGKAT TIM -->
       <div class="pt-3 border-t border-white/10 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -314,6 +332,7 @@
         </div>
       </div>
 
+      <!-- REVEAL TOP 10 INDIVIDU -->
       <div class="pt-3 border-t border-white/10 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -375,9 +394,9 @@
 
     const GAME_NAME = 'Cataclysm Memory';
     const TEAM_COUNT = 10;
-    const SESSION_DURATION = 900;   // ⭐ 15 MENIT
+    const SESSION_DURATION = 900;        // ⭐ 15 MENIT
     const DEFAULT_MEMORIZE_DURATION = 900;
-    const SURVIVOR_COUNT = 30;
+    const SURVIVOR_COUNT = 30;           // Top 30 lolos
 
     const SYS_TABLE = 'system_cataclysm_memory';
     const LAYOUT_TABLE = 'admin_layout_cataclysm_memory';
@@ -999,6 +1018,12 @@
       `;
     }
 
+    /**
+     * STEP 1 — Hitung eliminasi (preview).
+     * Panggil get_cataclysm_elimination(), potong 30 teratas → lolos,
+     * sisanya (index >= 30) → tereliminasi.
+     * Longgarkan guard: kalau totalAktif > 30 tapi RPC return ≤ 30, tetap izinkan.
+     */
     async function executeComputeElimination() {
       const confirmCalc = confirm(
         `Hitung daftar peserta yang akan TERELIMINASI?\n\n` +
@@ -1018,27 +1043,63 @@
         const ranking = await fetchCataclysmRanking();
 
         if (!ranking || ranking.length === 0) {
-          alert('⚠️ Tidak ada data peserta. Pastikan peserta sudah main minimal 1 game.');
+          alert('⚠️ Tidak ada data peserta sama sekali.');
           return;
         }
 
-        if (ranking.length <= SURVIVOR_COUNT) {
+        // Cek total aktif (termasuk yang belum main)
+        const { count: totalAktif } = await supabaseClient
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'peserta')
+          .eq('is_eliminated', false);
+
+        // Guard minimal: kalau total aktif <= SURVIVOR_COUNT, tidak ada yang dieliminasi
+        if ((totalAktif || 0) <= SURVIVOR_COUNT) {
           alert(
-            `⚠️ Hanya ada ${ranking.length} peserta yang sudah main.\n` +
-            `Top ${SURVIVOR_COUNT} lolos tidak bisa dihitung — butuh minimal ${SURVIVOR_COUNT + 1} peserta.`
+            `⚠️ Total peserta aktif hanya ${totalAktif || 0}.\n` +
+            `Top ${SURVIVOR_COUNT} lolos berarti semua lolos — tidak ada yang tereliminasi.`
           );
           return;
         }
 
-        const eliminated = ranking.slice(SURVIVOR_COUNT).map(r => ({
-          unique_id: r.unique_id,
-          name: r.name,
-          final_score: Number(r.total_point || 0),
-          rank_final: r.rank_final
-        }));
+        // Ambil index ≥ 30 (sisanya) dari ranking
+        // Kalau ranking.length < totalAktif, sisa peserta dianggap tidak punya poin → masukkan
+        const eliminated = [];
+
+        // 1. Yang masuk ranking dengan rank > 30
+        ranking.slice(SURVIVOR_COUNT).forEach(r => {
+          eliminated.push({
+            unique_id: r.unique_id,
+            name: r.name,
+            final_score: Number(r.total_point || 0),
+            rank_final: r.rank_final
+          });
+        });
+
+        // 2. Kalau ranking < totalAktif, berarti ada peserta yang tidak main
+        //    (tidak muncul di RPC). Cari mereka dari tabel users, tambahkan ke eliminasi.
+        if (ranking.length < (totalAktif || 0)) {
+          const rankingIds = new Set(ranking.map(r => r.unique_id));
+          const { data: allAktifUsers } = await supabaseClient
+            .from('users')
+            .select('unique_id, full_name')
+            .eq('role', 'peserta')
+            .eq('is_eliminated', false);
+
+          (allAktifUsers || []).forEach(u => {
+            if (!rankingIds.has(u.unique_id)) {
+              eliminated.push({
+                unique_id: u.unique_id,
+                name: u.full_name || u.unique_id,
+                final_score: 0,
+                rank_final: (ranking.length + eliminated.length + 1)
+              });
+            }
+          });
+        }
 
         cachedElimResult = eliminated;
-
         renderElimResult(eliminated, false);
 
         playBell();
@@ -1047,12 +1108,20 @@
           `Mereka MASIH BISA main sampai Anda klik "Kunci Tereliminasi".\n\n` +
           `Top ${SURVIVOR_COUNT} lolos ke Hari 2.`
         );
+      } catch (e) {
+        console.error('[ELIM] compute error:', e);
+        alert('Gagal menghitung: ' + (e.message || e));
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalHtml;
       }
     }
 
+    /**
+     * STEP 2 — Kunci (insert + set is_eliminated=true).
+     * Pakai RPC save_cataclysm_elimination (server-side, bypass RLS).
+     * Kalau RPC belum ada di DB, fallback ke insert manual + declare_elimination.
+     */
     async function executeDeclareElimination() {
       const confirmLock = confirm(
         `🔒 KUNCI peserta yang tereliminasi?\n\n` +
@@ -1079,13 +1148,35 @@
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunci...';
 
       try {
-        // Simpan eliminasi via RPC (server-side)
+        // 1. Simpan eliminasi via RPC (server-side, bypass RLS)
         const { data: insertedCount, error: insertErr } = await supabaseClient
           .rpc('save_cataclysm_elimination');
 
-        if (insertErr) throw insertErr;
+        if (insertErr) {
+          console.warn('[ELIM] save_cataclysm_elimination gagal, coba insert manual:', insertErr);
 
-        // Kunci — set users.is_eliminated = true
+          // Fallback: insert manual (butuh RLS policy insert di elimination_history)
+          const rows = cachedElimResult.map(r => ({
+            unique_id: r.unique_id,
+            name: r.name,
+            game_name: GAME_NAME,
+            final_score: r.final_score,
+            eliminated_at: new Date().toISOString()
+          }));
+
+          await supabaseClient
+            .from(ELIM_HISTORY_TABLE)
+            .delete()
+            .eq('game_name', GAME_NAME);
+
+          const { error: manualErr } = await supabaseClient
+            .from(ELIM_HISTORY_TABLE)
+            .insert(rows);
+
+          if (manualErr) throw manualErr;
+        }
+
+        // 2. Kunci — set users.is_eliminated = true
         const { data: declaredCount, error: declareErr } = await supabaseClient
           .rpc('declare_elimination', { p_game_name: GAME_NAME });
 
@@ -1109,6 +1200,9 @@
       }
     }
 
+    /**
+     * STEP 3 — Undo (hapus dari elimination_history + reset is_eliminated).
+     */
     async function executeUndoElimination() {
       const confirmUndo = confirm(
         `Undo eliminasi Cataclysm Memory?\n\n` +
@@ -1349,7 +1443,7 @@
       subscribeRealtime();
     }
 
-    // Expose
+    // Expose ke window
     window.startMemorizeSession = startMemorizeSession;
     window.stopMemorizeSession = stopMemorizeSession;
     window.startAnswerSession = startAnswerSession;
