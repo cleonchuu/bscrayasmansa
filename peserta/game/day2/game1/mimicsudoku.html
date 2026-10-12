@@ -50,7 +50,6 @@
       animation: fadeIn 0.3s ease-in-out;
     }
 
-    /* ⭐ ELIMINATION OVERLAY */
     .eliminated-screen {
       position: fixed;
       inset: 0;
@@ -123,9 +122,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- ⭐ ELIMINATION OVERLAY (baru)                                -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ⭐ ELIMINATION OVERLAY -->
   <div id="eliminatedOverlay" class="eliminated-screen hidden text-center p-6">
     <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
       <i class="fas fa-ban text-6xl text-rose-500"></i>
@@ -149,9 +146,7 @@
     </button>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- FREEZE OVERLAY (situasional)                                 -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FREEZE OVERLAY -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
     <div id="freezeIconWrap" class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
       <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
@@ -174,9 +169,7 @@
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- MAIN KIOSK                                                    -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN KIOSK -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
 
     <!-- HEADER -->
@@ -295,7 +288,7 @@
   const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ ELIMINATION — cek & tampilkan
+  // ELIMINATION CHECK
   // ═══════════════════════════════════════════════════════════
   async function checkEliminationStatus(uniqueId) {
     try {
@@ -323,7 +316,6 @@
 
   function hideEliminatedOverlay() {
     document.getElementById('eliminatedOverlay').classList.add('hidden');
-    // Balik ke step awal
     stepCalculator.classList.add('hidden');
     stepStudent.classList.add('hidden');
     stepSchool.classList.remove('hidden');
@@ -540,10 +532,9 @@
   document.getElementById('btnCancelCalc').onclick = resetToStart;
 
   // ═══════════════════════════════════════════════════════════
-  // ⭐ OPEN CALCULATOR — dengan cek eliminasi
+  // OPEN CALCULATOR
   // ═══════════════════════════════════════════════════════════
   async function openCalculator(student) {
-    // ⭐ CEK STATUS ELIMINASI DULU
     const isElim = await checkEliminationStatus(student.unique_id);
     if (isElim) {
       showEliminatedOverlay(student.full_name);
@@ -700,6 +691,9 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ⭐ FLASH EFFECT — sekarang TIDAK menampilkan jawaban benar saat salah
+  // ═══════════════════════════════════════════════════════════
   function triggerFlashEffect(isCorrect, pointsEarned, correctAnswer, newQuota) {
     const overlay = document.getElementById('flashOverlay');
     const icon = document.getElementById('flashIcon');
@@ -709,15 +703,17 @@
     icon.textContent = isCorrect ? '✅' : '❌';
 
     if (isCorrect) {
+      // ✅ BENAR — tampilkan poin
       text.innerHTML = `
         <div>JAWABAN BENAR!</div>
         <div class="text-4xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">+${Number(pointsEarned).toFixed(2)} PTS</div>
         <div class="text-lg mt-3 opacity-80">Sisa kuota: ${newQuota}</div>
       `;
     } else {
+      // ❌ SALAH — JANGAN tampilkan jawaban benar
       text.innerHTML = `
         <div>JAWABAN SALAH!</div>
-        <div class="text-2xl mt-4 opacity-80">Jawaban benar: ${correctAnswer}</div>
+        <div class="text-xl mt-4 opacity-80">Coba lagi di kesempatan berikutnya</div>
         <div class="text-lg mt-3 opacity-80">Sisa kuota: ${newQuota}</div>
       `;
     }
