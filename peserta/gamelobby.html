@@ -8,102 +8,44 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
-    /* Custom scrollbar untuk carousel */
-    .carousel-container::-webkit-scrollbar {
-      height: 8px;
-    }
-    .carousel-container::-webkit-scrollbar-track {
-      background: #1e293b;
-      border-radius: 10px;
-    }
-    .carousel-container::-webkit-scrollbar-thumb {
-      background: #f59e0b;
-      border-radius: 10px;
-    }
-    .carousel-container::-webkit-scrollbar-thumb:hover {
-      background: #fbbf24;
-    }
+    .carousel-container::-webkit-scrollbar { height: 8px; }
+    .carousel-container::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+    .carousel-container::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 10px; }
+    .carousel-container::-webkit-scrollbar-thumb:hover { background: #fbbf24; }
 
-    /* Animasi fade-in */
     @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .fade-in-up {
-      animation: fadeInUp 0.6s ease-out;
-    }
+    .fade-in-up { animation: fadeInUp 0.6s ease-out; }
 
-    /* Modal animation */
     @keyframes modalFadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.9) translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
+      from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .modal-fade-in {
-      animation: modalFadeIn 0.3s ease-out;
-    }
+    .modal-fade-in { animation: modalFadeIn 0.3s ease-out; }
 
-    /* Card hover effect */
-    .day-card {
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    .day-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
-    }
+    .day-card { transition: all 0.3s ease; cursor: pointer; }
+    .day-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5); }
 
-    /* Game card hover */
-    .game-card {
-      transition: all 0.3s ease;
-    }
-    .game-card:hover {
-      transform: translateX(4px);
-    }
+    .game-card { transition: all 0.3s ease; }
+    .game-card:hover { transform: translateX(4px); }
 
-    /* Glow button */
-    .btn-glow {
-      transition: all 0.3s ease;
-    }
+    .btn-glow { transition: all 0.3s ease; }
     .btn-glow:hover:not(:disabled) {
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
       transform: scale(1.05);
     }
 
-    .btn-glow-danger {
-      transition: all 0.3s ease;
-    }
-    .btn-glow-danger:hover:not(:disabled) {
-      box-shadow: 0 0 20px rgba(225, 29, 72, 0.5);
-      transform: scale(1.05);
-    }
-
-    /* Loading spinner */
     .spinner {
       border: 3px solid rgba(255, 255, 255, 0.1);
       border-top: 3px solid #f59e0b;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 40px; height: 40px;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    /* Glassmorphism effect */
     .glass {
       background: rgba(30, 41, 59, 0.8);
       backdrop-filter: blur(10px);
@@ -111,11 +53,23 @@
       border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Profile photo 3x4 */
-    .profile-photo {
-      aspect-ratio: 3 / 4;
-      object-fit: cover;
+    .profile-photo { aspect-ratio: 3 / 4; object-fit: cover; }
+
+    .mini-skeleton {
+      background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+      background-size: 200% 100%;
+      animation: skel 1.4s ease-in-out infinite;
     }
+    @keyframes skel { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+    .point-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; border-radius: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: all 0.2s ease;
+    }
+    .point-value { font-family: ui-monospace, monospace; font-weight: 800; color: #fbbf24; }
   </style>
 </head>
 <body class="bg-[#0f172a] min-h-screen text-white">
@@ -130,7 +84,7 @@
 
   <!-- Main Content -->
   <div id="mainContent" class="hidden max-w-6xl mx-auto px-4 py-6 fade-in-up">
-    
+
     <!-- Profile Header -->
     <div class="bg-[#1e293b] rounded-2xl shadow-2xl p-6 mb-8 relative glass border border-white/5">
       <button id="logoutBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200">
@@ -153,10 +107,22 @@
               <img id="schoolLogo" src="" alt="Logo Sekolah" class="w-full h-full object-cover" />
             </div>
           </div>
-          
+
           <div class="mt-4 inline-block bg-gradient-to-r from-[#f59e0b]/20 to-[#fbbf24]/20 border border-[#f59e0b]/30 rounded-xl px-6 py-3">
-            <p class="text-sm text-gray-400">Total Poin Akumulasi</p>
-            <p id="totalPoints" class="text-3xl font-bold text-[#fbbf24]">0</p>
+            <p class="text-sm text-gray-400">
+              Total Poin Akumulasi
+              <span id="pointBreakdownToggle" class="ml-2 text-[10px] text-amber-400 cursor-pointer underline decoration-dotted">
+                (lihat rincian)
+              </span>
+            </p>
+            <p id="totalPoints" class="text-3xl font-bold text-[#fbbf24]">—</p>
+          </div>
+
+          <div id="pointBreakdown" class="hidden mt-3 max-w-md">
+            <div class="bg-[#0f172a]/70 border border-white/5 rounded-xl p-3 space-y-1.5 text-sm">
+              <div class="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Rincian Poin per Game</div>
+              <div id="breakdownList" class="space-y-1"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -172,8 +138,7 @@
         <span class="text-sm text-gray-400"><i class="fas fa-arrows-alt-h mr-1"></i>Geser untuk melihat</span>
       </div>
 
-      <div class="carousel-container overflow-x-auto overflow-y-hidden pb-4 flex gap-6 snap-x snap-mandatory scroll-smooth" id="carouselContainer">
-      </div>
+      <div class="carousel-container overflow-x-auto overflow-y-hidden pb-4 flex gap-6 snap-x snap-mandatory scroll-smooth" id="carouselContainer"></div>
     </div>
 
     <!-- Deathmatch Section -->
@@ -198,8 +163,6 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          <!-- Math Rush -->
           <div class="bg-[#0f172a]/90 border border-rose-500/30 rounded-2xl p-5 flex flex-col justify-between hover:border-rose-500/60 transition-all duration-300 shadow-lg">
             <div>
               <div class="flex items-center justify-between mb-3">
@@ -218,7 +181,6 @@
             </button>
           </div>
 
-          <!-- Rolling Game -->
           <div class="bg-[#0f172a]/90 border border-rose-500/30 rounded-2xl p-5 flex flex-col justify-between hover:border-rose-500/60 transition-all duration-300 shadow-lg">
             <div>
               <div class="flex items-center justify-between mb-3">
@@ -236,7 +198,6 @@
               🔒 Terkunci oleh Admin
             </button>
           </div>
-
         </div>
       </div>
     </div>
@@ -256,8 +217,9 @@
         </button>
       </div>
 
-      <div id="gameList" class="space-y-4">
-      </div>
+      <div id="modalDayPoints" class="mb-5"></div>
+
+      <div id="gameList" class="space-y-4"></div>
     </div>
   </div>
 
@@ -267,38 +229,76 @@
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+    const STORAGE_BASE = `${supabaseUrl}/storage/v1/object/public`;
+    const SCHOOL_LOGO_BASE = `${STORAGE_BASE}/SCHOOL_LOGO`;
+    const AVATAR_BASE = `${STORAGE_BASE}/avatars`;
+
+    // Mapping nama sekolah → file logo (samakan dengan file yang ada di bucket SCHOOL_LOGO)
+    const SCHOOL_LOGO_MAP = {
+      'MTS DARUSSALAM':             'MTSDARUSSALAM.png',
+      'MTS IBNU RUSYD':             'MTSIBNURUSYD.png',
+      'MTSN 2 Natuna':              'MTSN2NATUNA.png',
+      'SMPIT NIQ':                  'SMPITNIQ.png',
+      'SMPN 1 Bunguran Tengah':     'SMPN1BUNGURANTENGAH.png',
+      'SMPN 1 Bunguran Timur':      'SMPN1BUNGURANTIMUR.png',
+      'SMPN 2 Bunguran Timur':      'SMPN2BUNGURANTIMUR.png',
+      'SMPN 2 Bunguran Timur Laut': 'SMPN2BUNGURANTIMURLAUT.png',
+      'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
+    };
+
     // 2. ELEMEN DOM
-    const loadingScreen = document.getElementById('loadingScreen');
-    const mainContent = document.getElementById('mainContent');
-    const profilePhoto = document.getElementById('profilePhoto');
-    const fullName = document.getElementById('fullName');
-    const schoolName = document.getElementById('schoolName');
-    const schoolLogo = document.getElementById('schoolLogo');
-    const totalPoints = document.getElementById('totalPoints');
-    const logoutBtn = document.getElementById('logoutBtn');
+    const loadingScreen   = document.getElementById('loadingScreen');
+    const mainContent     = document.getElementById('mainContent');
+    const profilePhoto    = document.getElementById('profilePhoto');
+    const fullName        = document.getElementById('fullName');
+    const schoolName      = document.getElementById('schoolName');
+    const schoolLogo      = document.getElementById('schoolLogo');
+    const totalPoints     = document.getElementById('totalPoints');
+    const logoutBtn       = document.getElementById('logoutBtn');
     const carouselContainer = document.getElementById('carouselContainer');
-    const gameModal = document.getElementById('gameModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const modalDayTitle = document.getElementById('modalDayTitle');
-    const modalDayDate = document.getElementById('modalDayDate');
-    const gameList = document.getElementById('gameList');
+    const gameModal       = document.getElementById('gameModal');
+    const closeModalBtn   = document.getElementById('closeModalBtn');
+    const modalDayTitle   = document.getElementById('modalDayTitle');
+    const modalDayDate    = document.getElementById('modalDayDate');
+    const modalDayPoints  = document.getElementById('modalDayPoints');
+    const gameList        = document.getElementById('gameList');
+    const pointBreakdownToggle = document.getElementById('pointBreakdownToggle');
+    const pointBreakdown  = document.getElementById('pointBreakdown');
+    const breakdownList   = document.getElementById('breakdownList');
 
-    let scheduleAccess = {}; // Menyimpan state dari game_schedule
+    // 3. STATE
+    let scheduleAccess = {};
+    let userPoints = { unique_id: null, breakdown: {}, total: 0 };
+    let currentUser = null;
 
-    // 3. CHECK SESSION
+    // 4. DEFINISI GAME → TABEL POIN
+    //    ⚠️ Nama tabel = 'point_arithmatic_bingo' (sesuai DB, bukan 'arithmetic')
+    const GAME_POINT_MAP = [
+      { key: 'd1g1', day: 1, game: 1, name: 'Arithmetic Bingo',     table: 'point_arithmatic_bingo',     pointColumn: 'point' },
+      { key: 'd1g2', day: 1, game: 2, name: 'Number Disco',         table: 'point_number_disco_blue',    pointColumn: 'point' },
+      { key: 'd1g3', day: 1, game: 3, name: 'Cataclysm Memory',     table: 'point_cataclysm_memory',     pointColumn: 'point' },
+      { key: 'd2g1', day: 2, game: 1, name: 'Mimic Sudoku',         table: 'point_mimic_sudoku',         pointColumn: 'point' },
+      { key: 'd2g2', day: 2, game: 2, name: 'Frenzy Cross Maze',    table: 'point_frenzy_cross_maze',    pointColumn: 'point' },
+      { key: 'd2g3', day: 2, game: 3, name: 'Forsaken City Recall', table: 'point_forsaken_city_recall', pointColumn: 'total' },
+      { key: 'd3g1', day: 3, game: 1, name: 'Hiding Block',         table: 'point_hiding_block',         pointColumn: 'point' },
+      { key: 'd3g2', day: 3, game: 2, name: 'Morse Match',          table: 'point_number_disco_red',     pointColumn: 'point' },
+      { key: 'd3g3', day: 3, game: 3, name: 'Crypta Treasure Hunt', table: null,                         pointColumn: null    }
+    ];
+
+    const DAYS_DATA = [
+      { day: 1, title: 'Hari Pertama', date: '12 Oktober 2026' },
+      { day: 2, title: 'Hari Kedua',   date: '13 Oktober 2026' },
+      { day: 3, title: 'Hari Ketiga',  date: '14 Oktober 2026' }
+    ];
+
+    // 5. CHECK SESSION
     async function checkSessionAndLoadData() {
       try {
         const session = localStorage.getItem('userSession');
-        if (!session) {
-          redirectToLogin();
-          return;
-        }
+        if (!session) { redirectToLogin(); return; }
 
         const userData = JSON.parse(session);
-        if (!userData.loggedIn || userData.role !== 'peserta') {
-          redirectToLogin();
-          return;
-        }
+        if (!userData.loggedIn || userData.role !== 'peserta') { redirectToLogin(); return; }
 
         const { data, error } = await supabaseClient
           .from('users')
@@ -306,23 +306,24 @@
           .eq('unique_id', userData.unique_id)
           .single();
 
-        if (error || !data) {
-          console.error('Error fetching user data:', error);
-          redirectToLogin();
-          return;
-        }
+        if (error || !data) { console.error('Error fetching user data:', error); redirectToLogin(); return; }
+
+        currentUser = data;
 
         const updatedSession = {
           ...userData,
           full_name: data.full_name,
           school_name: data.school_name,
-          photo_url: data.photo_url,
-          total_points: data.total_points || 0
+          avatar_url: data.avatar_url   // ⚠️ ganti dari photo_url
         };
         localStorage.setItem('userSession', JSON.stringify(updatedSession));
 
         displayProfile(data);
-        await loadGameSchedule();
+
+        await Promise.all([
+          loadUserPoints(data.unique_id),
+          loadGameSchedule()
+        ]);
 
         loadingScreen.classList.add('hidden');
         mainContent.classList.remove('hidden');
@@ -333,48 +334,119 @@
       }
     }
 
-    function redirectToLogin() {
-      window.location.href = 'login.html';
-    }
+    function redirectToLogin() { window.location.href = 'login.html'; }
 
-    // 4. DISPLAY PROFILE
+    // 6. DISPLAY PROFILE
     function displayProfile(data) {
-      if (data.photo_url) {
-        profilePhoto.src = data.photo_url;
+      // ⚠️ Pakai avatar_url
+      if (data.avatar_url && data.avatar_url.trim()) {
+        profilePhoto.src = data.avatar_url;
         profilePhoto.onerror = function() {
-          this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name) + '&size=200&background=0f172a&color=f59e0b';
+          this.onerror = null;
+          this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name || 'P') + '&size=200&background=0f172a&color=f59e0b';
         };
       } else {
-        profilePhoto.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name) + '&size=200&background=0f172a&color=f59e0b';
+        profilePhoto.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.full_name || 'P') + '&size=200&background=0f172a&color=f59e0b';
       }
 
       fullName.textContent = data.full_name || 'Nama tidak tersedia';
       schoolName.textContent = data.school_name || 'Sekolah tidak tersedia';
 
-      if (data.school_name) {
-        const schoolNameFile = data.school_name.toLowerCase().replace(/\s+/g, '_');
-        const logoPath = `assets/images/logo/${schoolNameFile}.jpg`;
-        schoolLogo.src = logoPath;
-        schoolLogo.onerror = function() {
-          this.src = 'assets/images/logo/default.png';
-          this.onerror = function() {
-            this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.school_name || 'S') + '&size=40&background=0f172a&color=94a3b8';
-          };
-        };
+      // ⚠️ Logo sekolah dari Supabase Storage
+      const logoFile = SCHOOL_LOGO_MAP[data.school_name];
+      if (logoFile) {
+        schoolLogo.src = `${SCHOOL_LOGO_BASE}/${logoFile}`;
       } else {
-        schoolLogo.src = 'assets/images/logo/default.png';
+        schoolLogo.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.school_name || 'S') + '&size=40&background=0f172a&color=94a3b8';
       }
+      schoolLogo.onerror = function() {
+        this.onerror = null;
+        this.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(data.school_name || 'S') + '&size=40&background=0f172a&color=94a3b8';
+      };
 
-      totalPoints.textContent = data.total_points || 0;
+      totalPoints.textContent = '—';
     }
 
-    // 5. FETCH GAME SCHEDULE FROM SUPABASE (Tabel: public.game_schedule)
-    const daysData = [
-      { day: 1, title: 'Hari Pertama', date: '12 Oktober 2026' },
-      { day: 2, title: 'Hari Kedua', date: '13 Oktober 2026' },
-      { day: 3, title: 'Hari Ketiga', date: '14 Oktober 2026' }
-    ];
+    // 7. LOAD POIN USER dari 8 tabel point_*
+    async function loadUserPoints(uniqueId) {
+      // Skeleton dulu
+      breakdownList.innerHTML = '';
+      GAME_POINT_MAP.forEach(g => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center';
+        row.innerHTML = `
+          <span class="text-gray-400">${g.name}</span>
+          <span class="mini-skeleton rounded h-4 w-12 inline-block"></span>
+        `;
+        breakdownList.appendChild(row);
+      });
 
+      const breakdown = {};
+      let total = 0;
+
+      // Query paralel ke semua tabel yang punya pointColumn
+      const tasks = GAME_POINT_MAP
+        .filter(g => g.table && g.pointColumn)
+        .map(async (g) => {
+          try {
+            const { data, error } = await supabaseClient
+              .from(g.table)
+              .select(g.pointColumn)
+              .eq('unique_id', uniqueId)
+              .limit(1)
+              .maybeSingle();
+
+            if (error) {
+              console.warn(`[points] ${g.table} →`, error.message);
+              return { key: g.key, value: 0 };
+            }
+            const val = data && data[g.pointColumn] != null ? Number(data[g.pointColumn]) : 0;
+            return { key: g.key, value: isFinite(val) ? val : 0 };
+          } catch (e) {
+            console.warn(`[points] ${g.table} exception →`, e);
+            return { key: g.key, value: 0 };
+          }
+        });
+
+      const results = await Promise.all(tasks);
+      results.forEach(r => {
+        breakdown[r.key] = r.value;
+        total += r.value;
+      });
+
+      GAME_POINT_MAP.forEach(g => {
+        if (breakdown[g.key] === undefined) breakdown[g.key] = 0;
+      });
+
+      userPoints = { unique_id: uniqueId, breakdown, total };
+
+      totalPoints.textContent = formatNumber(total);
+      renderBreakdown();
+    }
+
+    function renderBreakdown() {
+      breakdownList.innerHTML = '';
+      GAME_POINT_MAP.forEach(g => {
+        const val = userPoints.breakdown[g.key] ?? 0;
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center';
+        row.innerHTML = `
+          <span class="text-gray-400">${g.name}</span>
+          <span class="point-value">${formatNumber(val)}</span>
+        `;
+        breakdownList.appendChild(row);
+      });
+
+      const totalRow = document.createElement('div');
+      totalRow.className = 'flex justify-between items-center pt-2 mt-1 border-t border-white/10';
+      totalRow.innerHTML = `
+        <span class="text-amber-300 font-bold">TOTAL</span>
+        <span class="text-amber-300 font-black">${formatNumber(userPoints.total)}</span>
+      `;
+      breakdownList.appendChild(totalRow);
+    }
+
+    // 8. FETCH GAME SCHEDULE
     async function loadGameSchedule() {
       try {
         const { data, error } = await supabaseClient
@@ -395,116 +467,120 @@
         generateCarouselCards();
       } catch (err) {
         console.error('Gagal memuat game_schedule:', err);
+        generateCarouselCards();
       }
     }
 
-    // 6. CAROUSEL
+    // 9. CAROUSEL
     function generateCarouselCards() {
       carouselContainer.innerHTML = '';
 
-      daysData.forEach((day) => {
+      DAYS_DATA.forEach((day) => {
         let openCount = 0;
         for (let game = 1; game <= 3; game++) {
           const key = `${day.day}-${game}`;
-          if (scheduleAccess[key] && scheduleAccess[key].is_open) {
-            openCount++;
-          }
+          if (scheduleAccess[key] && scheduleAccess[key].is_open) openCount++;
         }
 
         const card = document.createElement('div');
         card.className = 'day-card flex-shrink-0 w-72 bg-[#1e293b] rounded-xl p-6 border border-white/5 snap-start hover:border-[#f59e0b]/50 transition-all duration-300';
         card.innerHTML = `
           <div class="flex items-start justify-between mb-3">
-            <span class="text-sm font-semibold text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-1 rounded-full">
-              Day ${day.day}
-            </span>
+            <span class="text-sm font-semibold text-[#f59e0b] bg-[#f59e0b]/10 px-3 py-1 rounded-full">Day ${day.day}</span>
             <span class="text-xs text-gray-400">${day.date}</span>
           </div>
           <h4 class="text-lg font-semibold text-white mb-2">${day.title}</h4>
           <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
             <span class="text-sm ${openCount > 0 ? 'text-green-400' : 'text-gray-400'} font-medium">
-              <i class="fas fa-gamepad mr-1"></i>
-              ${openCount}/3 Terbuka
+              <i class="fas fa-gamepad mr-1"></i>${openCount}/3 Terbuka
             </span>
             <span class="text-[#f59e0b] text-sm font-semibold">
               <i class="fas fa-chevron-right"></i> Lihat
             </span>
           </div>
         `;
-        
         card.addEventListener('click', () => openGameModal(day.day, day.title, day.date));
         carouselContainer.appendChild(card);
       });
     }
 
-// 7. OPEN MODAL
-function openGameModal(dayNumber, dayTitle, dayDate) {
-  modalDayTitle.textContent = `${dayTitle} (Day ${dayNumber})`;
-  modalDayDate.textContent = dayDate;
-  gameList.innerHTML = '';
-  
-  for (let game = 1; game <= 3; game++) {
-    const key = `${dayNumber}-${game}`;
-    const gameInfo = scheduleAccess[key] || { is_open: false, game_url: '#' };
-    const isOpen = gameInfo.is_open;
+    // 10. OPEN MODAL
+    function openGameModal(dayNumber, dayTitle, dayDate) {
+      modalDayTitle.textContent = `${dayTitle} (Day ${dayNumber})`;
+      modalDayDate.textContent = dayDate;
 
-    // Inisialisasi nama game default
-    let gameName = `Game ${game}`;
+      renderDayPointsHeader(dayNumber);
 
-    // Map nama khusus berdasarkan Day dan Game
-    if (dayNumber === 1 && game === 1) gameName = "Game 1";
-    else if (dayNumber === 1 && game === 2) gameName = "Number Disco"; // Atau "Arithmatic Bingo"
-    else if (dayNumber === 1 && game === 3) gameName = "Cataclysm Memory";
-    else if (dayNumber === 2 && game === 1) gameName = "Mimic Sudoku";
-    else if (dayNumber === 2 && game === 2) gameName = "Frenzy Cross Maze";
-    else if (dayNumber === 2 && game === 3) gameName = "Forsaken City Recall";
-    else if (dayNumber === 3 && game === 1) gameName = "Hiding Block";
-    else if (dayNumber === 3 && game === 2) gameName = "Morse Match";
-    else if (dayNumber === 3 && game === 3) gameName = "Crypta Treasure Hunt";
+      gameList.innerHTML = '';
 
-    const gameCard = document.createElement('div');
-    gameCard.className = 'game-card bg-[#0f172a] rounded-xl p-4 border border-white/5 flex items-center justify-between';
-    
-    gameCard.innerHTML = `
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center">
-          <i class="fas fa-gamepad text-[#f59e0b] text-xl"></i>
-        </div>
-        <div>
-          <h4 class="text-white font-semibold">${gameName}</h4>
-          <p class="text-sm ${isOpen ? 'text-green-400 font-medium' : 'text-gray-500'}">
-            ${isOpen ? '✅ Terbuka' : '🔒 Terkunci oleh Admin'}
-          </p>
-        </div>
-      </div>
-      <button 
-        class="btn-glow px-5 py-2 rounded-lg font-semibold transition-all duration-200 
-          ${isOpen ? 'bg-[#f59e0b] text-[#0f172a] hover:bg-[#fbbf24] cursor-pointer' : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'}"
-        ${isOpen ? '' : 'disabled'}
-        data-url="${gameInfo.game_url}"
-        data-day="${dayNumber}"
-        data-game="${game}"
-      >
-        ${isOpen ? '🎮 Mulai Game' : '🔒 Terkunci'}
-      </button>
-    `;
+      const gamesToday = GAME_POINT_MAP.filter(g => g.day === dayNumber);
 
-    const startBtn = gameCard.querySelector('button');
-    if (isOpen) {
-      startBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        startGame(startBtn.dataset.url, startBtn.dataset.day, startBtn.dataset.game);
+      gamesToday.forEach((g) => {
+        const key = `${dayNumber}-${g.game}`;
+        const gameInfo = scheduleAccess[key] || { is_open: false, game_url: '#' };
+        const isOpen = gameInfo.is_open;
+        const myPoint = userPoints.breakdown[g.key] ?? 0;
+
+        const gameCard = document.createElement('div');
+        gameCard.className = 'game-card bg-[#0f172a] rounded-xl p-4 border border-white/5 flex items-center justify-between';
+
+        gameCard.innerHTML = `
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center">
+              <i class="fas fa-gamepad text-[#f59e0b] text-xl"></i>
+            </div>
+            <div>
+              <h4 class="text-white font-semibold">${g.name}</h4>
+              <p class="text-sm ${isOpen ? 'text-green-400 font-medium' : 'text-gray-500'}">
+                ${isOpen ? '✅ Terbuka' : '🔒 Terkunci oleh Admin'}
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Poin kamu: <span class="text-[#fbbf24] font-bold">${formatNumber(myPoint)}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            class="btn-glow px-5 py-2 rounded-lg font-semibold transition-all duration-200
+              ${isOpen ? 'bg-[#f59e0b] text-[#0f172a] hover:bg-[#fbbf24] cursor-pointer' : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'}"
+            ${isOpen ? '' : 'disabled'}
+            data-url="${gameInfo.game_url}"
+            data-day="${dayNumber}"
+            data-game="${g.game}"
+          >
+            ${isOpen ? '🎮 Mulai Game' : '🔒 Terkunci'}
+          </button>
+        `;
+
+        const startBtn = gameCard.querySelector('button');
+        if (isOpen) {
+          startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startGame(startBtn.dataset.url, startBtn.dataset.day, startBtn.dataset.game);
+          });
+        }
+
+        gameList.appendChild(gameCard);
       });
+
+      gameModal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
     }
 
-    gameList.appendChild(gameCard);
-  }
+    function renderDayPointsHeader(dayNumber) {
+      const gamesToday = GAME_POINT_MAP.filter(g => g.day === dayNumber);
+      const totalToday = gamesToday.reduce((s, g) => s + (userPoints.breakdown[g.key] ?? 0), 0);
 
-  gameModal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
+      modalDayPoints.innerHTML = `
+        <div class="bg-gradient-to-r from-amber-500/10 to-amber-400/5 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center justify-between">
+          <span class="text-sm text-amber-200/80">
+            <i class="fas fa-star mr-1"></i> Poin kamu hari ini
+          </span>
+          <span class="text-2xl font-black text-[#fbbf24]">${formatNumber(totalToday)}</span>
+        </div>
+      `;
+    }
 
-    // 8. START GAME
+    // 11. START GAME
     function startGame(url, dayNumber, gameNumber) {
       localStorage.setItem('currentGame', JSON.stringify({
         day: dayNumber,
@@ -512,12 +588,10 @@ function openGameModal(dayNumber, dayTitle, dayDate) {
         started_at: new Date().toISOString()
       }));
 
-      // Path redirect disesuaikan jika berupa path relatif dari root
       let targetPath = url;
       if (targetPath.startsWith('/peserta/')) {
         targetPath = '.' + targetPath.replace('/peserta', '');
       }
-
       window.location.href = targetPath;
     }
 
@@ -525,7 +599,7 @@ function openGameModal(dayNumber, dayTitle, dayDate) {
       window.location.href = `./game/deathmatch/${gameType}.html`;
     }
 
-    // 9. CLOSE MODAL & LOGOUT
+    // 12. CLOSE MODAL & LOGOUT
     function closeModal() {
       gameModal.classList.add('hidden');
       document.body.style.overflow = '';
@@ -542,20 +616,50 @@ function openGameModal(dayNumber, dayTitle, dayDate) {
       }
     });
 
-    // 10. REALTIME SUBSCRIPTION (Listen Perubahan Status di game_schedule)
-    function subscribeGameUpdates() {
+    // 13. TOGGLE BREAKDOWN
+    pointBreakdownToggle.addEventListener('click', () => {
+      pointBreakdown.classList.toggle('hidden');
+      pointBreakdownToggle.textContent = pointBreakdown.classList.contains('hidden')
+        ? '(lihat rincian)' : '(sembunyikan)';
+    });
+
+    // 14. UTILS
+    function formatNumber(n) {
+      const num = Number(n) || 0;
+      if (Number.isInteger(num)) return num.toLocaleString('id-ID');
+      return num.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // 15. REALTIME
+    function subscribeUpdates() {
       supabaseClient
         .channel('realtime_game_schedule')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'game_schedule' }, () => {
           loadGameSchedule();
         })
         .subscribe();
+
+      const pointTables = [...new Set(GAME_POINT_MAP.filter(g => g.table).map(g => g.table))];
+      const pointChannel = supabaseClient.channel('realtime_user_points');
+
+      pointTables.forEach(tbl => {
+        pointChannel.on('postgres_changes', {
+          event: '*', schema: 'public', table: tbl
+        }, (payload) => {
+          const uid = payload.new?.unique_id || payload.old?.unique_id;
+          if (uid && currentUser && uid === currentUser.unique_id) {
+            loadUserPoints(currentUser.unique_id);
+          }
+        });
+      });
+
+      pointChannel.subscribe();
     }
 
-    // 11. INIT
+    // 16. INIT
     async function init() {
       await checkSessionAndLoadData();
-      subscribeGameUpdates();
+      subscribeUpdates();
     }
 
     init();
