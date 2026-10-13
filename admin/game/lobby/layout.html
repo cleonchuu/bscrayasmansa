@@ -101,9 +101,7 @@
     .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
     .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
 
-    /* ═══════════════════════════════════════════════════════
-       ELIMINATED STATE
-       ═══════════════════════════════════════════════════════ */
+    /* ELIMINATED STATE */
     .eliminated {
       filter: grayscale(1) brightness(0.5);
       opacity: 0.45;
@@ -119,7 +117,6 @@
       filter: grayscale(0);
     }
 
-    /* Per sekolah */
     #perSchoolCardsGrid {
       display: grid;
       gap: 12px;
@@ -376,7 +373,6 @@
       margin-top: 1px;
     }
 
-    /* ⭐ Finalist orbit — kartu lebih besar dari moon */
     .finalist-avatar {
       position: absolute;
       left: 0;
@@ -439,7 +435,7 @@
     .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
     .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
 
-    /* ⭐ Finalist card — layout baru dengan info */
+    /* Finalist card */
     .finalist-info-card {
       background: linear-gradient(145deg, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.98));
       border: 4px solid;
@@ -737,7 +733,7 @@
     <div class="absolute top-0 left-0 right-0 z-20 p-6 text-center">
       <div class="inline-block bg-amber-500/20 backdrop-blur-md border border-amber-400/50 rounded-full px-8 py-3">
         <div class="text-xs text-amber-300 uppercase tracking-widest font-black">
-          <i class="fas fa-crown"></i> 10 Finalis Hari 3
+          <i class="fas fa-crown"></i> <span id="finalistsHeaderCount">—</span> Finalis Hari 3
         </div>
       </div>
     </div>
@@ -777,10 +773,10 @@
   const MOON_ORBIT_DURATION = 12;
 
   // ⭐ KONFIGURASI ORBIT FINAL
-  const FINAL_DAY = 3;                    // Hari ke-3 pakai layout final
-  const INNER_ORBIT_RADIUS = 190;         // Orbit dalam (10 finalis)
-  const INNER_ORBIT_DURATION = 45;        // Detik putaran
-  const OUTER_ORBIT_RADIUS = 300;         // Orbit luar (peserta tereliminasi, per sekolah)
+  const FINAL_DAY = 3;
+  const INNER_ORBIT_RADIUS = 260;        // ⭐ diperbesar (dari 190)
+  const INNER_ORBIT_DURATION = 45;
+  const OUTER_ORBIT_RADIUS = 520;        // ⭐ diperbesar (dari 300)
   const OUTER_ORBIT_DURATION = 90;
 
   const TAG = '[OPENING]';
@@ -811,16 +807,14 @@
     finalistSessionId: 0,
 
     allParticipants: [],
-    finalistBioMap: {}   // unique_id → { motto, prestasi }
+    finalistBioMap: {}
   };
 
   const SOLAR_STATE = {
-    // mode 'normal' = planet semua sekolah + moon semua peserta
-    // mode 'final'  = 10 finalis orbit dalam + peserta elim orbit luar (per sekolah)
     mode: 'normal',
-    innerOrbitals: [],   // finalis (mode final)
-    outerPlanets: [],    // planet per sekolah (mode final)
-    normalPlanets: [],   // planet semua sekolah (mode normal)
+    innerOrbitals: [],
+    outerPlanets: [],
+    normalPlanets: [],
     startTime: 0,
     rafId: null,
     running: false
@@ -1091,30 +1085,29 @@
     if (error) { LOG.err('fetchAllParticipants', error); return []; }
     return data || [];
   }
-async function fetchFinalists() {
-  // Ambil semua peserta yang masih aktif (belum di-eliminasi)
-  const { data, error } = await supabaseClient
-    .from('users')
-    .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
-    .eq('role', 'peserta')
-    .eq('is_eliminated', false)
-    .order('school_name', { ascending: true })
-    .order('full_name', { ascending: true });
+  async function fetchFinalists() {
+    // Ambil semua peserta yang masih aktif (belum di-eliminasi)
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
+      .eq('role', 'peserta')
+      .eq('is_eliminated', false)
+      .order('school_name', { ascending: true })
+      .order('full_name', { ascending: true });
 
-  if (error) { LOG.err('fetchFinalists', error); return []; }
+    if (error) { LOG.err('fetchFinalists', error); return []; }
 
-  return (data || []).map((u, idx) => ({
-    unique_id: u.unique_id,
-    full_name: u.full_name,
-    school_name: u.school_name,
-    avatar_url: u.avatar_url,
-    total_point: u.total_points || 0,
-    is_eliminated: u.is_eliminated,
-    rank_final: idx + 1
-  }));
-}
+    return (data || []).map((u, idx) => ({
+      unique_id: u.unique_id,
+      full_name: u.full_name,
+      school_name: u.school_name,
+      avatar_url: u.avatar_url,
+      total_point: u.total_points || 0,
+      is_eliminated: u.is_eliminated,
+      rank_final: idx + 1
+    }));
+  }
 
-  // ⭐ FETCH BIO FINALIS
   async function fetchFinalistBio(uids) {
     if (!uids || uids.length === 0) return {};
     try {
@@ -1143,7 +1136,7 @@ async function fetchFinalists() {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 2: PER SEKOLAH — SKIP peserta tereliminasi
+  // VIEW 2: PER SEKOLAH
   // ═══════════════════════════════════════════════════════════
   async function startReel() {
     STATE.reelSessionId++;
@@ -1164,7 +1157,6 @@ async function fetchFinalists() {
 
     if (mySession !== STATE.reelSessionId) return;
 
-    // SKIP peserta yang tereliminasi
     const beforeCount = participants.length;
     participants = participants.filter(p => p.is_eliminated !== true);
     const skipped = beforeCount - participants.length;
@@ -1351,8 +1343,6 @@ async function fetchFinalists() {
 
   // ═══════════════════════════════════════════════════════════
   // VIEW 3: SOLAR SYSTEM
-  //   - Normal (hari 1/2): planet semua sekolah + moon semua peserta
-  //   - Final (hari 3): 10 finalis orbit dalam + planet sekolah orbit luar
   // ═══════════════════════════════════════════════════════════
   async function startAllParticipants() {
     const participants = await fetchAllParticipants();
@@ -1360,7 +1350,6 @@ async function fetchFinalists() {
 
     buildStarfield();
 
-    // ⭐ Pilih mode berdasarkan current_day
     if (STATE.currentDay === FINAL_DAY) {
       LOG.ok('🌞 Mode FINAL — hari ke-3');
       await buildSolarSystemFinal(participants);
@@ -1395,7 +1384,6 @@ async function fetchFinalists() {
     }
   }
 
-  // ⭐ MODE NORMAL (hari 1/2)
   function buildSolarSystemNormal(participants) {
     const container = document.getElementById('planetsContainer');
     if (!container) return;
@@ -1415,7 +1403,6 @@ async function fetchFinalists() {
 
     const totalSchools = schools.length;
 
-    // Orbit ring
     const orbitRing = document.createElement('div');
     orbitRing.className = 'orbit-ring';
     orbitRing.style.width = (INNER_ORBIT_RADIUS * 2) + 'px';
@@ -1472,7 +1459,6 @@ async function fetchFinalists() {
     startSolarLoop();
   }
 
-  // ⭐ MODE FINAL (hari 3)
   async function buildSolarSystemFinal(participants) {
     const container = document.getElementById('planetsContainer');
     if (!container) return;
@@ -1483,23 +1469,22 @@ async function fetchFinalists() {
     SOLAR_STATE.innerOrbitals = [];
     SOLAR_STATE.outerPlanets = [];
 
-// 1. Ambil SEMUA finalis (peserta aktif)
-const finalists = participants.filter(p => p.is_eliminated !== true);
+    // 1. Ambil SEMUA finalis (peserta aktif)
+    const finalists = participants.filter(p => p.is_eliminated !== true);
 
-// Urutkan per sekolah biar rapi (opsional)
-finalists.sort((a, b) => {
-  const sc = (a.school_name || '').localeCompare(b.school_name || '');
-  if (sc !== 0) return sc;
-  return (a.full_name || '').localeCompare(b.full_name || '');
-});
+    finalists.sort((a, b) => {
+      const sc = (a.school_name || '').localeCompare(b.school_name || '');
+      if (sc !== 0) return sc;
+      return (a.full_name || '').localeCompare(b.full_name || '');
+    });
 
-const finalistList = finalists;
+    const finalistList = finalists;
 
-// 2. Fetch bio finalis
-const uids = finalistList.map(f => f.unique_id);
-STATE.finalistBioMap = await fetchFinalistBio(uids);
-    
-    // 3. Orbit dalam: 10 finalis
+    // 2. Fetch bio finalis
+    const uids = finalistList.map(f => f.unique_id);
+    STATE.finalistBioMap = await fetchFinalistBio(uids);
+
+    // 3. Orbit dalam: finalis
     const innerRing = document.createElement('div');
     innerRing.className = 'orbit-ring';
     innerRing.style.width = (INNER_ORBIT_RADIUS * 2) + 'px';
@@ -1508,8 +1493,8 @@ STATE.finalistBioMap = await fetchFinalistBio(uids);
     innerRing.style.marginTop = (-INNER_ORBIT_RADIUS) + 'px';
     container.appendChild(innerRing);
 
-finalistList.forEach((f, idx) => {
-  const startAngle = (idx / finalistList.length) * 360;
+    finalistList.forEach((f, idx) => {
+      const startAngle = (idx / finalistList.length) * 360;
       const el = document.createElement('div');
       el.className = 'finalist-avatar';
 
@@ -1605,9 +1590,7 @@ finalistList.forEach((f, idx) => {
       const cx = W / 2;
       const cy = H / 2;
 
-      // ⭐ Mode final: 2 orbit
       if (SOLAR_STATE.mode === 'final') {
-        // Orbit dalam: 10 finalis
         SOLAR_STATE.innerOrbitals.forEach(f => {
           const angleRad = ((f.startAngle / 360) + (elapsed / f.duration)) * Math.PI * 2;
           const px = cx + Math.cos(angleRad) * f.radius;
@@ -1618,7 +1601,6 @@ finalistList.forEach((f, idx) => {
           f.el.style.marginTop = '-60px';
         });
 
-        // Orbit luar: peserta tereliminasi per sekolah
         SOLAR_STATE.outerPlanets.forEach(p => {
           const angleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
           const px = cx + Math.cos(angleRad) * p.radius;
@@ -1642,7 +1624,6 @@ finalistList.forEach((f, idx) => {
           });
         });
       } else {
-        // Mode normal: 1 orbit
         SOLAR_STATE.normalPlanets.forEach(p => {
           const angleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
           const px = cx + Math.cos(angleRad) * p.radius;
@@ -1695,13 +1676,16 @@ finalistList.forEach((f, idx) => {
 
     STATE.finalistData = finalists;
 
+    // ⭐ Update header count dinamis
+    const headerCount = document.getElementById('finalistsHeaderCount');
+    if (headerCount) headerCount.textContent = finalists.length;
+
     if (finalists.length === 0) {
       document.getElementById('finalistCardContainer').innerHTML =
         '<p class="text-slate-500 text-xl">Belum ada finalis.</p>';
       return;
     }
 
-    // Fetch bio untuk semua finalis
     const uids = finalists.map(f => f.unique_id);
     STATE.finalistBioMap = await fetchFinalistBio(uids);
 
@@ -1741,7 +1725,6 @@ finalistList.forEach((f, idx) => {
     tick();
   }
 
-  // ⭐ Render kartu finalis dengan motto & prestasi
   function renderFinalistCard(p) {
     const container = document.getElementById('finalistCardContainer');
     if (!container) return;
@@ -1751,14 +1734,10 @@ finalistList.forEach((f, idx) => {
     const isElim = p.is_eliminated === true;
     const bio = STATE.finalistBioMap[p.unique_id] || {};
 
-// Finalis bukan juara — cuma peserta yang masih aktif
-let badge = `FINALIS · #${rank}`;
-let badgeClass = 'bg-amber-500 text-slate-950';
-let borderColor = '#fbbf24';
-let glowClass = '';
-
-    // Finalis = semua yang belum di-eliminasi, badge netral
-
+    let badge = `FINALIS · #${rank}`;
+    let badgeClass = 'bg-amber-500 text-slate-950';
+    let borderColor = '#fbbf24';
+    let glowClass = '';
 
     if (isElim) {
       badge = '🚫 TERELIMINASI';
@@ -1767,7 +1746,6 @@ let glowClass = '';
       glowClass = '';
     }
 
-    // Prestasi list (split newline)
     const prestasiLines = (bio.prestasi || '')
       .split('\n')
       .map(x => x.trim())
