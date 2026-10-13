@@ -616,60 +616,61 @@ async function playSoalSequence(soal, token) {
 }
 
 async function runSoalLoop(soalIdx) {
+  // 1. Guard soal loaded
   if (!STATE.soalLoaded || STATE.soalList.length === 0) {
     await loadSoal();
     if (!STATE.soalLoaded || STATE.soalList.length === 0) return;
   }
 
-  // Beep pergantian — potong 3 detik terakhir
-await playSfxCut(SFX_BEEP, myToken, 3);
-await sleep(200, myToken);
-
-// Bell pengulangan — potong 3 detik terakhir
-if (!isFirstPlay) {
-  await playSfxCut(SFX_BELL, myToken, 3);
-  await sleep(200, myToken);
-}
-
+  // 2. Ambil soal DULU
   const soal = STATE.soalList[soalIdx - 1];
-  if (!soal) return;
+  if (!soal) {
+    LOG.warn(`Soal index ${soalIdx} tidak ada`);
+    return;
+  }
 
+  // 3. ⭐ Baru bikin token (setelah soal valid)
   STATE.currentPlaybackToken++;
   const myToken = STATE.currentPlaybackToken;
 
   LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer}`);
 
+  // 4. Kill audio lama
   killAllOscillators();
   killSfx();
 
-  // Update UI
+  // 5. Update UI
   UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
   const pct = Math.round((soalIdx / STATE.totalSoal) * 100);
   UI.txt('gameProgressPct', `${pct}%`);
   const bar = UI.el('gameProgressBar');
   if (bar) bar.style.width = `${pct}%`;
 
-  // ⭐ Beep di awal (pergantian soal baru)
+  // 6. ⭐ Beep pergantian (token sudah ada)
   LOG.info('🔔 Pergantian soal → beep.mp3');
-  await playSfxFile(SFX_BEEP, myToken);
-  await sleep(300, myToken);
+  await playSfxCut(SFX_BEEP, myToken, 3);
+  await sleep(200, myToken);
 
+  // 7. Loop playback soal
   let isFirstPlay = true;
   while (myToken === STATE.currentPlaybackToken) {
     // Pengulangan pakai bell
     if (!isFirstPlay) {
       LOG.info('🔔 Pengulangan → bell.mp3');
-      await playSfxFile(SFX_BELL, myToken);
-      await sleep(300, myToken);
+      await playSfxCut(SFX_BELL, myToken, 3);
+      await sleep(200, myToken);
     }
     isFirstPlay = false;
 
+    // Mainkan morse
     await playSoalSequence(soal, myToken);
     if (myToken !== STATE.currentPlaybackToken) break;
 
     const gapAfterBell = (STATE.audioSettings.gap_inter_ms || 300) * 2;
     await sleep(gapAfterBell, myToken);
   }
+
+  LOG.info(`⏹ Soal #${soalIdx} loop berhenti`);
 }
 
 // ═══════════════════════════════════════════════════════════
