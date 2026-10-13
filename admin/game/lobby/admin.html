@@ -43,6 +43,12 @@
       background: rgba(139, 92, 246, 0.15) !important;
       box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
     }
+
+    .finalist-btn-active {
+      border-color: #fbbf24 !important;
+      background: rgba(251, 191, 36, 0.15) !important;
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-4 md:p-6">
@@ -102,7 +108,7 @@
         <button id="dayBtn3" onclick="selectDay(3)" class="day-btn py-4 rounded-xl font-black text-base bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 transition active:scale-95">
           <i class="fas fa-trophy text-amber-400"></i><br>
           <span class="text-lg">HARI 3</span>
-          <span class="block text-[10px] opacity-60 font-normal">Final 10</span>
+          <span class="block text-[10px] opacity-60 font-normal">Final — orbit 2 jalur</span>
         </button>
       </div>
     </section>
@@ -129,12 +135,12 @@
         <button id="viewAllBtn" onclick="switchView('all_participants')" class="view-btn p-5 rounded-2xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 text-white font-bold transition active:scale-95 flex flex-col items-center gap-2">
           <i class="fas fa-users text-3xl text-indigo-400"></i>
           <span>SEMUA PESERTA</span>
-          <span class="text-[10px] opacity-60 font-normal">Kartu melayang + logo orbit</span>
+          <span class="text-[10px] opacity-60 font-normal">Solar system</span>
         </button>
         <button id="viewFinalistsBtn" onclick="switchView('finalists')" class="view-btn p-5 rounded-2xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 text-white font-bold transition active:scale-95 flex flex-col items-center gap-2">
           <i class="fas fa-trophy text-3xl text-amber-400"></i>
-          <span>10 FINALIS</span>
-          <span class="text-[10px] opacity-60 font-normal">Rank #10 → #1</span>
+          <span>FINALIS</span>
+          <span class="text-[10px] opacity-60 font-normal">Kartu dengan motto</span>
         </button>
       </div>
 
@@ -155,6 +161,63 @@
       </div>
     </section>
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- FINALIST CONTROL (muncul saat view = finalists)         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section id="finalistControlSection" class="hidden bg-slate-900 border border-amber-500/30 rounded-2xl p-6 space-y-4 glow-amber">
+      <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+        <div class="w-10 h-10 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400">
+          <i class="fas fa-crown"></i>
+        </div>
+        <div class="flex-1">
+          <h2 class="text-lg font-black">Kontrol Finalis</h2>
+          <p class="text-xs text-slate-400">Pilih mode reveal — auto rotate, manual pilih, atau grid semua</p>
+        </div>
+        <span id="finalistCountBadge" class="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-lg font-bold">
+          0 Finalis
+        </span>
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="setFinalistMode('auto')" id="modeAutoBtn"
+                class="mode-btn py-3 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 font-black text-xs transition active:scale-95">
+          <i class="fas fa-play"></i> AUTO
+          <div class="text-[9px] opacity-60 font-normal mt-0.5">Rotate otomatis</div>
+        </button>
+        <button onclick="setFinalistMode('single')" id="modeSingleBtn"
+                class="mode-btn py-3 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 font-black text-xs transition active:scale-95">
+          <i class="fas fa-hand-pointer"></i> MANUAL
+          <div class="text-[9px] opacity-60 font-normal mt-0.5">Pilih 1 per 1</div>
+        </button>
+        <button onclick="setFinalistMode('all')" id="modeAllBtn"
+                class="mode-btn py-3 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 font-black text-xs transition active:scale-95">
+          <i class="fas fa-th"></i> SEMUA
+          <div class="text-[9px] opacity-60 font-normal mt-0.5">Grid semua finalis</div>
+        </button>
+      </div>
+
+      <!-- Info mode -->
+      <div id="finalistModeInfo" class="text-[11px] text-slate-400 bg-slate-950 border border-slate-800 rounded-xl p-3">
+        Mode <b class="text-amber-400">AUTO</b>: layout akan memutar kartu finalis dari rank akhir ke #1 secara otomatis.
+      </div>
+
+      <!-- List Finalis (muncul kalau mode = single) -->
+      <div id="finalistListWrap" class="hidden pt-4 border-t border-white/10 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <i class="fas fa-list"></i> Pilih Finalis:
+          </span>
+          <button onclick="refreshFinalistList()" class="text-[10px] text-amber-400 hover:underline">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div id="finalistButtonsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[400px] overflow-y-auto custom-scroll pr-1">
+          <p class="col-span-full text-center text-slate-500 text-xs py-6">Memuat finalis...</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ACTIVE STATE -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
       <div class="flex items-center gap-3 border-b border-white/10 pb-3">
@@ -167,7 +230,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
           <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">View</div>
           <div id="activeViewText" class="text-lg font-black text-purple-400">idle</div>
@@ -179,6 +242,10 @@
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
           <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Sekolah</div>
           <div id="activeSchoolText" class="text-sm font-black text-emerald-400 truncate">-</div>
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+          <div class="text-[10px] text-slate-500 uppercase font-bold mb-1">Finalis Mode</div>
+          <div id="activeFinalistModeText" class="text-sm font-black text-amber-400 truncate">auto</div>
         </div>
       </div>
     </section>
@@ -234,8 +301,14 @@
     currentView: 'idle',
     currentSchool: null,
     currentDay: 1,
-    schools: [],          // list sekolah dari users
-    schoolCounts: {},     // jumlah peserta per sekolah
+
+    finalistRevealMode: 'auto',      // auto | single | all
+    finalistSelectedUid: null,
+
+    schools: [],
+    schoolCounts: {},
+    finalistList: [],
+
     realtimeConnected: false,
     busy: false
   };
@@ -270,7 +343,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // DATA FETCH
+  // LOAD SEKOLAH
   // ═══════════════════════════════════════════════════════════
   async function loadSchools() {
     try {
@@ -282,14 +355,12 @@
 
       if (error) { LOG.err('loadSchools', error); return; }
 
-      // Count per school
       STATE.schoolCounts = {};
       (data || []).forEach(u => {
         if (!u.school_name) return;
         STATE.schoolCounts[u.school_name] = (STATE.schoolCounts[u.school_name] || 0) + 1;
       });
 
-      // Ambil unique school yang ada di mapping
       STATE.schools = Object.keys(SCHOOL_LOGO_MAP).filter(s => STATE.schoolCounts[s] > 0);
       renderSchoolGrid();
 
@@ -339,7 +410,68 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ACTIONS
+  // LOAD FINALIS
+  // ═══════════════════════════════════════════════════════════
+  async function loadFinalistList() {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
+        .eq('role', 'peserta')
+        .eq('is_eliminated', false)
+        .order('school_name', { ascending: true })
+        .order('full_name', { ascending: true });
+
+      if (error) { LOG.err('loadFinalistList', error); return; }
+
+      STATE.finalistList = data || [];
+      renderFinalistButtons();
+
+      const badge = UI.el('finalistCountBadge');
+      if (badge) badge.textContent = `${STATE.finalistList.length} Finalis`;
+
+      LOG.ok(`Loaded ${STATE.finalistList.length} finalis`);
+    } catch (e) { LOG.err('loadFinalistList exception', e); }
+  }
+
+  function renderFinalistButtons() {
+    const grid = UI.el('finalistButtonsGrid');
+    if (!grid) return;
+
+    if (STATE.finalistList.length === 0) {
+      grid.innerHTML = '<p class="col-span-full text-center text-slate-500 text-xs py-6">Belum ada finalis aktif.</p>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    STATE.finalistList.forEach(f => {
+      const isActive = (STATE.finalistSelectedUid === f.unique_id);
+      const btn = document.createElement('button');
+      btn.className = `p-2 rounded-xl bg-slate-800 border-2 border-slate-700 hover:bg-slate-700 text-left transition active:scale-95 text-xs ${isActive ? 'finalist-btn-active' : ''}`;
+      btn.onclick = () => selectFinalist(f.unique_id);
+
+      const avatar = f.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}`;
+      btn.innerHTML = `
+        <div class="flex items-center gap-2 mb-1">
+          <div class="w-10 h-10 rounded-lg bg-slate-950 overflow-hidden flex-shrink-0">
+            <img src="${avatar}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}'"/>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-black text-white text-[11px] truncate">${f.full_name}</div>
+            <div class="text-[9px] text-slate-500 truncate">${f.school_name || ''}</div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-1">
+          <span class="text-[9px] text-amber-400 font-mono font-bold">${Number(f.total_points || 0).toFixed(0)} PTS</span>
+          ${isActive ? '<span class="text-[9px] text-amber-400 font-bold"><i class="fas fa-eye"></i> LIVE</span>' : '<span class="text-[9px] text-slate-500">Pilih</span>'}
+        </div>
+      `;
+      grid.appendChild(btn);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ACTIONS — DAY & VIEW
   // ═══════════════════════════════════════════════════════════
   async function selectDay(day) {
     if (STATE.busy) return;
@@ -382,6 +514,11 @@
         payload.current_school = null;
       }
 
+      // Kalau masuk finalists, reset mode ke auto
+      if (view === 'finalists') {
+        payload.finalist_reveal_mode = STATE.finalistRevealMode || 'auto';
+      }
+
       const { error } = await supabaseClient
         .from('opening_ceremony_state')
         .update(payload)
@@ -394,6 +531,7 @@
 
       updateViewButtons();
       updateActiveState();
+      updateFinalistSectionVisibility();
       renderSchoolGrid();
       toast(`View → ${view.toUpperCase()}`, 'success');
       LOG.ok(`View → ${view}`);
@@ -423,6 +561,7 @@
 
       updateViewButtons();
       updateActiveState();
+      updateFinalistSectionVisibility();
       renderSchoolGrid();
       toast(`Sekolah → ${school}`, 'success');
       LOG.ok(`School → ${school}`);
@@ -443,6 +582,8 @@
         .update({
           current_view: 'idle',
           current_school: null,
+          finalist_reveal_mode: 'auto',
+          finalist_selected_uid: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', 1);
@@ -451,12 +592,84 @@
 
       STATE.currentView = 'idle';
       STATE.currentSchool = null;
+      STATE.finalistRevealMode = 'auto';
+      STATE.finalistSelectedUid = null;
+
       updateViewButtons();
       updateActiveState();
+      updateFinalistSectionVisibility();
       renderSchoolGrid();
       toast('State di-reset ke IDLE', 'success');
       LOG.ok('Reset → idle');
     } catch (e) { LOG.err('resetState', e); }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ACTIONS — FINALIST REVEAL
+  // ═══════════════════════════════════════════════════════════
+  async function setFinalistMode(mode) {
+    try {
+      const payload = {
+        finalist_reveal_mode: mode,
+        updated_at: new Date().toISOString()
+      };
+
+      // Kalau bukan single, reset selected
+      if (mode !== 'single') {
+        payload.finalist_selected_uid = null;
+      }
+
+      const { error } = await supabaseClient
+        .from('opening_ceremony_state')
+        .update(payload)
+        .eq('id', 1);
+
+      if (error) { toast('Gagal: ' + error.message, 'error'); return; }
+
+      STATE.finalistRevealMode = mode;
+      if (mode !== 'single') STATE.finalistSelectedUid = null;
+
+      updateFinalistModeButtons();
+      updateFinalistListVisibility();
+      updateFinalistModeInfo();
+      updateActiveState();
+      renderFinalistButtons();
+
+      toast(`Mode finalis: ${mode.toUpperCase()}`, 'success');
+      LOG.ok(`Finalist mode → ${mode}`);
+    } catch (e) { LOG.err('setFinalistMode', e); }
+  }
+
+  async function selectFinalist(uid) {
+    try {
+      const { error } = await supabaseClient
+        .from('opening_ceremony_state')
+        .update({
+          finalist_reveal_mode: 'single',
+          finalist_selected_uid: uid,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1);
+
+      if (error) { toast('Gagal: ' + error.message, 'error'); return; }
+
+      STATE.finalistRevealMode = 'single';
+      STATE.finalistSelectedUid = uid;
+
+      updateFinalistModeButtons();
+      updateFinalistListVisibility();
+      updateFinalistModeInfo();
+      updateActiveState();
+      renderFinalistButtons();
+
+      const f = STATE.finalistList.find(x => x.unique_id === uid);
+      toast(`Tampilkan: ${f ? f.full_name : uid}`, 'success');
+      LOG.ok(`Finalist selected → ${uid}`);
+    } catch (e) { LOG.err('selectFinalist', e); }
+  }
+
+  function refreshFinalistList() {
+    loadFinalistList();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -475,13 +688,11 @@
   }
 
   function updateViewButtons() {
-    // Reset
     ['viewIdleBtn','viewAllBtn','viewFinalistsBtn'].forEach(id => {
       const b = UI.el(id);
       if (b) b.classList.remove('view-active');
     });
 
-    // Highlight yang aktif
     const map = {
       idle: 'viewIdleBtn',
       all_participants: 'viewAllBtn',
@@ -498,12 +709,63 @@
     UI.txt('activeViewText', STATE.currentView);
     UI.txt('activeDayText', STATE.currentDay);
     UI.txt('activeSchoolText', STATE.currentSchool || '-');
+    UI.txt('activeFinalistModeText', STATE.finalistRevealMode || 'auto');
     UI.txt('dbgView', STATE.currentView);
     UI.txt('dbgDay', STATE.currentDay);
   }
 
+  function updateFinalistModeButtons() {
+    const map = {
+      auto: 'modeAutoBtn',
+      single: 'modeSingleBtn',
+      all: 'modeAllBtn'
+    };
+    Object.values(map).forEach(id => {
+      const b = UI.el(id);
+      if (!b) return;
+      b.classList.remove('border-amber-400', 'bg-amber-500/10', 'text-amber-300');
+    });
+    const activeId = map[STATE.finalistRevealMode];
+    if (activeId) {
+      const b = UI.el(activeId);
+      if (b) b.classList.add('border-amber-400', 'bg-amber-500/10', 'text-amber-300');
+    }
+  }
+
+  function updateFinalistListVisibility() {
+    const wrap = UI.el('finalistListWrap');
+    if (!wrap) return;
+    if (STATE.finalistRevealMode === 'single') {
+      wrap.classList.remove('hidden');
+    } else {
+      wrap.classList.add('hidden');
+    }
+  }
+
+  function updateFinalistModeInfo() {
+    const info = UI.el('finalistModeInfo');
+    if (!info) return;
+
+    const messages = {
+      auto: 'Mode <b class="text-amber-400">AUTO</b>: layout akan memutar kartu finalis dari rank akhir ke #1 secara otomatis.',
+      single: 'Mode <b class="text-amber-400">MANUAL</b>: klik nama finalis di bawah untuk menampilkan kartunya di layout.',
+      all: 'Mode <b class="text-amber-400">SEMUA</b>: layout akan menampilkan grid semua finalis sekaligus.'
+    };
+    info.innerHTML = messages[STATE.finalistRevealMode] || messages.auto;
+  }
+
+  function updateFinalistSectionVisibility() {
+    const section = UI.el('finalistControlSection');
+    if (!section) return;
+    if (STATE.currentView === 'finalists') {
+      section.classList.remove('hidden');
+    } else {
+      section.classList.add('hidden');
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
-  // SYNC STATE (dari DB)
+  // SYNC STATE
   // ═══════════════════════════════════════════════════════════
   async function syncState() {
     try {
@@ -518,11 +780,18 @@
       STATE.currentView = data.current_view || 'idle';
       STATE.currentSchool = data.current_school || null;
       STATE.currentDay = data.current_day || 1;
+      STATE.finalistRevealMode = data.finalist_reveal_mode || 'auto';
+      STATE.finalistSelectedUid = data.finalist_selected_uid || null;
 
       updateDayButtons();
       updateViewButtons();
+      updateFinalistModeButtons();
+      updateFinalistListVisibility();
+      updateFinalistModeInfo();
+      updateFinalistSectionVisibility();
       updateActiveState();
       renderSchoolGrid();
+      renderFinalistButtons();
     } catch (e) { LOG.err('syncState', e); }
   }
 
@@ -537,6 +806,14 @@
         schema: 'public',
         table: 'opening_ceremony_state'
       }, () => syncState())
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'users'
+      }, () => {
+        loadSchools();
+        loadFinalistList();
+      })
       .subscribe(status => {
         STATE.realtimeConnected = status === 'SUBSCRIBED';
         const badge = UI.el('connBadge');
@@ -551,7 +828,6 @@
         UI.txt('dbgRT', STATE.realtimeConnected ? 'rt' : 'poll');
       });
 
-    // Polling fallback
     setInterval(syncState, 2000);
   }
 
@@ -562,6 +838,9 @@
   window.switchView = switchView;
   window.selectSchool = selectSchool;
   window.confirmReset = confirmReset;
+  window.setFinalistMode = setFinalistMode;
+  window.selectFinalist = selectFinalist;
+  window.refreshFinalistList = refreshFinalistList;
 
   // ═══════════════════════════════════════════════════════════
   // INIT
@@ -569,6 +848,7 @@
   (async function init() {
     LOG.ok('══════════ ADMIN OPENING BOOT ══════════');
     await loadSchools();
+    await loadFinalistList();
     await syncState();
     setupRealtime();
     LOG.ok('══════════ READY ══════════');
