@@ -1997,18 +1997,34 @@
             // Stop loop lama
             stopFinalistReel();
 
-            // Kalau single & target sudah ada → langsung update kartu
-            if (revealMode === 'single' && selectedUid) {
-              const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
-              if (target) {
-                renderFinalistCard(target);
-                startConfettiLoop();
-                burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
-                for (let k = 0; k < 12; k++) rainConfetti(2);
-                playBell();
-              }
-              return;
-            }
+// Kalau single & target sudah ada → langsung update kartu
+if (revealMode === 'single' && selectedUid) {
+  // ⭐ Pastikan finalistData sudah ada
+  if (!STATE.finalistData || STATE.finalistData.length === 0) {
+    LOG.info('Single mode tapi finalistData kosong → fetch dulu');
+    await startFinalists(); // akan fetch dan render ulang
+    return;
+  }
+
+  const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
+  if (target) {
+    // ⭐ Fetch bio kalau belum ada untuk uid ini
+    if (!STATE.finalistBioMap || !STATE.finalistBioMap[selectedUid]) {
+      LOG.info(`Fetch bio untuk ${selectedUid}...`);
+      const bioMap = await fetchFinalistBio([selectedUid]);
+      STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
+    }
+
+    renderFinalistCard(target);
+    startConfettiLoop();
+    burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+    for (let k = 0; k < 12; k++) rainConfetti(2);
+    playBell();
+  } else {
+    LOG.warn(`Finalis ${selectedUid} tidak ditemukan di finalistData`);
+  }
+  return;
+}
 
             // Untuk mode auto/all → restart sequence
             startFinalists();
