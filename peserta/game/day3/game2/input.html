@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -18,131 +18,40 @@
       touch-action: manipulation;
       user-select: none;
     }
-
     .stage-panel { min-height: 100vh; display: flex; flex-direction: column; }
     .stage-panel.hidden-panel { display: none; }
-
-    /* Keypad tombol */
-    .key-btn {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #f8fafc;
-      font-size: 1.6rem;
-      font-weight: 800;
-      border-radius: 1rem;
-      padding: 1.25rem 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-      transition: all 0.12s ease;
+    .calc-btn {
+      background: #334155; color: #fff;
+      font-size: 1.8rem; font-weight: bold;
+      border-radius: 1rem; padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      transition: all 0.1s ease;
       cursor: pointer;
     }
-    .key-btn:active:not(:disabled) {
-      transform: scale(0.92);
-      background: #334155;
-    }
-    .key-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .key-btn-op {
-      background: #1e1b4b;
-      border-color: #4338ca;
-      color: #818cf8;
-    }
-    .key-btn-op:active:not(:disabled) {
-      background: #3730a3;
-    }
-
-    /* Audio playing visual */
-    .audio-playing {
-      animation: pulse-border 0.8s infinite alternate;
-    }
-    @keyframes pulse-border {
-      0% { border-color: #6366f1; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
-      100% { border-color: #a855f7; box-shadow: 0 0 30px rgba(168, 85, 247, 0.9); }
-    }
-
-    /* Flash overlay */
+    .calc-btn:active:not(:disabled) { transform: scale(0.95); background: #475569; }
+    .calc-btn:disabled { opacity: 0.35; cursor: not-allowed; }
     .flash-screen {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 4rem;
-      font-weight: 900;
-      color: white;
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 4rem; font-weight: 900; color: white;
       text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
       animation: fadeIn 0.15s ease-in-out;
     }
     .flash-correct { background-color: #16a34a; }
     .flash-wrong { background-color: #dc2626; }
-    .flash-warning { background-color: #d97706; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    /* Kalkulator */
-    .calc-btn {
-      background: #334155;
-      color: #ffffff;
-      font-size: 1.8rem;
-      font-weight: bold;
-      border-radius: 1rem;
-      padding: 1.25rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-      transition: all 0.1s ease;
-      cursor: pointer;
-    }
-    .calc-btn:active:not(:disabled) {
-      transform: scale(0.95);
-      background: #475569;
-    }
-    .calc-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
-
-    /* Lock screen */
-    @keyframes lockPulse {
-      0%,100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulseSoft { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .pulse-soft { animation: pulseSoft 1.4s ease-in-out infinite; }
+    @keyframes lockPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
     .lock-pulse { animation: lockPulse 1.4s ease-in-out infinite; }
-
-    @keyframes fadeIn2 {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in { animation: fadeIn2 0.3s ease-out; }
-
-    /* Timer warning */
-    @keyframes flashWarning {
-      0%,100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    .flash-warning { animation: flashWarning 0.8s ease-in-out infinite; }
-
-    .custom-scroll::-webkit-scrollbar { width: 5px; }
-    .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
   </style>
 </head>
 <body>
 
-  <!-- DEBUG BADGE -->
-  <div id="dbgBadge"
-       class="fixed top-1 right-1 text-[9px] font-mono bg-black/85 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 z-[200] pointer-events-none">
+  <div id="dbgBadge" class="fixed top-1 right-1 text-[9px] font-mono bg-black/85 border border-white/10 rounded px-1.5 py-0.5 text-slate-300 z-[200] pointer-events-none">
     <span id="dbgState">boot</span>·<span id="dbgMode">-</span>·<span id="dbgSoal">-</span>·<span id="dbgRT">-</span>
   </div>
 
-  <!-- FLASH OVERLAY -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase"></div>
@@ -175,8 +84,6 @@
   <!-- PANEL: HAFAL -->
   <div id="panelHafal" class="stage-panel hidden-panel p-4">
     <div class="max-w-md mx-auto w-full">
-
-      <!-- Header -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 flex items-center justify-between">
         <div>
           <div class="text-[10px] text-purple-400 uppercase tracking-wider font-bold">
@@ -189,50 +96,36 @@
           <div id="hafalName" class="text-xs font-bold text-emerald-400 truncate max-w-[140px]">-</div>
         </div>
       </div>
-
-      <!-- Timer hafal -->
       <div class="bg-gradient-to-br from-purple-950/60 to-slate-900 border border-purple-700/40 rounded-2xl p-4 mb-4 text-center">
         <div class="text-[10px] text-purple-400 uppercase tracking-widest mb-1">Sisa Waktu Hafal</div>
         <div id="hafalTimerDisplay" class="text-5xl font-mono font-black text-white">15:00</div>
       </div>
-
-      <!-- Display simbol terakhir -->
-      <div id="displayCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-4 text-center transition-all duration-300">
+      <div id="displayCard" class="bg-slate-950 border border-slate-800 rounded-2xl p-4 mb-4 text-center">
         <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-1">Simbol Terakhir</p>
-        <div id="currentSymbolDisplay" class="text-4xl font-black text-amber-400 min-h-[48px] flex items-center justify-center">
-          -
-        </div>
+        <div id="currentSymbolDisplay" class="text-4xl font-black text-amber-400 min-h-[48px] flex items-center justify-center">-</div>
         <p id="audioStatusText" class="text-xs text-indigo-300 mt-2 font-medium h-4">Klik tombol untuk mendengar morse</p>
       </div>
-
-      <!-- Keypad -->
       <div class="grid grid-cols-4 gap-3">
-        <button onclick="playMorse('akar', '√')" class="key-btn key-btn-op text-lg">√</button>
-        <button onclick="playMorse('pangkat', 'x²')" class="key-btn key-btn-op text-lg">x²</button>
-        <button onclick="playMorse('bagi', '÷')" class="key-btn key-btn-op">÷</button>
-        <button onclick="playMorse('kali', '×')" class="key-btn key-btn-op">×</button>
-
-        <button onclick="playMorse('7', '7')" class="key-btn">7</button>
-        <button onclick="playMorse('8', '8')" class="key-btn">8</button>
-        <button onclick="playMorse('9', '9')" class="key-btn">9</button>
-        <button onclick="playMorse('kurang', '-')" class="key-btn key-btn-op">−</button>
-
-        <button onclick="playMorse('4', '4')" class="key-btn">4</button>
-        <button onclick="playMorse('5', '5')" class="key-btn">5</button>
-        <button onclick="playMorse('6', '6')" class="key-btn">6</button>
-        <button onclick="playMorse('tambah', '+')" class="key-btn key-btn-op">+</button>
-
-        <button onclick="playMorse('1', '1')" class="key-btn">1</button>
-        <button onclick="playMorse('2', '2')" class="key-btn">2</button>
-        <button onclick="playMorse('3', '3')" class="key-btn">3</button>
-        <button onclick="playMorse('0', '0')" class="key-btn">0</button>
+        <button onclick="playMorse('akar', '√')" class="calc-btn text-lg">√</button>
+        <button onclick="playMorse('pangkat', 'x²')" class="calc-btn text-lg">x²</button>
+        <button onclick="playMorse('bagi', '÷')" class="calc-btn">÷</button>
+        <button onclick="playMorse('kali', '×')" class="calc-btn">×</button>
+        <button onclick="playMorse('7', '7')" class="calc-btn">7</button>
+        <button onclick="playMorse('8', '8')" class="calc-btn">8</button>
+        <button onclick="playMorse('9', '9')" class="calc-btn">9</button>
+        <button onclick="playMorse('kurang', '-')" class="calc-btn">−</button>
+        <button onclick="playMorse('4', '4')" class="calc-btn">4</button>
+        <button onclick="playMorse('5', '5')" class="calc-btn">5</button>
+        <button onclick="playMorse('6', '6')" class="calc-btn">6</button>
+        <button onclick="playMorse('tambah', '+')" class="calc-btn">+</button>
+        <button onclick="playMorse('1', '1')" class="calc-btn">1</button>
+        <button onclick="playMorse('2', '2')" class="calc-btn">2</button>
+        <button onclick="playMorse('3', '3')" class="calc-btn">3</button>
+        <button onclick="playMorse('0', '0')" class="calc-btn">0</button>
       </div>
-
       <p class="text-[10px] text-slate-500 text-center mt-4">
-        <i class="fas fa-info-circle text-cyan-400"></i>
-        Bebas klik berapa kali pun. Tidak ada batasan.
+        <i class="fas fa-info-circle text-cyan-400"></i> Bebas klik berapa kali pun. Tidak ada batasan.
       </p>
-
     </div>
   </div>
 
@@ -240,7 +133,6 @@
   <div id="panelGame" class="stage-panel hidden-panel p-4">
     <div class="max-w-md mx-auto w-full">
 
-      <!-- Header -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4">
         <div class="flex items-center justify-between mb-2">
           <div>
@@ -254,35 +146,34 @@
             <div id="gameName" class="text-xs font-bold text-emerald-400 truncate max-w-[140px]">-</div>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800">
+        <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-800">
           <div>
             <div class="text-[9px] text-slate-500 uppercase">Soal</div>
-            <div id="gameSoalDisplay" class="text-2xl font-mono font-black text-indigo-400">0/30</div>
+            <div id="gameSoalDisplay" class="text-xl font-mono font-black text-indigo-400">0/30</div>
+          </div>
+          <div class="text-center">
+            <div class="text-[9px] text-slate-500 uppercase">Poin</div>
+            <div id="gamePointsDisplay" class="text-xl font-mono font-black text-amber-400">0</div>
           </div>
           <div class="text-right">
             <div class="text-[9px] text-slate-500 uppercase">Sisa Waktu</div>
-            <div id="gameTimerDisplay" class="text-2xl font-mono font-black text-emerald-400">60</div>
+            <div id="gameTimerDisplay" class="text-xl font-mono font-black text-emerald-400">--</div>
           </div>
         </div>
       </div>
 
-      <!-- Info soal -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 mb-4 text-center">
         <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Status</p>
         <p id="gameStatusText" class="text-sm font-bold text-slate-300">Dengarkan morse dari layar utama</p>
       </div>
 
-      <!-- Lock banner -->
-      <div id="lockBanner" class="hidden bg-emerald-950/60 border-2 border-emerald-500/50 rounded-2xl p-4 mb-4 text-center fade-in">
-        <div class="text-emerald-400 text-3xl mb-2">
-          <i class="fas fa-lock"></i>
-        </div>
+      <div id="lockBanner" class="hidden bg-emerald-950/60 border-2 border-emerald-500/50 rounded-2xl p-4 mb-4 text-center">
+        <div class="text-emerald-400 text-3xl mb-2"><i class="fas fa-lock"></i></div>
         <div class="text-sm font-black text-emerald-300">JAWABAN BENAR!</div>
         <div id="lockPointsText" class="text-xs text-emerald-200/80 mt-1">+0 poin</div>
         <div class="text-[10px] text-emerald-400/60 mt-2">Menunggu soal berikutnya...</div>
       </div>
 
-      <!-- Kalkulator -->
       <div id="calcContainer">
         <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right mb-3">
           <div id="calcDisplay" class="text-4xl font-mono font-bold tracking-wider text-amber-400 min-h-[48px] break-all">0</div>
@@ -292,15 +183,12 @@
           <button class="calc-btn" onclick="appendCalc('7')">7</button>
           <button class="calc-btn" onclick="appendCalc('8')">8</button>
           <button class="calc-btn" onclick="appendCalc('9')">9</button>
-
           <button class="calc-btn" onclick="appendCalc('4')">4</button>
           <button class="calc-btn" onclick="appendCalc('5')">5</button>
           <button class="calc-btn" onclick="appendCalc('6')">6</button>
-
           <button class="calc-btn" onclick="appendCalc('1')">1</button>
           <button class="calc-btn" onclick="appendCalc('2')">2</button>
           <button class="calc-btn" onclick="appendCalc('3')">3</button>
-
           <button class="calc-btn text-red-400" onclick="clearCalc()">C</button>
           <button class="calc-btn" onclick="appendCalc('0')">0</button>
           <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
@@ -315,10 +203,7 @@
     </div>
   </div>
 
-  <!-- AUDIO -->
   <audio id="audioSfx" preload="auto"></audio>
-
-  <!-- TOAST -->
   <div id="toastWrap" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none w-[90%] max-w-sm"></div>
 
 <script>
@@ -331,16 +216,9 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TAG = '[MORSE-KIOSK]';
 const GAME_NAME = 'Morse Match';
-const QUESTION_ID = '00000000-0000-0000-0000-000000000002';
 
 const SFX_BEEP = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/beep.mp3`;
 
-const POIN_MAKS = 100;
-const POIN_MINIMAL = 50;
-
-// ═══════════════════════════════════════════════════════════
-// LOGGER
-// ═══════════════════════════════════════════════════════════
 const LOG = {
   ok:   (m,d) => console.log(`%c${TAG} ✅ ${m}`,'color:#10b981;font-weight:bold',d??''),
   info: (m,d) => console.log(`%c${TAG} ℹ️ ${m}`,'color:#3b82f6;font-weight:bold',d??''),
@@ -354,7 +232,6 @@ const LOG = {
 const STATE = {
   user: null,
   sessionId: null,
-
   currentMode: 'idle',
   currentSoalIndex: 0,
   currentSoalStartedAt: null,
@@ -363,36 +240,35 @@ const STATE = {
   hafalDurationSec: 900,
   startedAt: null,
 
-  soalList: [],
-  soalLoaded: false,
   library: [],
   audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
 
   // Audio
   audioCtx: null,
   isPlayingMorse: false,
-  audioToken: 0,              // untuk abort playback saat mode ganti
+  audioToken: 0,
   activeOscillators: [],
 
   // Game
   currentInput: '',
   lockedUntilSoal: 0,
   answeredSoalIdx: new Set(),
-  isSubmitting: false,        // guard anti double-submit
+  isSubmitting: false,
+  myTotalPoints: 0,
+  mySoalBenar: 0,
 
-  // Tick
+  // Timer
   timerTick: null,
   hafalTick: null,
   stateTick: null,
 
   realtimeConnected: false,
-  _lastProcessedSoalIdx: 0,
   _lastProcessedMode: null,
-  _beepedSoal: {}             // {soalIdx: true}
+  _lastBeepedSoal: {}
 };
 
 // ═══════════════════════════════════════════════════════════
-// UI HELPERS
+// UI
 // ═══════════════════════════════════════════════════════════
 const UI = {
   el: id => document.getElementById(id),
@@ -433,149 +309,92 @@ function toast(msg, type='info', duration=2500) {
 function initUser() {
   try {
     const sess = localStorage.getItem('userSession');
-    if (!sess) {
-      LOG.warn('Tidak ada userSession');
-      window.location.href = '/login.html';
-      return false;
-    }
+    if (!sess) { window.location.href = '/login.html'; return false; }
     STATE.user = JSON.parse(sess);
-    if (!STATE.user?.unique_id) {
-      LOG.err('userSession tidak punya unique_id');
-      return false;
-    }
+    if (!STATE.user?.unique_id) return false;
     UI.txt('idleName', STATE.user.full_name || STATE.user.unique_id);
     UI.txt('hafalName', STATE.user.full_name || STATE.user.unique_id);
     UI.txt('gameName', STATE.user.full_name || STATE.user.unique_id);
     return true;
-  } catch (e) {
-    LOG.err('initUser exception', e);
-    return false;
-  }
+  } catch (e) { LOG.err('initUser exception', e); return false; }
 }
 
 // ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE (untuk mode hafal)
+// AUDIO
 // ═══════════════════════════════════════════════════════════
 function initAudioCtx() {
   try {
-    if (!STATE.audioCtx) {
-      STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (STATE.audioCtx.state === 'suspended') {
-      STATE.audioCtx.resume();
-    }
+    if (!STATE.audioCtx) STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (STATE.audioCtx.state === 'suspended') STATE.audioCtx.resume();
     return true;
-  } catch (e) {
-    LOG.err('initAudioCtx', e);
-    return false;
-  }
+  } catch (e) { LOG.err('initAudioCtx', e); return false; }
 }
 
 function playTone(durationMs, token) {
   return new Promise(resolve => {
     if (!STATE.audioCtx) { resolve(); return; }
-
     const ctx = STATE.audioCtx;
     const freq = STATE.audioSettings.frequency_hz;
-
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = 'sine';
     osc.frequency.value = freq;
     gain.gain.value = 0.35;
-
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     const now = ctx.currentTime;
     const durSec = durationMs / 1000;
-
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.35, now + 0.005);
     gain.gain.setValueAtTime(0.35, now + durSec - 0.005);
     gain.gain.linearRampToValueAtTime(0, now + durSec);
-
     osc.start(now);
     osc.stop(now + durSec + 0.02);
-
-    const oscEntry = { osc, gain, stopped: false };
-    STATE.activeOscillators.push(oscEntry);
-
+    const entry = { osc, gain, stopped: false };
+    STATE.activeOscillators.push(entry);
     const cleanup = () => {
-      if (oscEntry.stopped) return;
-      oscEntry.stopped = true;
-      try { osc.stop(); } catch (e) {}
-      try { osc.disconnect(); } catch (e) {}
-      try { gain.disconnect(); } catch (e) {}
-      const idx = STATE.activeOscillators.indexOf(oscEntry);
-      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
+      if (entry.stopped) return;
+      entry.stopped = true;
+      try { osc.stop(); } catch(e){}
+      try { osc.disconnect(); } catch(e){}
+      try { gain.disconnect(); } catch(e){}
+      const i = STATE.activeOscillators.indexOf(entry);
+      if (i >= 0) STATE.activeOscillators.splice(i, 1);
     };
-
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, durationMs);
-
-    const abortCheck = setInterval(() => {
-      if (token !== STATE.audioToken) {
-        clearInterval(abortCheck);
-        clearTimeout(timeoutId);
-        cleanup();
-        resolve();
-      }
+    const tId = setTimeout(() => { cleanup(); resolve(); }, durationMs);
+    const aId = setInterval(() => {
+      if (token !== STATE.audioToken) { clearInterval(aId); clearTimeout(tId); cleanup(); resolve(); }
     }, 30);
-
-    setTimeout(() => clearInterval(abortCheck), durationMs + 50);
+    setTimeout(() => clearInterval(aId), durationMs + 50);
   });
 }
 
 function killAllOscillators() {
-  STATE.activeOscillators.forEach(entry => {
-    try { entry.osc.stop(); } catch (e) {}
-    try { entry.osc.disconnect(); } catch (e) {}
-    try { entry.gain.disconnect(); } catch (e) {}
+  STATE.activeOscillators.forEach(e => {
+    try { e.osc.stop(); } catch(err){}
+    try { e.osc.disconnect(); } catch(err){}
+    try { e.gain.disconnect(); } catch(err){}
   });
   STATE.activeOscillators = [];
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ═══════════════════════════════════════════════════════════
-// PLAY MORSE DI KIOSK (hanya mode hafal)
-// ═══════════════════════════════════════════════════════════
 async function playMorse(symbolKey, labelDisplay) {
-  if (STATE.currentMode !== 'hafal') {
-    LOG.warn('playMorse hanya di mode hafal');
-    return;
-  }
-  if (STATE.isPlayingMorse) {
-    LOG.info('Morse masih diputar, tunggu selesai');
-    return;
-  }
+  if (STATE.currentMode !== 'hafal') { LOG.warn('playMorse hanya di mode hafal'); return; }
+  if (STATE.isPlayingMorse) return;
+  if (!initAudioCtx()) { toast('Audio tidak bisa diputar.', 'error'); return; }
 
-  // Init audio ctx (butuh gesture pertama)
-  if (!initAudioCtx()) {
-    toast('Audio tidak bisa diputar. Coba refresh halaman.', 'error');
-    return;
-  }
-
-  // Cari pola morse
   const libItem = STATE.library.find(l => l.symbol === labelDisplay);
   if (!libItem || !libItem.morse_pattern) {
-    LOG.warn(`Pola morse "${labelDisplay}" tidak ditemukan`);
-    toast(`Pola morse "${labelDisplay}" belum diatur admin.`, 'warn');
+    toast(`Pola morse "${labelDisplay}" belum diatur.`, 'warn');
     return;
   }
 
   STATE.isPlayingMorse = true;
-  STATE.audioToken++;  // token baru → abort playback lama kalau ada
-
+  STATE.audioToken++;
   const myToken = STATE.audioToken;
 
-  // Update display
   UI.txt('currentSymbolDisplay', labelDisplay);
   UI.txt('audioStatusText', `Memutar morse "${labelDisplay}"...`);
   UI.el('displayCard').classList.add('audio-playing');
@@ -585,13 +404,8 @@ async function playMorse(symbolKey, labelDisplay) {
   const dashMs = STATE.audioSettings.dash_duration_ms;
   const gapIntra = STATE.audioSettings.gap_intra_ms;
 
-  LOG.info(`🔊 ${labelDisplay}: ${pattern}`);
-
   for (let i = 0; i < pattern.length; i++) {
-    if (myToken !== STATE.audioToken) {
-      LOG.info('⏹ Abort morse playback');
-      break;
-    }
+    if (myToken !== STATE.audioToken) break;
     const ch = pattern[i];
     const dur = ch === '.' ? dotMs : dashMs;
     await playTone(dur, myToken);
@@ -599,13 +413,10 @@ async function playMorse(symbolKey, labelDisplay) {
   }
 
   UI.el('displayCard').classList.remove('audio-playing');
-  UI.txt('audioStatusText', `Selesai. Klik tombol lain untuk mendengar lagi.`);
+  UI.txt('audioStatusText', 'Selesai. Klik tombol lain untuk mendengar lagi.');
   STATE.isPlayingMorse = false;
 }
 
-// ═══════════════════════════════════════════════════════════
-// SFX (beep)
-// ═══════════════════════════════════════════════════════════
 function playSfx(url) {
   try {
     const a = UI.el('audioSfx');
@@ -617,7 +428,7 @@ function playSfx(url) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DATABASE LOADERS
+// LOADERS
 // ═══════════════════════════════════════════════════════════
 async function loadState() {
   try {
@@ -626,99 +437,82 @@ async function loadState() {
       .select('*')
       .eq('id', 1)
       .maybeSingle();
-
-    if (error) { LOG.warn('loadState', error.message); return; }
-    if (!data) return;
+    if (error) { LOG.warn('loadState', error.message); return null; }
+    if (!data) return null;
 
     STATE.currentMode = data.mode || 'idle';
     STATE.sessionId = data.session_id;
     STATE.hafalDurationSec = data.hafal_duration_sec || 900;
-    STATE.soalDurationSec = data.soal_duration_sec || 30;
+    STATE.soalDurationSec = data.soal_duration_sec || 60;
     STATE.totalSoal = data.total_soal || 30;
     STATE.currentSoalIndex = data.current_soal_index || 0;
     STATE.currentSoalStartedAt = data.current_soal_started_at;
     STATE.startedAt = data.started_at;
-  } catch (e) { LOG.err('loadState exception', e); }
+    return data;
+  } catch (e) { LOG.err('loadState exception', e); return null; }
 }
 
 async function loadLibrary() {
   try {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
       .from('system_morse_match_library')
       .select('*')
       .order('sort_order', { ascending: true });
-
-    if (error) { LOG.warn('loadLibrary', error.message); return; }
     STATE.library = data || [];
   } catch (e) { LOG.err('loadLibrary exception', e); }
 }
 
 async function loadAudioSettings() {
   try {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
       .from('system_morse_match_audio')
       .select('*')
       .eq('id', 1)
       .maybeSingle();
-
-    if (error) { LOG.warn('loadAudioSettings', error.message); return; }
     if (data) STATE.audioSettings = data;
   } catch (e) { LOG.err('loadAudioSettings exception', e); }
 }
 
-async function loadSoal() {
+async function loadMyPoints() {
   try {
-    const { data, error } = await supabaseClient
-      .from('system_morse_match_questions')
-      .select('*')
-      .eq('id', QUESTION_ID)
+    const { data } = await supabaseClient
+      .from('point_morse_match')
+      .select('point, soal_benar')
+      .eq('unique_id', STATE.user.unique_id)
       .maybeSingle();
-
-    if (error) { LOG.warn('loadSoal', error.message); return; }
-    if (data && data.expression_text) {
-      try {
-        const parsed = JSON.parse(data.expression_text);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          STATE.soalList = parsed.map(q => ({
-            ...q,
-            op1Symbol: ['+','-','×','÷'][q.op1Idx] || '+',
-            op2Symbol: ['+','-','×','÷'][q.op2Idx] || '+'
-          }));
-          STATE.soalLoaded = true;
-          LOG.ok(`✅ Loaded ${STATE.soalList.length} soal`);
-        } else {
-          STATE.soalLoaded = false;
-        }
-      } catch (e) {
-        LOG.warn('Parse soal JSON gagal', e);
-        STATE.soalLoaded = false;
-      }
+    if (data) {
+      STATE.myTotalPoints = Number(data.point || 0);
+      STATE.mySoalBenar = Number(data.soal_benar || 0);
     } else {
-      STATE.soalLoaded = false;
+      STATE.myTotalPoints = 0;
+      STATE.mySoalBenar = 0;
     }
-  } catch (e) { LOG.err('loadSoal exception', e); }
+    UI.txt('gamePointsDisplay', STATE.myTotalPoints.toFixed(2));
+  } catch (e) { LOG.err('loadMyPoints', e); }
 }
 
 // ═══════════════════════════════════════════════════════════
-// HANDLE MODE CHANGE
+// MODE CHANGE
 // ═══════════════════════════════════════════════════════════
-function handleModeChange() {
-  if (STATE.currentMode === STATE._lastProcessedMode) return;
+async function handleModeChange() {
+  if (STATE.currentMode === STATE._lastProcessedMode) {
+    // Mode sama — tetap update soal & timer
+    updateGameUI();
+    return;
+  }
+
   const prevMode = STATE._lastProcessedMode;
   STATE._lastProcessedMode = STATE.currentMode;
 
   LOG.ok(`Mode: ${prevMode} → ${STATE.currentMode}`);
 
-  // Abort audio morse yang sedang diputar (kalau ada)
   STATE.audioToken++;
   killAllOscillators();
   STATE.isPlayingMorse = false;
-  UI.el('displayCard')?.classList.remove('audio-playing');
 
   if (STATE.currentMode === 'idle') {
     UI.panel('panelIdle');
     stopAllTicks();
-    // Reset game state
     resetGameState();
   } else if (STATE.currentMode === 'hafal') {
     UI.panel('panelHafal');
@@ -728,10 +522,8 @@ function handleModeChange() {
     UI.panel('panelGame');
     stopHafalTick();
     startTimerTick();
-    // Reset game state kalau baru masuk game
-    if (prevMode !== 'game') {
-      resetGameState();
-    }
+    await loadMyPoints();
+    if (prevMode !== 'game') resetGameState();
     updateGameUI();
   }
 
@@ -745,7 +537,7 @@ function resetGameState() {
   STATE.answeredSoalIdx.clear();
   STATE.currentInput = '';
   STATE.isSubmitting = false;
-  STATE._beepedSoal = {};
+  STATE._lastBeepedSoal = {};
   updateCalcDisplay();
   updateLockUI();
 }
@@ -761,10 +553,7 @@ function stopAllTicks() {
 function startHafalTick() {
   if (STATE.hafalTick) clearInterval(STATE.hafalTick);
   const tick = () => {
-    if (!STATE.startedAt) {
-      UI.txt('hafalTimerDisplay', '15:00');
-      return;
-    }
+    if (!STATE.startedAt) { UI.txt('hafalTimerDisplay', '15:00'); return; }
     const elapsed = Math.floor((Date.now() - new Date(STATE.startedAt).getTime()) / 1000);
     const remaining = Math.max(0, STATE.hafalDurationSec - elapsed);
     const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
@@ -783,10 +572,7 @@ function startTimerTick() {
   if (STATE.timerTick) clearInterval(STATE.timerTick);
   const tick = () => {
     if (STATE.currentMode !== 'game') return;
-
     updateGameUI();
-
-    // Cek soal sudah ganti → buka lock
     if (STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex > STATE.lockedUntilSoal) {
       LOG.info(`🔓 Soal ganti ke #${STATE.currentSoalIndex}, unlock kiosk`);
       STATE.lockedUntilSoal = 0;
@@ -794,13 +580,12 @@ function startTimerTick() {
       updateCalcDisplay();
       updateLockUI();
     }
-
-    // Beep di detik 0 (sekali per soal)
+    // Beep waktu habis
     if (STATE.currentSoalStartedAt && STATE.currentSoalIndex > 0) {
       const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
       const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
-      if (remaining === 0 && !STATE._beepedSoal[STATE.currentSoalIndex]) {
-        STATE._beepedSoal[STATE.currentSoalIndex] = true;
+      if (remaining === 0 && !STATE._lastBeepedSoal[STATE.currentSoalIndex]) {
+        STATE._lastBeepedSoal[STATE.currentSoalIndex] = true;
         playSfx(SFX_BEEP);
       }
     }
@@ -815,17 +600,15 @@ function stopTimerTick() {
 
 function updateGameUI() {
   UI.txt('gameSoalDisplay', `${STATE.currentSoalIndex}/${STATE.totalSoal}`);
-
   if (STATE.currentSoalStartedAt) {
     const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
     const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
     UI.txt('gameTimerDisplay', String(remaining));
-
     const timerEl = UI.el('gameTimerDisplay');
     if (timerEl) {
-      if (remaining <= 5) timerEl.className = 'text-2xl font-mono font-black text-rose-500 flash-warning';
-      else if (remaining <= 10) timerEl.className = 'text-2xl font-mono font-black text-rose-400';
-      else timerEl.className = 'text-2xl font-mono font-black text-emerald-400';
+      if (remaining <= 5) timerEl.className = 'text-xl font-mono font-black text-rose-500 animate-pulse';
+      else if (remaining <= 15) timerEl.className = 'text-xl font-mono font-black text-rose-400';
+      else timerEl.className = 'text-xl font-mono font-black text-emerald-400';
     }
   }
 }
@@ -835,132 +618,93 @@ function updateGameUI() {
 // ═══════════════════════════════════════════════════════════
 function appendCalc(val) {
   if (STATE.currentMode !== 'game') return;
-  if (isLocked()) {
-    toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn');
-    return;
-  }
-  if (STATE.currentInput.length < 10) {
-    STATE.currentInput += val;
-    updateCalcDisplay();
-  }
+  if (isLocked()) { toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn'); return; }
+  if (STATE.currentInput.length < 10) { STATE.currentInput += val; updateCalcDisplay(); }
 }
-
-function clearCalc() {
-  STATE.currentInput = '';
-  updateCalcDisplay();
-}
-
-function deleteCalc() {
-  STATE.currentInput = STATE.currentInput.slice(0, -1);
-  updateCalcDisplay();
-}
-
+function clearCalc() { STATE.currentInput = ''; updateCalcDisplay(); }
+function deleteCalc() { STATE.currentInput = STATE.currentInput.slice(0, -1); updateCalcDisplay(); }
 function updateCalcDisplay() {
   const el = UI.el('calcDisplay');
   if (el) el.textContent = STATE.currentInput || '0';
 }
-
 function isLocked() {
   return STATE.lockedUntilSoal > 0 && STATE.currentSoalIndex <= STATE.lockedUntilSoal;
 }
 
 // ═══════════════════════════════════════════════════════════
-// SUBMIT JAWABAN
+// ⭐ SUBMIT VIA RPC (server-side, sinkron dengan layout)
 // ═══════════════════════════════════════════════════════════
 async function submitAnswer() {
-  if (STATE.currentMode !== 'game') {
-    toast('Bukan mode game.', 'warn');
-    return;
-  }
-  if (STATE.isSubmitting) {
-    LOG.warn('Sedang submit, tunggu...');
-    return;
-  }
-  if (!STATE.currentInput) {
-    toast('Masukkan jawaban dulu.', 'warn');
-    return;
-  }
-  if (isLocked()) {
-    toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn');
-    return;
-  }
-  if (!STATE.currentSoalIndex || STATE.currentSoalIndex < 1) {
-    toast('Soal belum aktif.', 'warn');
-    return;
-  }
-  if (STATE.answeredSoalIdx.has(STATE.currentSoalIndex)) {
-    toast('Soal ini sudah kamu jawab benar.', 'info');
-    return;
-  }
-
-  const soal = STATE.soalList[STATE.currentSoalIndex - 1];
-  if (!soal) {
-    toast('Soal tidak ditemukan.', 'error');
-    return;
-  }
+  if (STATE.currentMode !== 'game') { toast('Bukan mode game.', 'warn'); return; }
+  if (STATE.isSubmitting) return;
+  if (!STATE.currentInput) { toast('Masukkan jawaban dulu.', 'warn'); return; }
+  if (isLocked()) { toast('Kiosk terkunci. Tunggu soal berikutnya.', 'warn'); return; }
+  if (!STATE.currentSoalIndex || STATE.currentSoalIndex < 1) { toast('Soal belum aktif.', 'warn'); return; }
+  if (STATE.answeredSoalIdx.has(STATE.currentSoalIndex)) { toast('Soal ini sudah kamu jawab benar.', 'info'); return; }
 
   STATE.isSubmitting = true;
   const btn = UI.el('btnSubmitAnswer');
   if (btn) btn.disabled = true;
 
-  const isCorrect = String(STATE.currentInput).trim() === String(soal.answer).trim();
+  try {
+    const { data, error } = await supabaseClient.rpc('submit_morse_answer', {
+      p_user_id: STATE.user.unique_id,
+      p_soal_index: STATE.currentSoalIndex,
+      p_answer: STATE.currentInput
+    });
 
-  if (isCorrect) {
-    // Hitung poin
-    const elapsedSec = STATE.currentSoalStartedAt
-      ? Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000)
-      : 0;
-    const clampedElapsed = Math.max(0, Math.min(elapsedSec, STATE.soalDurationSec));
-    const rawPoin = POIN_MAKS * (1 - clampedElapsed / STATE.soalDurationSec);
-    const poin = Math.max(POIN_MINIMAL, Number(rawPoin.toFixed(2)));
-
-    LOG.ok(`✅ BENAR! +${poin.toFixed(2)} (waktu ${clampedElapsed}s)`);
-
-    // Insert ke game_scores
-    let insertError = null;
-    try {
-      const { error } = await supabaseClient
-        .from('game_scores')
-        .insert({
-          user_unique_id: STATE.user.unique_id,
-          game_name: GAME_NAME,
-          score_obtained: poin
-        });
-      if (error) insertError = error;
-    } catch (err) {
-      insertError = err;
+    if (error) {
+      LOG.err('RPC error', error);
+      toast('Gagal submit: ' + error.message, 'error');
+      return;
     }
 
-    if (insertError) {
-      LOG.err('Gagal insert game_scores', insertError);
-      toast('⚠ GAGAL SIMPAN POIN: ' + (insertError.message || 'Koneksi putus'), 'error', 6000);
-      showFlash('warning', '⚠', 'GAGAL SIMPAN', 'Panggil panitia!', 2500);
-      // Tetap lock supaya tidak spam
+    if (!data || !data.success) {
+      const errMsg = data?.error || 'Gagal submit';
+      // Kalau soal sudah ganti
+      if (data?.current_soal_index) {
+        toast(`Soal sudah ganti. Sekarang soal #${data.current_soal_index}`, 'warn');
+      } else if (data?.already_answered) {
+        toast('Soal ini sudah kamu jawab benar.', 'info');
+        STATE.answeredSoalIdx.add(STATE.currentSoalIndex);
+        STATE.lockedUntilSoal = STATE.currentSoalIndex;
+        updateLockUI();
+      } else {
+        toast(errMsg, 'error');
+      }
+      return;
+    }
+
+    // ⭐ Cek hasil
+    if (data.correct) {
+      LOG.ok(`✅ BENAR! +${data.score} pts (total: ${data.total_score})`);
+      STATE.myTotalPoints = Number(data.total_score || 0);
+      STATE.mySoalBenar = Number(data.soal_benar || 0);
+      UI.txt('gamePointsDisplay', STATE.myTotalPoints.toFixed(2));
+
+      showFlash('correct', '✅', 'BENAR!', `+${Number(data.score).toFixed(2)} pts`, 1500);
+
+      STATE.answeredSoalIdx.add(STATE.currentSoalIndex);
+      STATE.lockedUntilSoal = STATE.currentSoalIndex;
+      UI.txt('lockPointsText', `+${Number(data.score).toFixed(2)} poin`);
+      updateLockUI();
+      STATE.currentInput = '';
+      updateCalcDisplay();
     } else {
-      LOG.ok(`💾 Skor tersimpan: ${poin.toFixed(2)}`);
-      showFlash('correct', '✅', 'BENAR!', `+${poin.toFixed(2)} pts`, 1500);
+      LOG.warn(`❌ SALAH`);
+      showFlash('wrong', '❌', 'SALAH!', 'Coba lagi', 1500);
+      STATE.currentInput = '';
+      updateCalcDisplay();
     }
-
-    STATE.answeredSoalIdx.add(STATE.currentSoalIndex);
-    STATE.lockedUntilSoal = STATE.currentSoalIndex;
-    UI.txt('lockPointsText', `+${poin.toFixed(2)} poin`);
-    updateLockUI();
-
-    STATE.currentInput = '';
-    updateCalcDisplay();
-
-  } else {
-    LOG.warn(`❌ SALAH. Input="${STATE.currentInput}", Jawaban="${soal.answer}"`);
-    showFlash('wrong', '❌', 'SALAH!', 'Coba lagi', 1500);
-    STATE.currentInput = '';
-    updateCalcDisplay();
+  } catch (e) {
+    LOG.err('submitAnswer exception', e);
+    toast('Terjadi kesalahan: ' + e.message, 'error');
+  } finally {
+    setTimeout(() => {
+      STATE.isSubmitting = false;
+      if (btn) btn.disabled = false;
+    }, 500);
   }
-
-  // Re-enable setelah delay kecil (mencegah double-tap)
-  setTimeout(() => {
-    STATE.isSubmitting = false;
-    if (btn) btn.disabled = false;
-  }, 500);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -970,7 +714,6 @@ function updateLockUI() {
   const locked = isLocked();
   const banner = UI.el('lockBanner');
   const calcC = UI.el('calcContainer');
-
   if (locked) {
     banner?.classList.remove('hidden');
     if (calcC) {
@@ -988,44 +731,28 @@ function updateLockUI() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// FLASH OVERLAY
-// ═══════════════════════════════════════════════════════════
 function showFlash(type, icon, text, subtext = '', duration = 1500) {
   const overlay = UI.el('flashOverlay');
   const iconEl = UI.el('flashIcon');
   const textEl = UI.el('flashText');
   const subEl = UI.el('flashSubtext');
-
-  overlay.className = `flash-screen ${type === 'correct' ? 'flash-correct' : type === 'wrong' ? 'flash-wrong' : 'flash-warning'}`;
+  overlay.className = `flash-screen ${type === 'correct' ? 'flash-correct' : 'flash-wrong'}`;
   iconEl.textContent = icon;
   textEl.textContent = text;
   subEl.textContent = subtext;
-
   overlay.classList.remove('hidden');
-  setTimeout(() => {
-    overlay.classList.add('hidden');
-  }, duration);
+  setTimeout(() => overlay.classList.add('hidden'), duration);
 }
 
 // ═══════════════════════════════════════════════════════════
-// REALTIME & POLLING
+// REALTIME + POLLING
 // ═══════════════════════════════════════════════════════════
 function setupRealtime() {
   supabaseClient
     .channel(`morse_kiosk_${STATE.user.unique_id}`)
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'system_morse_match_state' },
-      () => { syncState(); })
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'system_morse_match_questions' },
-      () => { loadSoal(); })
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'system_morse_match_library' },
-      () => { loadLibrary(); })
-    .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'system_morse_match_audio' },
-      () => { loadAudioSettings(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'system_morse_match_state' }, () => { syncState(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'system_morse_match_library' }, () => { loadLibrary(); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'system_morse_match_audio' }, () => { loadAudioSettings(); })
     .subscribe(status => {
       STATE.realtimeConnected = status === 'SUBSCRIBED';
       UI.dbg(STATE.currentMode, STATE.currentMode,
@@ -1033,13 +760,12 @@ function setupRealtime() {
              STATE.realtimeConnected ? 'rt' : 'poll');
     });
 
-  // Polling fallback
   setInterval(syncState, 2000);
 }
 
 async function syncState() {
   await loadState();
-  handleModeChange();
+  await handleModeChange();
   UI.dbg(STATE.currentMode, STATE.currentMode,
          STATE.currentSoalIndex ? `${STATE.currentSoalIndex}/${STATE.totalSoal}` : '-',
          STATE.realtimeConnected ? 'rt' : 'poll');
@@ -1059,7 +785,6 @@ async function syncState() {
       return;
     }
 
-    // Init audio ctx saat pertama interaksi user (kapan saja)
     const initOnce = () => {
       initAudioCtx();
       document.removeEventListener('click', initOnce);
@@ -1071,29 +796,21 @@ async function syncState() {
     await loadState();
     await loadLibrary();
     await loadAudioSettings();
-    await loadSoal();
-
-    LOG.info(`Init: mode=${STATE.currentMode}, soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length}`);
+    await loadMyPoints();
 
     handleModeChange();
     setupRealtime();
 
     LOG.ok('══════════ READY ══════════');
-    UI.dbg(STATE.currentMode, STATE.currentMode, '-', STATE.realtimeConnected ? 'rt' : 'poll');
-
   } catch (err) {
     LOG.err('INIT FATAL', err);
     const errEl = UI.el('loadError');
-    if (errEl) {
-      errEl.textContent = '❌ Error: ' + (err.message || 'Unknown');
-      errEl.classList.remove('hidden');
-    }
+    if (errEl) { errEl.textContent = '❌ Error: ' + (err.message || 'Unknown'); errEl.classList.remove('hidden'); }
     UI.panel('panelLoad');
     UI.txt('dbgState', 'ERROR');
   }
 })();
 
-// Expose
 window.playMorse = playMorse;
 window.appendCalc = appendCalc;
 window.clearCalc = clearCalc;
