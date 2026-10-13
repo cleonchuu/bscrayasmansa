@@ -491,7 +491,57 @@ function sleep(ms, token = null) {
     }, 30);
   });
 }
+/**
+ * Play file audio, tapi stop 3 detik sebelum berakhir.
+ * @param {string} url
+ * @param {number} token
+ * @param {number} cutFromEndSec — default 3
+ */
+function playSfxCut(url, token = null, cutFromEndSec = 3) {
+  return new Promise(resolve => {
+    if (currentSfxAudio) {
+      try { currentSfxAudio.pause(); } catch(e){}
+      currentSfxAudio = null;
+    }
 
+    const a = new Audio(url);
+    a.volume = 0.7;
+    currentSfxAudio = a;
+
+    let resolved = false;
+    const done = () => {
+      if (resolved) return;
+      resolved = true;
+      try { a.pause(); } catch(e){}
+      if (currentSfxAudio === a) currentSfxAudio = null;
+      resolve();
+    };
+
+    a.onerror = done;
+
+    // ⭐ Setelah metadata ke-load, hitung durasi potong
+    a.addEventListener('loadedmetadata', () => {
+      const cutAt = Math.max(0.5, a.duration - cutFromEndSec);
+      a.currentTime = 0;
+      a.play().catch(() => done());
+
+      // Timer untuk stop di cutAt
+      const stopTimer = setTimeout(() => done(), cutAt * 1000);
+
+      // Abort check
+      if (token !== null) {
+        const abortCheck = setInterval(() => {
+          if (token !== STATE.currentPlaybackToken) {
+            clearInterval(abortCheck);
+            clearTimeout(stopTimer);
+            done();
+          }
+        }, 30);
+        setTimeout(() => clearInterval(abortCheck), cutAt * 1000 + 500);
+      }
+    }, { once: true });
+  });
+}
 // ═══════════════════════════════════════════════════════════
 // VISUAL MORSE
 // ═══════════════════════════════════════════════════════════
@@ -558,9 +608,9 @@ async function playSoalSequence(soal, token) {
     if (!check()) return; await playSymbol(String(soal.n3), token);
     if (!check()) return;
 
-    // Bell di akhir persamaan
+    // Bell di akhir persamaan — potong 3 detik
     setMorseVisual(true, true);
-    await playSfxFile(SFX_BELL, token);
+    await playSfxCut(SFX_BELL, token, 3);
     setMorseVisual(false);
   } catch (e) { LOG.err('playSoalSequence', e); }
 }
@@ -570,6 +620,16 @@ async function runSoalLoop(soalIdx) {
     await loadSoal();
     if (!STATE.soalLoaded || STATE.soalList.length === 0) return;
   }
+
+  // Beep pergantian — potong 3 detik terakhir
+await playSfxCut(SFX_BEEP, myToken, 3);
+await sleep(200, myToken);
+
+// Bell pengulangan — potong 3 detik terakhir
+if (!isFirstPlay) {
+  await playSfxCut(SFX_BELL, myToken, 3);
+  await sleep(200, myToken);
+}
 
   const soal = STATE.soalList[soalIdx - 1];
   if (!soal) return;
