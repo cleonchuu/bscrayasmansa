@@ -85,9 +85,7 @@
          src="https://endlrberfaxqhjrpvoss.supabase.co/storage/v1/object/public/sounds_effect/bell.mp3"
          preload="auto"></audio>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- OVERLAY 0: PESERTA TERELIMINASI                              -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 0: PESERTA TERELIMINASI -->
   <div id="overlayEliminated" class="fixed inset-0 z-[60] hidden flex-col items-center justify-center p-6 frozen-overlay">
     <div class="text-center space-y-6 max-w-md">
       <div class="w-28 h-28 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto animate-timer-pulse">
@@ -102,9 +100,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- OVERLAY 1: MENUNGGU PANITIA                                  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 1: MENUNGGU PANITIA -->
   <div id="overlayWaiting" class="fixed inset-0 z-40 flex flex-col items-center justify-center p-6 frozen-overlay">
     <div class="text-center space-y-6 max-w-md">
       <div class="w-28 h-28 bg-amber-500/10 border-2 border-amber-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
@@ -123,9 +119,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- OVERLAY 2: FASE MENGHAPAL                                    -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 2: FASE MENGHAPAL -->
   <div id="overlayMemorize" class="fixed inset-0 z-40 hidden flex-col items-center justify-center p-6 frozen-overlay">
     <div class="text-center space-y-6 max-w-md">
       <div class="w-28 h-28 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl flex items-center justify-center mx-auto animate-timer-pulse">
@@ -144,9 +138,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- OVERLAY 3: LOCKED / SELESAI                                  -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- OVERLAY 3: LOCKED / SELESAI -->
   <div id="overlayLocked" class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-6 frozen-overlay">
     <div class="text-center space-y-6 max-w-lg">
       <div class="w-28 h-28 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mx-auto">
@@ -165,9 +157,7 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════ -->
-  <!-- MAIN GAME PANEL                                              -->
-  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MAIN GAME PANEL -->
   <div id="mainGamePanel" class="hidden flex-col flex-1 space-y-4">
 
     <!-- HEADER -->
@@ -274,19 +264,18 @@
     const SYS_TABLE = 'system_forsaken_city_recall';
     const NOTIF_TABLE = 'recall_notifications';
     const SUBMISSIONS_TABLE = 'recall_submissions';
-    const POINT_TABLE = 'point_forsaken_city_recall';     // ⭐ TABEL POIN BARU
+    const POINT_TABLE = 'point_forsaken_city_recall';
 
     const TOTAL_SESSIONS = 5;
     const IMAGES_PER_SESSION = 6;
     const POINTS_PER_CORRECT = 5;
-    const MAX_SCORE = TOTAL_SESSIONS * IMAGES_PER_SESSION * POINTS_PER_CORRECT; // 150
+    const MAX_SCORE = TOTAL_SESSIONS * IMAGES_PER_SESSION * POINTS_PER_CORRECT;
     const CLOCK_RESYNC_MS = 60000;
 
-    // State
     let userSession = null;
     let masterSequence = [];
     let availableFilenames = [];
-    let userAnswers = new Array(TOTAL_SESSIONS * IMAGES_PER_SESSION).fill(null); // 30
+    let userAnswers = new Array(TOTAL_SESSIONS * IMAGES_PER_SESSION).fill(null);
     let sessionSubmitted = [false, false, false, false, false];
     let currentSession = 1;
     let totalScoreAccumulated = 0;
@@ -297,8 +286,6 @@
     let phaseApplied = false;
 
     let isEliminated = false;
-
-    // Clock sync
     let clockOffset = 0;
 
     // ═══════════════════════════════════════════════════════════
@@ -357,7 +344,6 @@
         }
         document.getElementById('playerName').textContent = userSession.full_name || userSession.unique_id;
 
-        // ⭐ Cek eliminasi
         const { data } = await supabaseClient
           .from('users')
           .select('is_eliminated')
@@ -404,6 +390,7 @@
 
     // ═══════════════════════════════════════════════════════════
     // ⭐ POINT TABLE — init baris peserta
+    //    ⚠️ `total` adalah GENERATED COLUMN — JANGAN di-update manual
     // ═══════════════════════════════════════════════════════════
     async function ensurePointRow() {
       const { data } = await supabaseClient
@@ -413,52 +400,35 @@
         .maybeSingle();
 
       if (!data) {
-        // Insert row baru
-        await supabaseClient
+        // Insert row baru — TANPA `total` (generated)
+        const { error } = await supabaseClient
           .from(POINT_TABLE)
           .insert({
             unique_id: userSession.unique_id,
             name: userSession.full_name || userSession.unique_id,
             point1: 0, point2: 0, point3: 0, point4: 0, point5: 0,
-            total: 0,
             refresh_at: new Date().toISOString()
           });
-        console.log('[POINT] Row baru dibuat');
+
+        if (error) {
+          console.warn('[POINT] Insert error (mungkin sudah ada):', error.message);
+        }
+        console.log('[POINT] Row baru dibuat / sudah ada');
         return { point1: 0, point2: 0, point3: 0, point4: 0, point5: 0, total: 0 };
       }
       return data;
     }
 
     async function saveSessionScoreToPointTable(sessionNum, sessionScore) {
-      // Ambil row dulu
       const row = await ensurePointRow();
 
-      // Kolom yang diupdate
+      // ⭐ Update HANYA kolom pointN. JANGAN update `total` (generated column).
       const colName = `point${sessionNum}`;
-      const oldScore = row[colName] || 0;
-
-      // ⭐ Timpa (bukan tambah) — kalau peserta submit ulang, poin diganti
       const updatePayload = {
         [colName]: sessionScore,
         refresh_at: new Date().toISOString()
       };
 
-      // Hitung total baru = jumlah semua point1-5
-      const newPoints = {
-        point1: sessionNum === 1 ? sessionScore : (row.point1 || 0),
-        point2: sessionNum === 2 ? sessionScore : (row.point2 || 0),
-        point3: sessionNum === 3 ? sessionScore : (row.point3 || 0),
-        point4: sessionNum === 4 ? sessionScore : (row.point4 || 0),
-        point5: sessionNum === 5 ? sessionScore : (row.point5 || 0)
-      };
-      updatePayload.total = 
-        (newPoints.point1 || 0) + 
-        (newPoints.point2 || 0) + 
-        (newPoints.point3 || 0) + 
-        (newPoints.point4 || 0) + 
-        (newPoints.point5 || 0);
-
-      // Update
       const { error } = await supabaseClient
         .from(POINT_TABLE)
         .update(updatePayload)
@@ -469,8 +439,16 @@
         throw error;
       }
 
-      console.log(`[POINT] Sesi ${sessionNum} → ${sessionScore} pts (total: ${updatePayload.total})`);
-      return updatePayload;
+      // Hitung total untuk display di kiosk (tidak disimpan — DB yang hitung)
+      const newTotal =
+        (sessionNum === 1 ? sessionScore : (row.point1 || 0)) +
+        (sessionNum === 2 ? sessionScore : (row.point2 || 0)) +
+        (sessionNum === 3 ? sessionScore : (row.point3 || 0)) +
+        (sessionNum === 4 ? sessionScore : (row.point4 || 0)) +
+        (sessionNum === 5 ? sessionScore : (row.point5 || 0));
+
+      console.log(`[POINT] Sesi ${sessionNum} → ${sessionScore} pts (total display: ${newTotal})`);
+      return { total: newTotal };
     }
 
     async function markFinished() {
@@ -548,7 +526,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // COUNTDOWN: MEMORIZE
+    // COUNTDOWN
     // ═══════════════════════════════════════════════════════════
     function startMemorizeCountdown(startTime, duration) {
       if (memorizeTimerInt) clearInterval(memorizeTimerInt);
@@ -569,9 +547,6 @@
       if (memorizeTimerInt) { clearInterval(memorizeTimerInt); memorizeTimerInt = null; }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // COUNTDOWN: ANSWER
-    // ═══════════════════════════════════════════════════════════
     function startAnswerCountdown(startTime, duration) {
       if (answerTimerInt) clearInterval(answerTimerInt);
       const startMs = new Date(startTime).getTime();
@@ -609,7 +584,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RENDER SESI
+    // RENDER
     // ═══════════════════════════════════════════════════════════
     function renderSession() {
       const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
@@ -760,7 +735,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ⭐ SUBMIT SESI — simpan ke point_forsaken_city_recall
+    // SUBMIT SESI
     // ═══════════════════════════════════════════════════════════
     async function nextSession() {
       if (currentPhase !== 'ANSWER') return;
@@ -769,7 +744,6 @@
       const startIndex = (currentSession - 1) * IMAGES_PER_SESSION;
       const currentAnswers = userAnswers.slice(startIndex, startIndex + IMAGES_PER_SESSION);
 
-      // Kalau sesi sudah disubmit → navigasi saja
       if (sessionSubmitted[currentSession - 1]) {
         if (currentSession < TOTAL_SESSIONS) {
           currentSession++;
@@ -782,7 +756,6 @@
         return alert(`Harap isi ${IMAGES_PER_SESSION} gambar untuk Sesi ${currentSession} terlebih dahulu!`);
       }
 
-      // Hitung skor sesi
       let sessionCorrect = 0;
       for (let i = 0; i < IMAGES_PER_SESSION; i++) {
         const globalIdx = startIndex + i;
@@ -792,7 +765,6 @@
       }
       const sessionScore = sessionCorrect * POINTS_PER_CORRECT;
 
-      // ⭐ Simpan ke point_forsaken_city_recall
       try {
         const updated = await saveSessionScoreToPointTable(currentSession, sessionScore);
         totalScoreAccumulated = updated.total || totalScoreAccumulated + sessionScore;
@@ -803,7 +775,7 @@
         return;
       }
 
-      // ⭐ (Opsional) Simpan juga ke recall_submissions untuk jejak lengkap
+      // Simpan jawaban ke recall_submissions (jejak)
       await supabaseClient
         .from(SUBMISSIONS_TABLE)
         .insert({
@@ -816,7 +788,6 @@
       sessionSubmitted[currentSession - 1] = true;
       playBell();
 
-      // Navigasi
       if (currentSession < TOTAL_SESSIONS) {
         currentSession++;
         renderSession();
@@ -826,7 +797,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // AUTO SUBMIT SAAT WAKTU HABIS / LOCK
+    // AUTO SUBMIT
     // ═══════════════════════════════════════════════════════════
     async function autoSubmitRemaining() {
       for (let s = 1; s <= TOTAL_SESSIONS; s++) {
@@ -863,7 +834,6 @@
         if (!confirm('Kirim lembar jawaban akhir dan beri tahu panitia?')) return;
       }
 
-      // Kirim notifikasi ke panitia
       await supabaseClient
         .from(NOTIF_TABLE)
         .insert({
@@ -873,10 +843,8 @@
           created_at: new Date().toISOString()
         });
 
-      // ⭐ Mark finished
       await markFinished();
 
-      // Update UI
       document.getElementById('successUserText').textContent = userSession.full_name || userSession.unique_id;
       document.getElementById('successScore').textContent = totalScoreAccumulated;
       document.getElementById('finalScore').textContent = totalScoreAccumulated;
@@ -887,9 +855,6 @@
       document.getElementById('successPanel').classList.remove('hidden');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // LOCKED OVERLAY
-    // ═══════════════════════════════════════════════════════════
     function showFinalLockOverlay() {
       document.getElementById('finalScore').textContent = totalScoreAccumulated;
       hideAllOverlays();
@@ -898,7 +863,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // REALTIME SYSTEM LISTENER
+    // REALTIME
     // ═══════════════════════════════════════════════════════════
     function subscribeSystem() {
       supabaseClient
@@ -925,14 +890,12 @@
       if (!await initUser()) return;
       if (isEliminated) return;
 
-      // Sync clock dulu
       await syncClockOffset();
       setInterval(syncClockOffset, CLOCK_RESYNC_MS);
 
       await fetchMasterData();
       await ensurePointRow();
 
-      // Apply phase awal
       const { data: sys } = await supabaseClient
         .from(SYS_TABLE)
         .select('*')
@@ -944,7 +907,6 @@
 
       subscribeSystem();
 
-      // Polling fallback
       setInterval(async () => {
         const { data } = await supabaseClient
           .from(SYS_TABLE)
