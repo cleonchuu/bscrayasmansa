@@ -1167,34 +1167,63 @@
     }));
   }
 
+  /**
+   * Fetch bio (motto + prestasi) untuk list uid.
+   * Support prestasi sebagai:
+   *  - text[] (array of string)
+   *  - text (JSON string "[...]")
+   *  - text (newline-separated)
+   */
   async function fetchFinalistBio(uids) {
     if (!uids || uids.length === 0) return {};
     try {
       const { data, error } = await supabaseClient
         .from('morse_finalist_bio')
-        .select('*')
+        .select('unique_id, motto, prestasi')
         .in('unique_id', uids);
 
       if (error) {
-        LOG.warn('fetchFinalistBio', error.message);
+        LOG.warn('fetchFinalistBio error', error.message);
         return {};
       }
 
+      LOG.info(`fetchFinalistBio: ${data?.length || 0} rows untuk ${uids.length} uid`);
+
       const map = {};
       (data || []).forEach(row => {
-        // ⭐ Support text[] atau text biasa
         let prestasiArr = [];
+
         if (Array.isArray(row.prestasi)) {
-          prestasiArr = row.prestasi.filter(x => x && String(x).trim().length > 0);
+          // text[] — array of string
+          prestasiArr = row.prestasi
+            .map(x => (typeof x === 'string' ? x.trim() : String(x ?? '').trim()))
+            .filter(x => x.length > 0);
         } else if (typeof row.prestasi === 'string' && row.prestasi.trim()) {
-          prestasiArr = row.prestasi.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+          const s = row.prestasi.trim();
+          // Coba parse JSON kalau bentuknya array
+          if (s.startsWith('[') && s.endsWith(']')) {
+            try {
+              const parsed = JSON.parse(s);
+              if (Array.isArray(parsed)) {
+                prestasiArr = parsed
+                  .map(x => (typeof x === 'string' ? x.trim() : String(x ?? '').trim()))
+                  .filter(x => x.length > 0);
+              }
+            } catch (_) {
+              // Fallback ke newline split
+              prestasiArr = s.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+            }
+          } else {
+            prestasiArr = s.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+          }
         }
 
         map[row.unique_id] = {
-          motto: row.motto || '',
+          motto: (row.motto || '').trim(),
           prestasi: prestasiArr
         };
       });
+
       return map;
     } catch (e) {
       LOG.err('fetchFinalistBio exception', e);
@@ -1802,7 +1831,6 @@
     const tick = async () => {
       if (STATE.currentView !== 'finalists') return;
       if (mySession !== STATE.finalistSessionId) return;
-      // Cek mode masih auto
       if (STATE.finalistRevealMode !== 'auto') return;
 
       const p = ordered[i];
@@ -1821,7 +1849,6 @@
       if (i < ordered.length) {
         STATE.finalistTimer = setTimeout(tick, 400);
       } else {
-        // Loop ulang dari awal
         i = 0;
         STATE.finalistTimer = setTimeout(tick, 800);
       }
@@ -1888,7 +1915,6 @@
       glowClass = '';
     }
 
-    // ⭐ Prestasi sudah array
     const prestasiArr = Array.isArray(bio.prestasi) ? bio.prestasi : [];
 
     const prestasiHtml = prestasiArr.length > 0
@@ -1997,34 +2023,42 @@
             // Stop loop lama
             stopFinalistReel();
 
-// Kalau single & target sudah ada → langsung update kartu
-if (revealMode === 'single' && selectedUid) {
-  // ⭐ Pastikan finalistData sudah ada
-  if (!STATE.finalistData || STATE.finalistData.length === 0) {
-    LOG.info('Single mode tapi finalistData kosong → fetch dulu');
-    await startFinalists(); // akan fetch dan render ulang
-    return;
-  }
+            // ⭐ MODE SINGLE — pastikan data + bio ada sebelum render
+            if (revealMode === 'single' && selectedUid) {
+              // 1) Pastikan finalistData sudah dimuat
+              if (!STATE.finalistData || STATE.finalistData.length === 0) {
+                LOG.info('Single mode: finalistData kosong → fetch finalists');
+                const finalists = await fetchFinalists();
+                STATE.finalistData = finalists;
 
-  const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
-  if (target) {
-    // ⭐ Fetch bio kalau belum ada untuk uid ini
-    if (!STATE.finalistBioMap || !STATE.finalistBioMap[selectedUid]) {
-      LOG.info(`Fetch bio untuk ${selectedUid}...`);
-      const bioMap = await fetchFinalistBio([selectedUid]);
-      STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
-    }
+                const headerCount = document.getElementById('finalistsHeaderCount');
+                if (headerCount) headerCount.textContent = finalists.length;
+              }
 
-    renderFinalistCard(target);
-    startConfettiLoop();
-    burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
-    for (let k = 0; k < 12; k++) rainConfetti(2);
-    playBell();
-  } else {
-    LOG.warn(`Finalis ${selectedUid} tidak ditemukan di finalistData`);
-  }
-  return;
-}
+              const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
+              if (!target) {
+                LOG.warn(`Finalis ${selectedUid} tidak ditemukan di finalistData`);
+                return;
+              }
+
+              // 2) Pastikan bio sudah dimuat untuk uid ini
+              if (!STATE.finalistBioMap || !STATE.finalistBioMap[selectedUid]) {
+                LOG.info(`Single mode: fetch bio untuk ${selectedUid}`);
+                const bioMap = await fetchFinalistBio([selectedUid]);
+                STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
+                LOG.ok(`Bio loaded:`, bioMap[selectedUid] || '(kosong)');
+              } else {
+                LOG.info(`Single mode: bio sudah di-cache untuk ${selectedUid}`);
+              }
+
+              // 3) Baru render
+              renderFinalistCard(target);
+              startConfettiLoop();
+              burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+              for (let k = 0; k < 12; k++) rainConfetti(2);
+              playBell();
+              return;
+            }
 
             // Untuk mode auto/all → restart sequence
             startFinalists();
