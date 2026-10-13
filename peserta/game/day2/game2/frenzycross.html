@@ -26,7 +26,6 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
 
-    /* ⭐ ELIMINATION OVERLAY */
     .eliminated-screen {
       position: fixed; inset: 0; z-index: 9999;
       background: rgba(15, 23, 42, 0.98);
@@ -58,7 +57,6 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-  <!-- ⭐ ELIMINATION OVERLAY -->
   <div id="eliminatedOverlay" class="eliminated-screen hidden text-center p-6">
     <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
       <i class="fas fa-ban text-6xl text-rose-500"></i>
@@ -79,7 +77,6 @@
     </div>
   </div>
 
-  <!-- FREEZE OVERLAY -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
     <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 pulse-soft">
       <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
@@ -96,16 +93,13 @@
     </div>
   </div>
 
-  <!-- FLASH OVERLAY -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
   </div>
 
-  <!-- MAIN CARD -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
 
-    <!-- HEADER -->
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
       <div>
         <h1 class="text-xl font-black text-rose-400 tracking-wide">🧮 FRENZY CROSS MAZE</h1>
@@ -122,7 +116,6 @@
       </div>
     </div>
 
-    <!-- INFO PESERTA + KUOTA -->
     <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between mb-4">
       <div class="flex items-center gap-3 overflow-hidden">
         <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 flex-shrink-0">
@@ -142,12 +135,10 @@
       </div>
     </div>
 
-    <!-- DISPLAY -->
     <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right mb-4">
       <div id="calcDisplay" class="text-4xl font-mono font-bold text-amber-400 min-h-[48px] break-all">0</div>
     </div>
 
-    <!-- KEYPAD -->
     <div id="keypadSection" class="grid grid-cols-3 gap-3 mb-4">
       <button class="calc-btn" onclick="appendCalc('7')">7</button>
       <button class="calc-btn" onclick="appendCalc('8')">8</button>
@@ -166,18 +157,15 @@
       <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
     </div>
 
-    <!-- SUBMIT -->
     <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center">
       <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
     </button>
 
-    <!-- LOCKED MESSAGE -->
     <div id="lockedMessage" class="hidden mt-4 bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-center">
       <i class="fas fa-lock text-amber-400 text-2xl mb-2"></i>
       <p class="text-amber-400 font-bold text-sm" id="lockedReason">Menunggu sesi berikutnya...</p>
     </div>
 
-    <!-- HINT -->
     <div class="text-center text-[11px] text-slate-500 mt-3">
       <i class="fas fa-info-circle"></i> Kuota <span id="hintQuota">2</span>x per sesi. Jawaban salah kurangi <span id="hintPenalty">2</span> poin.
     </div>
@@ -204,9 +192,6 @@
     const CURRENT_GAME_NAME = "Frenzy Cross Maze";
     const POINT_TABLE = "point_frenzy_cross_maze";
 
-    // ═══════════════════════════════════════════════════════════
-    // LOGGER
-    // ═══════════════════════════════════════════════════════════
     const DEBUG = true;
     const LOG = {
       ok:    (t, m, d) => DEBUG && console.log(`%c[${t}] ✅ ${m}`, 'color:#10b981;font-weight:bold', d ?? ''),
@@ -216,9 +201,6 @@
       step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
     };
 
-    // ═══════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════
     let currentUser = null;
     let currentInput = '';
     let isSubmitting = false;
@@ -241,9 +223,6 @@
       lockReason: null
     };
 
-    // ═══════════════════════════════════════════════════════════
-    // DOM
-    // ═══════════════════════════════════════════════════════════
     const freezeOverlay = document.getElementById('freezeOverlay');
     const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
     const calcDisplay = document.getElementById('calcDisplay');
@@ -253,7 +232,7 @@
     document.getElementById('quotaMax').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
 
     // ═══════════════════════════════════════════════════════════
-    // ⭐ ELIMINATION — cek & tampilkan
+    // ELIMINATION
     // ═══════════════════════════════════════════════════════════
     async function checkEliminationStatus(uniqueId) {
       try {
@@ -263,10 +242,7 @@
           .eq('unique_id', uniqueId)
           .maybeSingle();
 
-        if (error) {
-          LOG.warn('ELIM', 'Cek error: ' + error.message);
-          return false;
-        }
+        if (error) { LOG.warn('ELIM', 'Cek error: ' + error.message); return false; }
         return data?.is_eliminated === true;
       } catch (e) {
         LOG.warn('ELIM', 'Exception: ' + e.message);
@@ -285,28 +261,13 @@
     // ═══════════════════════════════════════════════════════════
     function loadUserFromStorage() {
       const sess = localStorage.getItem('userSession');
-
-      if (!sess) {
-        LOG.error('USER', '❌ Tidak ada userSession. Redirect ke login...');
-        window.location.href = '/login.html';
-        return null;
-      }
+      if (!sess) { window.location.href = '/login.html'; return null; }
 
       let userSession;
-      try {
-        userSession = JSON.parse(sess);
-      } catch (e) {
-        LOG.error('USER', '❌ Gagal parse userSession', e);
-        window.location.href = '/login.html';
-        return null;
-      }
+      try { userSession = JSON.parse(sess); }
+      catch (e) { window.location.href = '/login.html'; return null; }
 
-      if (!userSession || !userSession.unique_id) {
-        LOG.error('USER', '❌ userSession tanpa unique_id');
-        window.location.href = '/login.html';
-        return null;
-      }
-
+      if (!userSession || !userSession.unique_id) { window.location.href = '/login.html'; return null; }
       LOG.ok('USER', `✅ Session: ${userSession.unique_id} (${userSession.full_name || '-'})`);
       return userSession;
     }
@@ -323,9 +284,9 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SESSION STATE
+    // ⭐ SESSION STATE — cek session_start_time untuk reset
     // ═══════════════════════════════════════════════════════════
-    async function fetchSessionState(uid, sIndex) {
+    async function fetchSessionState(uid, sIndex, sStartTime) {
       if (!sIndex) return { sessionIndex: 0, attemptsUsed: 0, isLocked: false, lockReason: null };
 
       const { data, error } = await supabaseClient
@@ -336,12 +297,16 @@
         .maybeSingle();
 
       if (error || !data) {
-        return {
-          sessionIndex: sIndex,
-          attemptsUsed: 0,
-          isLocked: false,
-          lockReason: null
-        };
+        return { sessionIndex: sIndex, attemptsUsed: 0, isLocked: false, lockReason: null };
+      }
+
+      // ⭐ Cek state lama: kalau state terakhir disave SEBELUM sesi ini mulai → anggap FRESH
+      const stateUpdated = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+      const sessionStart = sStartTime ? new Date(sStartTime).getTime() : 0;
+
+      if (sessionStart > 0 && stateUpdated > 0 && stateUpdated < sessionStart) {
+        LOG.warn('STATE', `State lama terdeteksi (updated ${new Date(stateUpdated).toLocaleString()} < session ${new Date(sessionStart).toLocaleString()}). Reset.`);
+        return { sessionIndex: sIndex, attemptsUsed: 0, isLocked: false, lockReason: null };
       }
 
       return {
@@ -411,12 +376,15 @@
       if (data) onQuestionUpdate(data);
     }
 
+    // ⭐ FIX: deteksi sesi baru pakai sessionStartTime juga
     async function onQuestionUpdate(row) {
       const sig = `${row.session_index}|${row.updated_at}`;
       if (sig === lastQuestionSig) return;
       lastQuestionSig = sig;
 
       const prevSession = sessionIndex;
+      const prevStartTime = sessionStartTime;
+
       LOG.info('Q', `Sesi ${row.session_index}/${row.total_sessions}, jawaban: ${row.target_answer}`);
 
       sessionIndex = row.session_index || 0;
@@ -433,9 +401,12 @@
         return;
       }
 
-      if (prevSession !== sessionIndex) {
-        LOG.ok('SESSION', `Sesi baru terdeteksi: ${sessionIndex}`);
-        sessionState = await fetchSessionState(currentUser.unique_id, sessionIndex);
+      // ⭐ Sesi baru = index beda ATAU start_time beda
+      const isNewSession = (prevSession !== sessionIndex) || (prevStartTime !== sessionStartTime);
+
+      if (isNewSession) {
+        LOG.ok('SESSION', `Sesi baru: ${sessionIndex} @ ${sessionStartTime}`);
+        sessionState = await fetchSessionState(currentUser.unique_id, sessionIndex, sessionStartTime);
         LOG.info('SESSION', `State: attempts=${sessionState.attemptsUsed}, locked=${sessionState.isLocked}`);
       }
 
@@ -466,9 +437,6 @@
 
     setInterval(updateKioskTimer, 500);
 
-    // ═══════════════════════════════════════════════════════════
-    // QUOTA & LOCK UI
-    // ═══════════════════════════════════════════════════════════
     function updateQuotaDisplay() {
       const remaining = Math.max(0, GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed);
       document.getElementById('quotaDisplay').textContent = remaining;
@@ -489,7 +457,6 @@
       document.getElementById('lockedReason').textContent = reason;
       document.getElementById('keypadSection').classList.add('opacity-30', 'pointer-events-none');
       document.getElementById('btnSubmitAnswer').classList.add('opacity-30', 'pointer-events-none');
-      LOG.warn('LOCK', `Kiosk terkunci: ${reason}`);
     }
 
     function hideSelfLock() {
@@ -500,9 +467,6 @@
       document.getElementById('btnSubmitAnswer').classList.remove('opacity-30', 'pointer-events-none');
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // FREEZE / UNFREEZE
-    // ═══════════════════════════════════════════════════════════
     function freezeSession(msg, status) {
       if (isSessionFrozen) return;
       isSessionFrozen = true;
@@ -521,48 +485,30 @@
       document.querySelectorAll('button').forEach(b => b.disabled = false);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // HITUNG SKOR
-    // ═══════════════════════════════════════════════════════════
     function calculateCorrectScore() {
       if (!sessionStartTime) return GAME_CONFIG.MIN_POINT;
-
       const totalElapsed = (Date.now() - sessionStartTime) / 1000;
       const elapsedInSession = totalElapsed % sessionDuration;
       const remaining = Math.max(0, sessionDuration - elapsedInSession);
-
       const score = GAME_CONFIG.MIN_POINT
         + (remaining / sessionDuration) * (GAME_CONFIG.MAX_POINT - GAME_CONFIG.MIN_POINT);
       return parseFloat(score.toFixed(2));
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // KALKULATOR
-    // ═══════════════════════════════════════════════════════════
     function appendCalc(v) {
       if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      if (currentInput.length < 10) {
-        currentInput += v;
-        updateDisplay();
-      }
+      if (currentInput.length < 10) { currentInput += v; updateDisplay(); }
     }
     function clearCalc() {
       if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      currentInput = '';
-      updateDisplay();
+      currentInput = ''; updateDisplay();
     }
     function deleteCalc() {
       if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      currentInput = currentInput.slice(0, -1);
-      updateDisplay();
+      currentInput = currentInput.slice(0, -1); updateDisplay();
     }
-    function updateDisplay() {
-      calcDisplay.textContent = currentInput || '0';
-    }
+    function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
 
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ SUBMIT JAWABAN — pakai RPC add_point_generic
-    // ═══════════════════════════════════════════════════════════
     async function submitAnswer() {
       if (!currentInput || isSubmitting) return;
       if (isEliminated) { alert('Kamu tereliminasi.'); return; }
@@ -573,10 +519,7 @@
       if (currentPuzzleAnswer == null) { alert('Puzzle belum tersedia.'); return; }
 
       const remaining = GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed;
-      if (remaining <= 0) {
-        alert('Kuota sesi ini sudah habis!');
-        return;
-      }
+      if (remaining <= 0) { alert('Kuota sesi ini sudah habis!'); return; }
 
       isSubmitting = true;
       const btn = document.getElementById('btnSubmitText');
@@ -586,16 +529,10 @@
       const input = currentInput.trim();
       const isCorrect = input === correct;
 
-      let points = 0;
-      if (isCorrect) {
-        points = calculateCorrectScore();
-      } else {
-        points = -GAME_CONFIG.WRONG_PENALTY;
-      }
+      let points = isCorrect ? calculateCorrectScore() : -GAME_CONFIG.WRONG_PENALTY;
 
       LOG.info('SUBMIT', `Input="${input}" | Correct="${correct}" | Match=${isCorrect} | Pts=${points}`);
 
-      // ⭐ SIMPAN VIA RPC add_point_generic
       try {
         const { error: rpcErr } = await supabaseClient.rpc('add_point_generic', {
           p_table_name: POINT_TABLE,
@@ -621,7 +558,6 @@
         return;
       }
 
-      // Update state
       sessionState.attemptsUsed++;
 
       if (isCorrect) {
@@ -633,10 +569,8 @@
       }
 
       await saveSessionState(currentUser.unique_id, sessionIndex, sessionState);
-
       updateQuotaDisplay();
       applySelfLockIfNeeded();
-
       triggerFlash(isCorrect, points, correct);
     }
 
@@ -682,7 +616,6 @@
     // ═══════════════════════════════════════════════════════════
     async function init() {
       LOG.ok('INIT', '══════════ KIOSK BOOT ══════════');
-      LOG.info('INIT', `Config: ${GAME_CONFIG.ATTEMPTS_PER_SESSION}x attempt, wrong penalty: -${GAME_CONFIG.WRONG_PENALTY}`);
 
       const userSession = loadUserFromStorage();
       if (!userSession) return;
@@ -690,7 +623,6 @@
       const userData = await fetchUserData(userSession.unique_id);
       currentUser = userData || userSession;
 
-      // ⭐ Cek status eliminasi
       isEliminated = currentUser.is_eliminated === true;
       if (isEliminated) {
         showEliminatedOverlay(currentUser.full_name || currentUser.unique_id);
@@ -711,7 +643,6 @@
       LOG.ok('INIT', '══════════ KIOSK READY ══════════');
     }
 
-    // Expose
     window.appendCalc = appendCalc;
     window.clearCalc = clearCalc;
     window.deleteCalc = deleteCalc;
