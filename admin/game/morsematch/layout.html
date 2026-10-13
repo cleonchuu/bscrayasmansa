@@ -18,7 +18,6 @@
     }
     .font-math { font-family: 'Orbitron', sans-serif; }
 
-    /* View transitions */
     .stage-view {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
@@ -36,7 +35,6 @@
       visibility: visible;
     }
 
-    /* Idle floating */
     @keyframes floaty {
       0%,100% { transform: translateY(0) rotate(0deg); }
       50%     { transform: translateY(-18px) rotate(2deg); }
@@ -63,7 +61,6 @@
       animation: gradientShift 12s ease infinite;
     }
 
-    /* Morse container */
     .morse-container {
       background: #0a0a0f;
       transition: background 0.05s ease, box-shadow 0.05s ease;
@@ -72,19 +69,13 @@
       background: #ef4444;
       box-shadow: 0 0 120px rgba(239, 68, 68, 0.8), inset 0 0 80px rgba(255, 255, 255, 0.3);
     }
-    .morse-container.lit-soft {
-      background: #7f1d1d;
-      box-shadow: 0 0 60px rgba(239, 68, 68, 0.4);
-    }
 
-    /* Card pop */
     @keyframes cardPop {
       0%   { opacity: 0; transform: scale(0.7) translateY(40px); }
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
     .animate-card-pop { animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    /* Pulse */
     @keyframes pulseRing {
       0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
       70%  { box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
@@ -101,19 +92,10 @@
     .custom-scroll::-webkit-scrollbar { width: 8px; }
     .custom-scroll::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
     .custom-scroll::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 10px; }
-
-    /* Soal indicator */
-    @keyframes soalPop {
-      0%   { transform: scale(0.6); opacity: 0; }
-      50%  { transform: scale(1.1); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    .soal-pop { animation: soalPop 0.5s ease-out; }
   </style>
 </head>
 <body>
 
-  <!-- AUDIO UNLOCK OVERLAY -->
   <div id="audioUnlockOverlay"
        onclick="unlockAudio()"
        class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center cursor-pointer">
@@ -165,7 +147,7 @@
           <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Soal</div>
         </div>
         <div class="px-8 py-4 bg-slate-900/60 border border-slate-700/60 rounded-3xl backdrop-blur-md">
-          <div class="text-4xl lg:text-5xl font-math font-black text-rose-400">30</div>
+          <div class="text-4xl lg:text-5xl font-math font-black text-rose-400">60</div>
           <div class="text-xs text-slate-400 uppercase tracking-widest mt-1">Detik / Soal</div>
         </div>
       </div>
@@ -212,7 +194,6 @@
   <section id="viewGame" class="stage-view hidden-view">
     <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/30 to-slate-950"></div>
 
-    <!-- Header -->
     <div class="relative z-10 pt-8 pb-4 px-10 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <div class="w-16 h-16 bg-amber-500/20 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center text-amber-400 text-3xl">
@@ -237,16 +218,12 @@
       </div>
     </div>
 
-    <!-- Kontainer Morse Besar -->
     <div class="relative z-10 flex-1 px-10 pb-10 flex flex-col items-center justify-center">
       <div class="w-full max-w-6xl flex-1 flex flex-col">
-        <!-- Kontainer morse -->
         <div id="morseBigContainer"
              class="morse-container flex-1 rounded-[3rem] border-4 border-slate-800 flex items-center justify-center transition-all duration-75 relative overflow-hidden">
-          <!-- Overlay cahaya -->
           <div id="morseGlow" class="absolute inset-0 opacity-0 transition-opacity duration-75"></div>
 
-          <!-- Content -->
           <div class="relative z-10 flex flex-col items-center justify-center text-center">
             <div id="morseStatusIcon" class="text-8xl text-slate-700 mb-6 transition-all duration-100">
               <i class="fas fa-volume-xmark"></i>
@@ -257,7 +234,6 @@
           </div>
         </div>
 
-        <!-- Progress bar soal -->
         <div class="mt-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs text-slate-400 uppercase tracking-widest">Progress Pertandingan</span>
@@ -322,7 +298,6 @@
     </div>
   </section>
 
-  <!-- DEBUG BADGE -->
   <div id="dbgBadge"
        class="fixed bottom-2 left-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-50 pointer-events-none">
     <span id="dbgState">boot</span> · <span id="dbgSoal">-</span> · <span id="dbgRT">--</span> · <span id="dbgAudio">-</span>
@@ -340,12 +315,9 @@ const TAG = '[MORSE-LAYOUT]';
 const GAME_NAME = 'Morse Match';
 const QUESTION_ID = '00000000-0000-0000-0000-000000000002';
 
-// Audio files untuk bell & beep (beep tetap pakai file, bell pakai Web Audio)
+// ⭐ SFX files
 const SFX_BEEP = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/beep.mp3`;
-
-// Bell pakai Web Audio supaya bisa dibatalkan saat ganti soal
-const BELL_FREQ_HZ = 1200;
-const BELL_DURATION_MS = 1500;
+const SFX_BELL = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/bell.mp3`;
 
 // ═══════════════════════════════════════════════════════════
 // LOGGER
@@ -369,28 +341,25 @@ const STATE = {
   sessionId: null,
 
   hafalDurationSec: 900,
-  soalDurationSec: 60,
+  soalDurationSec: 60,   // ⭐ 60 detik per soal
   totalSoal: 30,
   currentSoalIndex: 0,
   currentSoalStartedAt: null,
   startedAt: null,
 
-  soalList: [],        // 30 soal
-  soalLoaded: false,   // flag load selesai
-  library: [],         // pola morse per simbol
+  soalList: [],
+  soalLoaded: false,
+  library: [],
   audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
 
-  // Playback state
   isPlayingSequence: false,
-  sequenceAbort: false,
-  currentPlaybackToken: 0,   // token unik per playback; ganti = abort
-  activeOscillators: [],     // daftar oscillator yang sedang bunyi
+  currentPlaybackToken: 0,
+  activeOscillators: [],
   lastProcessedSoalIdx: 0,
+  _beepedForSoal: {},   // ⭐ track beep per soal
 
-  // Loop & tick
   hafalTick: null,
   soalTick: null,
-  playLoopTimer: null,
 
   realtimeConnected: false
 };
@@ -401,7 +370,6 @@ const STATE = {
 const UI = {
   el: id => document.getElementById(id),
   txt(id, v) { const e=UI.el(id); if(e) e.textContent = v; },
-  html(id, v) { const e=UI.el(id); if(e) e.innerHTML = v; },
   dbg(state, soal, rt, audio) {
     UI.txt('dbgState', state);
     if (soal !== undefined) UI.txt('dbgSoal', soal || '-');
@@ -411,7 +379,7 @@ const UI = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// AUDIO ENGINE (Web Audio API)
+// AUDIO
 // ═══════════════════════════════════════════════════════════
 function unlockAudio() {
   try {
@@ -430,11 +398,7 @@ function unlockAudio() {
   }
 }
 
-/**
- * Mainkan satu tone. Bisa dibatalkan via STATE.currentPlaybackToken.
- * @param {number} durationMs
- * @param {number} token — token playback saat ini
- */
+// Play tone via Web Audio (untuk pola morse)
 function playTone(durationMs, token) {
   return new Promise((resolve) => {
     if (!STATE.audioCtx) { resolve(); return; }
@@ -463,7 +427,6 @@ function playTone(durationMs, token) {
     osc.start(now);
     osc.stop(now + durSec + 0.02);
 
-    // Simpan oscillator supaya bisa di-stop paksa saat abort
     const oscEntry = { osc, gain, stopped: false };
     STATE.activeOscillators.push(oscEntry);
 
@@ -477,13 +440,8 @@ function playTone(durationMs, token) {
       if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
     };
 
-    // Auto-cleanup setelah durasi
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, durationMs);
+    const timeoutId = setTimeout(() => { cleanup(); resolve(); }, durationMs);
 
-    // Cek abort di tengah jalan (interval 30ms)
     const abortCheck = setInterval(() => {
       if (token !== STATE.currentPlaybackToken) {
         clearInterval(abortCheck);
@@ -493,118 +451,14 @@ function playTone(durationMs, token) {
       }
     }, 30);
 
-    // Clear abort check setelah tone selesai normal
     setTimeout(() => clearInterval(abortCheck), durationMs + 50);
   });
 }
 
-  /**
- * Bell: tone khusus, abortable.
- */
-function playBellTone(token) {
-  return new Promise((resolve) => {
-    if (!STATE.audioCtx) { resolve(); return; }
-    if (token !== STATE.currentPlaybackToken) { resolve(); return; }
-
-    const ctx = STATE.audioCtx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'triangle';      // triangle = lebih "bell"-ish
-    osc.frequency.value = BELL_FREQ_HZ;
-    gain.gain.value = 0.4;
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    const now = ctx.currentTime;
-    const durSec = BELL_DURATION_MS / 1000;
-
-    // Envelope bell: attack cepat, decay panjang
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.4, now + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + durSec);
-
-    osc.start(now);
-    osc.stop(now + durSec + 0.02);
-
-    const oscEntry = { osc, gain, stopped: false };
-    STATE.activeOscillators.push(oscEntry);
-
-    const cleanup = () => {
-      if (oscEntry.stopped) return;
-      oscEntry.stopped = true;
-      try { osc.stop(); } catch (e) {}
-      try { osc.disconnect(); } catch (e) {}
-      try { gain.disconnect(); } catch (e) {}
-      const idx = STATE.activeOscillators.indexOf(oscEntry);
-      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
-    };
-
-    const timeoutId = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, BELL_DURATION_MS);
-
-    const abortCheck = setInterval(() => {
-      if (token !== STATE.currentPlaybackToken) {
-        clearInterval(abortCheck);
-        clearTimeout(timeoutId);
-        cleanup();
-        resolve();
-      }
-    }, 30);
-
-    setTimeout(() => clearInterval(abortCheck), BELL_DURATION_MS + 50);
-  });
-}
-
-/**
- * Stop paksa semua oscillator yang sedang bunyi.
- * Dipanggil saat abort.
- */
-function killAllOscillators() {
-  STATE.activeOscillators.forEach(entry => {
-    try { entry.osc.stop(); } catch (e) {}
-    try { entry.osc.disconnect(); } catch (e) {}
-    try { entry.gain.disconnect(); } catch (e) {}
-  });
-  STATE.activeOscillators = [];
-  LOG.warn('🔇 Semua oscillator di-stop paksa');
-}
-
-/**
- * Sleep yang bisa dibatalkan. Cek token setiap 30ms.
- */
-function sleep(ms, token = null) {
-  return new Promise(resolve => {
-    if (token === null) {
-      // Sleep biasa (tidak bisa dibatalkan)
-      setTimeout(resolve, ms);
-      return;
-    }
-
-    const start = Date.now();
-    const check = setInterval(() => {
-      if (token !== STATE.currentPlaybackToken) {
-        clearInterval(check);
-        resolve();
-        return;
-      }
-      if (Date.now() - start >= ms) {
-        clearInterval(check);
-        resolve();
-      }
-    }, 30);
-  });
-}
-
-/**
- * Mainkan suara SFX (bell / beep) pakai file audio
- */
+// ⭐ SFX via file audio (beep.mp3 & bell.mp3) — abortable
 let currentSfxAudio = null;
 
-function playSfx(url) {
+function playSfxFile(url, token = null) {
   return new Promise(resolve => {
     // Stop SFX sebelumnya kalau masih jalan
     if (currentSfxAudio) {
@@ -627,8 +481,17 @@ function playSfx(url) {
     a.onended = done;
     a.onerror = done;
 
-    // Auto-resolve max 3 detik (kalau file gagal load)
-    setTimeout(done, 3000);
+    // Abort kalau token berubah
+    if (token !== null) {
+      const abortCheck = setInterval(() => {
+        if (token !== STATE.currentPlaybackToken) {
+          clearInterval(abortCheck);
+          try { a.pause(); } catch (e) {}
+          done();
+        }
+      }, 30);
+      setTimeout(() => clearInterval(abortCheck), 5000);
+    }
 
     a.play().catch(() => done());
   });
@@ -641,26 +504,50 @@ function killSfx() {
   }
 }
 
+function killAllOscillators() {
+  STATE.activeOscillators.forEach(entry => {
+    try { entry.osc.stop(); } catch (e) {}
+    try { entry.osc.disconnect(); } catch (e) {}
+    try { entry.gain.disconnect(); } catch (e) {}
+  });
+  STATE.activeOscillators = [];
+}
+
+function sleep(ms, token = null) {
+  return new Promise(resolve => {
+    if (token === null) { setTimeout(resolve, ms); return; }
+    const start = Date.now();
+    const check = setInterval(() => {
+      if (token !== STATE.currentPlaybackToken) {
+        clearInterval(check);
+        resolve();
+        return;
+      }
+      if (Date.now() - start >= ms) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 30);
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
-// VISUAL MORSE (kontainer besar)
+// VISUAL MORSE
 // ═══════════════════════════════════════════════════════════
 function setMorseVisual(lit, isLong = false) {
   const container = UI.el('morseBigContainer');
   const icon = UI.el('morseStatusIcon');
   const text = UI.el('morseStatusText');
-
   if (!container) return;
 
   if (lit) {
     container.classList.add('lit');
-    container.classList.remove('lit-soft');
     icon.className = 'text-8xl text-white mb-6 transition-all duration-50';
     icon.innerHTML = '<i class="fas fa-volume-high"></i>';
     text.className = 'text-4xl font-math font-black text-white tracking-[0.3em] uppercase transition-all duration-50';
     text.textContent = isLong ? 'GARIS' : 'TITIK';
   } else {
     container.classList.remove('lit');
-    container.classList.remove('lit-soft');
     icon.className = 'text-8xl text-slate-700 mb-6 transition-all duration-100';
     icon.innerHTML = '<i class="fas fa-volume-xmark"></i>';
     text.className = 'text-4xl font-math font-black text-slate-700 tracking-[0.3em] uppercase transition-all duration-100';
@@ -668,15 +555,12 @@ function setMorseVisual(lit, isLong = false) {
   }
 }
 
-function setMorseIdle() {
-  setMorseVisual(false);
-}
+function setMorseIdle() { setMorseVisual(false); }
 
 // ═══════════════════════════════════════════════════════════
-// PLAY SATU SIMBOL (pola morse)
+// PLAY SATU SIMBOL
 // ═══════════════════════════════════════════════════════════
 async function playSymbol(symbol, token) {
-  // Guard: kalau token sudah tidak valid, langsung keluar
   if (token !== STATE.currentPlaybackToken) return;
 
   const libItem = STATE.library.find(l => l.symbol === symbol);
@@ -690,12 +574,8 @@ async function playSymbol(symbol, token) {
   const dashMs = STATE.audioSettings.dash_duration_ms;
   const gapIntra = STATE.audioSettings.gap_intra_ms;
 
-  LOG.info(`🔊 Symbol ${symbol}: ${pattern}`);
-
   for (let i = 0; i < pattern.length; i++) {
-    // Cek token setiap iterasi
     if (token !== STATE.currentPlaybackToken) {
-      LOG.info(`⏹ Abort di tengah simbol ${symbol}`);
       setMorseVisual(false);
       return;
     }
@@ -707,58 +587,49 @@ async function playSymbol(symbol, token) {
     await playTone(dur, token);
     setMorseVisual(false);
 
-    if (i < pattern.length - 1) {
-      await sleep(gapIntra, token);
-    }
+    if (i < pattern.length - 1) await sleep(gapIntra, token);
   }
 }
 
 // ═══════════════════════════════════════════════════════════
-// PLAY FULL SOAL (n1 op1 n2 op2 n3)
+// PLAY SATU SOAL (n1 op1 n2 op2 n3 + bell.mp3)
 // ═══════════════════════════════════════════════════════════
 async function playSoalSequence(soal, token) {
-  // Guard awal
   if (token !== STATE.currentPlaybackToken) return;
 
   STATE.isPlayingSequence = true;
   const gapInter = STATE.audioSettings.gap_inter_ms;
-
   const checkToken = () => token === STATE.currentPlaybackToken;
 
   try {
-    // 1. Angka 1
     if (!checkToken()) return;
     await playSymbol(String(soal.n1), token);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 2. Operator 1
     if (!checkToken()) return;
     await playSymbol(soal.op1Symbol, token);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 3. Angka 2
     if (!checkToken()) return;
     await playSymbol(String(soal.n2), token);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 4. Operator 2
     if (!checkToken()) return;
     await playSymbol(soal.op2Symbol, token);
     if (!checkToken()) return;
     await sleep(gapInter, token);
 
-    // 5. Angka 3
     if (!checkToken()) return;
     await playSymbol(String(soal.n3), token);
     if (!checkToken()) return;
 
-    // 6. BELL di AKHIR persamaan — tanda "persamaan selesai"
-    LOG.info('🔔 Bell akhir persamaan');
+    // ⭐ Bell di akhir persamaan — pakai bell.mp3
+    LOG.info('🔔 Bell akhir persamaan (bell.mp3)');
     setMorseVisual(true, true);
-    await playBellTone(token);
+    await playSfxFile(SFX_BELL, token);
     setMorseVisual(false);
 
   } catch (e) {
@@ -770,60 +641,71 @@ async function playSoalSequence(soal, token) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SOAL LOOP — mainkan soal berulang selama 30 detik
+// SOAL LOOP — mainkan soal berulang
+// ⭐ Pergantian soal baru → beep.mp3
+// ⭐ Pengulangan soal yang sama → bell.mp3
 // ═══════════════════════════════════════════════════════════
 async function runSoalLoop(soalIdx) {
-  // Guard: pastikan soal sudah ke-load
   if (!STATE.soalLoaded || STATE.soalList.length === 0) {
-    LOG.warn(`⏳ Soal belum ke-load, skip dulu (idx=${soalIdx}). Mencoba reload...`);
+    LOG.warn(`⏳ Soal belum load, coba reload...`);
     await loadSoal();
     if (!STATE.soalLoaded || STATE.soalList.length === 0) {
-      LOG.err('❌ Soal tetap kosong setelah reload. Cek tabel system_morse_match_questions.');
+      LOG.err('❌ Soal kosong setelah reload');
       return;
     }
   }
 
   const soal = STATE.soalList[soalIdx - 1];
   if (!soal) {
-    LOG.warn(`Soal index ${soalIdx} tidak ditemukan (total: ${STATE.soalList.length})`);
+    LOG.warn(`Soal index ${soalIdx} tidak ada (total: ${STATE.soalList.length})`);
     return;
   }
 
-  // 🔑 TOKEN BARU: setiap kali runSoalLoop dipanggil, token baru
-  // Semua playback lama otomatis abort karena token-nya beda
+  // Token baru → abort playback lama
   STATE.currentPlaybackToken++;
   const myToken = STATE.currentPlaybackToken;
 
   LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer} (token=${myToken})`);
-  LOG.info(`   Urutan: ${soal.n1} → ${soal.op1Symbol} → ${soal.n2} → ${soal.op2Symbol} → ${soal.n3} → 🔔`);
 
-  // Kill semua oscillator & SFX yang masih nyangkut dari soal sebelumnya
   killAllOscillators();
   killSfx();
 
-  // Update UI
+  // Update UI soal
   UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
   const pct = Math.round((soalIdx / STATE.totalSoal) * 100);
   UI.txt('gameProgressPct', `${pct}%`);
   const bar = UI.el('gameProgressBar');
   if (bar) bar.style.width = `${pct}%`;
 
-  // Mainkan soal berulang sampai token berubah atau waktu habis
+  // ⭐ Beep di awal (pergantian soal baru)
+  LOG.info('🔔 Pergantian soal → beep.mp3');
+  await playSfxFile(SFX_BEEP, myToken);
+  await sleep(300, myToken);   // jeda kecil setelah beep
+
+  // Loop playback soal
+  let isFirstPlay = true;
   while (myToken === STATE.currentPlaybackToken) {
+    // ⭐ Beep hanya di play pertama (sudah di atas), sisanya bell
+    if (!isFirstPlay) {
+      LOG.info('🔔 Pengulangan soal → bell.mp3');
+      await playSfxFile(SFX_BELL, myToken);
+      await sleep(300, myToken);
+    }
+    isFirstPlay = false;
+
     await playSoalSequence(soal, myToken);
     if (myToken !== STATE.currentPlaybackToken) break;
 
-    // Jeda antar pengulangan penuh (lebih panjang, karena bell baru selesai)
+    // Jeda antar pengulangan penuh
     const gapAfterBell = (STATE.audioSettings.gap_inter_ms || 300) * 2;
     await sleep(gapAfterBell, myToken);
   }
 
-
-  LOG.info(`⏹ Soal #${soalIdx} loop berhenti (token=${myToken}, current=${STATE.currentPlaybackToken})`);
+  LOG.info(`⏹ Soal #${soalIdx} loop berhenti`);
 }
 
 // ═══════════════════════════════════════════════════════════
-// SYNC DENGAN DATABASE
+// LOADERS
 // ═══════════════════════════════════════════════════════════
 async function loadState() {
   try {
@@ -839,7 +721,7 @@ async function loadState() {
     STATE.currentMode = data.mode || 'idle';
     STATE.sessionId = data.session_id;
     STATE.hafalDurationSec = data.hafal_duration_sec || 900;
-    STATE.soalDurationSec = data.soal_duration_sec || 30;
+    STATE.soalDurationSec = data.soal_duration_sec || 60;
     STATE.totalSoal = data.total_soal || 30;
     STATE.currentSoalIndex = data.current_soal_index || 0;
     STATE.currentSoalStartedAt = data.current_soal_started_at;
@@ -885,7 +767,6 @@ async function loadSoal() {
       try {
         const parsed = JSON.parse(data.expression_text);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Konversi op1Idx / op2Idx ke simbol
           STATE.soalList = parsed.map(q => ({
             ...q,
             op1Symbol: ['+','-','×','÷'][q.op1Idx] || '+',
@@ -893,17 +774,14 @@ async function loadSoal() {
           }));
           STATE.soalLoaded = true;
           LOG.ok(`✅ Loaded ${STATE.soalList.length} soal dari DB`);
-          LOG.info(`Sample soal #1:`, STATE.soalList[0]);
         } else {
-          LOG.warn(`Soal array kosong / bukan array. Parsed:`, parsed);
           STATE.soalLoaded = false;
         }
       } catch (e) {
-        LOG.warn('Parse soal JSON gagal. Raw data:', data.expression_text);
+        LOG.warn('Parse soal JSON gagal');
         STATE.soalLoaded = false;
       }
     } else {
-      LOG.warn('Tidak ada soal di DB');
       STATE.soalLoaded = false;
     }
   } catch (e) { LOG.err('loadSoal exception', e); }
@@ -941,16 +819,18 @@ function switchView(viewName, revealedRank = 0) {
   if (viewName === 'hafal') startHafalTick();
   else stopHafalTick();
 
+  // ⭐ GAME view — SELALU restart soal tick (jangan cek lastProcessedSoalIdx)
   if (viewName === 'game') {
-    // Jika baru masuk game dan soal belum diproses
+    startSoalTick();
+
+    // Kalau soal index berubah dari yang terakhir diproses, restart loop audio
     if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
       STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
-      startSoalTick();
+      // runSoalLoop dipanggil dari startSoalTick
     }
   } else {
     stopSoalTick();
-    // Abort paksa semua playback (naikkan token supaya loop lama berhenti)
-    STATE.currentPlaybackToken++;  // INI boleh naikkan, karena tidak akan langsung di-follow runSoalLoop
+    STATE.currentPlaybackToken++;
     killAllOscillators();
     killSfx();
     setMorseIdle();
@@ -990,33 +870,44 @@ function stopHafalTick() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SOAL TICK — cek timer soal, kalau ganti soal → restart loop
+// ⭐ SOAL TICK — Timer hitung mundur + auto start audio loop
 // ═══════════════════════════════════════════════════════════
 function startSoalTick() {
   if (STATE.soalTick) clearInterval(STATE.soalTick);
 
-  // Mulai loop soal yang sedang aktif (setelah delay kecil)
+  // ⭐ Set initial display
+  if (STATE.currentSoalStartedAt) {
+    const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
+    const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
+    UI.txt('gameTimerDisplay', String(remaining));
+  }
+
+  // ⭐ Auto-start loop audio untuk soal aktif
   setTimeout(() => {
-    if (STATE.currentSoalIndex > 0) {
+    if (STATE.currentSoalIndex > 0 && STATE.currentView === 'game') {
       runSoalLoop(STATE.currentSoalIndex);
     }
   }, 100);
 
   const tick = () => {
-    if (STATE.currentMode !== 'game') return;
+    if (STATE.currentMode !== 'game' || STATE.currentView !== 'game') return;
 
-    // Hitung sisa waktu
+    // ⭐ Hitung mundur timer
     if (STATE.currentSoalStartedAt) {
       const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
       const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
       UI.txt('gameTimerDisplay', String(remaining));
 
-      // Beep di 0 detik
-      if (remaining === 0 && !STATE._beepedForSoal?.[STATE.currentSoalIndex]) {
-        STATE._beepedForSoal = STATE._beepedForSoal || {};
-        STATE._beepedForSoal[STATE.currentSoalIndex] = true;
-        playSfx(SFX_BEEP);
-        LOG.info(`🔔 Beep soal #${STATE.currentSoalIndex} selesai`);
+      // Update warna timer
+      const timerEl = UI.el('gameTimerDisplay');
+      if (timerEl) {
+        if (remaining <= 5) {
+          timerEl.className = 'text-4xl font-math font-black text-rose-500 animate-pulse';
+        } else if (remaining <= 15) {
+          timerEl.className = 'text-4xl font-math font-black text-rose-400';
+        } else {
+          timerEl.className = 'text-4xl font-math font-black text-rose-400';
+        }
       }
     }
   };
@@ -1029,31 +920,30 @@ function stopSoalTick() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// HANDLE PERGANTIAN SOAL (dari polling state)
+// HANDLE PERGANTIAN SOAL
 // ═══════════════════════════════════════════════════════════
 async function handleSoalChange() {
   if (STATE.currentMode !== 'game') return;
   if (STATE.currentSoalIndex === 0) return;
 
   if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
-    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex} (soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length})`);
+    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex}`);
     STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
 
-        // Abort paksa semua audio (TANPA naikkan token — runSoalLoop yang akan naikkan)
+    // Abort paksa audio
     killAllOscillators();
     killSfx();
     setMorseIdle();
 
-    // Jeda kecil supaya audio benar-benar stop
     await sleep(150);
 
-    // Mulai loop baru (runSoalLoop akan naikkan token)
+    // Restart loop audio (runSoalLoop akan naikkan token + beep.mp3 di awal)
     runSoalLoop(STATE.currentSoalIndex);
   }
 }
 
 // ═══════════════════════════════════════════════════════════
-// SYNC LAYOUT VIEW
+// SYNC LAYOUT
 // ═══════════════════════════════════════════════════════════
 async function syncLayout() {
   try {
@@ -1067,16 +957,12 @@ async function syncLayout() {
     const view = data.current_view || 'idle';
     const rank = data.revealed_rank || 0;
 
-    // ⚠ PENTING: mode game/hafal punya prioritas lebih tinggi
-    // Kecuali admin eksplisit switch ke leaderboard / all_players
     if (view === 'leaderboard' || view === 'all_players') {
       switchView(view, rank);
       return;
     }
 
-    // Kalau mode game/hafal, JANGAN override view dari layout
     if (STATE.currentMode === 'game' || STATE.currentMode === 'hafal') {
-      // Skip — biarkan updateViewFromMode yang urus
       return;
     }
 
@@ -1085,7 +971,7 @@ async function syncLayout() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SCORES / LEADERBOARD / ALL PLAYERS
+// SCORES / LEADERBOARD
 // ═══════════════════════════════════════════════════════════
 async function loadScores() {
   const { data, error } = await supabaseClient
@@ -1226,7 +1112,6 @@ function setupRealtime() {
     UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
   });
 
-  // Polling fallback tiap 2 detik
   setInterval(async () => {
     await loadState();
     await syncLayout();
@@ -1242,22 +1127,18 @@ async function syncStateAndSoal() {
 }
 
 function updateViewFromMode() {
-  // Prioritas: mode game/hafal WAJIB tampilkan view yang sesuai
-  // Kecuali admin override eksplisit ke leaderboard/all_players (via switchLayout)
   if (STATE.currentView === 'leaderboard' || STATE.currentView === 'all_players') {
-    // Cek: kalau admin set layout view selain leaderboard/all_players, override
-    // Tapi kalau admin memang set leaderboard/all_players, biarkan
     return;
   }
 
   if (STATE.currentMode === 'game' && STATE.currentView !== 'game') {
-    LOG.info(`updateViewFromMode: mode=game, view=${STATE.currentView} → switch ke game`);
+    LOG.info(`mode=game → switch ke game view`);
     switchView('game');
   } else if (STATE.currentMode === 'hafal' && STATE.currentView !== 'hafal') {
-    LOG.info(`updateViewFromMode: mode=hafal, view=${STATE.currentView} → switch ke hafal`);
+    LOG.info(`mode=hafal → switch ke hafal view`);
     switchView('hafal');
   } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle') {
-    LOG.info(`updateViewFromMode: mode=idle, view=${STATE.currentView} → switch ke idle`);
+    LOG.info(`mode=idle → switch ke idle view`);
     switchView('idle');
   }
 }
@@ -1272,7 +1153,7 @@ function updateViewFromMode() {
   await loadState();
   await loadLibrary();
   await loadAudioSettings();
-  await loadSoal();  // load soal dulu
+  await loadSoal();
 
   LOG.info(`Init selesai. soalLoaded=${STATE.soalLoaded}, total soal=${STATE.soalList.length}`);
 
@@ -1284,7 +1165,6 @@ function updateViewFromMode() {
   UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
 })();
 
-// Expose
 window.unlockAudio = unlockAudio;
 window.switchView = switchView;
 </script>
