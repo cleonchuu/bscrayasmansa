@@ -809,6 +809,7 @@
 
   const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
   const SCHOOL_LOGO_BASE = `${STORAGE_BASE}/SCHOOL_LOGO`;
+  const AVATAR_BASE = `${STORAGE_BASE}/avatar`; // ⚠️ sesuaikan kalau nama bucket beda
 
   const SCHOOL_LOGO_MAP = {
     'MTS DARUSSALAM':             'MTSDARUSSALAM.png',
@@ -821,6 +822,124 @@
     'SMPN 2 Bunguran Timur Laut': 'SMPN2BUNGURANTIMURLAUT.png',
     'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
   };
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 HARDCODED FINALISTS — EDIT DI SINI
+  // ═══════════════════════════════════════════════════════════
+  // Kolom avatar_url: isi URL lengkap kalau mau pakai foto asli,
+  // atau biarkan '' untuk fallback ke Dicebear.
+  const HARDCODED_FINALISTS = [
+    {
+      unique_id: 'S1BT-004',
+      full_name: 'ADILLAH NAJIHIN',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '', // ← isi URL foto kalau ada
+      total_point: 0,  // ← isi poin manual (opsional, biar tampil di kartu)
+      motto: 'Coba aja dulu',
+      prestasi: [
+        'Juara 1 umum kelas 7 semester 1',
+        'Juara 1 kelas 7 semester 1 & 2',
+        'Juara 2 kelas 8 semester 1 & 2',
+        "Juara 1 di Ance's English & Mathematics Course 2 kali"
+      ]
+    },
+    {
+      unique_id: 'S1BT-007',
+      full_name: 'AYUNI AZZAHRA',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Selalu mencoba tanpa adanya kata menyerah',
+      prestasi: ['Juara Kelas']
+    },
+    {
+      unique_id: 'SNJ-005',
+      full_name: 'AZRIL HERMAWAN',
+      school_name: 'SMP Nurul Jannah',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Berani bermimpi, tekun berusaha, siap meraih cita-cita.',
+      prestasi: [
+        'Juara 1 kelas',
+        'Juara 3 sepak bola SPANSA CUP 2025'
+      ]
+    },
+    {
+      unique_id: 'S1BT-002',
+      full_name: 'CATHLYN LADY PHANG',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '',
+      total_point: 0,
+      motto: '"Whatever you do, work at it with all your heart, as working for the Lord." - Kolossians 3:23',
+      prestasi: ['Juara 1 di kelas dan Juara 1 di tingkat angkatan']
+    },
+    {
+      unique_id: 'S1BT-013',
+      full_name: 'DUTA ALAMSYAH',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Jangan pernah menyerah dan teruslah berdoa untuk mencapai apa yang kamu impikan. Tuhan pasti akan membantu, karena tanpa doa dan usaha, kamu tidak akan meraihnya.',
+      prestasi: [
+        'Juara 1 Kelas 7.2 semester 1',
+        'Juara 1 Kelas 7.2 semester 2'
+      ]
+    },
+    {
+      unique_id: 'S1BT-003',
+      full_name: 'Einstein Gutenberg',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Kurangi keluhan, tingkatkan kemampuan',
+      prestasi: [
+        'Lolos OSN Matematika tingkat provinsi 2 kali',
+        'Juara Kelas 2 kali'
+      ]
+    },
+    {
+      unique_id: 'MDX-004',
+      full_name: 'FAIZAH SYAFINA',
+      school_name: 'MTS Darussalam',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Sukses dunia dan akhirat',
+      prestasi: ['Juara kelas']
+    },
+    {
+      unique_id: 'SNJ-004',
+      full_name: 'M. NAFIZ AL KHAWRIZMI',
+      school_name: 'SMP Nurul Jannah',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Jadikan kegagalan sebagai pelajaran, bukan alasan untuk berhenti.',
+      prestasi: [] // kosong → tampil "Belum ada data prestasi"
+    },
+    {
+      unique_id: 'SNX-002',
+      full_name: 'NAUFAL AFIQ PRANOTO',
+      school_name: 'SMPIT NIQ',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Prove them wrong',
+      prestasi: [
+        'Juara 2 kelas 7',
+        'Juara 1 kelas 8',
+        'Juara 1 Lomba Roket Air OSMANSANA 2025/2026',
+        'Juara Favorite COC Raya Smansa 2025/2026',
+        'OSN Matematika tingkat Prov. DKI Jakarta, Kota Jakarta Utara'
+      ]
+    },
+    {
+      unique_id: 'S1BT-008',
+      full_name: 'VICKY CALISTAA',
+      school_name: 'SMPN 1 Bunguran Timur',
+      avatar_url: '',
+      total_point: 0,
+      motto: 'Berani mencoba dan percaya pada proses',
+      prestasi: ['Ranking 5']
+    }
+  ];
 
   const ZOOM_DURATION = 3000;
   const FINALIST_DURATION = 5000;
@@ -850,8 +969,7 @@
     lastSig: '',
     realtimeConnected: false,
 
-    // ⭐ Finalist reveal state
-    finalistRevealMode: 'auto',       // auto | single | all
+    finalistRevealMode: 'auto',
     finalistSelectedUid: null,
 
     reelData: [],
@@ -1134,7 +1252,7 @@
     }
   }
 
-  // FETCH
+  // FETCH (masih dipakai untuk per_school & all_participants)
   async function fetchParticipantsBySchool(school) {
     const { data, error } = await supabaseClient.rpc('get_participants_by_school', { p_school: school });
     if (error) { LOG.err('fetchParticipantsBySchool', error); return []; }
@@ -1145,90 +1263,32 @@
     if (error) { LOG.err('fetchAllParticipants', error); return []; }
     return data || [];
   }
-  async function fetchFinalists() {
-    const { data, error } = await supabaseClient
-      .from('users')
-      .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
-      .eq('role', 'peserta')
-      .eq('is_eliminated', false)
-      .order('school_name', { ascending: true })
-      .order('full_name', { ascending: true });
 
-    if (error) { LOG.err('fetchFinalists', error); return []; }
-
-    return (data || []).map((u, idx) => ({
-      unique_id: u.unique_id,
-      full_name: u.full_name,
-      school_name: u.school_name,
-      avatar_url: u.avatar_url,
-      total_point: u.total_points || 0,
-      is_eliminated: u.is_eliminated,
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FINALISTS — HARDCODED (tidak pakai Supabase)
+  // ═══════════════════════════════════════════════════════════
+  function getHardcodedFinalists() {
+    // Return salinan + tambah rank_final + bangun bio map
+    const list = HARDCODED_FINALISTS.map((f, idx) => ({
+      unique_id: f.unique_id,
+      full_name: f.full_name,
+      school_name: f.school_name,
+      avatar_url: f.avatar_url || '',
+      total_point: Number(f.total_point || 0),
+      is_eliminated: false,
       rank_final: idx + 1
     }));
-  }
 
-  /**
-   * Fetch bio (motto + prestasi) untuk list uid.
-   * Support prestasi sebagai:
-   *  - text[] (array of string)
-   *  - text (JSON string "[...]")
-   *  - text (newline-separated)
-   */
-  async function fetchFinalistBio(uids) {
-    if (!uids || uids.length === 0) return {};
-    try {
-      const { data, error } = await supabaseClient
-        .from('morse_finalist_bio')
-        .select('unique_id, motto, prestasi')
-        .in('unique_id', uids);
+    // Bangun bio map dari data yang sama
+    const bioMap = {};
+    HARDCODED_FINALISTS.forEach(f => {
+      bioMap[f.unique_id] = {
+        motto: (f.motto || '').trim(),
+        prestasi: Array.isArray(f.prestasi) ? f.prestasi : []
+      };
+    });
 
-      if (error) {
-        LOG.warn('fetchFinalistBio error', error.message);
-        return {};
-      }
-
-      LOG.info(`fetchFinalistBio: ${data?.length || 0} rows untuk ${uids.length} uid`);
-
-      const map = {};
-      (data || []).forEach(row => {
-        let prestasiArr = [];
-
-        if (Array.isArray(row.prestasi)) {
-          // text[] — array of string
-          prestasiArr = row.prestasi
-            .map(x => (typeof x === 'string' ? x.trim() : String(x ?? '').trim()))
-            .filter(x => x.length > 0);
-        } else if (typeof row.prestasi === 'string' && row.prestasi.trim()) {
-          const s = row.prestasi.trim();
-          // Coba parse JSON kalau bentuknya array
-          if (s.startsWith('[') && s.endsWith(']')) {
-            try {
-              const parsed = JSON.parse(s);
-              if (Array.isArray(parsed)) {
-                prestasiArr = parsed
-                  .map(x => (typeof x === 'string' ? x.trim() : String(x ?? '').trim()))
-                  .filter(x => x.length > 0);
-              }
-            } catch (_) {
-              // Fallback ke newline split
-              prestasiArr = s.split('\n').map(x => x.trim()).filter(x => x.length > 0);
-            }
-          } else {
-            prestasiArr = s.split('\n').map(x => x.trim()).filter(x => x.length > 0);
-          }
-        }
-
-        map[row.unique_id] = {
-          motto: (row.motto || '').trim(),
-          prestasi: prestasiArr
-        };
-      });
-
-      return map;
-    } catch (e) {
-      LOG.err('fetchFinalistBio exception', e);
-      return {};
-    }
+    return { list, bioMap };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1565,17 +1625,20 @@
     SOLAR_STATE.innerOrbitals = [];
     SOLAR_STATE.outerPlanets = [];
 
-    const finalists = participants.filter(p => p.is_eliminated !== true);
-    finalists.sort((a, b) => {
-      const sc = (a.school_name || '').localeCompare(b.school_name || '');
-      if (sc !== 0) return sc;
-      return (a.full_name || '').localeCompare(b.full_name || '');
-    });
+    // ⭐ FINALIS: pakai HARDCODED, bukan dari Supabase
+    const finalistList = HARDCODED_FINALISTS.map((f, idx) => ({
+      unique_id: f.unique_id,
+      full_name: f.full_name,
+      school_name: f.school_name,
+      avatar_url: f.avatar_url || '',
+      total_point: Number(f.total_point || 0),
+      is_eliminated: false,
+      rank_final: idx + 1
+    }));
 
-    const finalistList = finalists;
-
-    const uids = finalistList.map(f => f.unique_id);
-    STATE.finalistBioMap = await fetchFinalistBio(uids);
+    // build bio map dari hardcoded juga
+    const { bioMap } = getHardcodedFinalists();
+    STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
 
     const innerRing = document.createElement('div');
     innerRing.className = 'orbit-ring';
@@ -1755,41 +1818,37 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS — dengan 3 mode reveal
+  // VIEW 4: FINALISTS — HARDCODED
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
     const mySession = STATE.finalistSessionId;
 
-    const finalists = await fetchFinalists();
-    if (mySession !== STATE.finalistSessionId) return;
+    // ⭐ Ambil dari HARDCODED
+    const { list, bioMap } = getHardcodedFinalists();
+    STATE.finalistData = list;
+    STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
 
-    STATE.finalistData = finalists;
+    LOG.ok(`Finalists (hardcoded): ${list.length} orang`);
+    LOG.info(`Bio map keys:`, Object.keys(bioMap));
 
     const headerCount = document.getElementById('finalistsHeaderCount');
-    if (headerCount) headerCount.textContent = finalists.length;
+    if (headerCount) headerCount.textContent = list.length;
 
-    if (finalists.length === 0) {
+    if (list.length === 0) {
       document.getElementById('finalistCardContainer').innerHTML =
         '<p class="text-slate-500 text-xl">Belum ada finalis.</p>';
       return;
     }
 
-    // Fetch bio untuk semua
-    const uids = finalists.map(f => f.unique_id);
-    STATE.finalistBioMap = await fetchFinalistBio(uids);
-
-    if (mySession !== STATE.finalistSessionId) return;
-
-    // ⭐ Baca mode dari STATE (sudah sync dari DB)
     const mode = STATE.finalistRevealMode || 'auto';
     const selectedUid = STATE.finalistSelectedUid || null;
 
     LOG.ok(`Finalist reveal mode: ${mode}`);
 
-    // ⭐ MODE: SINGLE — tampil 1 finalis spesifik
+    // ⭐ MODE: SINGLE
     if (mode === 'single' && selectedUid) {
-      const target = finalists.find(f => f.unique_id === selectedUid);
+      const target = list.find(f => f.unique_id === selectedUid);
       if (target) {
         renderFinalistCard(target);
         startConfettiLoop();
@@ -1803,15 +1862,14 @@
       return;
     }
 
-    // ⭐ MODE: ALL — grid semua finalis
+    // ⭐ MODE: ALL
     if (mode === 'all') {
-      renderAllFinalistsGrid(finalists);
+      renderAllFinalistsGrid(list);
       startConfettiLoop();
       burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 150);
       for (let k = 0; k < 20; k++) rainConfetti(3);
       playBell();
 
-      // Rain interval terus menerus
       STATE.finalistRainInterval = setInterval(() => {
         if (STATE.currentView !== 'finalists' || mySession !== STATE.finalistSessionId) {
           clearInterval(STATE.finalistRainInterval);
@@ -1823,8 +1881,8 @@
       return;
     }
 
-    // ⭐ MODE: AUTO (default) — rotate dari rank akhir ke #1
-    const ordered = [...finalists].reverse();
+    // ⭐ MODE: AUTO — rotate dari rank akhir ke #1
+    const ordered = [...list].reverse();
     startConfettiLoop();
 
     let i = 0;
@@ -1857,7 +1915,6 @@
     tick();
   }
 
-  // ⭐ Render grid semua finalis
   function renderAllFinalistsGrid(finalists) {
     const container = document.getElementById('finalistCardContainer');
     if (!container) return;
@@ -1893,7 +1950,6 @@
     `;
   }
 
-  // ⭐ Render kartu finalis (single / auto)
   function renderFinalistCard(p) {
     const container = document.getElementById('finalistCardContainer');
     if (!container) return;
@@ -1903,16 +1959,16 @@
     const isElim = p.is_eliminated === true;
     const bio = STATE.finalistBioMap[p.unique_id] || {};
 
+    LOG.info(`renderFinalistCard: ${p.full_name} | bio:`, bio);
+
     let badge = `FINALIS · #${rank}`;
     let badgeClass = 'bg-amber-500 text-slate-950';
     let borderColor = '#fbbf24';
-    let glowClass = '';
 
     if (isElim) {
       badge = '🚫 TERELIMINASI';
       badgeClass = 'bg-rose-600 text-white';
       borderColor = '#f43f5e';
-      glowClass = '';
     }
 
     const prestasiArr = Array.isArray(bio.prestasi) ? bio.prestasi : [];
@@ -1926,7 +1982,7 @@
       : `<span class="text-slate-500 italic">Belum ada motto</span>`;
 
     container.innerHTML = `
-      <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card ${glowClass}"
+      <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card"
            style="border-color: ${borderColor}">
         ${isElim ? '<div class="elim-stamp">ELIMINATED</div>' : ''}
 
@@ -1973,7 +2029,7 @@
     }
   }
 
-  // SYNC LAYOUT
+  // SYNC LAYOUT (masih dari Supabase — cuma buat kontrol view/mode)
   async function syncLayout() {
     try {
       const { data, error } = await supabaseClient
@@ -2013,54 +2069,29 @@
       } else if (view === 'all_participants') {
         switchView('all_participants');
       } else if (view === 'finalists') {
-        // ⭐ Kalau sudah di view finalists dan mode/selection berubah
         if (STATE.currentView === 'finalists') {
           const modeChanged = (prevMode !== revealMode) || (prevSelected !== selectedUid);
 
           if (modeChanged) {
             LOG.info(`🔄 Finalist reveal update: ${prevMode} → ${revealMode}`);
-
-            // Stop loop lama
             stopFinalistReel();
 
-            // ⭐ MODE SINGLE — pastikan data + bio ada sebelum render
+            // ⭐ SINGLE — sekarang tinggal render, semua data sudah hardcoded
             if (revealMode === 'single' && selectedUid) {
-              // 1) Pastikan finalistData sudah dimuat
-              if (!STATE.finalistData || STATE.finalistData.length === 0) {
-                LOG.info('Single mode: finalistData kosong → fetch finalists');
-                const finalists = await fetchFinalists();
-                STATE.finalistData = finalists;
-
-                const headerCount = document.getElementById('finalistsHeaderCount');
-                if (headerCount) headerCount.textContent = finalists.length;
-              }
-
               const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
-              if (!target) {
-                LOG.warn(`Finalis ${selectedUid} tidak ditemukan di finalistData`);
-                return;
-              }
-
-              // 2) Pastikan bio sudah dimuat untuk uid ini
-              if (!STATE.finalistBioMap || !STATE.finalistBioMap[selectedUid]) {
-                LOG.info(`Single mode: fetch bio untuk ${selectedUid}`);
-                const bioMap = await fetchFinalistBio([selectedUid]);
-                STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
-                LOG.ok(`Bio loaded:`, bioMap[selectedUid] || '(kosong)');
+              if (target) {
+                renderFinalistCard(target);
+                startConfettiLoop();
+                burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+                for (let k = 0; k < 12; k++) rainConfetti(2);
+                playBell();
               } else {
-                LOG.info(`Single mode: bio sudah di-cache untuk ${selectedUid}`);
+                LOG.warn(`Finalis ${selectedUid} tidak ada di hardcoded list`);
               }
-
-              // 3) Baru render
-              renderFinalistCard(target);
-              startConfettiLoop();
-              burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
-              for (let k = 0; k < 12; k++) rainConfetti(2);
-              playBell();
               return;
             }
 
-            // Untuk mode auto/all → restart sequence
+            // AUTO / ALL → restart
             startFinalists();
             return;
           }
@@ -2101,6 +2132,7 @@
   // INIT
   (async function init() {
     LOG.ok('══════════ OPENING CEREMONY BOOT ══════════');
+    LOG.ok(`Hardcoded finalists: ${HARDCODED_FINALISTS.length} orang`);
     initBGM();
     await syncLayout();
     setupRealtime();
