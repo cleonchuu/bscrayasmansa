@@ -102,7 +102,7 @@
     .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
 
     /* ═══════════════════════════════════════════════════════
-       ⭐ ELIMINATED STATE — abu-abu pudar
+       ELIMINATED STATE
        ═══════════════════════════════════════════════════════ */
     .eliminated {
       filter: grayscale(1) brightness(0.5);
@@ -276,6 +276,10 @@
       pointer-events: none;
       z-index: 3;
     }
+    .orbit-ring.outer-ring {
+      border-color: rgba(220, 38, 38, 0.15);
+      border-style: dotted;
+    }
 
     .planet {
       position: absolute;
@@ -295,6 +299,12 @@
       box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), inset 0 0 15px rgba(139, 92, 246, 0.4);
       z-index: 15;
       will-change: left, top;
+    }
+    .planet.eliminated-planet {
+      border-color: rgba(220, 38, 38, 0.5);
+      box-shadow: 0 0 20px rgba(220, 38, 38, 0.4), inset 0 0 15px rgba(220, 38, 38, 0.2);
+      opacity: 0.75;
+      filter: grayscale(0.3);
     }
     .planet img {
       width: 100%;
@@ -320,7 +330,6 @@
       transform: rotate(0deg) !important;
       transition: all 0.3s ease;
     }
-    /* ⭐ Moon eliminated — abu-abu pudar */
     .moon.eliminated {
       filter: grayscale(1) brightness(0.5);
       opacity: 0.35;
@@ -367,6 +376,33 @@
       margin-top: 1px;
     }
 
+    /* ⭐ Finalist orbit — kartu lebih besar dari moon */
+    .finalist-avatar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 120px;
+      height: 120px;
+      margin-left: -60px;
+      margin-top: -60px;
+      background: linear-gradient(145deg, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.98));
+      border: 3px solid rgba(251, 191, 36, 0.8);
+      border-radius: 1rem;
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.3);
+      z-index: 18;
+      will-change: left, top;
+      transform: rotate(0deg) !important;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .finalist-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     /* FINALISTS */
     @keyframes rankCardIn {
       0% { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(15px); }
@@ -374,7 +410,6 @@
       100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
     }
     .rank-card { animation: rankCardIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-    /* ⭐ Finalist eliminated */
     .rank-card.eliminated {
       filter: grayscale(1) brightness(0.5);
       opacity: 0.55;
@@ -403,6 +438,127 @@
     .glow-rank-1 { box-shadow: 0 0 60px rgba(251, 191, 36, 0.9), 0 0 120px rgba(251, 191, 36, 0.5); }
     .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
     .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
+
+    /* ⭐ Finalist card — layout baru dengan info */
+    .finalist-info-card {
+      background: linear-gradient(145deg, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.98));
+      border: 4px solid;
+      border-radius: 3rem;
+      padding: 2.5rem 3rem;
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+      max-width: 1100px;
+      width: 100%;
+      position: relative;
+    }
+    .finalist-info-card .fic-avatar {
+      width: 280px;
+      height: 280px;
+      border-radius: 2rem;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+    }
+    .finalist-info-card .fic-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 1.5rem;
+    }
+    .finalist-info-card .fic-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: 0;
+    }
+    .finalist-info-card .fic-badge {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      align-self: flex-start;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .finalist-info-card .fic-name {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      margin: 0;
+    }
+    .finalist-info-card .fic-school {
+      font-size: 1rem;
+      color: #c4b5fd;
+      font-weight: 600;
+    }
+    .finalist-info-card .fic-points {
+      display: inline-block;
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 900;
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      padding: 0.5rem 1.5rem;
+      border-radius: 1rem;
+      border: 2px solid rgba(251, 191, 36, 0.4);
+      align-self: flex-start;
+    }
+    .finalist-info-card .fic-info-block {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1.25rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .finalist-info-card .fic-info-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 800;
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .finalist-info-card .fic-motto {
+      font-size: 1rem;
+      font-style: italic;
+      color: #f1f5f9;
+      line-height: 1.5;
+      border-left: 3px solid #a78bfa;
+      padding-left: 1rem;
+    }
+    .finalist-info-card .fic-prestasi {
+      font-size: 0.95rem;
+      color: #f1f5f9;
+      line-height: 1.6;
+    }
+    .finalist-info-card .fic-prestasi ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .finalist-info-card .fic-prestasi li {
+      padding-left: 1.5rem;
+      position: relative;
+      margin-bottom: 0.25rem;
+    }
+    .finalist-info-card .fic-prestasi li::before {
+      content: '🏆';
+      position: absolute;
+      left: 0;
+      font-size: 0.85rem;
+    }
 
     #confettiCanvas {
       position: fixed; inset: 0;
@@ -586,7 +742,7 @@
       </div>
     </div>
 
-    <div id="finalistCardContainer" class="relative z-10 w-full h-full flex items-center justify-center">
+    <div id="finalistCardContainer" class="relative z-10 w-full h-full flex items-center justify-center px-6">
       <p class="text-slate-500 text-xl">Memuat finalis...</p>
     </div>
   </section>
@@ -615,13 +771,17 @@
   };
 
   const ZOOM_DURATION = 3000;
-  const FINALIST_DURATION = 3000;
+  const FINALIST_DURATION = 5000;
 
   const MOON_ORBIT_RADIUS = 60;
   const MOON_ORBIT_DURATION = 12;
 
-  const SINGLE_ORBIT_RADIUS = 230;
-  const SINGLE_ORBIT_DURATION = 60;
+  // ⭐ KONFIGURASI ORBIT FINAL
+  const FINAL_DAY = 3;                    // Hari ke-3 pakai layout final
+  const INNER_ORBIT_RADIUS = 260;         // Orbit dalam (10 finalis)
+  const INNER_ORBIT_DURATION = 45;        // Detik putaran
+  const OUTER_ORBIT_RADIUS = 520;         // Orbit luar (peserta tereliminasi, per sekolah)
+  const OUTER_ORBIT_DURATION = 90;
 
   const TAG = '[OPENING]';
   const LOG = {
@@ -650,11 +810,17 @@
     finalistTimer: null,
     finalistSessionId: 0,
 
-    allParticipants: []
+    allParticipants: [],
+    finalistBioMap: {}   // unique_id → { motto, prestasi }
   };
 
   const SOLAR_STATE = {
-    planets: [],
+    // mode 'normal' = planet semua sekolah + moon semua peserta
+    // mode 'final'  = 10 finalis orbit dalam + peserta elim orbit luar (per sekolah)
+    mode: 'normal',
+    innerOrbitals: [],   // finalis (mode final)
+    outerPlanets: [],    // planet per sekolah (mode final)
+    normalPlanets: [],   // planet semua sekolah (mode normal)
     startTime: 0,
     rafId: null,
     running: false
@@ -931,8 +1097,36 @@
     return data || [];
   }
 
+  // ⭐ FETCH BIO FINALIS
+  async function fetchFinalistBio(uids) {
+    if (!uids || uids.length === 0) return {};
+    try {
+      const { data, error } = await supabaseClient
+        .from('morse_finalist_bio')
+        .select('*')
+        .in('unique_id', uids);
+
+      if (error) {
+        LOG.warn('fetchFinalistBio', error.message);
+        return {};
+      }
+
+      const map = {};
+      (data || []).forEach(row => {
+        map[row.unique_id] = {
+          motto: row.motto || '',
+          prestasi: row.prestasi || ''
+        };
+      });
+      return map;
+    } catch (e) {
+      LOG.err('fetchFinalistBio exception', e);
+      return {};
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
-  // VIEW 2: PER SEKOLAH — ⭐ SKIP peserta tereliminasi
+  // VIEW 2: PER SEKOLAH — SKIP peserta tereliminasi
   // ═══════════════════════════════════════════════════════════
   async function startReel() {
     STATE.reelSessionId++;
@@ -953,7 +1147,7 @@
 
     if (mySession !== STATE.reelSessionId) return;
 
-    // ⭐ SKIP peserta yang tereliminasi
+    // SKIP peserta yang tereliminasi
     const beforeCount = participants.length;
     participants = participants.filter(p => p.is_eliminated !== true);
     const skipped = beforeCount - participants.length;
@@ -1139,14 +1333,24 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 3: SOLAR SYSTEM — ⭐ moon abu-abu kalau eliminated
+  // VIEW 3: SOLAR SYSTEM
+  //   - Normal (hari 1/2): planet semua sekolah + moon semua peserta
+  //   - Final (hari 3): 10 finalis orbit dalam + planet sekolah orbit luar
   // ═══════════════════════════════════════════════════════════
   async function startAllParticipants() {
     const participants = await fetchAllParticipants();
     STATE.allParticipants = participants;
 
     buildStarfield();
-    buildSolarSystem(participants);
+
+    // ⭐ Pilih mode berdasarkan current_day
+    if (STATE.currentDay === FINAL_DAY) {
+      LOG.ok('🌞 Mode FINAL — hari ke-3');
+      await buildSolarSystemFinal(participants);
+    } else {
+      LOG.ok('🌞 Mode NORMAL — hari 1/2');
+      buildSolarSystemNormal(participants);
+    }
 
     const totalAktif = participants.filter(p => p.is_eliminated !== true).length;
     const totalElim = participants.length - totalAktif;
@@ -1174,34 +1378,34 @@
     }
   }
 
-  function buildSolarSystem(participants) {
+  // ⭐ MODE NORMAL (hari 1/2)
+  function buildSolarSystemNormal(participants) {
     const container = document.getElementById('planetsContainer');
     if (!container) return;
     container.innerHTML = '';
 
     stopSolarLoop();
+    SOLAR_STATE.mode = 'normal';
+    SOLAR_STATE.normalPlanets = [];
 
     const schools = Object.keys(SCHOOL_LOGO_MAP);
 
     const groupBySchool = {};
     schools.forEach(s => groupBySchool[s] = []);
     participants.forEach(p => {
-      if (groupBySchool[p.school_name]) {
-        groupBySchool[p.school_name].push(p);
-      }
+      if (groupBySchool[p.school_name]) groupBySchool[p.school_name].push(p);
     });
 
     const totalSchools = schools.length;
 
+    // Orbit ring
     const orbitRing = document.createElement('div');
     orbitRing.className = 'orbit-ring';
-    orbitRing.style.width = (SINGLE_ORBIT_RADIUS * 2) + 'px';
-    orbitRing.style.height = (SINGLE_ORBIT_RADIUS * 2) + 'px';
-    orbitRing.style.marginLeft = (-SINGLE_ORBIT_RADIUS) + 'px';
-    orbitRing.style.marginTop = (-SINGLE_ORBIT_RADIUS) + 'px';
+    orbitRing.style.width = (INNER_ORBIT_RADIUS * 2) + 'px';
+    orbitRing.style.height = (INNER_ORBIT_RADIUS * 2) + 'px';
+    orbitRing.style.marginLeft = (-INNER_ORBIT_RADIUS) + 'px';
+    orbitRing.style.marginTop = (-INNER_ORBIT_RADIUS) + 'px';
     container.appendChild(orbitRing);
-
-    SOLAR_STATE.planets = [];
 
     const shuffledSchools = [...schools].sort(() => Math.random() - 0.5);
 
@@ -1222,7 +1426,6 @@
         const isElim = m.is_eliminated === true;
 
         const moon = document.createElement('div');
-        // ⭐ Tambah class 'eliminated' kalau tereliminasi
         moon.className = 'moon' + (isElim ? ' eliminated' : '');
 
         const avatar = getAvatarUrl(m.unique_id, m.avatar_url);
@@ -1238,15 +1441,127 @@
         moons.push({ el: moon, angleOffset: moonAngle });
       });
 
-      SOLAR_STATE.planets.push({
-        school,
-        radius: SINGLE_ORBIT_RADIUS,
-        duration: SINGLE_ORBIT_DURATION,
+      SOLAR_STATE.normalPlanets.push({
+        radius: INNER_ORBIT_RADIUS,
+        duration: INNER_ORBIT_DURATION,
         startAngle,
         el: planet,
         moons,
         moonOrbitRadius: MOON_ORBIT_RADIUS,
         moonOrbitDuration: MOON_ORBIT_DURATION
+      });
+    });
+
+    startSolarLoop();
+  }
+
+  // ⭐ MODE FINAL (hari 3)
+  async function buildSolarSystemFinal(participants) {
+    const container = document.getElementById('planetsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    stopSolarLoop();
+    SOLAR_STATE.mode = 'final';
+    SOLAR_STATE.innerOrbitals = [];
+    SOLAR_STATE.outerPlanets = [];
+
+    // 1. Ambil 10 finalis
+    const finalists = participants.filter(p => p.is_eliminated !== true);
+    // Ambil top 10 berdasarkan total_point
+    finalists.sort((a, b) => Number(b.total_point || 0) - Number(a.total_point || 0));
+    const top10 = finalists.slice(0, 10);
+
+    // 2. Fetch bio finalis
+    const uids = top10.map(f => f.unique_id);
+    STATE.finalistBioMap = await fetchFinalistBio(uids);
+
+    // 3. Orbit dalam: 10 finalis
+    const innerRing = document.createElement('div');
+    innerRing.className = 'orbit-ring';
+    innerRing.style.width = (INNER_ORBIT_RADIUS * 2) + 'px';
+    innerRing.style.height = (INNER_ORBIT_RADIUS * 2) + 'px';
+    innerRing.style.marginLeft = (-INNER_ORBIT_RADIUS) + 'px';
+    innerRing.style.marginTop = (-INNER_ORBIT_RADIUS) + 'px';
+    container.appendChild(innerRing);
+
+    top10.forEach((f, idx) => {
+      const startAngle = (idx / top10.length) * 360;
+      const el = document.createElement('div');
+      el.className = 'finalist-avatar';
+
+      const avatar = getAvatarUrl(f.unique_id, f.avatar_url);
+      el.innerHTML = `
+        <img src="${avatar}" alt="${f.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}'"/>
+      `;
+      container.appendChild(el);
+
+      SOLAR_STATE.innerOrbitals.push({
+        radius: INNER_ORBIT_RADIUS,
+        duration: INNER_ORBIT_DURATION,
+        startAngle,
+        el
+      });
+    });
+
+    // 4. Orbit luar: peserta tereliminasi per sekolah
+    const eliminated = participants.filter(p => p.is_eliminated === true);
+
+    const groupBySchoolElim = {};
+    Object.keys(SCHOOL_LOGO_MAP).forEach(s => groupBySchoolElim[s] = []);
+    eliminated.forEach(p => {
+      if (groupBySchoolElim[p.school_name]) groupBySchoolElim[p.school_name].push(p);
+    });
+
+    const schoolsWithElim = Object.keys(groupBySchoolElim).filter(s => groupBySchoolElim[s].length > 0);
+
+    const outerRing = document.createElement('div');
+    outerRing.className = 'orbit-ring outer-ring';
+    outerRing.style.width = (OUTER_ORBIT_RADIUS * 2) + 'px';
+    outerRing.style.height = (OUTER_ORBIT_RADIUS * 2) + 'px';
+    outerRing.style.marginLeft = (-OUTER_ORBIT_RADIUS) + 'px';
+    outerRing.style.marginTop = (-OUTER_ORBIT_RADIUS) + 'px';
+    container.appendChild(outerRing);
+
+    schoolsWithElim.forEach((school, sIdx) => {
+      const startAngle = (sIdx / schoolsWithElim.length) * 360;
+
+      const planet = document.createElement('div');
+      planet.className = 'planet eliminated-planet';
+      const logoUrl = getSchoolLogoUrl(school);
+      planet.innerHTML = `<img src="${logoUrl}" alt="${school}" onerror="this.style.opacity=0.3"/>`;
+      container.appendChild(planet);
+
+      const members = groupBySchoolElim[school] || [];
+      const moons = [];
+
+      members.forEach((m, mIdx) => {
+        const moonAngle = (mIdx / Math.max(members.length, 1)) * 360;
+
+        const moon = document.createElement('div');
+        moon.className = 'moon eliminated';
+
+        const avatar = getAvatarUrl(m.unique_id, m.avatar_url);
+        moon.innerHTML = `
+          <div class="moon-avatar">
+            <img src="${avatar}" alt="${m.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(m.unique_id)}'"/>
+          </div>
+          <div class="moon-name">${(m.full_name || m.unique_id).slice(0, 12)}</div>
+          <div class="moon-pts">${Number(m.total_point || 0).toFixed(0)}</div>
+        `;
+
+        container.appendChild(moon);
+        moons.push({ el: moon, angleOffset: moonAngle });
+      });
+
+      SOLAR_STATE.outerPlanets.push({
+        radius: OUTER_ORBIT_RADIUS,
+        duration: OUTER_ORBIT_DURATION,
+        startAngle,
+        el: planet,
+        moons,
+        moonOrbitRadius: MOON_ORBIT_RADIUS,
+        moonOrbitDuration: MOON_ORBIT_DURATION * 1.5
       });
     });
 
@@ -1267,28 +1582,67 @@
       const cx = W / 2;
       const cy = H / 2;
 
-      SOLAR_STATE.planets.forEach(p => {
-        const planetAngleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
-        const px = cx + Math.cos(planetAngleRad) * p.radius;
-        const py = cy + Math.sin(planetAngleRad) * p.radius;
-
-        p.el.style.left = px + 'px';
-        p.el.style.top = py + 'px';
-        p.el.style.marginLeft = '-45px';
-        p.el.style.marginTop = '-45px';
-
-        p.moons.forEach(m => {
-          const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
-          const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
-          const my = py + Math.sin(moonAngleRad) * p.moonOrbitRadius;
-
-          m.el.style.left = mx + 'px';
-          m.el.style.top = my + 'px';
-          m.el.style.marginLeft = '-30px';
-          m.el.style.marginTop = '-30px';
-          m.el.style.transform = 'rotate(0deg)';
+      // ⭐ Mode final: 2 orbit
+      if (SOLAR_STATE.mode === 'final') {
+        // Orbit dalam: 10 finalis
+        SOLAR_STATE.innerOrbitals.forEach(f => {
+          const angleRad = ((f.startAngle / 360) + (elapsed / f.duration)) * Math.PI * 2;
+          const px = cx + Math.cos(angleRad) * f.radius;
+          const py = cy + Math.sin(angleRad) * f.radius;
+          f.el.style.left = px + 'px';
+          f.el.style.top = py + 'px';
+          f.el.style.marginLeft = '-60px';
+          f.el.style.marginTop = '-60px';
         });
-      });
+
+        // Orbit luar: peserta tereliminasi per sekolah
+        SOLAR_STATE.outerPlanets.forEach(p => {
+          const angleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
+          const px = cx + Math.cos(angleRad) * p.radius;
+          const py = cy + Math.sin(angleRad) * p.radius;
+
+          p.el.style.left = px + 'px';
+          p.el.style.top = py + 'px';
+          p.el.style.marginLeft = '-45px';
+          p.el.style.marginTop = '-45px';
+
+          p.moons.forEach(m => {
+            const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
+            const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
+            const my = py + Math.sin(moonAngleRad) * p.moonOrbitRadius;
+
+            m.el.style.left = mx + 'px';
+            m.el.style.top = my + 'px';
+            m.el.style.marginLeft = '-30px';
+            m.el.style.marginTop = '-30px';
+            m.el.style.transform = 'rotate(0deg)';
+          });
+        });
+      } else {
+        // Mode normal: 1 orbit
+        SOLAR_STATE.normalPlanets.forEach(p => {
+          const angleRad = ((p.startAngle / 360) + (elapsed / p.duration)) * Math.PI * 2;
+          const px = cx + Math.cos(angleRad) * p.radius;
+          const py = cy + Math.sin(angleRad) * p.radius;
+
+          p.el.style.left = px + 'px';
+          p.el.style.top = py + 'px';
+          p.el.style.marginLeft = '-45px';
+          p.el.style.marginTop = '-45px';
+
+          p.moons.forEach(m => {
+            const moonAngleRad = ((m.angleOffset / 360) - (elapsed / p.moonOrbitDuration)) * Math.PI * 2;
+            const mx = px + Math.cos(moonAngleRad) * p.moonOrbitRadius;
+            const my = py + Math.sin(moonAngleRad) * p.moonOrbitRadius;
+
+            m.el.style.left = mx + 'px';
+            m.el.style.top = my + 'px';
+            m.el.style.marginLeft = '-30px';
+            m.el.style.marginTop = '-30px';
+            m.el.style.transform = 'rotate(0deg)';
+          });
+        });
+      }
 
       SOLAR_STATE.rafId = requestAnimationFrame(loop);
     };
@@ -1300,11 +1654,13 @@
     SOLAR_STATE.running = false;
     if (SOLAR_STATE.rafId) cancelAnimationFrame(SOLAR_STATE.rafId);
     SOLAR_STATE.rafId = null;
-    SOLAR_STATE.planets = [];
+    SOLAR_STATE.normalPlanets = [];
+    SOLAR_STATE.innerOrbitals = [];
+    SOLAR_STATE.outerPlanets = [];
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS — ⭐ kartu abu-abu kalau eliminated
+  // VIEW 4: FINALISTS — dengan motto & prestasi
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
@@ -1321,6 +1677,10 @@
         '<p class="text-slate-500 text-xl">Belum ada finalis.</p>';
       return;
     }
+
+    // Fetch bio untuk semua finalis
+    const uids = finalists.map(f => f.unique_id);
+    STATE.finalistBioMap = await fetchFinalistBio(uids);
 
     const ordered = [...finalists].reverse();
     startConfettiLoop();
@@ -1358,6 +1718,7 @@
     tick();
   }
 
+  // ⭐ Render kartu finalis dengan motto & prestasi
   function renderFinalistCard(p) {
     const container = document.getElementById('finalistCardContainer');
     if (!container) return;
@@ -1365,56 +1726,81 @@
     const rank = p.rank_final;
     const avatar = getAvatarUrl(p.unique_id, p.avatar_url);
     const isElim = p.is_eliminated === true;
+    const bio = STATE.finalistBioMap[p.unique_id] || {};
 
     let badge = `RANK #${rank}`;
     let badgeClass = 'bg-slate-700 text-slate-200';
-    let borderClass = 'border-slate-500/60';
+    let borderColor = '#94a3b8';
     let glowClass = '';
 
     if (rank === 1) {
       badge = '👑 JUARA 1';
       badgeClass = 'bg-amber-400 text-slate-950';
-      borderClass = 'border-amber-400';
+      borderColor = '#fbbf24';
       glowClass = 'glow-rank-1';
     } else if (rank === 2) {
       badge = '🥈 JUARA 2';
       badgeClass = 'bg-slate-200 text-slate-950';
-      borderClass = 'border-slate-200';
+      borderColor = '#cbd5e1';
       glowClass = 'glow-rank-2';
     } else if (rank === 3) {
       badge = '🥉 JUARA 3';
       badgeClass = 'bg-amber-600 text-white';
-      borderClass = 'border-amber-600';
+      borderColor = '#d97706';
       glowClass = 'glow-rank-3';
     }
 
-    // ⭐ Kalau tereliminasi, override tampilan
     if (isElim) {
       badge = '🚫 TERELIMINASI';
       badgeClass = 'bg-rose-600 text-white';
-      borderClass = 'border-rose-500';
+      borderColor = '#f43f5e';
       glowClass = '';
     }
 
+    // Prestasi list (split newline)
+    const prestasiLines = (bio.prestasi || '')
+      .split('\n')
+      .map(x => x.trim())
+      .filter(x => x.length > 0);
+
+    const prestasiHtml = prestasiLines.length > 0
+      ? `<ul>${prestasiLines.map(line => `<li>${line}</li>`).join('')}</ul>`
+      : `<span class="text-slate-500 italic">Belum ada data prestasi</span>`;
+
+    const mottoHtml = bio.motto
+      ? `<div class="fic-motto">"${bio.motto}"</div>`
+      : `<span class="text-slate-500 italic">Belum ada motto</span>`;
+
     container.innerHTML = `
-      <div class="rank-card relative ${isElim ? 'eliminated' : ''} bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 border-4 ${borderClass} rounded-[3rem] p-10 md:p-14 flex flex-col items-center gap-6 max-w-3xl w-full ${glowClass}">
+      <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card ${glowClass}"
+           style="border-color: ${borderColor}">
         ${isElim ? '<div class="elim-stamp">ELIMINATED</div>' : ''}
-        <div class="px-8 py-3 rounded-full font-black text-xl md:text-2xl uppercase tracking-widest ${badgeClass} shadow-2xl">
-          ${badge}
-        </div>
-        <div class="w-64 h-64 md:w-80 md:h-80 rounded-[2.5rem] bg-slate-950/80 border-4 ${borderClass} overflow-hidden flex items-center justify-center p-3 shadow-2xl">
-          <img src="${avatar}" class="w-full h-full object-cover rounded-[2rem]"
+
+        <div class="fic-avatar" style="border: 3px solid ${borderColor};">
+          <img src="${avatar}" alt="${p.full_name || p.unique_id}"
                onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.unique_id)}'"/>
         </div>
-        <div class="text-center space-y-3 max-w-xl">
-          <h2 class="text-4xl md:text-5xl font-black text-white tracking-wide leading-tight">
-            ${p.full_name || p.unique_id}
-          </h2>
-          <div class="text-purple-300 text-sm md:text-base font-semibold">
+
+        <div class="fic-content">
+          <div class="fic-badge ${badgeClass}">${badge}</div>
+          <h2 class="fic-name">${p.full_name || p.unique_id}</h2>
+          <div class="fic-school">
             <i class="fas fa-school mr-2"></i>${p.school_name || ''}
           </div>
-          <div class="inline-block text-3xl md:text-4xl font-mono font-black text-amber-400 bg-amber-500/10 px-8 py-3 rounded-2xl border-2 border-amber-500/40 mt-2">
-            ${Number(p.total_point || 0).toFixed(2)} PTS
+          <div class="fic-points">${Number(p.total_point || 0).toFixed(2)} PTS</div>
+
+          <div class="fic-info-block">
+            <div class="fic-info-label">
+              <i class="fas fa-quote-left"></i> Motto Hidup
+            </div>
+            ${mottoHtml}
+          </div>
+
+          <div class="fic-info-block">
+            <div class="fic-info-label">
+              <i class="fas fa-medal"></i> Prestasi
+            </div>
+            <div class="fic-prestasi">${prestasiHtml}</div>
           </div>
         </div>
       </div>
@@ -1465,6 +1851,7 @@
 
       document.getElementById('dbgView').textContent = view;
       document.getElementById('dbgSchool').textContent = school || '-';
+      document.getElementById('dbgCount').textContent = STATE.currentDay;
     } catch (e) { LOG.err('syncLayout', e); }
   }
 
