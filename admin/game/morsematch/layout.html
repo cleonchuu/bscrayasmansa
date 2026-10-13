@@ -11,11 +11,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Poppins:wght@400;600;800;900&display=swap');
 
     html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; }
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #020617;
-      color: #fff;
-    }
+    body { font-family: 'Poppins', sans-serif; background: #020617; color: #fff; }
     .font-math { font-family: 'Orbitron', sans-serif; }
 
     .stage-view {
@@ -24,16 +20,10 @@
       transition: opacity 0.5s ease, transform 0.5s ease;
     }
     .stage-view.hidden-view {
-      opacity: 0;
-      transform: scale(0.96);
-      pointer-events: none;
-      visibility: hidden;
+      opacity: 0; transform: scale(0.96);
+      pointer-events: none; visibility: hidden;
     }
-    .stage-view.active-view {
-      opacity: 1;
-      transform: scale(1);
-      visibility: visible;
-    }
+    .stage-view.active-view { opacity: 1; transform: scale(1); visibility: visible; }
 
     @keyframes floaty {
       0%,100% { transform: translateY(0) rotate(0deg); }
@@ -315,7 +305,6 @@ const TAG = '[MORSE-LAYOUT]';
 const GAME_NAME = 'Morse Match';
 const QUESTION_ID = '00000000-0000-0000-0000-000000000002';
 
-// ⭐ SFX files
 const SFX_BEEP = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/beep.mp3`;
 const SFX_BELL = `${SUPABASE_URL}/storage/v1/object/public/sounds_effect/bell.mp3`;
 
@@ -330,42 +319,47 @@ const LOG = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// STATE
+// STATE — ⭐ layout-driven
 // ═══════════════════════════════════════════════════════════
 const STATE = {
   audioUnlocked: false,
   audioCtx: null,
 
   currentView: 'idle',
-  currentMode: 'idle',
+  currentMode: 'idle',      // dari DB
   sessionId: null,
 
   hafalDurationSec: 900,
-  soalDurationSec: 60,   // ⭐ 60 detik per soal
+  soalDurationSec: 60,
   totalSoal: 30,
-  currentSoalIndex: 0,
-  currentSoalStartedAt: null,
-  startedAt: null,
+
+  // ⭐ LOKAL — tidak dari DB
+  localSoalIndex: 0,         // soal yang sedang dimainkan layout
+  localSoalStartedAt: 0,     // timestamp lokal saat soal ini mulai
+  localTimerInterval: null,
+  localSoalTimeout: null,    // timeout untuk auto-next soal
 
   soalList: [],
   soalLoaded: false,
   library: [],
   audioSettings: { frequency_hz: 600, dot_duration_ms: 100, dash_duration_ms: 300, gap_intra_ms: 100, gap_inter_ms: 300 },
 
-  isPlayingSequence: false,
+  // Audio loop control
   currentPlaybackToken: 0,
   activeOscillators: [],
-  lastProcessedSoalIdx: 0,
-  _beepedForSoal: {},   // ⭐ track beep per soal
 
-  hafalTick: null,
-  soalTick: null,
+  // Sync flags
+  lastKnownMode: 'idle',
+  lastKnownSessionId: null,
 
-  realtimeConnected: false
+  realtimeConnected: false,
+
+  // Guard
+  isRunningGame: false
 };
 
 // ═══════════════════════════════════════════════════════════
-// UI HELPERS
+// UI
 // ═══════════════════════════════════════════════════════════
 const UI = {
   el: id => document.getElementById(id),
@@ -386,86 +380,65 @@ function unlockAudio() {
     if (!STATE.audioCtx) {
       STATE.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (STATE.audioCtx.state === 'suspended') {
-      STATE.audioCtx.resume();
-    }
+    if (STATE.audioCtx.state === 'suspended') STATE.audioCtx.resume();
     STATE.audioUnlocked = true;
     UI.el('audioUnlockOverlay').classList.add('hidden');
     LOG.ok('Audio unlocked');
     UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', 'unlocked');
-  } catch (e) {
-    LOG.err('unlockAudio', e);
-  }
+  } catch (e) { LOG.err('unlockAudio', e); }
 }
 
-// Play tone via Web Audio (untuk pola morse)
 function playTone(durationMs, token) {
   return new Promise((resolve) => {
     if (!STATE.audioCtx) { resolve(); return; }
-
     const ctx = STATE.audioCtx;
     const freq = STATE.audioSettings.frequency_hz;
-
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = 'sine';
     osc.frequency.value = freq;
     gain.gain.value = 0.35;
-
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     const now = ctx.currentTime;
     const durSec = durationMs / 1000;
-
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.35, now + 0.005);
     gain.gain.setValueAtTime(0.35, now + durSec - 0.005);
     gain.gain.linearRampToValueAtTime(0, now + durSec);
-
     osc.start(now);
     osc.stop(now + durSec + 0.02);
 
-    const oscEntry = { osc, gain, stopped: false };
-    STATE.activeOscillators.push(oscEntry);
-
+    const entry = { osc, gain, stopped: false };
+    STATE.activeOscillators.push(entry);
     const cleanup = () => {
-      if (oscEntry.stopped) return;
-      oscEntry.stopped = true;
-      try { osc.stop(); } catch (e) {}
-      try { osc.disconnect(); } catch (e) {}
-      try { gain.disconnect(); } catch (e) {}
-      const idx = STATE.activeOscillators.indexOf(oscEntry);
-      if (idx >= 0) STATE.activeOscillators.splice(idx, 1);
+      if (entry.stopped) return;
+      entry.stopped = true;
+      try { osc.stop(); } catch(e){}
+      try { osc.disconnect(); } catch(e){}
+      try { gain.disconnect(); } catch(e){}
+      const i = STATE.activeOscillators.indexOf(entry);
+      if (i >= 0) STATE.activeOscillators.splice(i, 1);
     };
 
-    const timeoutId = setTimeout(() => { cleanup(); resolve(); }, durationMs);
-
-    const abortCheck = setInterval(() => {
+    const tId = setTimeout(() => { cleanup(); resolve(); }, durationMs);
+    const aId = setInterval(() => {
       if (token !== STATE.currentPlaybackToken) {
-        clearInterval(abortCheck);
-        clearTimeout(timeoutId);
-        cleanup();
-        resolve();
+        clearInterval(aId); clearTimeout(tId); cleanup(); resolve();
       }
     }, 30);
-
-    setTimeout(() => clearInterval(abortCheck), durationMs + 50);
+    setTimeout(() => clearInterval(aId), durationMs + 50);
   });
 }
 
-// ⭐ SFX via file audio (beep.mp3 & bell.mp3) — abortable
 let currentSfxAudio = null;
-
 function playSfxFile(url, token = null) {
   return new Promise(resolve => {
-    // Stop SFX sebelumnya kalau masih jalan
     if (currentSfxAudio) {
-      try { currentSfxAudio.pause(); } catch (e) {}
+      try { currentSfxAudio.pause(); } catch(e){}
       currentSfxAudio = null;
     }
-
     const a = new Audio(url);
     a.volume = 0.7;
     currentSfxAudio = a;
@@ -477,38 +450,33 @@ function playSfxFile(url, token = null) {
       if (currentSfxAudio === a) currentSfxAudio = null;
       resolve();
     };
-
     a.onended = done;
     a.onerror = done;
 
-    // Abort kalau token berubah
     if (token !== null) {
-      const abortCheck = setInterval(() => {
+      const aId = setInterval(() => {
         if (token !== STATE.currentPlaybackToken) {
-          clearInterval(abortCheck);
-          try { a.pause(); } catch (e) {}
-          done();
+          clearInterval(aId); try { a.pause(); } catch(e){} done();
         }
       }, 30);
-      setTimeout(() => clearInterval(abortCheck), 5000);
+      setTimeout(() => clearInterval(aId), 5000);
     }
-
     a.play().catch(() => done());
   });
 }
 
 function killSfx() {
   if (currentSfxAudio) {
-    try { currentSfxAudio.pause(); } catch (e) {}
+    try { currentSfxAudio.pause(); } catch(e){}
     currentSfxAudio = null;
   }
 }
 
 function killAllOscillators() {
-  STATE.activeOscillators.forEach(entry => {
-    try { entry.osc.stop(); } catch (e) {}
-    try { entry.osc.disconnect(); } catch (e) {}
-    try { entry.gain.disconnect(); } catch (e) {}
+  STATE.activeOscillators.forEach(e => {
+    try { e.osc.stop(); } catch(err){}
+    try { e.osc.disconnect(); } catch(err){}
+    try { e.gain.disconnect(); } catch(err){}
   });
   STATE.activeOscillators = [];
 }
@@ -518,15 +486,8 @@ function sleep(ms, token = null) {
     if (token === null) { setTimeout(resolve, ms); return; }
     const start = Date.now();
     const check = setInterval(() => {
-      if (token !== STATE.currentPlaybackToken) {
-        clearInterval(check);
-        resolve();
-        return;
-      }
-      if (Date.now() - start >= ms) {
-        clearInterval(check);
-        resolve();
-      }
+      if (token !== STATE.currentPlaybackToken) { clearInterval(check); resolve(); return; }
+      if (Date.now() - start >= ms) { clearInterval(check); resolve(); }
     }, 30);
   });
 }
@@ -554,20 +515,15 @@ function setMorseVisual(lit, isLong = false) {
     text.textContent = 'MENUNGGU SINYAL';
   }
 }
-
 function setMorseIdle() { setMorseVisual(false); }
 
 // ═══════════════════════════════════════════════════════════
-// PLAY SATU SIMBOL
+// PLAY MORSE
 // ═══════════════════════════════════════════════════════════
 async function playSymbol(symbol, token) {
   if (token !== STATE.currentPlaybackToken) return;
-
   const libItem = STATE.library.find(l => l.symbol === symbol);
-  if (!libItem || !libItem.morse_pattern) {
-    LOG.warn(`Pola morse ${symbol} tidak ditemukan`);
-    return;
-  }
+  if (!libItem || !libItem.morse_pattern) return;
 
   const pattern = libItem.morse_pattern;
   const dotMs = STATE.audioSettings.dot_duration_ms;
@@ -575,102 +531,58 @@ async function playSymbol(symbol, token) {
   const gapIntra = STATE.audioSettings.gap_intra_ms;
 
   for (let i = 0; i < pattern.length; i++) {
-    if (token !== STATE.currentPlaybackToken) {
-      setMorseVisual(false);
-      return;
-    }
-
+    if (token !== STATE.currentPlaybackToken) { setMorseVisual(false); return; }
     const ch = pattern[i];
     const dur = ch === '.' ? dotMs : dashMs;
-
     setMorseVisual(true, ch === '-');
     await playTone(dur, token);
     setMorseVisual(false);
-
     if (i < pattern.length - 1) await sleep(gapIntra, token);
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// PLAY SATU SOAL (n1 op1 n2 op2 n3 + bell.mp3)
-// ═══════════════════════════════════════════════════════════
 async function playSoalSequence(soal, token) {
   if (token !== STATE.currentPlaybackToken) return;
-
-  STATE.isPlayingSequence = true;
   const gapInter = STATE.audioSettings.gap_inter_ms;
-  const checkToken = () => token === STATE.currentPlaybackToken;
+  const check = () => token === STATE.currentPlaybackToken;
 
   try {
-    if (!checkToken()) return;
-    await playSymbol(String(soal.n1), token);
-    if (!checkToken()) return;
-    await sleep(gapInter, token);
+    if (!check()) return; await playSymbol(String(soal.n1), token);
+    if (!check()) return; await sleep(gapInter, token);
+    if (!check()) return; await playSymbol(soal.op1Symbol, token);
+    if (!check()) return; await sleep(gapInter, token);
+    if (!check()) return; await playSymbol(String(soal.n2), token);
+    if (!check()) return; await sleep(gapInter, token);
+    if (!check()) return; await playSymbol(soal.op2Symbol, token);
+    if (!check()) return; await sleep(gapInter, token);
+    if (!check()) return; await playSymbol(String(soal.n3), token);
+    if (!check()) return;
 
-    if (!checkToken()) return;
-    await playSymbol(soal.op1Symbol, token);
-    if (!checkToken()) return;
-    await sleep(gapInter, token);
-
-    if (!checkToken()) return;
-    await playSymbol(String(soal.n2), token);
-    if (!checkToken()) return;
-    await sleep(gapInter, token);
-
-    if (!checkToken()) return;
-    await playSymbol(soal.op2Symbol, token);
-    if (!checkToken()) return;
-    await sleep(gapInter, token);
-
-    if (!checkToken()) return;
-    await playSymbol(String(soal.n3), token);
-    if (!checkToken()) return;
-
-    // ⭐ Bell di akhir persamaan — pakai bell.mp3
-    LOG.info('🔔 Bell akhir persamaan (bell.mp3)');
+    // Bell di akhir persamaan
     setMorseVisual(true, true);
     await playSfxFile(SFX_BELL, token);
     setMorseVisual(false);
-
-  } catch (e) {
-    LOG.err('playSoalSequence', e);
-  } finally {
-    STATE.isPlayingSequence = false;
-    if (checkToken()) setMorseIdle();
-  }
+  } catch (e) { LOG.err('playSoalSequence', e); }
 }
 
-// ═══════════════════════════════════════════════════════════
-// SOAL LOOP — mainkan soal berulang
-// ⭐ Pergantian soal baru → beep.mp3
-// ⭐ Pengulangan soal yang sama → bell.mp3
-// ═══════════════════════════════════════════════════════════
 async function runSoalLoop(soalIdx) {
   if (!STATE.soalLoaded || STATE.soalList.length === 0) {
-    LOG.warn(`⏳ Soal belum load, coba reload...`);
     await loadSoal();
-    if (!STATE.soalLoaded || STATE.soalList.length === 0) {
-      LOG.err('❌ Soal kosong setelah reload');
-      return;
-    }
+    if (!STATE.soalLoaded || STATE.soalList.length === 0) return;
   }
 
   const soal = STATE.soalList[soalIdx - 1];
-  if (!soal) {
-    LOG.warn(`Soal index ${soalIdx} tidak ada (total: ${STATE.soalList.length})`);
-    return;
-  }
+  if (!soal) return;
 
-  // Token baru → abort playback lama
   STATE.currentPlaybackToken++;
   const myToken = STATE.currentPlaybackToken;
 
-  LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer} (token=${myToken})`);
+  LOG.ok(`▶ Soal #${soalIdx}: ${soal.expText} = ${soal.answer}`);
 
   killAllOscillators();
   killSfx();
 
-  // Update UI soal
+  // Update UI
   UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
   const pct = Math.round((soalIdx / STATE.totalSoal) * 100);
   UI.txt('gameProgressPct', `${pct}%`);
@@ -680,14 +592,13 @@ async function runSoalLoop(soalIdx) {
   // ⭐ Beep di awal (pergantian soal baru)
   LOG.info('🔔 Pergantian soal → beep.mp3');
   await playSfxFile(SFX_BEEP, myToken);
-  await sleep(300, myToken);   // jeda kecil setelah beep
+  await sleep(300, myToken);
 
-  // Loop playback soal
   let isFirstPlay = true;
   while (myToken === STATE.currentPlaybackToken) {
-    // ⭐ Beep hanya di play pertama (sudah di atas), sisanya bell
+    // Pengulangan pakai bell
     if (!isFirstPlay) {
-      LOG.info('🔔 Pengulangan soal → bell.mp3');
+      LOG.info('🔔 Pengulangan → bell.mp3');
       await playSfxFile(SFX_BELL, myToken);
       await sleep(300, myToken);
     }
@@ -696,12 +607,9 @@ async function runSoalLoop(soalIdx) {
     await playSoalSequence(soal, myToken);
     if (myToken !== STATE.currentPlaybackToken) break;
 
-    // Jeda antar pengulangan penuh
     const gapAfterBell = (STATE.audioSettings.gap_inter_ms || 300) * 2;
     await sleep(gapAfterBell, myToken);
   }
-
-  LOG.info(`⏹ Soal #${soalIdx} loop berhenti`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -715,18 +623,18 @@ async function loadState() {
       .eq('id', 1)
       .maybeSingle();
 
-    if (error) { LOG.warn('loadState', error.message); return; }
-    if (!data) return;
+    if (error) { LOG.warn('loadState', error.message); return null; }
+    if (!data) return null;
 
     STATE.currentMode = data.mode || 'idle';
     STATE.sessionId = data.session_id;
     STATE.hafalDurationSec = data.hafal_duration_sec || 900;
     STATE.soalDurationSec = data.soal_duration_sec || 60;
     STATE.totalSoal = data.total_soal || 30;
-    STATE.currentSoalIndex = data.current_soal_index || 0;
-    STATE.currentSoalStartedAt = data.current_soal_started_at;
     STATE.startedAt = data.started_at;
-  } catch (e) { LOG.err('loadState exception', e); }
+
+    return data;
+  } catch (e) { LOG.err('loadState exception', e); return null; }
 }
 
 async function loadLibrary() {
@@ -735,7 +643,6 @@ async function loadLibrary() {
       .from('system_morse_match_library')
       .select('*')
       .order('sort_order', { ascending: true });
-
     if (error) { LOG.warn('loadLibrary', error.message); return; }
     STATE.library = data || [];
   } catch (e) { LOG.err('loadLibrary exception', e); }
@@ -748,7 +655,6 @@ async function loadAudioSettings() {
       .select('*')
       .eq('id', 1)
       .maybeSingle();
-
     if (error) { LOG.warn('loadAudioSettings', error.message); return; }
     if (data) STATE.audioSettings = data;
   } catch (e) { LOG.err('loadAudioSettings exception', e); }
@@ -761,7 +667,6 @@ async function loadSoal() {
       .select('*')
       .eq('id', QUESTION_ID)
       .maybeSingle();
-
     if (error) { LOG.warn('loadSoal', error.message); return; }
     if (data && data.expression_text) {
       try {
@@ -773,14 +678,11 @@ async function loadSoal() {
             op2Symbol: ['+','-','×','÷'][q.op2Idx] || '+'
           }));
           STATE.soalLoaded = true;
-          LOG.ok(`✅ Loaded ${STATE.soalList.length} soal dari DB`);
+          LOG.ok(`✅ Loaded ${STATE.soalList.length} soal`);
         } else {
           STATE.soalLoaded = false;
         }
-      } catch (e) {
-        LOG.warn('Parse soal JSON gagal');
-        STATE.soalLoaded = false;
-      }
+      } catch (e) { STATE.soalLoaded = false; }
     } else {
       STATE.soalLoaded = false;
     }
@@ -788,7 +690,7 @@ async function loadSoal() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// VIEW SWITCHER
+// ⭐ GAME CONTROL — layout-driven
 // ═══════════════════════════════════════════════════════════
 function switchView(viewName, revealedRank = 0) {
   if (viewName === STATE.currentView && viewName !== 'leaderboard') return;
@@ -807,54 +709,158 @@ function switchView(viewName, revealedRank = 0) {
     leaderboard: 'viewLeaderboard',
     all_players: 'viewAllPlayers'
   };
-
   const target = UI.el(map[viewName] || 'viewIdle');
-  if (target) {
-    target.classList.remove('hidden-view');
-    target.classList.add('active-view');
-  }
+  if (target) { target.classList.remove('hidden-view'); target.classList.add('active-view'); }
 
   STATE.currentView = viewName;
 
   if (viewName === 'hafal') startHafalTick();
   else stopHafalTick();
 
-  // ⭐ GAME view — SELALU restart soal tick (jangan cek lastProcessedSoalIdx)
-  if (viewName === 'game') {
-    startSoalTick();
-
-    // Kalau soal index berubah dari yang terakhir diproses, restart loop audio
-    if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
-      STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
-      // runSoalLoop dipanggil dari startSoalTick
-    }
-  } else {
-    stopSoalTick();
-    STATE.currentPlaybackToken++;
-    killAllOscillators();
-    killSfx();
-    setMorseIdle();
-  }
-
   if (viewName === 'leaderboard') fetchAndRenderLeaderboard(revealedRank);
   else if (viewName === 'all_players') fetchAndRenderAllPlayers();
 
-  UI.dbg(viewName, STATE.currentSoalIndex ? `${STATE.currentSoalIndex}/${STATE.totalSoal}` : '-',
+  UI.dbg(viewName, STATE.localSoalIndex ? `${STATE.localSoalIndex}/${STATE.totalSoal}` : '-',
          STATE.realtimeConnected ? 'rt' : 'poll',
          STATE.audioUnlocked ? 'on' : 'off');
+}
+
+// ⭐ MULAI GAME — lokal, tanpa nunggu DB
+async function startGameLocal() {
+  if (STATE.isRunningGame) {
+    LOG.info('Game sudah jalan, skip');
+    return;
+  }
+  STATE.isRunningGame = true;
+
+  LOG.ok('🎮 START GAME (layout-driven)');
+
+  // 1. Switch view ke game
+  switchView('game');
+
+  // 2. Mulai soal pertama (dari index yang ditunjuk admin atau 1)
+  const startIdx = 1;
+  startSoalLocal(startIdx);
+}
+
+// ⭐ STOP GAME
+function stopGameLocal() {
+  if (!STATE.isRunningGame) return;
+  STATE.isRunningGame = false;
+
+  LOG.warn('⏹ STOP GAME');
+
+  // Abort semua
+  STATE.currentPlaybackToken++;
+  killAllOscillators();
+  killSfx();
+  setMorseIdle();
+
+  // Clear timer
+  if (STATE.localTimerInterval) {
+    clearInterval(STATE.localTimerInterval);
+    STATE.localTimerInterval = null;
+  }
+  if (STATE.localSoalTimeout) {
+    clearTimeout(STATE.localSoalTimeout);
+    STATE.localSoalTimeout = null;
+  }
+
+  STATE.localSoalIndex = 0;
+  STATE.localSoalStartedAt = 0;
+
+  // Balik ke idle
+  switchView('idle');
+}
+
+// ⭐ MULAI SOAL LOKAL (index)
+function startSoalLocal(soalIdx) {
+  // Clear timer lama
+  if (STATE.localTimerInterval) clearInterval(STATE.localTimerInterval);
+  if (STATE.localSoalTimeout) clearTimeout(STATE.localSoalTimeout);
+
+  STATE.localSoalIndex = soalIdx;
+  STATE.localSoalStartedAt = Date.now();
+
+  LOG.ok(`▶ Soal lokal #${soalIdx} mulai (durasi ${STATE.soalDurationSec}s)`);
+
+  // Update display
+  UI.txt('gameSoalDisplay', `${soalIdx} / ${STATE.totalSoal}`);
+  UI.txt('gameTimerDisplay', String(STATE.soalDurationSec));
+
+  // ⭐ Mulai audio loop (beep + morse + bell)
+  runSoalLoop(soalIdx);
+
+  // ⭐ Timer hitung mundur lokal
+  STATE.localTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - STATE.localSoalStartedAt) / 1000);
+    const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
+    UI.txt('gameTimerDisplay', String(remaining));
+
+    const timerEl = UI.el('gameTimerDisplay');
+    if (timerEl) {
+      if (remaining <= 5) {
+        timerEl.className = 'text-4xl font-math font-black text-rose-500 animate-pulse';
+      } else if (remaining <= 15) {
+        timerEl.className = 'text-4xl font-math font-black text-rose-400';
+      } else {
+        timerEl.className = 'text-4xl font-math font-black text-rose-400';
+      }
+    }
+
+    // ⭐ Kalau timer habis → auto-next soal
+    if (remaining <= 0) {
+      clearInterval(STATE.localTimerInterval);
+      STATE.localTimerInterval = null;
+      nextSoalLocal();
+    }
+  }, 500);
+
+  // ⭐ Update progress bar
+  const pct = Math.round((soalIdx / STATE.totalSoal) * 100);
+  UI.txt('gameProgressPct', `${pct}%`);
+  const bar = UI.el('gameProgressBar');
+  if (bar) bar.style.width = `${pct}%`;
+}
+
+// ⭐ AUTO-NEXT SOAL
+async function nextSoalLocal() {
+  if (!STATE.isRunningGame) return;
+  if (STATE.localSoalIndex >= STATE.totalSoal) {
+    LOG.ok('🏁 Semua soal selesai');
+    STATE.isRunningGame = false;
+    // Balik ke idle
+    switchView('idle');
+    return;
+  }
+
+  const nextIdx = STATE.localSoalIndex + 1;
+
+  // ⭐ Update DB supaya kiosk & admin tau
+  try {
+    await supabaseClient
+      .from('system_morse_match_state')
+      .update({
+        current_soal_index: nextIdx,
+        current_soal_started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+    LOG.info(`📡 DB update → soal #${nextIdx}`);
+  } catch (e) { LOG.warn('Update DB gagal', e); }
+
+  // Mulai soal berikutnya
+  startSoalLocal(nextIdx);
 }
 
 // ═══════════════════════════════════════════════════════════
 // HAFAL TICK
 // ═══════════════════════════════════════════════════════════
+let hafalTickInterval = null;
 function startHafalTick() {
-  if (STATE.hafalTick) clearInterval(STATE.hafalTick);
-
+  if (hafalTickInterval) clearInterval(hafalTickInterval);
   const tick = () => {
-    if (!STATE.startedAt) {
-      UI.txt('hafalCountdown', '15:00');
-      return;
-    }
+    if (!STATE.startedAt) { UI.txt('hafalCountdown', '15:00'); return; }
     const elapsed = Math.floor((Date.now() - new Date(STATE.startedAt).getTime()) / 1000);
     const remaining = Math.max(0, STATE.hafalDurationSec - elapsed);
     const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
@@ -862,123 +868,58 @@ function startHafalTick() {
     UI.txt('hafalCountdown', `${mm}:${ss}`);
   };
   tick();
-  STATE.hafalTick = setInterval(tick, 500);
+  hafalTickInterval = setInterval(tick, 500);
 }
-
 function stopHafalTick() {
-  if (STATE.hafalTick) { clearInterval(STATE.hafalTick); STATE.hafalTick = null; }
+  if (hafalTickInterval) { clearInterval(hafalTickInterval); hafalTickInterval = null; }
 }
 
 // ═══════════════════════════════════════════════════════════
-// ⭐ SOAL TICK — Timer hitung mundur + auto start audio loop
+// SYNC DENGAN DB (detect mode change dari admin)
 // ═══════════════════════════════════════════════════════════
-function startSoalTick() {
-  if (STATE.soalTick) clearInterval(STATE.soalTick);
+function handleModeChangeFromDB(data) {
+  if (!data) return;
 
-  // ⭐ Set initial display
-  if (STATE.currentSoalStartedAt) {
-    const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
-    const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
-    UI.txt('gameTimerDisplay', String(remaining));
+  const newMode = data.mode || 'idle';
+  const newSessionId = data.session_id;
+
+  // ⭐ Sesi baru = session_id berubah
+  const isNewSession = newSessionId && newSessionId !== STATE.lastKnownSessionId;
+
+  if (newMode === 'game' && !STATE.isRunningGame) {
+    // Masuk mode game → mulai local
+    LOG.ok(`📡 DB mode=game terdeteksi${isNewSession ? ' (sesi baru)' : ''} → start game local`);
+    STATE.lastKnownMode = newMode;
+    STATE.lastKnownSessionId = newSessionId;
+
+    // Kalau ada soal index dari DB, mulai dari situ. Kalau tidak, mulai dari 1.
+    const startFrom = data.current_soal_index > 0 ? data.current_soal_index : 1;
+    startGameLocal();
+    // Override index kalau dari DB beda
+    if (startFrom > 1) {
+      LOG.info(`Mulai dari soal #${startFrom} (dari DB)`);
+    }
+  } else if (newMode === 'hafal' && STATE.isRunningGame) {
+    // Pindah ke hafal → stop game
+    LOG.warn('Mode berubah ke hafal → stop game');
+    stopGameLocal();
+  } else if (newMode === 'idle' && STATE.isRunningGame) {
+    // Pindah ke idle → stop game
+    LOG.warn('Mode berubah ke idle → stop game');
+    stopGameLocal();
   }
 
-  // ⭐ Auto-start loop audio untuk soal aktif
-  setTimeout(() => {
-    if (STATE.currentSoalIndex > 0 && STATE.currentView === 'game') {
-      runSoalLoop(STATE.currentSoalIndex);
-    }
-  }, 100);
-
-  const tick = () => {
-    if (STATE.currentMode !== 'game' || STATE.currentView !== 'game') return;
-
-    // ⭐ Hitung mundur timer
-    if (STATE.currentSoalStartedAt) {
-      const elapsed = Math.floor((Date.now() - new Date(STATE.currentSoalStartedAt).getTime()) / 1000);
-      const remaining = Math.max(0, STATE.soalDurationSec - elapsed);
-      UI.txt('gameTimerDisplay', String(remaining));
-
-      // Update warna timer
-      const timerEl = UI.el('gameTimerDisplay');
-      if (timerEl) {
-        if (remaining <= 5) {
-          timerEl.className = 'text-4xl font-math font-black text-rose-500 animate-pulse';
-        } else if (remaining <= 15) {
-          timerEl.className = 'text-4xl font-math font-black text-rose-400';
-        } else {
-          timerEl.className = 'text-4xl font-math font-black text-rose-400';
-        }
-      }
-    }
-  };
-  tick();
-  STATE.soalTick = setInterval(tick, 500);
-}
-
-function stopSoalTick() {
-  if (STATE.soalTick) { clearInterval(STATE.soalTick); STATE.soalTick = null; }
+  STATE.lastKnownMode = newMode;
 }
 
 // ═══════════════════════════════════════════════════════════
-// HANDLE PERGANTIAN SOAL
-// ═══════════════════════════════════════════════════════════
-async function handleSoalChange() {
-  if (STATE.currentMode !== 'game') return;
-  if (STATE.currentSoalIndex === 0) return;
-
-  if (STATE.currentSoalIndex !== STATE.lastProcessedSoalIdx) {
-    LOG.ok(`🔄 Ganti ke soal #${STATE.currentSoalIndex}`);
-    STATE.lastProcessedSoalIdx = STATE.currentSoalIndex;
-
-    // Abort paksa audio
-    killAllOscillators();
-    killSfx();
-    setMorseIdle();
-
-    await sleep(150);
-
-    // Restart loop audio (runSoalLoop akan naikkan token + beep.mp3 di awal)
-    runSoalLoop(STATE.currentSoalIndex);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// SYNC LAYOUT
-// ═══════════════════════════════════════════════════════════
-async function syncLayout() {
-  try {
-    const { data, error } = await supabaseClient
-      .from('admin_layout_morse_match')
-      .select('*')
-      .eq('id', 1)
-      .maybeSingle();
-
-    if (error || !data) return;
-    const view = data.current_view || 'idle';
-    const rank = data.revealed_rank || 0;
-
-    if (view === 'leaderboard' || view === 'all_players') {
-      switchView(view, rank);
-      return;
-    }
-
-    if (STATE.currentMode === 'game' || STATE.currentMode === 'hafal') {
-      return;
-    }
-
-    switchView(view, rank);
-  } catch (e) { LOG.err('syncLayout', e); }
-}
-
-// ═══════════════════════════════════════════════════════════
-// SCORES / LEADERBOARD
+// LEADERBOARD / SCORES
 // ═══════════════════════════════════════════════════════════
 async function loadScores() {
   const { data, error } = await supabaseClient
     .from('game_scores')
     .select('user_unique_id, score_obtained')
     .eq('game_name', GAME_NAME);
-
   if (error) { LOG.warn('loadScores', error.message); return []; }
 
   const map = {};
@@ -986,10 +927,7 @@ async function loadScores() {
     if (!r.user_unique_id) return;
     map[r.user_unique_id] = (map[r.user_unique_id] || 0) + Number(r.score_obtained || 0);
   });
-
-  return Object.keys(map)
-    .map(uid => ({ uid, total: map[uid] }))
-    .sort((a, b) => b.total - a.total);
+  return Object.keys(map).map(uid => ({ uid, total: map[uid] })).sort((a, b) => b.total - a.total);
 }
 
 async function fetchAndRenderLeaderboard(revealedRank) {
@@ -1000,18 +938,15 @@ async function fetchAndRenderLeaderboard(revealedRank) {
 function renderLeaderboardCard(scores, rank) {
   const c = UI.el('leaderboardCard');
   if (!c) return;
-
   if (!rank || rank === 0) {
     c.innerHTML = `<p class="text-slate-500 text-2xl py-20">Siap-siap... Pengumuman Pemenang!</p>`;
     return;
   }
-
   const p = scores[rank - 1];
   if (!p) {
     c.innerHTML = `<p class="text-slate-400 text-2xl py-20">Belum ada peserta di peringkat #${rank}</p>`;
     return;
   }
-
   const themeMap = {
     1: { bg: 'from-amber-500/30 via-yellow-500/15 to-amber-900/20', border: 'border-amber-400', badge: 'bg-amber-400 text-slate-950', label: '👑 JUARA 1' },
     2: { bg: 'from-slate-300/20 via-slate-400/10 to-slate-800/30', border: 'border-slate-300', badge: 'bg-slate-200 text-slate-950', label: '🥈 JUARA 2' },
@@ -1023,21 +958,14 @@ function renderLeaderboardCard(scores, rank) {
     badge: 'bg-slate-700 text-slate-200',
     label: `PERINGKAT #${rank}`
   };
-
   const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
-
   c.innerHTML = `
     <div class="animate-card-pop bg-gradient-to-br ${theme.bg} border-4 ${theme.border} rounded-[2.5rem] p-12 flex flex-col items-center gap-6">
-      <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">
-        ${theme.label}
-      </div>
-
+      <div class="px-8 py-2.5 rounded-full ${theme.badge} font-math font-black text-xl uppercase tracking-wider shadow-xl">${theme.label}</div>
       <div class="w-44 h-44 rounded-3xl bg-slate-950/80 border-4 border-white/20 p-3 shadow-2xl">
         <img src="${avatar}" class="w-full h-full object-contain" alt="${p.uid}" />
       </div>
-
       <h3 class="text-5xl font-math font-black text-white text-center">${p.uid}</h3>
-
       <div class="text-4xl font-math font-black text-amber-400 bg-amber-500/15 px-10 py-3 rounded-3xl border-2 border-amber-500/40">
         ${Number(p.total).toFixed(2)} PTS
       </div>
@@ -1049,29 +977,22 @@ async function fetchAndRenderAllPlayers() {
   const scores = await loadScores();
   const c = UI.el('allPlayersGrid');
   if (!c) return;
-
   if (scores.length === 0) {
     c.innerHTML = `<p class="col-span-full text-center text-slate-500 text-xl py-20">Belum ada peserta.</p>`;
     return;
   }
-
   c.innerHTML = '';
   scores.forEach((p, i) => {
     const rank = i + 1;
     const rankColor = rank === 1 ? 'amber' : rank === 2 ? 'slate' : rank === 3 ? 'orange' : 'slate';
     const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(p.uid)}`;
-
     const card = document.createElement('div');
     card.className = `p-4 rounded-2xl border bg-slate-900/60 backdrop-blur-sm flex items-center gap-3 border-${rankColor}-500/30 animate-card-pop`;
     card.style.animationDelay = `${i * 0.05}s`;
     card.innerHTML = `
-      <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">
-        ${rank}
-      </div>
+      <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-${rankColor}-500/20 border border-${rankColor}-500/40 flex items-center justify-center font-math font-black text-${rankColor}-300">${rank}</div>
       <img src="${avatar}" class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-700 flex-shrink-0" />
-      <div class="flex-1 min-w-0">
-        <div class="font-bold text-white truncate">${p.uid}</div>
-      </div>
+      <div class="flex-1 min-w-0"><div class="font-bold text-white truncate">${p.uid}</div></div>
       <div class="text-right">
         <div class="font-math font-black text-amber-400 text-xl">${Number(p.total).toFixed(2)}</div>
         <div class="text-[9px] text-slate-500 uppercase">PTS</div>
@@ -1087,18 +1008,50 @@ async function fetchAndRenderAllPlayers() {
 function setupRealtime() {
   const channel = supabaseClient.channel('morse_layout_rt');
 
+  // ⭐ State change (mode game/hafal/idle) → auto-trigger
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'system_morse_match_state' },
-    () => syncStateAndSoal());
+    async (payload) => {
+      if (payload.new) {
+        STATE.currentMode = payload.new.mode || 'idle';
+        STATE.sessionId = payload.new.session_id;
+        STATE.hafalDurationSec = payload.new.hafal_duration_sec || 900;
+        STATE.soalDurationSec = payload.new.soal_duration_sec || 60;
+        STATE.totalSoal = payload.new.total_soal || 30;
+        STATE.startedAt = payload.new.started_at;
 
+        handleModeChangeFromDB(payload.new);
+      }
+    });
+
+  // Soal di-update (dari admin) → reload soal list
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'system_morse_match_questions' },
     () => { LOG.info('⚡ Soal di-update, reload...'); loadSoal(); });
 
+  // Layout view di-update (leaderboard / all_players / idle / hafal / game) → switch view
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'admin_layout_morse_match' },
-    () => syncLayout());
+    (payload) => {
+      if (!payload.new) return;
+      const v = payload.new.current_view || 'idle';
 
+      // ⭐ Kalau layout set game → panggil startGameLocal
+      if (v === 'game' && !STATE.isRunningGame) {
+        startGameLocal();
+      } else if (v === 'idle' && STATE.isRunningGame) {
+        stopGameLocal();
+      } else if (v === 'hafal') {
+        if (STATE.isRunningGame) stopGameLocal();
+        switchView('hafal');
+      } else if (v === 'leaderboard') {
+        switchView('leaderboard', payload.new.revealed_rank || 0);
+      } else if (v === 'all_players') {
+        switchView('all_players');
+      }
+    });
+
+  // Realtime skor
   channel.on('postgres_changes',
     { event: '*', schema: 'public', table: 'game_scores' },
     () => {
@@ -1112,42 +1065,21 @@ function setupRealtime() {
     UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
   });
 
+  // Fallback polling (kalau realtime mati)
   setInterval(async () => {
-    await loadState();
-    await syncLayout();
-    await handleSoalChange();
-    updateViewFromMode();
-  }, 2000);
-}
-
-async function syncStateAndSoal() {
-  await loadState();
-  await handleSoalChange();
-  updateViewFromMode();
-}
-
-function updateViewFromMode() {
-  if (STATE.currentView === 'leaderboard' || STATE.currentView === 'all_players') {
-    return;
-  }
-
-  if (STATE.currentMode === 'game' && STATE.currentView !== 'game') {
-    LOG.info(`mode=game → switch ke game view`);
-    switchView('game');
-  } else if (STATE.currentMode === 'hafal' && STATE.currentView !== 'hafal') {
-    LOG.info(`mode=hafal → switch ke hafal view`);
-    switchView('hafal');
-  } else if (STATE.currentMode === 'idle' && STATE.currentView !== 'idle') {
-    LOG.info(`mode=idle → switch ke idle view`);
-    switchView('idle');
-  }
+    const data = await loadState();
+    if (data && !STATE.isRunningGame && data.mode === 'game') {
+      // Sinkron kalau realtime tidak aktif
+      handleModeChangeFromDB(data);
+    }
+  }, 3000);
 }
 
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
 (async function init() {
-  LOG.ok('══════════ MORSE MATCH LAYOUT BOOT ══════════');
+  LOG.ok('══════════ MORSE LAYOUT BOOT (layout-driven) ══════════');
   UI.dbg('boot', '-', '-', 'off');
 
   await loadState();
@@ -1155,14 +1087,26 @@ function updateViewFromMode() {
   await loadAudioSettings();
   await loadSoal();
 
-  LOG.info(`Init selesai. soalLoaded=${STATE.soalLoaded}, total soal=${STATE.soalList.length}`);
+  LOG.info(`Init: soalLoaded=${STATE.soalLoaded}, total=${STATE.soalList.length}`);
 
-  await syncLayout();
+  // Sync state awal dari DB (kalau layout dibuka saat game sudah jalan)
+  const dbData = await loadState();
+  if (dbData) {
+    STATE.lastKnownMode = dbData.mode;
+    STATE.lastKnownSessionId = dbData.session_id;
+    if (dbData.mode === 'game') {
+      LOG.ok('🔵 Layout dibuka saat mode=game → langsung start');
+      // Delay kecil biar audio siap
+      setTimeout(() => startGameLocal(), 500);
+    } else if (dbData.mode === 'hafal') {
+      switchView('hafal');
+    } else {
+      switchView('idle');
+    }
+  }
+
   setupRealtime();
-  updateViewFromMode();
-
   LOG.ok('══════════ READY ══════════');
-  UI.dbg(STATE.currentView, '-', STATE.realtimeConnected ? 'rt' : 'poll', STATE.audioUnlocked ? 'on' : 'off');
 })();
 
 window.unlockAudio = unlockAudio;
