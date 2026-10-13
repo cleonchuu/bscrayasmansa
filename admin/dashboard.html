@@ -4,11 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard - Crypta Treasure Hunt</title>
-  
-  <!-- Tailwind CSS CDN -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Supabase CDN (UNPKG) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
   <style>
@@ -17,23 +14,49 @@
       color: #f8fafc;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
-    
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+    /* ⭐ Badge eliminated */
+    .badge-eliminated {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.5);
+      color: #fda4af;
     }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
+    .badge-active {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: #6ee7b7;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
+    .row-eliminated {
+      opacity: 0.55;
+      background: rgba(127, 29, 29, 0.08) !important;
     }
+    .row-eliminated .text-slate-100 { color: #94a3b8 !important; }
+    .row-eliminated .text-amber-400 { color: #94a3b8 !important; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- TOPBAR / HEADER -->
+  <!-- TOPBAR -->
   <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
     <div class="flex items-center gap-3">
       <div class="bg-amber-500/20 text-amber-400 p-2 rounded-xl border border-amber-500/30 font-black text-xl">
@@ -45,7 +68,6 @@
       </div>
     </div>
 
-    <!-- HOST / GAME QUICK JOIN -->
     <div class="flex items-center gap-3 bg-slate-800/80 p-2 rounded-2xl border border-slate-700">
       <span class="text-xs font-semibold text-slate-300 ml-2">Host Access:</span>
       <select id="gameSelect" class="bg-slate-900 text-amber-400 border border-slate-700 text-xs rounded-xl px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-400">
@@ -67,11 +89,10 @@
     </div>
   </header>
 
-  <!-- MAIN CONTAINER -->
   <main class="flex-1 p-6 space-y-6">
 
-    <!-- STATS CARDS -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <!-- STATS CARDS (⭐ tambah kartu eliminasi) -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
       <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
         <div>
           <div class="text-xs text-slate-400 font-medium">Total Peserta</div>
@@ -96,20 +117,28 @@
         <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">📊</div>
       </div>
 
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
+      <!-- ⭐ Kartu Aktif -->
+      <div class="bg-slate-800 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between">
         <div>
-          <div class="text-xs text-slate-400 font-medium">Status Supabase</div>
-          <div class="text-xs font-bold text-emerald-400 mt-2 flex items-center gap-1.5" id="supabaseStatus">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
-          </div>
+          <div class="text-xs text-emerald-400 font-medium">Aktif (Lolos)</div>
+          <div class="text-2xl font-black text-emerald-400 mt-1" id="statAktif">0</div>
         </div>
-        <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">⚡</div>
+        <div class="text-3xl bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30">✅</div>
+      </div>
+
+      <!-- ⭐ Kartu Tereliminasi -->
+      <div class="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <div class="text-xs text-rose-400 font-medium">Tereliminasi</div>
+          <div class="text-2xl font-black text-rose-400 mt-1" id="statTereliminasi">0</div>
+        </div>
+        <div class="text-3xl bg-rose-500/10 p-3 rounded-xl border border-rose-500/30">🚫</div>
       </div>
     </div>
 
-    <!-- MIDDLE SECTION: TOP 10 RANKING & RANKING SEKOLAH -->
+    <!-- MIDDLE SECTION -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      
+
       <!-- TOP 10 PESERTA -->
       <div class="lg:col-span-5 bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
         <div>
@@ -126,7 +155,7 @@
         </div>
       </div>
 
-      <!-- RANKING SEKOLAH (RATA-RATA POIN) -->
+      <!-- RANKING SEKOLAH -->
       <div class="lg:col-span-7 bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl flex flex-col justify-between">
         <div>
           <div class="flex items-center justify-between mb-4">
@@ -142,13 +171,14 @@
                 <tr>
                   <th class="p-3 rounded-l-xl">Rank</th>
                   <th class="p-3">Nama Sekolah</th>
-                  <th class="p-3 text-center">Jumlah Peserta</th>
-                  <th class="p-3 text-center">Total Poin</th>
-                  <th class="p-3 text-right rounded-r-xl">Rata-Rata Poin</th>
+                  <th class="p-3 text-center">Peserta</th>
+                  <th class="p-3 text-center">Aktif</th>
+                  <th class="p-3 text-center">Elim</th>
+                  <th class="p-3 text-right rounded-r-xl">Rata-Rata</th>
                 </tr>
               </thead>
               <tbody id="schoolRankBody" class="divide-y divide-slate-700/50 font-medium">
-                <tr><td colspan="5" class="p-4 text-center text-slate-500">Memuat data sekolah...</td></tr>
+                <tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data sekolah...</td></tr>
               </tbody>
             </table>
           </div>
@@ -157,7 +187,7 @@
 
     </div>
 
-    <!-- BOTTOM SECTION: TABEL RINGKAS PESERTA -->
+    <!-- TABEL PESERTA -->
     <div class="bg-slate-800 border border-slate-700 rounded-3xl p-5 shadow-xl">
       <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
@@ -167,8 +197,18 @@
           <p class="text-xs text-slate-400">Data realtime dari akumulasi seluruh game pada tabel users</p>
         </div>
 
-        <div class="w-full sm:w-64">
-          <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari ID / Nama / Sekolah..." class="w-full bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 placeholder-slate-500">
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- ⭐ Filter status -->
+          <select id="filterStatus" onchange="filterTable()" class="bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
+            <option value="all">Semua Peserta</option>
+            <option value="active">✅ Hanya Aktif</option>
+            <option value="eliminated">🚫 Hanya Tereliminasi</option>
+          </select>
+
+          <!-- Search -->
+          <div class="w-full sm:w-64">
+            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari ID / Nama / Sekolah..." class="w-full bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 placeholder-slate-500">
+          </div>
         </div>
       </div>
 
@@ -180,52 +220,60 @@
               <th class="p-3 border-b border-slate-700">ID Peserta</th>
               <th class="p-3 border-b border-slate-700">Nama Peserta</th>
               <th class="p-3 border-b border-slate-700">Sekolah</th>
+              <th class="p-3 border-b border-slate-700 text-center">Status</th>
               <th class="p-3 border-b border-slate-700 text-right text-amber-400 font-bold bg-slate-950/60">Total Poin</th>
             </tr>
           </thead>
           <tbody id="participantMatrixBody" class="divide-y divide-slate-700/50 font-medium">
-            <tr><td colspan="5" class="p-4 text-center text-slate-500">Memuat data peserta...</td></tr>
+            <tr><td colspan="6" class="p-4 text-center text-slate-500">Memuat data peserta...</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="mt-3 text-[11px] text-slate-500 text-right">
+        <span id="rowCount">0</span> baris ditampilkan
       </div>
     </div>
 
   </main>
 
   <script>
-    // 1. INISIALISASI SUPABASE CLIENT
+    // ═══════════════════════════════════════════════════════════
+    // SUPABASE
+    // ═══════════════════════════════════════════════════════════
     const supabaseUrl = 'https://endlrberfaxqhjrpvoss.supabase.co';
     const supabaseKey = 'sb_publishable_ts7-cOhRLAKGP4dqa4nExA_6hCktIHa';
-    
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     let globalParticipants = [];
 
-    // 2. AMBIL DATA USERS (DI-FILTER HANYA ROLE PESERTA)
+    // ═══════════════════════════════════════════════════════════
+    // FETCH DATA
+    // ═══════════════════════════════════════════════════════════
     async function fetchDashboardData() {
       try {
         const { data, error } = await supabaseClient
           .from('users')
-          .select('unique_id, full_name, school_name, total_points, role')
-          .eq('role', 'peserta') // Hanya tampilkan peserta, abaikan admin
+          .select('unique_id, full_name, school_name, total_points, role, is_eliminated, eliminated_at')
+          .eq('role', 'peserta')
           .order('total_points', { ascending: false });
 
         if (error) throw error;
 
-        globalParticipants = data.map(u => ({
+        globalParticipants = (data || []).map(u => ({
           id: u.unique_id || 'N/A',
           name: u.full_name || u.unique_id || 'Anonim',
           school: u.school_name || 'Tanpa Sekolah',
-          total: u.total_points || 0
+          total: u.total_points || 0,
+          isEliminated: u.is_eliminated === true,
+          eliminatedAt: u.eliminated_at || null
         }));
 
-        // Render UI
         updateStats();
         renderTop10();
         renderSchoolRank();
         renderSimpleUserTable();
 
-        // Status Ok
         document.getElementById('supabaseStatus').innerHTML = `
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
         `;
@@ -240,19 +288,28 @@
       }
     }
 
-    // 3. STATISTIK RINGKAS
+    // ═══════════════════════════════════════════════════════════
+    // STATS
+    // ═══════════════════════════════════════════════════════════
     function updateStats() {
       const totalPeserta = globalParticipants.length;
       const schoolsSet = new Set(globalParticipants.map(p => p.school));
       const totalPoinAll = globalParticipants.reduce((sum, p) => sum + p.total, 0);
       const avgPoin = totalPeserta > 0 ? Math.round(totalPoinAll / totalPeserta) : 0;
 
+      const aktif = globalParticipants.filter(p => !p.isEliminated).length;
+      const elim = globalParticipants.filter(p => p.isEliminated).length;
+
       document.getElementById('statTotalPeserta').textContent = totalPeserta;
       document.getElementById('statTotalSekolah').textContent = schoolsSet.size;
       document.getElementById('statAvgPoin').textContent = avgPoin.toLocaleString();
+      document.getElementById('statAktif').textContent = aktif;
+      document.getElementById('statTereliminasi').textContent = elim;
     }
 
-    // 4. RENDER TOP 10 PESERTA
+    // ═══════════════════════════════════════════════════════════
+    // TOP 10 (⭐ dengan badge elim)
+    // ═══════════════════════════════════════════════════════════
     function renderTop10() {
       const container = document.getElementById('top10Container');
       const top10 = globalParticipants.slice(0, 10);
@@ -261,21 +318,29 @@
         container.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Belum ada data peserta.</div>`;
         return;
       }
-      
+
       container.innerHTML = top10.map((p, idx) => {
         let badgeColor = "bg-slate-700 text-slate-300";
         if (idx === 0) badgeColor = "bg-amber-400 text-slate-950 font-black";
         else if (idx === 1) badgeColor = "bg-slate-300 text-slate-950 font-black";
         else if (idx === 2) badgeColor = "bg-amber-700 text-amber-100 font-black";
 
+        const elimClass = p.isEliminated ? 'opacity-60' : '';
+        const badge = p.isEliminated
+          ? `<span class="badge-eliminated">🚫 ELIM</span>`
+          : `<span class="badge-active">✓ AKTIF</span>`;
+
         return `
-          <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 p-2.5 rounded-2xl hover:border-slate-500 transition">
+          <div class="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 p-2.5 rounded-2xl hover:border-slate-500 transition ${elimClass}">
             <div class="flex items-center gap-3">
               <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs ${badgeColor}">
                 ${idx + 1}
               </span>
               <div>
-                <div class="font-bold text-xs text-slate-100">${p.name}</div>
+                <div class="font-bold text-xs text-slate-100 flex items-center gap-2">
+                  ${p.name}
+                  ${badge}
+                </div>
                 <div class="text-[10px] text-slate-400">${p.school}</div>
               </div>
             </div>
@@ -287,16 +352,20 @@
       }).join('');
     }
 
-    // 5. RENDER RANKING SEKOLAH
+    // ═══════════════════════════════════════════════════════════
+    // RANKING SEKOLAH (⭐ dengan kolom aktif/elim)
+    // ═══════════════════════════════════════════════════════════
     function renderSchoolRank() {
       const schoolMap = {};
 
       globalParticipants.forEach(p => {
         if (!schoolMap[p.school]) {
-          schoolMap[p.school] = { name: p.school, count: 0, totalPoin: 0 };
+          schoolMap[p.school] = { name: p.school, count: 0, totalPoin: 0, aktif: 0, elim: 0 };
         }
         schoolMap[p.school].count += 1;
         schoolMap[p.school].totalPoin += p.total;
+        if (p.isEliminated) schoolMap[p.school].elim += 1;
+        else schoolMap[p.school].aktif += 1;
       });
 
       const schools = Object.values(schoolMap).map(s => ({
@@ -306,7 +375,7 @@
 
       const tbody = document.getElementById('schoolRankBody');
       if (schools.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Belum ada sekolah terdaftar.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Belum ada sekolah terdaftar.</td></tr>`;
         return;
       }
 
@@ -314,64 +383,95 @@
         <tr class="hover:bg-slate-700/30 transition">
           <td class="p-3 font-mono font-bold text-slate-400">#${idx + 1}</td>
           <td class="p-3 font-semibold text-slate-200">${s.name}</td>
-          <td class="p-3 text-center">${s.count} Siswa</td>
-          <td class="p-3 text-center font-mono text-slate-400">${s.totalPoin}</td>
-          <td class="p-3 text-right font-mono font-bold text-emerald-400">${s.avg} pts</td>
+          <td class="p-3 text-center">${s.count}</td>
+          <td class="p-3 text-center font-mono text-emerald-400 font-bold">${s.aktif}</td>
+          <td class="p-3 text-center font-mono text-rose-400 font-bold">${s.elim}</td>
+          <td class="p-3 text-right font-mono font-bold text-amber-400">${s.avg} pts</td>
         </tr>
       `).join('');
     }
 
-    // 6. RENDER TABEL UTAMA PESERTA
+    // ═══════════════════════════════════════════════════════════
+    // TABEL PESERTA (⭐ kolom status)
+    // ═══════════════════════════════════════════════════════════
     function renderSimpleUserTable() {
       const tbody = document.getElementById('participantMatrixBody');
       if (!tbody) return;
 
       if (globalParticipants.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">Belum ada data peserta.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Belum ada data peserta.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = globalParticipants.map((p, idx) => `
-        <tr class="hover:bg-slate-700/30 transition participant-row">
-          <td class="p-3 font-mono text-slate-500">#${idx + 1}</td>
-          <td class="p-3 font-mono font-bold text-amber-400 search-id">${p.id}</td>
-          <td class="p-3 font-bold text-slate-100 search-name">${p.name}</td>
-          <td class="p-3 text-slate-400 text-[11px] search-school">${p.school}</td>
-          <td class="p-3 text-right font-mono font-black text-amber-400 text-sm bg-slate-950/50">${p.total} pts</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = globalParticipants.map((p, idx) => {
+        const isElim = p.isEliminated;
+        const statusBadge = isElim
+          ? `<span class="badge-eliminated">🚫 TERELIMINASI</span>`
+          : `<span class="badge-active">✓ AKTIF</span>`;
+
+        const elimDate = isElim && p.eliminatedAt
+          ? `<div class="text-[9px] text-rose-300/60 mt-0.5">${new Date(p.eliminatedAt).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})}</div>`
+          : '';
+
+        return `
+          <tr class="hover:bg-slate-700/30 transition participant-row ${isElim ? 'row-eliminated' : ''}" data-status="${isElim ? 'eliminated' : 'active'}">
+            <td class="p-3 font-mono text-slate-500">#${idx + 1}</td>
+            <td class="p-3 font-mono font-bold text-amber-400 search-id">${p.id}</td>
+            <td class="p-3 font-bold text-slate-100 search-name">${p.name}</td>
+            <td class="p-3 text-slate-400 text-[11px] search-school">${p.school}</td>
+            <td class="p-3 text-center">
+              ${statusBadge}
+              ${elimDate}
+            </td>
+            <td class="p-3 text-right font-mono font-black text-amber-400 text-sm bg-slate-950/50">${p.total} pts</td>
+          </tr>
+        `;
+      }).join('');
+
+      updateRowCount();
     }
 
-    // 7. REALTIME SUBSCRIPTION
+    function updateRowCount() {
+      const visible = document.querySelectorAll('.participant-row:not([style*="display: none"])').length;
+      document.getElementById('rowCount').textContent = visible;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REALTIME
+    // ═══════════════════════════════════════════════════════════
     function setupRealtimeSubscription() {
       supabaseClient
         .channel('public-users-changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'users' },
-          () => {
-            fetchDashboardData();
-          }
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+          fetchDashboardData();
+        })
         .subscribe();
     }
 
-    // 8. FITUR SEARCH & HOST
+    // ═══════════════════════════════════════════════════════════
+    // FILTER (⭐ search + status)
+    // ═══════════════════════════════════════════════════════════
     function filterTable() {
       const input = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('filterStatus').value;
       const rows = document.querySelectorAll('.participant-row');
 
       rows.forEach(row => {
-        const id = row.querySelector('.search-id') ? row.querySelector('.search-id').textContent.toLowerCase() : '';
-        const name = row.querySelector('.search-name') ? row.querySelector('.search-name').textContent.toLowerCase() : '';
-        const school = row.querySelector('.search-school') ? row.querySelector('.search-school').textContent.toLowerCase() : '';
-        
-        if (id.includes(input) || name.includes(input) || school.includes(input)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+        const id = row.querySelector('.search-id')?.textContent.toLowerCase() || '';
+        const name = row.querySelector('.search-name')?.textContent.toLowerCase() || '';
+        const school = row.querySelector('.search-school')?.textContent.toLowerCase() || '';
+        const status = row.dataset.status || '';
+
+        const matchSearch = id.includes(input) || name.includes(input) || school.includes(input);
+        const matchStatus =
+          statusFilter === 'all' ? true :
+          statusFilter === 'active' ? status === 'active' :
+          status === 'eliminated';
+
+        row.style.display = (matchSearch && matchStatus) ? '' : 'none';
       });
+
+      updateRowCount();
     }
 
     function launchHostGame() {
@@ -379,7 +479,6 @@
       window.open(selectedGame, '_blank');
     }
 
-    // ON LOAD
     window.onload = () => {
       fetchDashboardData();
       setupRealtimeSubscription();
