@@ -101,7 +101,6 @@
     .floaty-2 { animation: floaty 8s ease-in-out infinite; animation-delay: -2s; }
     .floaty-3 { animation: floaty 7s ease-in-out infinite; animation-delay: -4s; }
 
-    /* ELIMINATED STATE */
     .eliminated {
       filter: grayscale(1) brightness(0.5);
       opacity: 0.45;
@@ -225,7 +224,6 @@
       transition: all 0.5s ease;
     }
 
-    /* SOLAR SYSTEM */
     #solarSystem {
       position: absolute;
       inset: 0;
@@ -399,7 +397,6 @@
       object-fit: cover;
     }
 
-    /* FINALISTS */
     @keyframes rankCardIn {
       0% { opacity: 0; transform: scale(0.3) rotate(-20deg); filter: blur(15px); }
       60% { opacity: 1; transform: scale(1.1) rotate(4deg); filter: blur(0); }
@@ -431,11 +428,6 @@
       z-index: 10;
     }
 
-    .glow-rank-1 { box-shadow: 0 0 60px rgba(251, 191, 36, 0.9), 0 0 120px rgba(251, 191, 36, 0.5); }
-    .glow-rank-2 { box-shadow: 0 0 60px rgba(226, 232, 240, 0.7), 0 0 120px rgba(226, 232, 240, 0.35); }
-    .glow-rank-3 { box-shadow: 0 0 60px rgba(217, 119, 6, 0.8), 0 0 120px rgba(217, 119, 6, 0.4); }
-
-    /* Finalist card */
     .finalist-info-card {
       background: linear-gradient(145deg, rgba(30, 27, 75, 0.95), rgba(15, 23, 42, 0.98));
       border: 4px solid;
@@ -556,6 +548,70 @@
       font-size: 0.85rem;
     }
 
+    /* Grid all finalists */
+    .finalist-grid-card {
+      background: linear-gradient(145deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.95));
+      border: 2px solid rgba(251, 191, 36, 0.5);
+      border-radius: 1.25rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.3s ease;
+      animation: rankCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+    .finalist-grid-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(251, 191, 36, 0.9);
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+    }
+    .finalist-grid-card .fgc-avatar {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.9);
+      border: 2px solid rgba(251, 191, 36, 0.4);
+    }
+    .finalist-grid-card .fgc-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .finalist-grid-card .fgc-name {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #fff;
+      text-align: center;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      max-width: 100%;
+    }
+    .finalist-grid-card .fgc-school {
+      font-size: 0.5rem;
+      color: #a5b4fc;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .finalist-grid-card .fgc-points {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      font-weight: 900;
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
     #confettiCanvas {
       position: fixed; inset: 0;
       width: 100vw; height: 100vh;
@@ -604,7 +660,7 @@
   <canvas id="confettiCanvas"></canvas>
 
   <div id="dbgBadge" class="fixed top-2 right-2 text-[10px] font-mono bg-black/80 border border-white/10 rounded-lg px-2 py-1 text-slate-300 z-[200] pointer-events-none">
-    <span id="dbgView">boot</span> · <span id="dbgSchool">-</span> · <span id="dbgCount">0</span>
+    <span id="dbgView">boot</span> · <span id="dbgSchool">-</span> · <span id="dbgCount">0</span> · <span id="dbgReveal">-</span>
   </div>
 
   <!-- VIEW 1: IDLE -->
@@ -772,11 +828,10 @@
   const MOON_ORBIT_RADIUS = 60;
   const MOON_ORBIT_DURATION = 12;
 
-  // ⭐ KONFIGURASI ORBIT FINAL
   const FINAL_DAY = 3;
-  const INNER_ORBIT_RADIUS = 260;        // ⭐ diperbesar (dari 190)
+  const INNER_ORBIT_RADIUS = 260;
   const INNER_ORBIT_DURATION = 45;
-  const OUTER_ORBIT_RADIUS = 520;        // ⭐ diperbesar (dari 300)
+  const OUTER_ORBIT_RADIUS = 520;
   const OUTER_ORBIT_DURATION = 90;
 
   const TAG = '[OPENING]';
@@ -795,6 +850,10 @@
     lastSig: '',
     realtimeConnected: false,
 
+    // ⭐ Finalist reveal state
+    finalistRevealMode: 'auto',       // auto | single | all
+    finalistSelectedUid: null,
+
     reelData: [],
     reelIndex: 0,
     reelActive: false,
@@ -805,6 +864,7 @@
     finalistData: [],
     finalistTimer: null,
     finalistSessionId: 0,
+    finalistRainInterval: null,
 
     allParticipants: [],
     finalistBioMap: {}
@@ -1086,7 +1146,6 @@
     return data || [];
   }
   async function fetchFinalists() {
-    // Ambil semua peserta yang masih aktif (belum di-eliminasi)
     const { data, error } = await supabaseClient
       .from('users')
       .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
@@ -1123,9 +1182,17 @@
 
       const map = {};
       (data || []).forEach(row => {
+        // ⭐ Support text[] atau text biasa
+        let prestasiArr = [];
+        if (Array.isArray(row.prestasi)) {
+          prestasiArr = row.prestasi.filter(x => x && String(x).trim().length > 0);
+        } else if (typeof row.prestasi === 'string' && row.prestasi.trim()) {
+          prestasiArr = row.prestasi.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+        }
+
         map[row.unique_id] = {
           motto: row.motto || '',
-          prestasi: row.prestasi || ''
+          prestasi: prestasiArr
         };
       });
       return map;
@@ -1469,9 +1536,7 @@
     SOLAR_STATE.innerOrbitals = [];
     SOLAR_STATE.outerPlanets = [];
 
-    // 1. Ambil SEMUA finalis (peserta aktif)
     const finalists = participants.filter(p => p.is_eliminated !== true);
-
     finalists.sort((a, b) => {
       const sc = (a.school_name || '').localeCompare(b.school_name || '');
       if (sc !== 0) return sc;
@@ -1480,11 +1545,9 @@
 
     const finalistList = finalists;
 
-    // 2. Fetch bio finalis
     const uids = finalistList.map(f => f.unique_id);
     STATE.finalistBioMap = await fetchFinalistBio(uids);
 
-    // 3. Orbit dalam: finalis
     const innerRing = document.createElement('div');
     innerRing.className = 'orbit-ring';
     innerRing.style.width = (INNER_ORBIT_RADIUS * 2) + 'px';
@@ -1512,7 +1575,6 @@
       });
     });
 
-    // 4. Orbit luar: peserta tereliminasi per sekolah
     const eliminated = participants.filter(p => p.is_eliminated === true);
 
     const groupBySchoolElim = {};
@@ -1664,19 +1726,17 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS — dengan motto & prestasi
+  // VIEW 4: FINALISTS — dengan 3 mode reveal
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
     const mySession = STATE.finalistSessionId;
 
     const finalists = await fetchFinalists();
-
     if (mySession !== STATE.finalistSessionId) return;
 
     STATE.finalistData = finalists;
 
-    // ⭐ Update header count dinamis
     const headerCount = document.getElementById('finalistsHeaderCount');
     if (headerCount) headerCount.textContent = finalists.length;
 
@@ -1686,9 +1746,55 @@
       return;
     }
 
+    // Fetch bio untuk semua
     const uids = finalists.map(f => f.unique_id);
     STATE.finalistBioMap = await fetchFinalistBio(uids);
 
+    if (mySession !== STATE.finalistSessionId) return;
+
+    // ⭐ Baca mode dari STATE (sudah sync dari DB)
+    const mode = STATE.finalistRevealMode || 'auto';
+    const selectedUid = STATE.finalistSelectedUid || null;
+
+    LOG.ok(`Finalist reveal mode: ${mode}`);
+
+    // ⭐ MODE: SINGLE — tampil 1 finalis spesifik
+    if (mode === 'single' && selectedUid) {
+      const target = finalists.find(f => f.unique_id === selectedUid);
+      if (target) {
+        renderFinalistCard(target);
+        startConfettiLoop();
+        burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 100);
+        for (let k = 0; k < 15; k++) rainConfetti(2);
+        playBell();
+      } else {
+        document.getElementById('finalistCardContainer').innerHTML =
+          '<p class="text-slate-500 text-xl">Finalis tidak ditemukan.</p>';
+      }
+      return;
+    }
+
+    // ⭐ MODE: ALL — grid semua finalis
+    if (mode === 'all') {
+      renderAllFinalistsGrid(finalists);
+      startConfettiLoop();
+      burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 150);
+      for (let k = 0; k < 20; k++) rainConfetti(3);
+      playBell();
+
+      // Rain interval terus menerus
+      STATE.finalistRainInterval = setInterval(() => {
+        if (STATE.currentView !== 'finalists' || mySession !== STATE.finalistSessionId) {
+          clearInterval(STATE.finalistRainInterval);
+          STATE.finalistRainInterval = null;
+          return;
+        }
+        for (let k = 0; k < 6; k++) rainConfetti(1);
+      }, 200);
+      return;
+    }
+
+    // ⭐ MODE: AUTO (default) — rotate dari rank akhir ke #1
     const ordered = [...finalists].reverse();
     startConfettiLoop();
 
@@ -1696,6 +1802,8 @@
     const tick = async () => {
       if (STATE.currentView !== 'finalists') return;
       if (mySession !== STATE.finalistSessionId) return;
+      // Cek mode masih auto
+      if (STATE.finalistRevealMode !== 'auto') return;
 
       const p = ordered[i];
       renderFinalistCard(p);
@@ -1707,24 +1815,58 @@
       await delay(FINALIST_DURATION);
 
       if (mySession !== STATE.finalistSessionId) return;
+      if (STATE.finalistRevealMode !== 'auto') return;
 
       i++;
       if (i < ordered.length) {
         STATE.finalistTimer = setTimeout(tick, 400);
       } else {
-        const rainInterval = setInterval(() => {
-          if (STATE.currentView !== 'finalists' || mySession !== STATE.finalistSessionId) {
-            clearInterval(rainInterval);
-            return;
-          }
-          for (let k = 0; k < 8; k++) rainConfetti(1);
-        }, 200);
+        // Loop ulang dari awal
+        i = 0;
+        STATE.finalistTimer = setTimeout(tick, 800);
       }
     };
 
     tick();
   }
 
+  // ⭐ Render grid semua finalis
+  function renderAllFinalistsGrid(finalists) {
+    const container = document.getElementById('finalistCardContainer');
+    if (!container) return;
+
+    const count = finalists.length;
+    let cols = 5;
+    if (count <= 6) cols = 3;
+    else if (count <= 12) cols = 4;
+    else if (count <= 20) cols = 5;
+    else cols = 6;
+
+    const cards = finalists.map((f, idx) => {
+      const avatar = getAvatarUrl(f.unique_id, f.avatar_url);
+      return `
+        <div class="finalist-grid-card" style="animation-delay: ${idx * 40}ms">
+          <div class="fgc-avatar">
+            <img src="${avatar}" alt="${f.full_name}"
+                 onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}'"/>
+          </div>
+          <div class="fgc-name">${f.full_name || f.unique_id}</div>
+          <div class="fgc-school">${f.school_name || ''}</div>
+          <div class="fgc-points">${Number(f.total_point || 0).toFixed(0)} PTS</div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="w-full max-w-7xl max-h-[calc(100vh-140px)] overflow-y-auto pr-2" style="scrollbar-width: thin;">
+        <div class="grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr)); gap: 0.75rem;">
+          ${cards}
+        </div>
+      </div>
+    `;
+  }
+
+  // ⭐ Render kartu finalis (single / auto)
   function renderFinalistCard(p) {
     const container = document.getElementById('finalistCardContainer');
     if (!container) return;
@@ -1746,13 +1888,11 @@
       glowClass = '';
     }
 
-    const prestasiLines = (bio.prestasi || '')
-      .split('\n')
-      .map(x => x.trim())
-      .filter(x => x.length > 0);
+    // ⭐ Prestasi sudah array
+    const prestasiArr = Array.isArray(bio.prestasi) ? bio.prestasi : [];
 
-    const prestasiHtml = prestasiLines.length > 0
-      ? `<ul>${prestasiLines.map(line => `<li>${line}</li>`).join('')}</ul>`
+    const prestasiHtml = prestasiArr.length > 0
+      ? `<ul>${prestasiArr.map(line => `<li>${line}</li>`).join('')}</ul>`
       : `<span class="text-slate-500 italic">Belum ada data prestasi</span>`;
 
     const mottoHtml = bio.motto
@@ -1801,6 +1941,10 @@
       clearTimeout(STATE.finalistTimer);
       STATE.finalistTimer = null;
     }
+    if (STATE.finalistRainInterval) {
+      clearInterval(STATE.finalistRainInterval);
+      STATE.finalistRainInterval = null;
+    }
   }
 
   // SYNC LAYOUT
@@ -1817,14 +1961,25 @@
       const view = data.current_view || 'idle';
       const school = data.current_school || null;
       const day = data.current_day || 1;
-      const sig = `${view}|${school}|${day}|${data.updated_at}`;
+      const revealMode = data.finalist_reveal_mode || 'auto';
+      const selectedUid = data.finalist_selected_uid || null;
+
+      const sig = `${view}|${school}|${day}|${revealMode}|${selectedUid}|${data.updated_at}`;
 
       if (sig === STATE.lastSig) return;
       STATE.lastSig = sig;
 
-      LOG.ok(`Layout state: ${view} / ${school || '-'} / Day ${day}`);
+      const prevMode = STATE.finalistRevealMode;
+      const prevSelected = STATE.finalistSelectedUid;
+
+      STATE.finalistRevealMode = revealMode;
+      STATE.finalistSelectedUid = selectedUid;
+
+      LOG.ok(`Layout state: ${view} / ${school || '-'} / Day ${day} / Reveal: ${revealMode}`);
 
       STATE.currentDay = day;
+
+      document.getElementById('dbgReveal').textContent = revealMode;
 
       if (view === 'per_school' && school) {
         STATE.currentSchool = school;
@@ -1832,6 +1987,37 @@
       } else if (view === 'all_participants') {
         switchView('all_participants');
       } else if (view === 'finalists') {
+        // ⭐ Kalau sudah di view finalists dan mode/selection berubah
+        if (STATE.currentView === 'finalists') {
+          const modeChanged = (prevMode !== revealMode) || (prevSelected !== selectedUid);
+
+          if (modeChanged) {
+            LOG.info(`🔄 Finalist reveal update: ${prevMode} → ${revealMode}`);
+
+            // Stop loop lama
+            stopFinalistReel();
+
+            // Kalau single & target sudah ada → langsung update kartu
+            if (revealMode === 'single' && selectedUid) {
+              const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
+              if (target) {
+                renderFinalistCard(target);
+                startConfettiLoop();
+                burstConfetti(window.innerWidth / 2, window.innerHeight / 2, 80);
+                for (let k = 0; k < 12; k++) rainConfetti(2);
+                playBell();
+              }
+              return;
+            }
+
+            // Untuk mode auto/all → restart sequence
+            startFinalists();
+            return;
+          }
+
+          return;
+        }
+
         switchView('finalists');
       } else {
         switchView('idle');
