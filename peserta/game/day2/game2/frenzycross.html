@@ -57,6 +57,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
+  <!-- ELIMINATION OVERLAY -->
   <div id="eliminatedOverlay" class="eliminated-screen hidden text-center p-6">
     <div class="w-32 h-32 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
       <i class="fas fa-ban text-6xl text-rose-500"></i>
@@ -77,6 +78,7 @@
     </div>
   </div>
 
+  <!-- FREEZE OVERLAY -->
   <div id="freezeOverlay" class="freeze-screen hidden text-center p-6">
     <div class="w-24 h-24 bg-rose-500/10 border-2 border-rose-500/30 rounded-full flex items-center justify-center mb-6 pulse-soft">
       <i id="freezeIcon" class="fas fa-lock text-5xl text-rose-500"></i>
@@ -93,13 +95,16 @@
     </div>
   </div>
 
+  <!-- FLASH OVERLAY -->
   <div id="flashOverlay" class="flash-screen hidden">
     <div id="flashIcon" class="text-8xl mb-4"></div>
     <div id="flashText" class="tracking-wider uppercase text-center px-4"></div>
   </div>
 
+  <!-- MAIN CARD -->
   <main class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-3xl p-6 shadow-2xl">
 
+    <!-- HEADER -->
     <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-700/60">
       <div>
         <h1 class="text-xl font-black text-rose-400 tracking-wide">🧮 FRENZY CROSS MAZE</h1>
@@ -116,6 +121,7 @@
       </div>
     </div>
 
+    <!-- INFO PESERTA (kuota dihapus, ganti info submission count) -->
     <div class="bg-slate-900 border border-slate-700 p-3 rounded-2xl flex items-center justify-between mb-4">
       <div class="flex items-center gap-3 overflow-hidden">
         <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-400 flex-shrink-0">
@@ -127,18 +133,20 @@
         </div>
       </div>
       <div class="text-right flex-shrink-0">
-        <div class="text-[10px] text-slate-500 uppercase font-bold">Kuota Sesi Ini</div>
+        <div class="text-[10px] text-slate-500 uppercase font-bold">Submit Sesi Ini</div>
         <div class="flex items-center gap-1.5">
-          <span id="quotaDisplay" class="font-mono font-bold text-emerald-400 text-2xl">-</span>
-          <span class="text-slate-500 text-sm">/ <span id="quotaMax">-</span></span>
+          <span id="submitCountDisplay" class="font-mono font-bold text-emerald-400 text-2xl">0</span>
+          <span class="text-slate-500 text-sm">x</span>
         </div>
       </div>
     </div>
 
+    <!-- DISPLAY -->
     <div class="bg-slate-950 border border-slate-700 rounded-2xl p-4 text-right mb-4">
       <div id="calcDisplay" class="text-4xl font-mono font-bold text-amber-400 min-h-[48px] break-all">0</div>
     </div>
 
+    <!-- KEYPAD -->
     <div id="keypadSection" class="grid grid-cols-3 gap-3 mb-4">
       <button class="calc-btn" onclick="appendCalc('7')">7</button>
       <button class="calc-btn" onclick="appendCalc('8')">8</button>
@@ -157,17 +165,14 @@
       <button class="calc-btn text-amber-400" onclick="deleteCalc()">⌫</button>
     </div>
 
+    <!-- SUBMIT -->
     <button id="btnSubmitAnswer" onclick="submitAnswer()" class="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-black text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center">
       <span id="btnSubmitText">SUBMIT JAWABAN 🚀</span>
     </button>
 
-    <div id="lockedMessage" class="hidden mt-4 bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl text-center">
-      <i class="fas fa-lock text-amber-400 text-2xl mb-2"></i>
-      <p class="text-amber-400 font-bold text-sm" id="lockedReason">Menunggu sesi berikutnya...</p>
-    </div>
-
+    <!-- HINT -->
     <div class="text-center text-[11px] text-slate-500 mt-3">
-      <i class="fas fa-info-circle"></i> Kuota <span id="hintQuota">2</span>x per sesi. Jawaban salah kurangi <span id="hintPenalty">2</span> poin.
+      <i class="fas fa-info-circle"></i> Jawaban salah kurangi <span id="hintPenalty">2</span> poin. Jawaban benar: <span class="text-emerald-400">5-10 poin</span> (tergantung kecepatan).
     </div>
 
   </main>
@@ -177,10 +182,9 @@
     // KONFIGURASI PERMAINAN
     // ═══════════════════════════════════════════════════════════
     const GAME_CONFIG = {
-      MAX_POINT: 10,
-      MIN_POINT: 5,
-      WRONG_PENALTY: 2,
-      ATTEMPTS_PER_SESSION: 2
+      MAX_POINT: 20,
+      MIN_POINT: 10,
+      WRONG_PENALTY: 2
     };
 
     const SUPABASE_URL = 'https://endlrberfaxqhjrpvoss.supabase.co';
@@ -201,13 +205,14 @@
       step:  (t, m, d) => DEBUG && console.log(`%c[${t}] ➡️ ${m}`, 'color:#a855f7;font-weight:bold', d ?? '')
     };
 
+    // ═══════════════════════════════════════════════════════════
+    // STATE
+    // ═══════════════════════════════════════════════════════════
     let currentUser = null;
     let currentInput = '';
     let isSubmitting = false;
     let isSessionFrozen = false;
-    let isSelfLocked = false;
     let isEliminated = false;
-    let lockReason = '';
 
     let sessionIndex = 0;
     let totalSessions = 5;
@@ -216,20 +221,16 @@
     let currentPuzzleAnswer = null;
     let lastQuestionSig = '';
 
-    let sessionState = {
-      sessionIndex: 0,
-      attemptsUsed: 0,
-      isLocked: false,
-      lockReason: null
-    };
+    let submitCountThisSession = 0;   // ⭐ sekadar info, tidak untuk lock
 
+    // ═══════════════════════════════════════════════════════════
+    // DOM
+    // ═══════════════════════════════════════════════════════════
     const freezeOverlay = document.getElementById('freezeOverlay');
     const kioskTimerDisplay = document.getElementById('kioskTimerDisplay');
     const calcDisplay = document.getElementById('calcDisplay');
 
-    document.getElementById('hintQuota').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
     document.getElementById('hintPenalty').textContent = GAME_CONFIG.WRONG_PENALTY;
-    document.getElementById('quotaMax').textContent = GAME_CONFIG.ATTEMPTS_PER_SESSION;
 
     // ═══════════════════════════════════════════════════════════
     // ELIMINATION
@@ -261,14 +262,14 @@
     // ═══════════════════════════════════════════════════════════
     function loadUserFromStorage() {
       const sess = localStorage.getItem('userSession');
-      if (!sess) { window.location.href = '/login.html'; return null; }
+      if (!sess) { LOG.error('USER', '❌ Tidak ada userSession'); window.location.href = '/login.html'; return null; }
 
       let userSession;
       try { userSession = JSON.parse(sess); }
-      catch (e) { window.location.href = '/login.html'; return null; }
+      catch (e) { LOG.error('USER', '❌ Parse error'); window.location.href = '/login.html'; return null; }
 
       if (!userSession || !userSession.unique_id) { window.location.href = '/login.html'; return null; }
-      LOG.ok('USER', `✅ Session: ${userSession.unique_id} (${userSession.full_name || '-'})`);
+      LOG.ok('USER', `✅ Session: ${userSession.unique_id}`);
       return userSession;
     }
 
@@ -281,58 +282,6 @@
 
       if (error || !data) return null;
       return data;
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // ⭐ SESSION STATE — cek session_start_time untuk reset
-    // ═══════════════════════════════════════════════════════════
-    async function fetchSessionState(uid, sIndex, sStartTime) {
-      if (!sIndex) return { sessionIndex: 0, attemptsUsed: 0, isLocked: false, lockReason: null };
-
-      const { data, error } = await supabaseClient
-        .from('system_frenzy_cross_maze_session_state')
-        .select('*')
-        .eq('user_unique_id', uid)
-        .eq('session_index', sIndex)
-        .maybeSingle();
-
-      if (error || !data) {
-        return { sessionIndex: sIndex, attemptsUsed: 0, isLocked: false, lockReason: null };
-      }
-
-      // ⭐ Cek state lama: kalau state terakhir disave SEBELUM sesi ini mulai → anggap FRESH
-      const stateUpdated = data.updated_at ? new Date(data.updated_at).getTime() : 0;
-      const sessionStart = sStartTime ? new Date(sStartTime).getTime() : 0;
-
-      if (sessionStart > 0 && stateUpdated > 0 && stateUpdated < sessionStart) {
-        LOG.warn('STATE', `State lama terdeteksi (updated ${new Date(stateUpdated).toLocaleString()} < session ${new Date(sessionStart).toLocaleString()}). Reset.`);
-        return { sessionIndex: sIndex, attemptsUsed: 0, isLocked: false, lockReason: null };
-      }
-
-      return {
-        sessionIndex: data.session_index,
-        attemptsUsed: data.attempts_used || 0,
-        isLocked: data.is_locked || false,
-        lockReason: data.lock_reason || null
-      };
-    }
-
-    async function saveSessionState(uid, sIndex, state) {
-      const payload = {
-        user_unique_id: uid,
-        session_index: sIndex,
-        attempts_used: state.attemptsUsed,
-        is_locked: state.isLocked,
-        lock_reason: state.lockReason,
-        updated_at: new Date().toISOString()
-      };
-
-      const { error } = await supabaseClient
-        .from('system_frenzy_cross_maze_session_state')
-        .upsert(payload, { onConflict: 'user_unique_id,session_index' });
-
-      if (error) LOG.error('STATE', 'Gagal simpan state', error);
-      else LOG.ok('STATE', `State saved: attempts=${state.attemptsUsed}, locked=${state.isLocked}`);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -376,14 +325,12 @@
       if (data) onQuestionUpdate(data);
     }
 
-    // ⭐ FIX: deteksi sesi baru pakai sessionStartTime juga
     async function onQuestionUpdate(row) {
       const sig = `${row.session_index}|${row.updated_at}`;
       if (sig === lastQuestionSig) return;
       lastQuestionSig = sig;
 
       const prevSession = sessionIndex;
-      const prevStartTime = sessionStartTime;
 
       LOG.info('Q', `Sesi ${row.session_index}/${row.total_sessions}, jawaban: ${row.target_answer}`);
 
@@ -401,20 +348,16 @@
         return;
       }
 
-      // ⭐ Sesi baru = index beda ATAU start_time beda
-      const isNewSession = (prevSession !== sessionIndex) || (prevStartTime !== sessionStartTime);
-
-      if (isNewSession) {
-        LOG.ok('SESSION', `Sesi baru: ${sessionIndex} @ ${sessionStartTime}`);
-        sessionState = await fetchSessionState(currentUser.unique_id, sessionIndex, sessionStartTime);
-        LOG.info('SESSION', `State: attempts=${sessionState.attemptsUsed}, locked=${sessionState.isLocked}`);
+      // ⭐ Kalau sesi baru → reset counter submit
+      if (prevSession !== sessionIndex) {
+        LOG.ok('SESSION', `Sesi baru: ${sessionIndex}`);
+        submitCountThisSession = 0;
+        updateSubmitCountDisplay();
       }
 
       unfreezeSession();
       updateSessionBadge();
       updateKioskTimer();
-      updateQuotaDisplay();
-      applySelfLockIfNeeded();
     }
 
     function updateSessionBadge() {
@@ -437,36 +380,14 @@
 
     setInterval(updateKioskTimer, 500);
 
-    function updateQuotaDisplay() {
-      const remaining = Math.max(0, GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed);
-      document.getElementById('quotaDisplay').textContent = remaining;
+    function updateSubmitCountDisplay() {
+      const el = document.getElementById('submitCountDisplay');
+      if (el) el.textContent = submitCountThisSession;
     }
 
-    function applySelfLockIfNeeded() {
-      if (sessionState.isLocked) {
-        showSelfLock(sessionState.lockReason || 'Terkunci');
-      } else {
-        hideSelfLock();
-      }
-    }
-
-    function showSelfLock(reason) {
-      isSelfLocked = true;
-      lockReason = reason;
-      document.getElementById('lockedMessage').classList.remove('hidden');
-      document.getElementById('lockedReason').textContent = reason;
-      document.getElementById('keypadSection').classList.add('opacity-30', 'pointer-events-none');
-      document.getElementById('btnSubmitAnswer').classList.add('opacity-30', 'pointer-events-none');
-    }
-
-    function hideSelfLock() {
-      isSelfLocked = false;
-      lockReason = '';
-      document.getElementById('lockedMessage').classList.add('hidden');
-      document.getElementById('keypadSection').classList.remove('opacity-30', 'pointer-events-none');
-      document.getElementById('btnSubmitAnswer').classList.remove('opacity-30', 'pointer-events-none');
-    }
-
+    // ═══════════════════════════════════════════════════════════
+    // FREEZE / UNFREEZE
+    // ═══════════════════════════════════════════════════════════
     function freezeSession(msg, status) {
       if (isSessionFrozen) return;
       isSessionFrozen = true;
@@ -485,41 +406,55 @@
       document.querySelectorAll('button').forEach(b => b.disabled = false);
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // SKOR
+    // ═══════════════════════════════════════════════════════════
     function calculateCorrectScore() {
       if (!sessionStartTime) return GAME_CONFIG.MIN_POINT;
+
       const totalElapsed = (Date.now() - sessionStartTime) / 1000;
       const elapsedInSession = totalElapsed % sessionDuration;
       const remaining = Math.max(0, sessionDuration - elapsedInSession);
+
       const score = GAME_CONFIG.MIN_POINT
         + (remaining / sessionDuration) * (GAME_CONFIG.MAX_POINT - GAME_CONFIG.MIN_POINT);
       return parseFloat(score.toFixed(2));
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // KALKULATOR
+    // ═══════════════════════════════════════════════════════════
     function appendCalc(v) {
-      if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      if (currentInput.length < 10) { currentInput += v; updateDisplay(); }
+      if (isSessionFrozen || isEliminated) return;
+      if (currentInput.length < 10) {
+        currentInput += v;
+        updateDisplay();
+      }
     }
     function clearCalc() {
-      if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      currentInput = ''; updateDisplay();
+      if (isSessionFrozen || isEliminated) return;
+      currentInput = '';
+      updateDisplay();
     }
     function deleteCalc() {
-      if (isSessionFrozen || isSelfLocked || isEliminated) return;
-      currentInput = currentInput.slice(0, -1); updateDisplay();
+      if (isSessionFrozen || isEliminated) return;
+      currentInput = currentInput.slice(0, -1);
+      updateDisplay();
     }
-    function updateDisplay() { calcDisplay.textContent = currentInput || '0'; }
+    function updateDisplay() {
+      calcDisplay.textContent = currentInput || '0';
+    }
 
+    // ═══════════════════════════════════════════════════════════
+    // SUBMIT
+    // ═══════════════════════════════════════════════════════════
     async function submitAnswer() {
       if (!currentInput || isSubmitting) return;
       if (isEliminated) { alert('Kamu tereliminasi.'); return; }
       if (isSessionFrozen) { alert('Sesi belum dimulai!'); return; }
-      if (isSelfLocked) { alert(lockReason || 'Terkunci'); return; }
       if (!currentUser) { alert('Anda belum login!'); return; }
       if (sessionIndex === 0) { alert('Sesi belum dimulai!'); return; }
       if (currentPuzzleAnswer == null) { alert('Puzzle belum tersedia.'); return; }
-
-      const remaining = GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed;
-      if (remaining <= 0) { alert('Kuota sesi ini sudah habis!'); return; }
 
       isSubmitting = true;
       const btn = document.getElementById('btnSubmitText');
@@ -558,19 +493,10 @@
         return;
       }
 
-      sessionState.attemptsUsed++;
+      // ⭐ Update counter submit (info saja, tidak lock)
+      submitCountThisSession++;
+      updateSubmitCountDisplay();
 
-      if (isCorrect) {
-        sessionState.isLocked = true;
-        sessionState.lockReason = 'Sudah benar! Menunggu sesi berikutnya...';
-      } else if (sessionState.attemptsUsed >= GAME_CONFIG.ATTEMPTS_PER_SESSION) {
-        sessionState.isLocked = true;
-        sessionState.lockReason = 'Kuota habis! Menunggu sesi berikutnya...';
-      }
-
-      await saveSessionState(currentUser.unique_id, sessionIndex, sessionState);
-      updateQuotaDisplay();
-      applySelfLockIfNeeded();
       triggerFlash(isCorrect, points, correct);
     }
 
@@ -588,7 +514,6 @@
           <div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block">
             +${points.toFixed(2)} PTS
           </div>
-          <div class="text-lg mt-3 opacity-80">Kunci sampai sesi berikutnya</div>
         `;
       } else {
         tx.innerHTML = `
@@ -596,7 +521,6 @@
           <div class="text-3xl mt-4 font-mono bg-black/30 px-6 py-3 rounded-2xl inline-block text-rose-200">
             ${points} PTS
           </div>
-          <div class="text-lg mt-3 opacity-80">Sisa kuota: ${GAME_CONFIG.ATTEMPTS_PER_SESSION - sessionState.attemptsUsed}</div>
         `;
       }
 
@@ -616,6 +540,7 @@
     // ═══════════════════════════════════════════════════════════
     async function init() {
       LOG.ok('INIT', '══════════ KIOSK BOOT ══════════');
+      LOG.info('INIT', `Self-lock: DISABLED. Wrong penalty: -${GAME_CONFIG.WRONG_PENALTY}`);
 
       const userSession = loadUserFromStorage();
       if (!userSession) return;
@@ -636,7 +561,7 @@
       document.getElementById('selectedStudentSchool').textContent = school;
       document.getElementById('userGreeting').textContent = `Halo, ${name}!`;
 
-      updateQuotaDisplay();
+      updateSubmitCountDisplay();
       freezeSession('Menunggu admin memulai sesi...', 'WAITING');
       subscribeToQuestion();
 
