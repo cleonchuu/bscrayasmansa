@@ -563,7 +563,6 @@
     }
     .finalist-grid-card:hover {
       transform: translateY(-4px);
-      border-color: rgba(251, 191, 36, 0.9);
       box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
     }
     .finalist-grid-card .fgc-avatar {
@@ -820,6 +819,15 @@
     'SMPN 2 Bunguran Timur':      'SMPN2BUNGURANTIMUR.png',
     'SMPN 2 Bunguran Timur Laut': 'SMPN2BUNGURANTIMURLAUT.png',
     'SMP NURUL JANNAH':           'SMPNURULJANNAH.png'
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // 🏆 JUARA 1, 2, 3 — Hari 3 (hardcoded by waktu penyelesaian)
+  // ═══════════════════════════════════════════════════════════
+  const JUARA_MAP = {
+    'S1BT-003': 1, // Einstein Gutenberg   — 24:27,20
+    'SNJ-004':  2, // M. Nafiz Al Khawrizmi — 24:35,77
+    'S1BT-007': 3  // Ayuni Azzahra         — 24:53,76
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -1243,12 +1251,12 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FINALISTS — Merge HARDCODED (motto/prestasi) + users (foto/poin/eliminasi)
+  // 🔥 FINALISTS — Merge HARDCODED + users + JUARA_MAP
   // ═══════════════════════════════════════════════════════════
   async function fetchFinalistsMerged() {
     const uids = HARDCODED_FINALISTS.map(f => f.unique_id);
 
-    // 1) Fetch data user (avatar, poin, eliminasi) dari Supabase
+    // 1) Fetch data user dari Supabase
     let userMap = {};
     try {
       const { data, error } = await supabaseClient
@@ -1271,7 +1279,6 @@
     for (const h of HARDCODED_FINALISTS) {
       const u = userMap[h.unique_id];
 
-      // ⭐ Kalau di users ada DAN is_eliminated = true → SKIP
       if (u && u.is_eliminated === true) {
         LOG.info(`⏭️ Skip ${h.full_name} (${h.unique_id}) — sudah tereliminasi`);
         continue;
@@ -1285,12 +1292,18 @@
         total_point: Number(u?.total_points ?? 0),
         is_eliminated: u?.is_eliminated ?? false,
         motto: h.motto || '',
-        prestasi: Array.isArray(h.prestasi) ? h.prestasi : []
+        prestasi: Array.isArray(h.prestasi) ? h.prestasi : [],
+        juara: JUARA_MAP[h.unique_id] || null
       });
     }
 
-    // 3) Urutkan by total_point DESC (rank #1 = poin tertinggi)
-    merged.sort((a, b) => b.total_point - a.total_point);
+    // 3) Sort: JUARA 1,2,3 dulu (asc), sisanya by poin (desc)
+    merged.sort((a, b) => {
+      const ja = a.juara ?? 999;
+      const jb = b.juara ?? 999;
+      if (ja !== jb) return ja - jb;
+      return b.total_point - a.total_point;
+    });
 
     // 4) Assign rank_final
     merged.forEach((f, idx) => { f.rank_final = idx + 1; });
@@ -1305,6 +1318,7 @@
     });
 
     LOG.ok(`Finalists aktif: ${merged.length} orang`);
+    LOG.info(`🏆 Juara: ${merged.filter(f => f.juara).map(f => `#${f.juara} ${f.full_name}`).join(' | ')}`);
     return { list: merged, bioMap };
   }
 
@@ -1659,6 +1673,11 @@
       const el = document.createElement('div');
       el.className = 'finalist-avatar';
 
+      // ⭐ Border juara
+      if (f.juara === 1) el.style.borderColor = '#fbbf24';
+      else if (f.juara === 2) el.style.borderColor = '#cbd5e1';
+      else if (f.juara === 3) el.style.borderColor = '#d97706';
+
       const avatar = getAvatarUrl(f.unique_id, f.avatar_url);
       el.innerHTML = `
         <img src="${avatar}" alt="${f.full_name}" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}'"/>
@@ -1824,13 +1843,12 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS — Merge HARDCODED + users
+  // VIEW 4: FINALISTS — Merge HARDCODED + users + JUARA_MAP
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
     const mySession = STATE.finalistSessionId;
 
-    // ⭐ Ambil dari hardcoded + users
     const { list, bioMap } = await fetchFinalistsMerged();
 
     if (mySession !== STATE.finalistSessionId) return;
@@ -1887,7 +1905,7 @@
       return;
     }
 
-    // MODE AUTO
+    // MODE AUTO — mulai dari rank bawah ke atas
     const ordered = [...list].reverse();
     startConfettiLoop();
 
@@ -1934,8 +1952,23 @@
 
     const cards = finalists.map((f, idx) => {
       const avatar = getAvatarUrl(f.unique_id, f.avatar_url);
+
+      let juaraBadge = '';
+      let juaraBorder = 'rgba(251, 191, 36, 0.5)';
+      if (f.juara === 1) {
+        juaraBadge = `<div class="absolute -top-3 -right-3 text-4xl drop-shadow-lg" style="filter: drop-shadow(0 0 12px gold);">🥇</div>`;
+        juaraBorder = '#fbbf24';
+      } else if (f.juara === 2) {
+        juaraBadge = `<div class="absolute -top-3 -right-3 text-4xl drop-shadow-lg" style="filter: drop-shadow(0 0 12px silver);">🥈</div>`;
+        juaraBorder = '#cbd5e1';
+      } else if (f.juara === 3) {
+        juaraBadge = `<div class="absolute -top-3 -right-3 text-4xl drop-shadow-lg" style="filter: drop-shadow(0 0 12px #d97706);">🥉</div>`;
+        juaraBorder = '#d97706';
+      }
+
       return `
-        <div class="finalist-grid-card" style="animation-delay: ${idx * 40}ms">
+        <div class="finalist-grid-card relative" style="animation-delay: ${idx * 40}ms; border-color: ${juaraBorder};">
+          ${juaraBadge}
           <div class="fgc-avatar">
             <img src="${avatar}" alt="${f.full_name}"
                  onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(f.unique_id)}'"/>
@@ -1965,16 +1998,36 @@
     const isElim = p.is_eliminated === true;
     const bio = STATE.finalistBioMap[p.unique_id] || {};
 
-    LOG.info(`renderFinalistCard: ${p.full_name} | poin: ${p.total_point} | rank: ${rank}`);
+    LOG.info(`renderFinalistCard: ${p.full_name} | juara: ${p.juara || '-'} | poin: ${p.total_point} | rank: ${rank}`);
 
     let badge = `FINALIS`;
     let badgeClass = 'bg-amber-500 text-slate-950';
     let borderColor = '#fbbf24';
+    let glow = '';
+
+    // ⭐ Badge & border khusus juara 1/2/3
+    if (p.juara === 1) {
+      badge = `🥇 JUARA 1`;
+      badgeClass = 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950';
+      borderColor = '#fbbf24';
+      glow = 'shadow-[0_0_80px_rgba(251,191,36,0.7)]';
+    } else if (p.juara === 2) {
+      badge = `🥈 JUARA 2`;
+      badgeClass = 'bg-gradient-to-r from-slate-200 to-slate-400 text-slate-950';
+      borderColor = '#cbd5e1';
+      glow = 'shadow-[0_0_80px_rgba(203,213,225,0.5)]';
+    } else if (p.juara === 3) {
+      badge = `🥉 JUARA 3`;
+      badgeClass = 'bg-gradient-to-r from-orange-400 to-amber-700 text-white';
+      borderColor = '#d97706';
+      glow = 'shadow-[0_0_80px_rgba(217,119,6,0.5)]';
+    }
 
     if (isElim) {
       badge = '🚫 TERELIMINASI';
       badgeClass = 'bg-rose-600 text-white';
       borderColor = '#f43f5e';
+      glow = '';
     }
 
     const prestasiArr = Array.isArray(bio.prestasi) ? bio.prestasi : [];
@@ -1988,7 +2041,7 @@
       : `<span class="text-slate-500 italic">Belum ada motto</span>`;
 
     container.innerHTML = `
-      <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card"
+      <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card ${glow}"
            style="border-color: ${borderColor}">
         ${isElim ? '<div class="elim-stamp">ELIMINATED</div>' : ''}
 
@@ -2082,7 +2135,7 @@
             LOG.info(`🔄 Finalist reveal update: ${prevMode} → ${revealMode}`);
             stopFinalistReel();
 
-            // ⭐ SINGLE — fetch ulang dari users (biar kalau baru dieliminasi, langsung ke-skip)
+            // ⭐ SINGLE — fetch ulang dari users
             if (revealMode === 'single' && selectedUid) {
               const { list, bioMap } = await fetchFinalistsMerged();
               STATE.finalistData = list;
@@ -2138,14 +2191,12 @@
         STATE.realtimeConnected = status === 'SUBSCRIBED';
       });
 
-    // ⭐ Polling users juga biar kalau ada perubahan is_eliminated langsung terdeteksi
     supabaseClient.channel('users_rt_finalists')
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'users'
       }, (payload) => {
-        // Kalau yang berubah termasuk finalis & view sedang finalists/all → refresh
         const changedUid = payload?.new?.unique_id;
         const isFinalist = HARDCODED_FINALISTS.some(f => f.unique_id === changedUid);
         if (isFinalist) {
@@ -2165,6 +2216,7 @@
   (async function init() {
     LOG.ok('══════════ OPENING CEREMONY BOOT ══════════');
     LOG.ok(`Hardcoded finalists: ${HARDCODED_FINALISTS.length} orang`);
+    LOG.ok(`Juara hardcoded: ${Object.keys(JUARA_MAP).length} orang`);
     initBGM();
     await syncLayout();
     setupRealtime();
