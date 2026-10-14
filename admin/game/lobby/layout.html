@@ -825,9 +825,9 @@
   // 🏆 JUARA 1, 2, 3 — Hari 3 (hardcoded by waktu penyelesaian)
   // ═══════════════════════════════════════════════════════════
   const JUARA_MAP = {
-    'S1BT-003': 1, // Einstein Gutenberg   — 24:27,20
-    'SNJ-004':  2, // M. Nafiz Al Khawrizmi — 24:35,77
-    'S1BT-007': 3  // Ayuni Azzahra         — 24:53,76
+    'S1BT-003': { rank: 1, waktu: '24:27.20' }, // Einstein Gutenberg
+    'SNJ-004':  { rank: 2, waktu: '24:35.77' }, // M. Nafiz Al Khawrizmi
+    'S1BT-007': { rank: 3, waktu: '24:53.76' }  // Ayuni Azzahra
   };
 
   // ═══════════════════════════════════════════════════════════
@@ -1256,7 +1256,6 @@
   async function fetchFinalistsMerged() {
     const uids = HARDCODED_FINALISTS.map(f => f.unique_id);
 
-    // 1) Fetch data user dari Supabase
     let userMap = {};
     try {
       const { data, error } = await supabaseClient
@@ -1274,7 +1273,6 @@
       LOG.err('fetchFinalistsMerged exception', e);
     }
 
-    // 2) Merge + filter eliminasi
     const merged = [];
     for (const h of HARDCODED_FINALISTS) {
       const u = userMap[h.unique_id];
@@ -1293,11 +1291,11 @@
         is_eliminated: u?.is_eliminated ?? false,
         motto: h.motto || '',
         prestasi: Array.isArray(h.prestasi) ? h.prestasi : [],
-        juara: JUARA_MAP[h.unique_id] || null
+        juara: JUARA_MAP[h.unique_id]?.rank || null,
+        waktu: JUARA_MAP[h.unique_id]?.waktu || null
       });
     }
 
-    // 3) Sort: JUARA 1,2,3 dulu (asc), sisanya by poin (desc)
     merged.sort((a, b) => {
       const ja = a.juara ?? 999;
       const jb = b.juara ?? 999;
@@ -1305,10 +1303,8 @@
       return b.total_point - a.total_point;
     });
 
-    // 4) Assign rank_final
     merged.forEach((f, idx) => { f.rank_final = idx + 1; });
 
-    // 5) Bangun bio map
     const bioMap = {};
     merged.forEach(f => {
       bioMap[f.unique_id] = {
@@ -1318,7 +1314,7 @@
     });
 
     LOG.ok(`Finalists aktif: ${merged.length} orang`);
-    LOG.info(`🏆 Juara: ${merged.filter(f => f.juara).map(f => `#${f.juara} ${f.full_name}`).join(' | ')}`);
+    LOG.info(`🏆 Juara: ${merged.filter(f => f.juara).map(f => `#${f.juara} ${f.full_name} (${f.waktu})`).join(' | ')}`);
     return { list: merged, bioMap };
   }
 
@@ -1656,7 +1652,6 @@
     SOLAR_STATE.innerOrbitals = [];
     SOLAR_STATE.outerPlanets = [];
 
-    // ⭐ FINALIS: merge hardcoded (motto/prestasi) + users (foto/poin/eliminasi)
     const { list: finalistList, bioMap } = await fetchFinalistsMerged();
     STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
 
@@ -1673,7 +1668,6 @@
       const el = document.createElement('div');
       el.className = 'finalist-avatar';
 
-      // ⭐ Border juara
       if (f.juara === 1) el.style.borderColor = '#fbbf24';
       else if (f.juara === 2) el.style.borderColor = '#cbd5e1';
       else if (f.juara === 3) el.style.borderColor = '#d97706';
@@ -1966,6 +1960,11 @@
         juaraBorder = '#d97706';
       }
 
+      const isJuara = (f.juara === 1 || f.juara === 2 || f.juara === 3);
+      const infoAngkaHtml = isJuara
+        ? `<div class="fgc-points" style="background:rgba(251,191,36,0.15); border-color:rgba(251,191,36,0.6); color:#fbbf24;">⏱️ ${f.waktu || '-'}</div>`
+        : `<div class="fgc-points">${Number(f.total_point || 0).toFixed(0)} PTS</div>`;
+
       return `
         <div class="finalist-grid-card relative" style="animation-delay: ${idx * 40}ms; border-color: ${juaraBorder};">
           ${juaraBadge}
@@ -1975,7 +1974,7 @@
           </div>
           <div class="fgc-name">${f.full_name || f.unique_id}</div>
           <div class="fgc-school">${f.school_name || ''}</div>
-          <div class="fgc-points">${Number(f.total_point || 0).toFixed(0)} PTS</div>
+          ${infoAngkaHtml}
         </div>
       `;
     }).join('');
@@ -2005,7 +2004,7 @@
     let borderColor = '#fbbf24';
     let glow = '';
 
-    // ⭐ Badge & border khusus juara 1/2/3
+    // ⭐ Badge khusus juara
     if (p.juara === 1) {
       badge = `🥇 JUARA 1`;
       badgeClass = 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950';
@@ -2040,6 +2039,17 @@
       ? `<div class="fic-motto">"${bio.motto}"</div>`
       : `<span class="text-slate-500 italic">Belum ada motto</span>`;
 
+    // ⭐ Info angka: WAKTU untuk juara 1/2/3, POIN untuk finalis lain
+    const isJuara = (p.juara === 1 || p.juara === 2 || p.juara === 3);
+    const infoAngkaHtml = isJuara
+      ? `<div class="fic-points" style="font-family:'Orbitron',monospace; font-size:2.2rem;">
+           <i class="fas fa-stopwatch mr-3" style="font-size:1.6rem;"></i>${p.waktu || '-'}
+         </div>
+         <div class="text-[11px] text-amber-300 uppercase tracking-[0.25em] font-bold -mt-2 ml-1">
+           ⏱️ Waktu Selesai
+         </div>`
+      : `<div class="fic-points">${Number(p.total_point || 0).toFixed(2)} PTS</div>`;
+
     container.innerHTML = `
       <div class="rank-card relative ${isElim ? 'eliminated' : ''} finalist-info-card ${glow}"
            style="border-color: ${borderColor}">
@@ -2056,7 +2066,7 @@
           <div class="fic-school">
             <i class="fas fa-school mr-2"></i>${p.school_name || ''}
           </div>
-          <div class="fic-points">${Number(p.total_point || 0).toFixed(2)} PTS</div>
+          ${infoAngkaHtml}
 
           <div class="fic-info-block">
             <div class="fic-info-label">
@@ -2135,7 +2145,6 @@
             LOG.info(`🔄 Finalist reveal update: ${prevMode} → ${revealMode}`);
             stopFinalistReel();
 
-            // ⭐ SINGLE — fetch ulang dari users
             if (revealMode === 'single' && selectedUid) {
               const { list, bioMap } = await fetchFinalistsMerged();
               STATE.finalistData = list;
@@ -2156,7 +2165,6 @@
               return;
             }
 
-            // AUTO / ALL → restart
             startFinalists();
             return;
           }
