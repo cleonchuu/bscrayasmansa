@@ -809,7 +809,6 @@
 
   const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public`;
   const SCHOOL_LOGO_BASE = `${STORAGE_BASE}/SCHOOL_LOGO`;
-  const AVATAR_BASE = `${STORAGE_BASE}/avatar`; // ⚠️ sesuaikan kalau nama bucket beda
 
   const SCHOOL_LOGO_MAP = {
     'MTS DARUSSALAM':             'MTSDARUSSALAM.png',
@@ -824,17 +823,14 @@
   };
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 HARDCODED FINALISTS — EDIT DI SINI
+  // 🔥 HARDCODED FINALISTS — motto & prestasi
+  // Foto/poin/eliminasi diambil dari tabel `users`
   // ═══════════════════════════════════════════════════════════
-  // Kolom avatar_url: isi URL lengkap kalau mau pakai foto asli,
-  // atau biarkan '' untuk fallback ke Dicebear.
   const HARDCODED_FINALISTS = [
     {
       unique_id: 'S1BT-004',
       full_name: 'ADILLAH NAJIHIN',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '', // ← isi URL foto kalau ada
-      total_point: 0,  // ← isi poin manual (opsional, biar tampil di kartu)
       motto: 'Coba aja dulu',
       prestasi: [
         'Juara 1 umum kelas 7 semester 1',
@@ -847,17 +843,13 @@
       unique_id: 'S1BT-007',
       full_name: 'AYUNI AZZAHRA',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '',
-      total_point: 0,
       motto: 'Selalu mencoba tanpa adanya kata menyerah',
       prestasi: ['Juara Kelas']
     },
     {
       unique_id: 'SNJ-005',
       full_name: 'AZRIL HERMAWAN',
-      school_name: 'SMP Nurul Jannah',
-      avatar_url: '',
-      total_point: 0,
+      school_name: 'SMP NURUL JANNAH',
       motto: 'Berani bermimpi, tekun berusaha, siap meraih cita-cita.',
       prestasi: [
         'Juara 1 kelas',
@@ -868,8 +860,6 @@
       unique_id: 'S1BT-002',
       full_name: 'CATHLYN LADY PHANG',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '',
-      total_point: 0,
       motto: '"Whatever you do, work at it with all your heart, as working for the Lord." - Kolossians 3:23',
       prestasi: ['Juara 1 di kelas dan Juara 1 di tingkat angkatan']
     },
@@ -877,8 +867,6 @@
       unique_id: 'S1BT-013',
       full_name: 'DUTA ALAMSYAH',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '',
-      total_point: 0,
       motto: 'Jangan pernah menyerah dan teruslah berdoa untuk mencapai apa yang kamu impikan. Tuhan pasti akan membantu, karena tanpa doa dan usaha, kamu tidak akan meraihnya.',
       prestasi: [
         'Juara 1 Kelas 7.2 semester 1',
@@ -889,8 +877,6 @@
       unique_id: 'S1BT-003',
       full_name: 'Einstein Gutenberg',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '',
-      total_point: 0,
       motto: 'Kurangi keluhan, tingkatkan kemampuan',
       prestasi: [
         'Lolos OSN Matematika tingkat provinsi 2 kali',
@@ -900,27 +886,21 @@
     {
       unique_id: 'MDX-004',
       full_name: 'FAIZAH SYAFINA',
-      school_name: 'MTS Darussalam',
-      avatar_url: '',
-      total_point: 0,
+      school_name: 'MTS DARUSSALAM',
       motto: 'Sukses dunia dan akhirat',
       prestasi: ['Juara kelas']
     },
     {
       unique_id: 'SNJ-004',
       full_name: 'M. NAFIZ AL KHAWRIZMI',
-      school_name: 'SMP Nurul Jannah',
-      avatar_url: '',
-      total_point: 0,
+      school_name: 'SMP NURUL JANNAH',
       motto: 'Jadikan kegagalan sebagai pelajaran, bukan alasan untuk berhenti.',
-      prestasi: [] // kosong → tampil "Belum ada data prestasi"
+      prestasi: []
     },
     {
       unique_id: 'SNX-002',
       full_name: 'NAUFAL AFIQ PRANOTO',
       school_name: 'SMPIT NIQ',
-      avatar_url: '',
-      total_point: 0,
       motto: 'Prove them wrong',
       prestasi: [
         'Juara 2 kelas 7',
@@ -934,8 +914,6 @@
       unique_id: 'S1BT-008',
       full_name: 'VICKY CALISTAA',
       school_name: 'SMPN 1 Bunguran Timur',
-      avatar_url: '',
-      total_point: 0,
       motto: 'Berani mencoba dan percaya pada proses',
       prestasi: ['Ranking 5']
     }
@@ -1252,7 +1230,7 @@
     }
   }
 
-  // FETCH (masih dipakai untuk per_school & all_participants)
+  // FETCH
   async function fetchParticipantsBySchool(school) {
     const { data, error } = await supabaseClient.rpc('get_participants_by_school', { p_school: school });
     if (error) { LOG.err('fetchParticipantsBySchool', error); return []; }
@@ -1265,30 +1243,69 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FINALISTS — HARDCODED (tidak pakai Supabase)
+  // 🔥 FINALISTS — Merge HARDCODED (motto/prestasi) + users (foto/poin/eliminasi)
   // ═══════════════════════════════════════════════════════════
-  function getHardcodedFinalists() {
-    // Return salinan + tambah rank_final + bangun bio map
-    const list = HARDCODED_FINALISTS.map((f, idx) => ({
-      unique_id: f.unique_id,
-      full_name: f.full_name,
-      school_name: f.school_name,
-      avatar_url: f.avatar_url || '',
-      total_point: Number(f.total_point || 0),
-      is_eliminated: false,
-      rank_final: idx + 1
-    }));
+  async function fetchFinalistsMerged() {
+    const uids = HARDCODED_FINALISTS.map(f => f.unique_id);
 
-    // Bangun bio map dari data yang sama
+    // 1) Fetch data user (avatar, poin, eliminasi) dari Supabase
+    let userMap = {};
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('unique_id, full_name, school_name, avatar_url, total_points, is_eliminated')
+        .in('unique_id', uids);
+
+      if (error) {
+        LOG.warn('fetchFinalistsMerged users error', error.message);
+      } else {
+        (data || []).forEach(u => { userMap[u.unique_id] = u; });
+        LOG.info(`fetchFinalistsMerged: ${data?.length || 0} users dari Supabase`);
+      }
+    } catch (e) {
+      LOG.err('fetchFinalistsMerged exception', e);
+    }
+
+    // 2) Merge + filter eliminasi
+    const merged = [];
+    for (const h of HARDCODED_FINALISTS) {
+      const u = userMap[h.unique_id];
+
+      // ⭐ Kalau di users ada DAN is_eliminated = true → SKIP
+      if (u && u.is_eliminated === true) {
+        LOG.info(`⏭️ Skip ${h.full_name} (${h.unique_id}) — sudah tereliminasi`);
+        continue;
+      }
+
+      merged.push({
+        unique_id: h.unique_id,
+        full_name: u?.full_name || h.full_name,
+        school_name: u?.school_name || h.school_name,
+        avatar_url: u?.avatar_url || '',
+        total_point: Number(u?.total_points ?? 0),
+        is_eliminated: u?.is_eliminated ?? false,
+        motto: h.motto || '',
+        prestasi: Array.isArray(h.prestasi) ? h.prestasi : []
+      });
+    }
+
+    // 3) Urutkan by total_point DESC (rank #1 = poin tertinggi)
+    merged.sort((a, b) => b.total_point - a.total_point);
+
+    // 4) Assign rank_final
+    merged.forEach((f, idx) => { f.rank_final = idx + 1; });
+
+    // 5) Bangun bio map
     const bioMap = {};
-    HARDCODED_FINALISTS.forEach(f => {
+    merged.forEach(f => {
       bioMap[f.unique_id] = {
-        motto: (f.motto || '').trim(),
-        prestasi: Array.isArray(f.prestasi) ? f.prestasi : []
+        motto: f.motto,
+        prestasi: f.prestasi
       };
     });
 
-    return { list, bioMap };
+    LOG.ok(`Finalists aktif: ${merged.length} orang`);
+    return { list: merged, bioMap };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1625,19 +1642,8 @@
     SOLAR_STATE.innerOrbitals = [];
     SOLAR_STATE.outerPlanets = [];
 
-    // ⭐ FINALIS: pakai HARDCODED, bukan dari Supabase
-    const finalistList = HARDCODED_FINALISTS.map((f, idx) => ({
-      unique_id: f.unique_id,
-      full_name: f.full_name,
-      school_name: f.school_name,
-      avatar_url: f.avatar_url || '',
-      total_point: Number(f.total_point || 0),
-      is_eliminated: false,
-      rank_final: idx + 1
-    }));
-
-    // build bio map dari hardcoded juga
-    const { bioMap } = getHardcodedFinalists();
+    // ⭐ FINALIS: merge hardcoded (motto/prestasi) + users (foto/poin/eliminasi)
+    const { list: finalistList, bioMap } = await fetchFinalistsMerged();
     STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
 
     const innerRing = document.createElement('div');
@@ -1818,26 +1824,26 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // VIEW 4: FINALISTS — HARDCODED
+  // VIEW 4: FINALISTS — Merge HARDCODED + users
   // ═══════════════════════════════════════════════════════════
   async function startFinalists() {
     STATE.finalistSessionId++;
     const mySession = STATE.finalistSessionId;
 
-    // ⭐ Ambil dari HARDCODED
-    const { list, bioMap } = getHardcodedFinalists();
+    // ⭐ Ambil dari hardcoded + users
+    const { list, bioMap } = await fetchFinalistsMerged();
+
+    if (mySession !== STATE.finalistSessionId) return;
+
     STATE.finalistData = list;
     STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
-
-    LOG.ok(`Finalists (hardcoded): ${list.length} orang`);
-    LOG.info(`Bio map keys:`, Object.keys(bioMap));
 
     const headerCount = document.getElementById('finalistsHeaderCount');
     if (headerCount) headerCount.textContent = list.length;
 
     if (list.length === 0) {
       document.getElementById('finalistCardContainer').innerHTML =
-        '<p class="text-slate-500 text-xl">Belum ada finalis.</p>';
+        '<p class="text-slate-500 text-xl">Belum ada finalis aktif.</p>';
       return;
     }
 
@@ -1846,7 +1852,7 @@
 
     LOG.ok(`Finalist reveal mode: ${mode}`);
 
-    // ⭐ MODE: SINGLE
+    // MODE SINGLE
     if (mode === 'single' && selectedUid) {
       const target = list.find(f => f.unique_id === selectedUid);
       if (target) {
@@ -1857,12 +1863,12 @@
         playBell();
       } else {
         document.getElementById('finalistCardContainer').innerHTML =
-          '<p class="text-slate-500 text-xl">Finalis tidak ditemukan.</p>';
+          '<p class="text-slate-500 text-xl">Finalis tidak ditemukan / sudah tereliminasi.</p>';
       }
       return;
     }
 
-    // ⭐ MODE: ALL
+    // MODE ALL
     if (mode === 'all') {
       renderAllFinalistsGrid(list);
       startConfettiLoop();
@@ -1881,7 +1887,7 @@
       return;
     }
 
-    // ⭐ MODE: AUTO — rotate dari rank akhir ke #1
+    // MODE AUTO
     const ordered = [...list].reverse();
     startConfettiLoop();
 
@@ -1959,7 +1965,7 @@
     const isElim = p.is_eliminated === true;
     const bio = STATE.finalistBioMap[p.unique_id] || {};
 
-    LOG.info(`renderFinalistCard: ${p.full_name} | bio:`, bio);
+    LOG.info(`renderFinalistCard: ${p.full_name} | poin: ${p.total_point} | rank: ${rank}`);
 
     let badge = `FINALIS · #${rank}`;
     let badgeClass = 'bg-amber-500 text-slate-950';
@@ -2029,7 +2035,7 @@
     }
   }
 
-  // SYNC LAYOUT (masih dari Supabase — cuma buat kontrol view/mode)
+  // SYNC LAYOUT
   async function syncLayout() {
     try {
       const { data, error } = await supabaseClient
@@ -2076,9 +2082,13 @@
             LOG.info(`🔄 Finalist reveal update: ${prevMode} → ${revealMode}`);
             stopFinalistReel();
 
-            // ⭐ SINGLE — sekarang tinggal render, semua data sudah hardcoded
+            // ⭐ SINGLE — fetch ulang dari users (biar kalau baru dieliminasi, langsung ke-skip)
             if (revealMode === 'single' && selectedUid) {
-              const target = STATE.finalistData.find(f => f.unique_id === selectedUid);
+              const { list, bioMap } = await fetchFinalistsMerged();
+              STATE.finalistData = list;
+              STATE.finalistBioMap = { ...STATE.finalistBioMap, ...bioMap };
+
+              const target = list.find(f => f.unique_id === selectedUid);
               if (target) {
                 renderFinalistCard(target);
                 startConfettiLoop();
@@ -2086,7 +2096,9 @@
                 for (let k = 0; k < 12; k++) rainConfetti(2);
                 playBell();
               } else {
-                LOG.warn(`Finalis ${selectedUid} tidak ada di hardcoded list`);
+                LOG.warn(`Finalis ${selectedUid} tidak ada / sudah tereliminasi`);
+                document.getElementById('finalistCardContainer').innerHTML =
+                  '<p class="text-slate-500 text-xl">Finalis sudah tereliminasi.</p>';
               }
               return;
             }
@@ -2124,6 +2136,26 @@
       .subscribe(status => {
         LOG.info(`Realtime: ${status}`);
         STATE.realtimeConnected = status === 'SUBSCRIBED';
+      });
+
+    // ⭐ Polling users juga biar kalau ada perubahan is_eliminated langsung terdeteksi
+    supabaseClient.channel('users_rt_finalists')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'users'
+      }, (payload) => {
+        // Kalau yang berubah termasuk finalis & view sedang finalists/all → refresh
+        const changedUid = payload?.new?.unique_id;
+        const isFinalist = HARDCODED_FINALISTS.some(f => f.unique_id === changedUid);
+        if (isFinalist) {
+          LOG.info(`👤 User update terdeteksi: ${changedUid} (is_eliminated: ${payload?.new?.is_eliminated})`);
+          STATE.lastSig = '';
+          syncLayout();
+        }
+      })
+      .subscribe(status => {
+        LOG.info(`Realtime users: ${status}`);
       });
 
     setInterval(syncLayout, 2000);
