@@ -65,6 +65,9 @@
       <div>
         <h1 class="text-xl font-black text-amber-400 tracking-wide">ADMIN DASHBOARD</h1>
         <p class="text-xs text-slate-400">Crypta Treasure Hunt • Supabase Realtime Engine</p>
+        <div id="supabaseStatus" class="text-xs font-bold text-slate-400 mt-1 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-slate-500"></span> Loading...
+        </div>
       </div>
     </div>
 
@@ -91,7 +94,7 @@
 
   <main class="flex-1 p-6 space-y-6">
 
-    <!-- STATS CARDS (⭐ tambah kartu eliminasi) -->
+    <!-- STATS CARDS -->
     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
       <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 flex items-center justify-between">
         <div>
@@ -117,7 +120,6 @@
         <div class="text-3xl bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">📊</div>
       </div>
 
-      <!-- ⭐ Kartu Aktif -->
       <div class="bg-slate-800 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between">
         <div>
           <div class="text-xs text-emerald-400 font-medium">Aktif (Lolos)</div>
@@ -126,7 +128,6 @@
         <div class="text-3xl bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30">✅</div>
       </div>
 
-      <!-- ⭐ Kartu Tereliminasi -->
       <div class="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between">
         <div>
           <div class="text-xs text-rose-400 font-medium">Tereliminasi</div>
@@ -198,14 +199,12 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <!-- ⭐ Filter status -->
           <select id="filterStatus" onchange="filterTable()" class="bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400">
             <option value="all">Semua Peserta</option>
             <option value="active">✅ Hanya Aktif</option>
             <option value="eliminated">🚫 Hanya Tereliminasi</option>
           </select>
 
-          <!-- Search -->
           <div class="w-full sm:w-64">
             <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari ID / Nama / Sekolah..." class="w-full bg-slate-900 text-slate-200 text-xs border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-amber-400 placeholder-slate-500">
           </div>
@@ -274,17 +273,21 @@
         renderSchoolRank();
         renderSimpleUserTable();
 
-        document.getElementById('supabaseStatus').innerHTML = `
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
-        `;
-        document.getElementById('supabaseStatus').className = "text-xs font-bold text-emerald-400 mt-2 flex items-center gap-1.5";
-
+        // ⭐ Safe null check
+        const statusEl = document.getElementById('supabaseStatus');
+        if (statusEl) {
+          statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected`;
+          statusEl.className = "text-xs font-bold text-emerald-400 mt-1 flex items-center gap-1.5";
+        }
       } catch (err) {
         console.error("Error fetching users data:", err);
-        document.getElementById('supabaseStatus').innerHTML = `
-          <span class="w-2 h-2 rounded-full bg-red-500"></span> Error Load Data
-        `;
-        document.getElementById('supabaseStatus').className = "text-xs font-bold text-red-400 mt-2 flex items-center gap-1.5";
+
+        // ⭐ Safe null check
+        const statusEl = document.getElementById('supabaseStatus');
+        if (statusEl) {
+          statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Error Load Data`;
+          statusEl.className = "text-xs font-bold text-red-400 mt-1 flex items-center gap-1.5";
+        }
       }
     }
 
@@ -300,18 +303,26 @@
       const aktif = globalParticipants.filter(p => !p.isEliminated).length;
       const elim = globalParticipants.filter(p => p.isEliminated).length;
 
-      document.getElementById('statTotalPeserta').textContent = totalPeserta;
-      document.getElementById('statTotalSekolah').textContent = schoolsSet.size;
-      document.getElementById('statAvgPoin').textContent = avgPoin.toLocaleString();
-      document.getElementById('statAktif').textContent = aktif;
-      document.getElementById('statTereliminasi').textContent = elim;
+      const elTotal = document.getElementById('statTotalPeserta');
+      const elSekolah = document.getElementById('statTotalSekolah');
+      const elAvg = document.getElementById('statAvgPoin');
+      const elAktif = document.getElementById('statAktif');
+      const elElim = document.getElementById('statTereliminasi');
+
+      if (elTotal) elTotal.textContent = totalPeserta;
+      if (elSekolah) elSekolah.textContent = schoolsSet.size;
+      if (elAvg) elAvg.textContent = avgPoin.toLocaleString();
+      if (elAktif) elAktif.textContent = aktif;
+      if (elElim) elElim.textContent = elim;
     }
 
     // ═══════════════════════════════════════════════════════════
-    // TOP 10 (⭐ dengan badge elim)
+    // TOP 10
     // ═══════════════════════════════════════════════════════════
     function renderTop10() {
       const container = document.getElementById('top10Container');
+      if (!container) return;
+
       const top10 = globalParticipants.slice(0, 10);
 
       if (top10.length === 0) {
@@ -353,7 +364,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // RANKING SEKOLAH (⭐ dengan kolom aktif/elim)
+    // RANKING SEKOLAH
     // ═══════════════════════════════════════════════════════════
     function renderSchoolRank() {
       const schoolMap = {};
@@ -374,6 +385,8 @@
       })).sort((a, b) => b.avg - a.avg);
 
       const tbody = document.getElementById('schoolRankBody');
+      if (!tbody) return;
+
       if (schools.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Belum ada sekolah terdaftar.</td></tr>`;
         return;
@@ -392,7 +405,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // TABEL PESERTA (⭐ kolom status)
+    // TABEL PESERTA
     // ═══════════════════════════════════════════════════════════
     function renderSimpleUserTable() {
       const tbody = document.getElementById('participantMatrixBody');
@@ -433,7 +446,8 @@
 
     function updateRowCount() {
       const visible = document.querySelectorAll('.participant-row:not([style*="display: none"])').length;
-      document.getElementById('rowCount').textContent = visible;
+      const el = document.getElementById('rowCount');
+      if (el) el.textContent = visible;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -449,7 +463,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════
-    // FILTER (⭐ search + status)
+    // FILTER
     // ═══════════════════════════════════════════════════════════
     function filterTable() {
       const input = document.getElementById('searchInput').value.toLowerCase();
